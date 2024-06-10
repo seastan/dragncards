@@ -143,12 +143,6 @@
       game
     end
 
-    # Do post new game actions
-    game = if game_def["automation"]["postNewGameActionList"] do
-      Evaluate.evaluate_with_timeout(game, game_def["automation"]["postNewGameActionList"])
-    else
-      game
-    end
     Logger.debug("Set game settings")
     game
   end

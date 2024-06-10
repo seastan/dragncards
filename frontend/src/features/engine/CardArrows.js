@@ -14,8 +14,7 @@ const arrowDivStyle = {
   width: '0px',
   height: '0px',
   top: '50%',
-  left: '50%',
-  zIndex: 1e5
+  left: '50%'
 };
 
 export const CardArrows = React.memo(({ cardId }) => {

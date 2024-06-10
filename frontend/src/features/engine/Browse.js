@@ -9,28 +9,28 @@ import { setDropdownMenu, setTyping } from "../store/playerUiSlice";
 import { useGameL10n } from "./hooks/useGameL10n";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { useDoActionList } from "./hooks/useDoActionList";
-import { useLayout } from "./hooks/useLayout";
-import { convertToPercentage, getParentCardsInGroup } from "./functions/common";
+import { DEFAULT_CARD_Z_INDEX, getParentCardsInGroup } from "./functions/common";
+import Draggable from "react-draggable";
+import { useCardScaleFactor } from "./hooks/useCardScaleFactor";
 
 const isNormalInteger = (val) => {
   var n = Math.floor(Number(val));
   return n !== Infinity && n === val && n >= 0;
 }
 
+const browseWidth = "98%";
+const browseLeft = "1%";
+
 export const Browse = React.memo(({}) => {
   const dispatch = useDispatch();
   const gameL10n = useGameL10n();
   const gameDef = useGameDefinition();
   const playerN = useSelector(state => state?.playerUi?.playerN);
-  const playerData = useSelector(state => state?.gameUi?.game?.playerData);
   const groupId = useSelector(state => state?.gameUi?.game?.playerData?.[playerN]?.browseGroup?.id);
   const browseGroupTopN = useSelector(state => state?.gameUi?.game?.playerData?.[playerN]?.browseGroup?.topN);
   const group = useSelector(state => state?.gameUi?.game?.groupById?.[groupId]);
-  const layout = useLayout();
-  var region = layout?.browse;
-  const browseWidth = convertToPercentage(region.width);
-  const regionWidthInt = parseInt(browseWidth.substring(0, browseWidth.length - 1))
-  region = {...region, groupId: groupId, width: `${regionWidthInt*0.7}%`}
+  const cardScaleFactor = useCardScaleFactor();
+  const region = {type: "fan", direction: "horizontal", groupId: groupId, layerIndex: 9, left: browseLeft, width: "65%", top: "50%", height: `${cardScaleFactor*1.1 + 3}vh`, top: "50%"};
   const game = useSelector(state => state?.gameUi?.game);
   const parentCards = getParentCardsInGroup(game, groupId);
   const [searchForProperty, setSearchForProperty] = useState('All');
@@ -173,116 +173,118 @@ export const Browse = React.memo(({}) => {
   }
 
   return(
-    <div className="absolute bg-gray-700 w-full" 
+    //<Draggable handle="strong">
+    <div className="absolute rounded-lg bg-gray-700 w-full" 
       style={{
-        left: convertToPercentage(region.left), 
-        width: browseWidth, 
-        top: convertToPercentage(region.top), 
-        height: convertToPercentage(region.height), 
-        zIndex: 1e3
+        left: region.left,
+        width: browseWidth,
+        top: region.top,
+        height: region.height,
+        zIndex: 2*DEFAULT_CARD_Z_INDEX+2,
+        boxShadow: "0 0 10px 5px rgba(0,0,0,0.6)"
       }}>
-      <strong className="absolute bg-gray-600 w-full text-gray-300 flex justify-center items-center" style={{top:"-20px", height: "20px"}}>
+      <strong className="bg-gray-600 w-full text-gray-300 flex justify-center items-center" style={{height: "3vh", borderTopLeftRadius: "1vh", borderTopRightRadius: "1vh"}}>
         <FontAwesomeIcon onClick={(event) => handleBarsClick(event)}  className="cursor-pointer hover:text-white" icon={faBars}/>
         <span className="px-2">{gameL10n(gameDef.groups[group.id].label)}</span>
       </strong>
       
-
-      <div className="h-full float-left " style={{width: "75%"}}>        
-        <div
-          className="relative h-full float-left select-none text-gray-300"
-          style={{width:"1.7vh"}}>
-            <div className="relative w-full h-full">
-            {region.hideTitle ? null :
-              <span 
-                className="absolute pb-2 overflow-hidden" 
-                style={{fontSize: "1.5vh", top: "50%", left: "50%", transform: `translate(-50%, -70%) rotate(90deg)`, whiteSpace: "nowrap"}}>
-                 (Top)
-              </span>
-            }
-            </div>
-        </div>
-        <div className="h-full w-full" style={{marginLeft: "1.7vh"}}>
-          <DroppableRegion
-            groupId={groupId}
-            region={region}
-            selectedStackIndices={filteredStackIndices}
-          />
-        </div>
-      </div>
- 
-      <div className="absolute h-full p-2 select-none" style={{left:"70%", width:"20%"}}>
-            
-        <div className="h-1/5 w-full">
-          <div className="h-full float-left w-1/2 px-0.5">
-            <select 
-              name="numFaceup" 
-              id="numFaceup"
-              className="form-control w-full bg-gray-900 text-white border-0 h-full px-1 py-0"
-              onChange={handleSelectClick}>
-              <option value="" disabled selected>{gameL10n("Peek at...")}</option>
-              <option value="None">{gameL10n("None")}</option>
-              <option value="All">{gameL10n("All")}</option>
-              <option value="5">{gameL10n("Top 5")}</option>
-              <option value="10">{gameL10n("Top 10")}</option>
-            </select>
+      <div className="w-full" style={{height: `calc(100% - 3vh)`}}>
+        <div className="h-full float-left" style={{width: "70%"}}>        
+          <div
+            className="relative h-full float-left select-none text-gray-300"
+            style={{width:"1.7vh"}}>
+              <div className="relative w-full h-full">
+                <span 
+                  className="absolute pb-2 overflow-hidden" 
+                  style={{fontSize: "1.5vh", top: "50%", left: "50%", transform: `translate(-50%, -70%) rotate(90deg)`, whiteSpace: "nowrap"}}>
+                  (Top)
+                </span>
+              </div>
           </div>
-          <div className="h-full float-left w-1/2 px-0.5">
-            <input
-              type="text"
-              name="name"
-              id="name"
-              placeholder="Search.."
-              className="form-control w-full bg-gray-900 text-white border-0 h-full px-1"
-              onFocus={event => dispatch(setTyping(true))}
-              onBlur={event => dispatch(setTyping(false))}
-              onChange={handleInputTyping}
+          <div className="h-full" style={{marginLeft: "1.7vh", width: "calc(100% - 1.7vh)"}}>
+            <DroppableRegion
+              groupId={groupId}
+              region={region}
+              selectedStackIndices={filteredStackIndices}
             />
           </div>
         </div>
-        {pairedFilterButtons.map((row, rowIndex) => {
-          return(
-            <div className="w-full text-white text-center" style={{height: `calc(100% / ${pairedFilterButtons.length+1})`}}>
-              {row.map((item, itemIndex) => {
-                return(
-                  <div className="h-full float-left w-1/2 p-0.5">
-                    <div className={"h-full w-full flex items-center justify-center hover:bg-gray-600 rounded" + (searchForProperty === item ? " bg-red-800" : " bg-gray-800")}
-                      onClick={() => setSearchForProperty(item)}>    
-                      {gameL10n(row[itemIndex])}
-                    </div>
-                  </div>
-                )
-              })}
-          </div>
-          )})
-        }
-      </div>
-
-      <div className="absolute h-full float-left p-1 select-none" style={{left: "90%", width: "10%"}}>
-        <div className="h-1/4 w-full text-white text-center">
-          <div className="h-full float-left w-full p-0.5">
-            <div className="h-full w-full">   
-              Close &
+  
+        <div className="float-left p-1 pl-2 h-full select-none" style={{left:"70%", width:"20%"}}>
+              
+          <div className="h-1/5 w-full">
+            <div className="h-full float-left w-1/2 px-0.5">
+              <select 
+                name="numFaceup" 
+                id="numFaceup"
+                className="form-control w-full bg-gray-900 text-white border-0 h-full px-1 py-0"
+                onChange={handleSelectClick}>
+                <option value="" disabled selected>{gameL10n("Peek at...")}</option>
+                <option value="None">{gameL10n("None")}</option>
+                <option value="All">{gameL10n("All")}</option>
+                <option value="5">{gameL10n("Top 5")}</option>
+                <option value="10">{gameL10n("Top 10")}</option>
+              </select>
+            </div>
+            <div className="h-full float-left w-1/2 px-0.5">
+              <input
+                type="text"
+                name="name"
+                id="name"
+                placeholder="Search.."
+                className="form-control w-full bg-gray-900 text-white border-0 h-full px-1"
+                onFocus={event => dispatch(setTyping(true))}
+                onBlur={event => dispatch(setTyping(false))}
+                onChange={handleInputTyping}
+              />
             </div>
           </div>
-        </div>
-        {[["Shuffle", "shuffle"],
-          ["Keep order", "order"],
-          ["Keep peeking", "peeking"]
-          ].map((row, rowIndex) => {
-            if (!playerN && row[1] === "shuffle") return;
-            if (!playerN && row[1] === "peeking") return; 
+          {pairedFilterButtons.map((row, rowIndex) => {
             return(
-              <div className="h-1/4 w-full text-white text-center">
-                <div className="h-full float-left w-full p-0.5">
-                  <div className="flex h-full w-full bg-gray-800 hover:bg-gray-600 rounded items-center justify-center"
-                    onClick={(event) => handleCloseClick(row[1])}>    
-                    {gameL10n(row[0])}
-                  </div>
-                </div>
-              </div>
+              <div className="w-full text-white text-center" style={{height: `calc(100% / ${pairedFilterButtons.length+1})`}}>
+                {row.map((item, itemIndex) => {
+                  return(
+                    <div className="h-full float-left w-1/2 p-0.5">
+                      <div className={"h-full w-full flex items-center justify-center hover:bg-gray-600 rounded" + (searchForProperty === item ? " bg-red-800" : " bg-gray-800")}
+                        onClick={() => setSearchForProperty(item)}>    
+                        {gameL10n(row[itemIndex])}
+                      </div>
+                    </div>
+                  )
+                })}
+            </div>
             )})
           }
+        </div>
+
+        <div className="h-full float-left p-1 select-none" style={{left: "90%", width: "10%"}}>
+          <div className="h-1/4 w-full text-white text-center">
+            <div className="h-full float-left w-full p-0.5">
+              <div className="h-full w-full">   
+                Close &
+              </div>
+            </div>
+          </div>
+          {[["Shuffle", "shuffle"],
+            ["Keep order", "order"],
+            ["Keep peeking", "peeking"]
+            ].map((row, rowIndex) => {
+              if (!playerN && row[1] === "shuffle") return;
+              if (!playerN && row[1] === "peeking") return; 
+              return(
+                <div className="h-1/4 w-full text-white text-center">
+                  <div className="h-full float-left w-full p-0.5">
+                    <div className="flex h-full w-full bg-gray-800 hover:bg-gray-600 rounded items-center justify-center"
+                      onClick={(event) => handleCloseClick(row[1])}>    
+                      {gameL10n(row[0])}
+                    </div>
+                  </div>
+                </div>
+              )})
+            }
+        </div>
       </div>
     </div>
+    //</Draggable>
   )
 })

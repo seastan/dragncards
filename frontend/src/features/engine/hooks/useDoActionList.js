@@ -2,12 +2,19 @@ import { useContext } from 'react';
 import BroadcastContext from '../../../contexts/BroadcastContext';
 import store from '../../../store';
 import { useGameDefinition } from './useGameDefinition';
+import { useSendLocalMessage } from './useSendLocalMessage';
 
 export const useDoActionList = () => {
-    const gameDef = useGameDefinition();  
+    const gameDef = useGameDefinition(); 
+    const sendLocalMessage = useSendLocalMessage();
     const {gameBroadcast, chatBroadcast} = useContext(BroadcastContext);
     //const playerUi = null; //useSelector(state => state?.playerUi)
+
     return (idOrList) => {
+        if (store.getState().playerUi.dragging.stackId) {
+            sendLocalMessage("You must finish dragging before you can perform this action.");
+            return;
+        }
         // This fuction can take either an id for an action list, in which case it
         // executes the corresponding action list in the game definition, or it can
         // take a list, which it interprests as a custom action list and executes it.

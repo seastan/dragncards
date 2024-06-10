@@ -181,6 +181,8 @@ defmodule DragnCardsGame.GameUIServer do
         [] ->
           Logger.debug("gameuiserver init 1")
           gameui = GameUI.new(game_name, user.id, options)
+
+
           :ets.insert(:game_uis, {game_name, gameui})
 
           Logger.debug("gameuiserver init 2")
@@ -277,17 +279,6 @@ defmodule DragnCardsGame.GameUIServer do
     rescue
       e in RuntimeError ->
         IO.inspect(e)
-        put_in(gameui["error"],true)
-    end
-    |> save_and_reply()
-  end
-
-  def handle_call({:set_game_def, user_id, _game_def}, _from, gameui) do
-    try do
-      GameUI.new(gameui, user_id, gameui["options"])
-      |> put_in(["error"], false)
-    rescue
-      e in RuntimeError ->
         put_in(gameui["error"],true)
     end
     |> save_and_reply()

@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from 'react-redux';
 import styled from "@emotion/styled";
-import { Droppable } from "react-beautiful-dnd";
+import { Droppable } from "@seastan/react-beautiful-dnd";
+//import { Droppable } from "seastan-react-beautiful-dnd";
 import { PileImage } from "./PileImage";
 import { useLayout } from "./hooks/useLayout";
 import { setDroppableRefs } from "../store/playerUiSlice";
@@ -9,18 +10,12 @@ import { StackDraggable } from "./StackDraggable";
 import { getGroupIdAndRegionType } from "./Reorder";
 
 const Container = styled.div`
-  background-color: ${props => props.isDraggingOver ? "rgba(1,1,1,0.3)" : ""};
-  moz-box-shadow: ${props => props.isDraggingOver ? "0 0 15px 12px rgba(1,1,1,0.3)" : ""};
-  webkit-box-shadow: ${props => props.isDraggingOver ? "0 0 15px 12px rgba(1,1,1,0.3)" : ""};
-  box-shadow: ${props => props.isDraggingOver ? "0 0 15px 12px rgba(1,1,1,0.3)" : ""};
-  -webkit-transition: all 0.2s;
-  -moz-transition: all 0.2s;
-  -o-transition: all 0.2s;
+  background-color: ${props => props.isDraggingOver ? "rgba(100,100,100,0.3)" : ""};
+  box-shadow: ${props => props.isDraggingOver ? "0 0 15px 12px rgba(100,100,100,0.3)" : ""};
   transition: all 0.2s;
   height: 100%;
   width: 100%;
   user-select: none;
-  overflow-x: ${props => props.direction === "vertical" ? "hidden" : "auto"};
   max-height: 100%;
   position: relative;
   overflow: visible;
@@ -29,7 +24,9 @@ const Container = styled.div`
 export const DropZone = styled.div`
   /* stop the list collapsing when empty */
   position: absolute;
-  display: ${props => props.direction === "vertical" ? "" : "flex"};
+  display: ${props => props.direction === "vertical" ? "" : "block"};
+  overflow-x: ${props => props.type === "row" ? "scroll" : props.type === "fan" ? "hidden" : "visible"};
+  overflow-y: ${props => props.type === "row" ? "hidden" : "visible"};
   white-space: nowrap;
   width: calc(100% - ${props => props.margin}vh);
   height: 100%;
@@ -111,6 +108,7 @@ export const DroppableRegion = React.memo(({
       isDropDisabled={false}
       //isCombineEnabled={region.type === "free" ? false : group.canHaveAttachments}
       isCombineEnabled={false}
+      layerIndex={region.layerIndex || 0}
       direction={region.direction}>
       {(dropProvided, dropSnapshot) => {
         const timestamp = new Date().getTime();
@@ -135,6 +133,7 @@ export const DroppableRegion = React.memo(({
               <DropZone 
                 ref={dropProvided.innerRef} 
                 direction={region.direction}
+                type={region.type}
                 margin={region.type === "row" ? rowSpacing/2 : 0}>
                   {region.type === "free" ? 
                     <StacksListFree
@@ -168,7 +167,7 @@ const StacksListFree = React.memo(({
   stackIds,
   onDragEnd
 }) => {
-
+  console.log("Rendering StacksListFree", region.groupId);
   return (
     stackIds?.map((stackId, stackIndex) => (
       <StackDraggable

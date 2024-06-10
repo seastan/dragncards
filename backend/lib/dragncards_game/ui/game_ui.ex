@@ -46,6 +46,18 @@ defmodule DragnCardsGame.GameUI do
       sit_down(gameui, "player1", user_id)
     end
 
+    # Post New Game Action List
+    gameui = if game_def["automation"]["postNewGameActionList"] do
+      options = %{
+        "action_list" => game_def["automation"]["postNewGameActionList"],
+        "player_ui" => %{"playerN" => "player1"}
+      }
+      new_gameui = GameUI.game_action(gameui, user_id, "evaluate", options)
+      GameUI.add_delta(new_gameui, gameui)
+    else
+      gameui
+    end
+
     gameui
   end
 
@@ -649,6 +661,10 @@ defmodule DragnCardsGame.GameUI do
   def resolve_action_type(game, type, options, user_id) do
     case type do
       "evaluate" ->
+        IO.puts("evaluating 1")
+        IO.inspect(options["action_list"])
+        IO.puts("evaluating 2")
+        IO.inspect(game["currentScopeIndex"])
         Evaluate.evaluate_with_timeout(game, options["action_list"])
       "set_game" ->
         options["game"]

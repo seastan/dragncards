@@ -9,6 +9,7 @@ import { useGameL10n } from "./hooks/useGameL10n";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { useDoActionList } from "./hooks/useDoActionList";
 import { Stack } from "./Stack";
+import { DEFAULT_CARD_Z_INDEX } from "./functions/common";
 
 export const Group = React.memo(({
   groupId,
@@ -69,7 +70,7 @@ export const Group = React.memo(({
                 left: "50%", 
                 transform: `translate(${iconsVisible ? "-30%" : "-40%"}, -70%) rotate(90deg)`, 
                 whiteSpace: "nowrap", 
-                zIndex: 2e3,
+                zIndex: DEFAULT_CARD_Z_INDEX+1,
                 boxShadow: "0 0 10px 5px rgba(0,0,0,0.6)",
               }}>
                 {iconsVisible &&
@@ -89,7 +90,7 @@ export const Group = React.memo(({
           }
           </div>
       </div>
-      <div className="h-full w-full" style={{marginLeft: "1.7vh"}}>
+      <div className="h-full" style={{marginLeft: "1.7vh", width: region.type === "free" ? "100%" : "calc(100% - 1.7vh)"}}>
         {(region.type === "free" && tempDragStack && tempDragStack?.toGroupId === groupId) &&
           <div style={{left: `${tempDragStack.left}%`, top: `${tempDragStack.top}%`, position: "absolute", zIndex: 1e9, marginLeft: "1.7vh"}}>
             <Stack

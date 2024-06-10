@@ -61,13 +61,13 @@ export const useKeyDown = () => {
         //if ((unix_sec - keypressShift) < 30) dictKey = "Shift+"+dictKey;
         //if ((unix_sec - keypressControl) < 30) dictKey = "Ctrl+"+dictKey;
         //if ((unix_sec - keypressAlt) < 30) dictKey = "Alt+"+dictKey;
-        if (Math.abs(keypressShift-unix_sec) < 5) {
+        if (Math.abs(keypressShift)) { //-unix_sec) < 5) {
             dictKey = "Shift+" + dictKey;
         }
-        if (Math.abs(keypressControl-unix_sec) < 5) {
+        if (Math.abs(keypressControl)) { //-unix_sec) < 5) {
             dictKey = "Ctrl+" + dictKey;
         }
-        if (Math.abs(keypressAlt-unix_sec) < 5) {
+        if (Math.abs(keypressAlt)) { //-unix_sec) < 5) {
             dictKey = "Alt+" + dictKey;
         }
 

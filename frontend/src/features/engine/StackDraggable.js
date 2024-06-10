@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useSelector } from 'react-redux';
-import { Draggable } from "react-beautiful-dnd";
+import { Draggable } from "@seastan/react-beautiful-dnd";
+//import { Draggable } from "seastan-react-beautiful-dnd";
 import { useLayout } from "./hooks/useLayout";
 import useWindowDimensions from "../../hooks/useWindowDimensions";
 import store from "../../store";
@@ -10,6 +11,7 @@ import styled from "@emotion/styled";
 import { Stack } from "./Stack";
 import { getGroupIdAndRegionType } from "./Reorder";
 import { useOffsetTotalsAndAmounts } from "./hooks/useOffsetTotalsAndAmounts";
+import { usePlayerN } from "./hooks/usePlayerN";
 
 const StackContainerFree = styled.div`
   position: absolute;
@@ -49,21 +51,21 @@ export const StackDraggable = React.memo(({
     const touchMode = useSelector(state => state?.playerUi?.userSettings?.touchMode);
     const zoomFactor = useSelector(state => state?.playerUi?.userSettings?.zoomPercent)/100;
     const isCombined = useSelector(state => ((state?.playerUi?.dragging?.stackId === stackId) && (state?.playerUi?.dragging?.hoverOverStackId !== null)));
+    const playerN = usePlayerN();
+
     const layout = useLayout();
     const rowSpacing = layout?.rowSpacing;
     const cardSize = layout?.cardSize;
-    const playerN = useSelector(state => state?.playerUi?.playerN);
-    const [isMousedOver, setIsMousedOver] = useState(false);
-    console.log('Rendering Stack in region ', region);
+    console.log('Rendering Stack in region ', region.groupId);
     var spacingFactor = touchMode ? 1.5 : 1;
     const { height, width } = useWindowDimensions();
     const aspectRatio = width/height;
-    if (!stack) return null;
-    const cardIds = stack.cardIds;
-    const numCards = cardIds.length;
+    const cardIds = stack?.cardIds || [];
     const card0 = store.getState().gameUi.game.cardById[cardIds[0]];
     // Calculate size of stack for proper spacing. Changes base on group type and number of stack in group.
     const {offsetTotals, offsetAmounts} = useOffsetTotalsAndAmounts(stackId);
+
+    if (!stack) return null;
 
     const numStacksNonZero = Math.max(numStacksVisible, 1);
     const regionWidthPercent = convertToPercentage(region.width);
@@ -92,7 +94,7 @@ export const StackDraggable = React.memo(({
         index={stackIndex}
         isDragDisabled={playerN === null}>
         {(dragProvided, dragSnapshot) => {
-          if (!draggingEnd && dragSnapshot.isDropAnimating) {
+          if (!draggingEnd && dragSnapshot.isDropAnimating && onDragEnd) {
             const fromDroppableId = store.getState().playerUi?.dragging?.fromDroppableId;
             const hoverOverStackId = store.getState().playerUi?.dragging?.hoverOverStackId;
             const hoverOverDirection = store.getState().playerUi?.dragging?.hoverOverDirection;
@@ -151,9 +153,11 @@ export const StackDraggable = React.memo(({
               {style => {
                 const updatedStyle = {...style}
                 if (dragSnapshot.isDropAnimating && draggingToFree) updatedStyle.transitionDuration = "0.0001s";
-                if (isCombined) updatedStyle.zIndex = 0;
+                //if (isCombined) updatedStyle.zIndex = 0;
                 if (updatedStyle.transform && dragSnapshot.isDragging) updatedStyle.transform = updatedStyle.transform + " scale(1.1)";
                 if (region.type === "free" && !dragSnapshot.isDragging) updatedStyle.transform = "none";
+                // If isInBrowseGroup, add -50% to transform Y
+                //if (isInBrowseGroup && dragSnapshot.isDragging) updatedStyle.transform = updatedStyle.transform + " translate(0%, -50vh)";
                 updatedStyle.visibility = draggingToFree && ((thisDrag && style.transform === null) || dragSnapshot.isDropAnimating) ? "hidden" : "visible";
                 if (region.direction === "horizontal") updatedStyle.display = "inline-block";
                 // Check if mouse is within this div
@@ -171,8 +175,6 @@ export const StackDraggable = React.memo(({
                       ref={dragProvided.innerRef}
                       {...dragProvided.draggableProps}
                       {...dragProvided.dragHandleProps}
-                      onMouseEnter={() => {console.log(`moused over ${stackId}`);setIsMousedOver(true)}}
-                      onMouseLeave={() => setIsMousedOver(false)}
                       style={updatedStyle}
                     >
                       <Stack
@@ -192,8 +194,6 @@ export const StackDraggable = React.memo(({
                       stackWidth={(region.type === "fan" && region.direction == "horizontal") ? stackWidthFan : stackWidth}
                       stackHeight={(region.type === "fan" && region.direction == "vertical") ? stackHeightFan : stackHeight}
                       margin={region.type === "row" ? rowSpacing : 0}
-                      onMouseEnter={() => setIsMousedOver(true)}
-                      onMouseLeave={() => setIsMousedOver(false)}
                       style={updatedStyle}
                     >
                       <Stack

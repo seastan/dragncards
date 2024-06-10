@@ -1,16 +1,26 @@
+import { createSelector } from "@reduxjs/toolkit";
+import { useMemo } from "react";
 import { useSelector } from "react-redux";
 
+const makeGetAttachmentDirections = () => createSelector(
+  state => state?.gameUi?.game?.cardById,
+  (_, cardIds) => cardIds,
+  (cardById, cardIds) => cardIds.map(cardId => cardById[cardId].attachmentDirection)
+);
 
 export const useOffsetTotalsAndAmounts = (stackId) => {
     const stack = useSelector(state => state?.gameUi?.game?.stackById[stackId]);
     const lookingUnder = stack?.lookingUnder;
-    const cardIds = stack?.cardIds || [];
-    const attachmentDirections = useSelector(state => cardIds.map(cardId => state?.gameUi?.game?.cardById[cardId].attachmentDirection));
+    const cardIds = stack?.cardIds || [];  
+    const getAttachmentDirections = useMemo(makeGetAttachmentDirections, []);
+    const attachmentDirections = useSelector(state => getAttachmentDirections(state, cardIds));
+  
+    console.log("Rendering useOffsetTotalsAndAmounts", stackId, attachmentDirections)
 
     if (!stack) return {offsetTotals: {top: 0, left: 0, right: 0, bottom: 0, behind: 0}, offsetAmounts: [{top: 0, left: 0}]};
     const offsetTotals = {top: 0, left: 0, right: 0, bottom: 0, behind: 0};
     const offsetAmounts = [{top: 0, left: 0}];
-    for (var i = 1; i<cardIds.length; i++) {
+    for (var i = 1; i<attachmentDirections.length; i++) {
       const attachmentDirection = attachmentDirections[i];
       if (attachmentDirection === "left") {
         offsetTotals.left++;

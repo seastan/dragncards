@@ -1,6 +1,6 @@
 
 import React, { useCallback, useEffect, useState } from "react";
-import { DragDropContext } from "react-beautiful-dnd";
+import { DragDropContext } from "@seastan/react-beautiful-dnd";
 import { useSelector, useDispatch } from 'react-redux';
 import { setStackIds, setCardIds, setGroupById } from "../store/gameUiSlice";
 import { getGroupIdAndRegionType, reorderGroupStackIds } from "./Reorder";
