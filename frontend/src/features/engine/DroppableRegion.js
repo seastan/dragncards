@@ -25,7 +25,7 @@ export const DropZone = styled.div`
   /* stop the list collapsing when empty */
   position: absolute;
   display: ${props => props.direction === "vertical" ? "" : "block"};
-  overflow-x: ${props => props.type === "row" ? "scroll" : props.type === "fan" ? "hidden" : "visible"};
+  overflow-x: ${props => props.type === "row" ? "auto" : props.type === "fan" ? "hidden" : "visible"};
   overflow-y: ${props => props.type === "row" ? "hidden" : "visible"};
   white-space: nowrap;
   width: calc(100% - ${props => props.margin}vh);
