@@ -45,6 +45,8 @@ defmodule DragnCardsGame.Evaluate.Functions.GET_CARD_ID do
   The result of the 'GET_CARD_ID' operation.
   """
   def execute(game, code, trace) do
+    IO.puts("Getting card id")
+    IO.inspect(code)
     group_id = Evaluate.evaluate(game, Enum.at(code,1), trace ++ ["group_id"])
     stack_index = Evaluate.evaluate(game, Enum.at(code,2), trace ++ ["stack_index"])
     stack_id = Evaluate.evaluate(game, ["GET_STACK_ID", group_id, stack_index], trace ++ ["stack_id"])

@@ -1,7 +1,7 @@
-import { useContext } from 'react';
+import { useContext, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import BroadcastContext from '../../../contexts/BroadcastContext';
-import { setKeypress, setKeypressAlt, setKeypressCommand, setKeypressControl, setKeypressShift, setKeypressSpace, setKeypressTab, setPreHotkeyActiveCardGroupId, setShowModal } from '../../store/playerUiSlice';
+import { defaultKeypress, setKeypress, setKeypressAlt, setKeypressCommand, setKeypressControl, setKeypressShift, setKeypressSpace, setKeypressTab, setPreHotkeyActiveCardGroupId, setShowModal } from '../../store/playerUiSlice';
 import { useAddToken } from './useAddToken';
 import { useDoActionList } from './useDoActionList';
 import { dragnHotkeys, useDoDragnHotkey } from './useDragnHotkeys';
@@ -35,6 +35,27 @@ export const useKeyDown = () => {
     const sendLocalMessage = useSendLocalMessage();
     console.log("gameb render keydown 1", gameBroadcast)
 
+
+    useEffect(() => {
+        const handleFocus = () => {
+            console.log('Tab is in focus');
+            dispatch(setKeypress(defaultKeypress));
+        };
+
+        const handleBlur = () => {
+            dispatch(setKeypress(defaultKeypress));
+            console.log('Tab is out of focus');
+        };
+
+        window.addEventListener('focus', handleFocus);
+        window.addEventListener('blur', handleBlur);
+
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+            window.removeEventListener('blur', handleBlur);
+        };
+    }, []);
+
     return (event) => {
         event.preventDefault();
         if (!playerN) {
@@ -43,6 +64,7 @@ export const useKeyDown = () => {
         }
         const k = event.key;
         const unix_sec = Math.floor(Date.now() / 1000);
+        console.log("Keydown detected: ", k)
         if (k === "Alt") dispatch(setKeypressAlt(unix_sec));
         if (k === "Meta") dispatch(setKeypressAlt(unix_sec)); // We are using Meta as Alt on Macs
         if (k === " ") dispatch(setKeypressSpace(unix_sec));

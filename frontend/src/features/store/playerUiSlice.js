@@ -19,6 +19,13 @@ const draggingDefault = {
   hoverOverDroppableId: null,
 };
 
+export const defaultKeypress = {
+  Control: 0,
+  Alt: 0,
+  Tab: 0,
+  Space: 0,
+};
+
 const initialState = {
   alert: {
     text: null,
@@ -26,12 +33,7 @@ const initialState = {
     autoClose: true,
   },
   playerN: "player1",
-  keypress: {
-    Control: 0,
-    Alt: 0,
-    Tab: 0,
-    Space: 0,
-  },
+  keypress: defaultKeypress,
   replayStep: 0,
   showHotkeys: false,
   touchMode: false,
