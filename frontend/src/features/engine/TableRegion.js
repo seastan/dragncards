@@ -28,7 +28,7 @@ export const TableRegion = React.memo(({
   return (
     <div
       className="absolute"
-      onMouseEnter={(e) => {e.stopPropagation();}}
+      //onMouseEnter={(e) => {e.stopPropagation();}}
       style={{
         ...region?.style,
         ...extraStyle,

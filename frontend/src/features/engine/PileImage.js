@@ -28,7 +28,6 @@ const ImageElement = styled.div`
 export const PileImage = React.memo(({
   region,
   stackIds,
-  isDraggingOver,
   isDraggingFrom,
 }) => {
   // Hooks
@@ -39,13 +38,15 @@ export const PileImage = React.memo(({
   const card0 = useSelector(state => state?.gameUi?.game?.cardById?.[stack0?.cardIds?.[0]]);
   const card1 = useSelector(state => state?.gameUi?.game?.cardById?.[stack1?.cardIds?.[0]]);  
   const playerN = useSelector(state => state?.playerUi?.playerN);
-  const rowSpacing = useSelector(state => state.gameUi?.game?.layout?.rowSpacing);  
+
   const cardScaleFactor = useCardScaleFactor();
+  const regionCardSizeFactor = region?.cardSizeFactor || 1;
+  const zoomFactor = useSelector(state => state?.playerUi?.userSettings?.zoomPercent)/100 * regionCardSizeFactor;
 
   // If group is not a pile, then no PileImage should be generated
   if (region.type !== "pile") return null;
   // Calculate the card to show based on whether the card being dragged came from this group or another group
-  const getCardToShow = (groupSize, isDraggingOver, isDraggingFrom) => {
+  const getCardToShow = (groupSize, isDraggingFrom) => {
     if (groupSize > 0 && !isDraggingFrom) {
       // && isDraggingOver && !isDraggingFrom) {
       return card0; // The card is being dragged from another group onto this one, so show the top card
@@ -57,7 +58,7 @@ export const PileImage = React.memo(({
 
   
   // Get the card to show
-  const cardToShow = getCardToShow(stackIds.length, isDraggingOver, isDraggingFrom);
+  const cardToShow = getCardToShow(stackIds.length, isDraggingFrom);
   console.log("Rendering PileImage 2", region, stackIds, cardToShow);
 
   if (cardToShow === null || cardToShow === undefined) return null;
@@ -83,11 +84,18 @@ export const PileImage = React.memo(({
       <StackContainerSorted
         stackWidth={stackWidth}
         stackHeight={stackHeight}>
-        <Card
-          key={cardToShow.id}
-          offset={0}
-          cardId={cardToShow.id} 
-          isDragging={false}/>
+          <div
+            style={{
+              transform: `scale(${zoomFactor})`,
+            }}
+          >
+            <Card
+              key={cardToShow.id}
+              offset={0}
+              cardId={cardToShow.id} 
+              isDragging={false}
+            />
+          </div>
       </StackContainerSorted>
     </DropZone>
     )

@@ -800,6 +800,9 @@ export const getGameDefSchema = (gameDef) => {
               "visible": {
                 "_type_": "boolean",
               },
+              "cardSizeFactor": {
+                "_type_": "float",
+              },
             }
           },
           "tableButtons": {

@@ -245,7 +245,7 @@ export const DragContainer = React.memo(({}) => {
     const destGroup = groupById[destGroupId];
     const destGroupStackIds = destGroup.stackIds;
 
-    // dispatch(setDraggingEnd(true));
+    dispatch(setDraggingEnd(true));
     dispatch(setDraggingDefault());
     dispatch(setDraggingEndDelay(true));
     setTimeout(() => {
@@ -276,6 +276,7 @@ export const DragContainer = React.memo(({}) => {
     }
 
     if (destRegionType === "free") {
+      //alert(`setting left and top to ${stackLeft} and ${stackTop}`)
       dispatch(setTempDragStack({
         stackId: origStackId, 
         toGroupId: destGroupId,
@@ -336,6 +337,9 @@ export const DragContainer = React.memo(({}) => {
       }
       if (destRegionType === "free") {
         dest.index = destGroupStackIds.length;
+      }
+      if (destRegionType === "pile") {
+        dest.index = 0; // Fix placement bug when a pile region is wide and a card is placed to the right of the top card
       }
 
       // // Did not move anywhere - can bail early -- Need to disable this check because free zones can have cards move but stay at same index

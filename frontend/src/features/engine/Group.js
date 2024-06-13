@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useDispatch, useSelector } from 'react-redux';
 import { DroppableRegion } from "./DroppableRegion";
 import { faBars, faEye } from "@fortawesome/free-solid-svg-icons";
@@ -22,9 +22,11 @@ export const Group = React.memo(({
   const gameDef = useGameDefinition();
   const group = useSelector(state => state?.gameUi?.game?.groupById?.[groupId]);
   const isPile = region.type === "pile";
+  const [isMouseOverPile, setIsMouseOverPile] = useState(false);
   const playerN = useSelector(state => state?.playerUi?.playerN);
   const tempDragStack = useSelector(state => state?.playerUi?.tempDragStack);
   const iconsVisible = playerN && (region.showMenu || (isPile && region.showMenu !== false)) ;
+  const regionCardSizeFactor = region.cardSizeFactor || 1.0;
   const browseTopN = useBrowseTopN();
   const doActionList = useDoActionList();
   console.log("Group tempDragStack", tempDragStack)
@@ -55,7 +57,11 @@ export const Group = React.memo(({
   const numStacks = group.stackIds.length;
   const tablename = gameL10n(group.tableLabel);
   return(
-    <div className="h-full w-full">
+    <div 
+      className="h-full w-full"
+      // onMouseEnter={() => {if (region.type === "pile") setIsMouseOverPile(true); alert("Mouse Enter")}}
+      // onMouseLeave={() => {if (region.type === "pile") setIsMouseOverPile(false)}}
+      >
       
       <div
         className="relative h-full float-left select-none text-gray-400"
@@ -92,10 +98,17 @@ export const Group = React.memo(({
       </div>
       <div className="h-full" style={{marginLeft: "1.7vh", width: region.type === "free" ? "100%" : "calc(100% - 1.7vh)"}}>
         {(region.type === "free" && tempDragStack && tempDragStack?.toGroupId === groupId) &&
-          <div style={{left: `${tempDragStack.left}%`, top: `${tempDragStack.top}%`, position: "absolute", zIndex: 1e9, marginLeft: "1.7vh"}}>
+          <div style={{
+            left: `${tempDragStack.left}%`, 
+            top: `${tempDragStack.top}%`, 
+            position: "absolute", 
+            zIndex: 1e9, 
+            marginLeft: "1.7vh"
+          }}>
             <Stack
               stackId={tempDragStack.stackId}
               isDragging={false}
+              stackZoomFactor={regionCardSizeFactor}
             />
           </div>
         }
@@ -104,6 +117,7 @@ export const Group = React.memo(({
           region={region}
           selectedStackIndices={[...Array(numStacks).keys()]}
           onDragEnd={onDragEnd}
+          isMouseOverPile={isMouseOverPile}
         />
 
       </div>

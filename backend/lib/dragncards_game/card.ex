@@ -24,7 +24,7 @@ defmodule DragnCardsGame.Card do
     base = %{
       "id" => Ecto.UUID.generate,
       "databaseId" => card_db_id,
-      "currentSide" => group["defaultSideUp"],
+      "currentSide" => group["defaultSideUp"] || "A",
       "rotation" => 0,
       "owner" => controller,
       "peeking" => %{},

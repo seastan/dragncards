@@ -28,6 +28,7 @@ const hideUnderActionList = (stackId) => {
 export const Stack = React.memo(({
   stackId,
   isDragging,
+  stackZoomFactor
 }) => {
   const stack = useSelector(state => state?.gameUi?.game?.stackById[stackId]);
   const isHoveredOver = useSelector(state => state?.playerUi?.dragging.hoverOverStackId === stackId);
@@ -54,7 +55,11 @@ export const Stack = React.memo(({
   }
 
   return(
-    <>
+    <div 
+      style={{
+        transform: `scale(${stackZoomFactor})`,
+      }}
+    >
       {isHoveredOver && hoverOverDirection == "top" && <LinkIcon top="0" left="0" width="100%" height="6vh"  transform="translate(0%, -50%)"/>}
       {isHoveredOver && hoverOverDirection == "left" && <LinkIcon top="0" left="0" width="6vh"  height="100%" transform="translate(-50%, 0%)"/>}
       {isHoveredOver && hoverOverDirection == "right" && <LinkIcon top="0" left="100%" width="6vh"  height="100%" transform="translate(-50%, 0%)"/>}
@@ -97,7 +102,7 @@ export const Stack = React.memo(({
             </div>
         </div>
       }
-    </>
+    </div>
   );
 });
 
