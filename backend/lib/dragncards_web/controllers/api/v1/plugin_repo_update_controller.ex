@@ -12,7 +12,6 @@ defmodule DragnCardsWeb.PluginRepoUpdateController do
       "Received files from #{repo_url} and saved to #{path}"
     )
 
-    IO.puts("----------------------------------------------------- open_rooms a")
     open_rooms = Rooms.list_rooms()
 
     # Get list of plugin_id for open rooms
@@ -23,13 +22,9 @@ defmodule DragnCardsWeb.PluginRepoUpdateController do
       query = from p in Plugin, where: p.id == ^plugin_id, select: p.repo_url
       Repo.one(query)
     end)
-    IO.puts("----------------------------------------------------- open_rooms b")
-    IO.inspect(plugin_urls)
     indices_where_url_matches = Enum.filter(0..(length(plugin_urls) - 1), fn i -> Enum.at(plugin_urls, i) == repo_url end)
 
     room_slugs_to_update = Enum.map(indices_where_url_matches, fn i -> Enum.at(open_rooms, i).slug end)
-    IO.inspect(room_slugs_to_update)
-    IO.puts("----------------------------------------------------- open_rooms c")
 
     File.cp!(path, "/tmp/jsons.tar.gz")
 
@@ -45,14 +40,19 @@ defmodule DragnCardsWeb.PluginRepoUpdateController do
     case System.cmd("tar", ["-xzf", "/tmp/jsons.tar.gz", "-C", temp_json_dir]) do
       {_, 0} ->
         # Trigger the processing of the JSON files
-        files = RefreshPlugin.refresh()
-        # Broadcast update message to relevant rooms
+        case RefreshPlugin.refresh() do
+          {:ok, files} ->
+            # Broadcast update message to relevant rooms
+            IO.puts("Broadcasting plugin_repo_update to rooms: #{inspect(room_slugs_to_update)}")
+            IO.inspect(files)
+            Enum.each(room_slugs_to_update, fn room_slug ->
+              PubSub.broadcast(DragnCards.PubSub, "room:#{room_slug}", {:plugin_repo_update, files})
+            end)
+            send_resp(conn, :ok, "Files received and extracted successfully\n")
+          {:error, error} ->
+            send_resp(conn, :internal_server_error, error.message)
+        end
 
-        Enum.each(room_slugs_to_update, fn room_slug ->
-          PubSub.broadcast(DragnCards.PubSub, "room:#{room_slug}", {:plugin_repo_update, files})
-        end)
-
-        send_resp(conn, :ok, "Files received and extracted successfully")
       {error, _} ->
         send_resp(conn, :internal_server_error, "Failed to extract files: #{error}")
     end

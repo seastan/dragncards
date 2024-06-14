@@ -4,12 +4,16 @@ defmodule DragnCardsWeb.RefreshPlugin do
   """
 
   def refresh do
-    IO.puts("Refreshing plugin...")
     file_path = "/tmp/plugin_jsons"
 
     files = fetch_json_files(file_path)
-    files = Enum.map(files, fn file -> process_file(file) end)
-    {:ok, files}
+    try do
+      files = Enum.map(files, fn file -> process_file(file) end)
+      {:ok, files}
+    rescue
+      error ->
+        {:error, error}
+    end
   end
 
 
@@ -27,13 +31,22 @@ defmodule DragnCardsWeb.RefreshPlugin do
     end)
   end
 
+  defp calculate_line_number(data, position) do
+    data
+    |> String.slice(0, position)
+    |> String.split("\n")
+    |> length()
+  end
+
   defp process_file(file_path) do
     case File.read(file_path) do
       {:ok, content} ->
-        # Process the JSON file content
-        json_content = Jason.decode!(content)
-
-
+        case Jason.decode(content) do
+          {:ok, decoded} -> decoded
+          {:error, %Jason.DecodeError{data: data, position: position}} ->
+            line_number = calculate_line_number(data, position)
+            raise "JSON parsing error in #{file_path} at line #{line_number}\n"
+        end
       {:error, reason} ->
         IO.puts("Failed to read file #{file_path}: #{reason}")
     end

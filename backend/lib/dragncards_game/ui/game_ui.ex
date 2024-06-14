@@ -611,6 +611,13 @@ defmodule DragnCardsGame.GameUI do
     update_stack_ids(game, group_id, new_stack_ids)
   end
 
+  def set_stack_left_top(game, stack_id, left, top) do
+    IO.puts("Setting new stack position: #{stack_id} #{left} #{top}")
+    game = game
+    |> put_in(["stackById", stack_id, "left"], left)
+    |> put_in(["stackById", stack_id, "top"], top)
+  end
+
   ################################################################
   # Game actions                                                 #
   ################################################################
@@ -760,6 +767,7 @@ defmodule DragnCardsGame.GameUI do
   end
 
   def get_delta(game_old, game_new) do
+    game_old = Map.delete(game_old, "messages")
     diff_map = MapDiff.diff(game_old, game_new)
     delta("game", diff_map)
   end
@@ -1035,10 +1043,13 @@ defmodule DragnCardsGame.GameUI do
     Logger.debug("create_card_in_group 1")
     new_stack = Stack.stack_from_card(new_card)
     Logger.debug("create_card_in_group 2")
+    IO.puts("here 1")
+    IO.inspect(load_list_item)
     game
     |> update_card(new_card)
     |> update_stack(new_stack)
     |> insert_stack_in_group(group_id, new_stack["id"], group_size)
+    |> set_stack_left_top(new_stack["id"], load_list_item["left"], load_list_item["top"])
     |> implement_card_automations(game_def, new_card)
     |> update_card_state(new_card["id"], nil, nil)
     |> Evaluate.evaluate(["SET", "/loadedCardIds", ["LIST"] ++ game["loadedCardIds"] ++ [new_card["id"]]], ["create_card_in_group"])
@@ -1215,6 +1226,8 @@ defmodule DragnCardsGame.GameUI do
         "cardDetails" => cardDetails,
         "quantity" => quantity,
         "loadGroupId" => loadGroupId,
+        "left" => load_list_item["left"],
+        "top" => load_list_item["top"]
       }
     end)
     Logger.debug("load_cards 4")

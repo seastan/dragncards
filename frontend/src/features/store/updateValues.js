@@ -18,6 +18,7 @@ export const arraysEqual = (a, b) => {
 }
 
 export const updateByDelta = (obj, delta_with_metadata, direction) => {
+  if (delta_with_metadata === null) return;
   // Ignore _delta_metadata
   const delta = {...delta_with_metadata};
   delete delta._delta_metadata;

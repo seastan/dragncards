@@ -50,7 +50,7 @@ export const Room = ({ slug }) => {
       } else {
         setOutOfSync(true);
       }
-    } else if (event === "go_to_replay_step" && payload.delta !== null) {
+    } else if (event === "go_to_replay_step") {
       const newDelta = payload.delta;
       const playerUiReplayStep = store.getState().playerUi.replayStep;
       const oldReplayStep = payload.oldReplayStep;

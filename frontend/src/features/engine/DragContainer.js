@@ -269,8 +269,8 @@ export const DragContainer = React.memo(({}) => {
       // const yRelative = mousePosition.y - mouseDownPosition.y - droppableRect.top;
       const xRelative = playerUiDragging.mouseCurrentX - playerUiDragging.mouseDownX - droppableRect.left;
       const yRelative = playerUiDragging.mouseCurrentY - playerUiDragging.mouseDownY - droppableRect.top;
-      stackLeft = xRelative/droppableRect.width*100;
-      stackTop = yRelative/droppableRect.height*100;
+      stackLeft = xRelative/droppableRect.width*100 + '%';
+      stackTop = yRelative/droppableRect.height*100 + '%';
 
       console.log("stackPlacement", playerUiDragging.mouseCurrentX, playerUiDragging.mouseDownX, droppableRect.left, xRelative, stackLeft)
     }

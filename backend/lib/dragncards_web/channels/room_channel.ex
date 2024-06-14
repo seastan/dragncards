@@ -36,7 +36,7 @@ defmodule DragnCardsWeb.RoomChannel do
     {:noreply, socket}
   end
 
-  def handle_info({:plugin_repo_update, {:ok, files}}, socket) do
+  def handle_info({:plugin_repo_update, files}, socket) do
 
     push(socket, "plugin_repo_update", %{"files" => files})
     {:noreply, socket}

@@ -99,8 +99,8 @@ export const Group = React.memo(({
       <div className="h-full" style={{marginLeft: "1.7vh", width: region.type === "free" ? "100%" : "calc(100% - 1.7vh)"}}>
         {(region.type === "free" && tempDragStack && tempDragStack?.toGroupId === groupId) &&
           <div style={{
-            left: `${tempDragStack.left}%`, 
-            top: `${tempDragStack.top}%`, 
+            left: `${tempDragStack.left}`, 
+            top: `${tempDragStack.top}`, 
             position: "absolute", 
             zIndex: 1e9, 
             marginLeft: "1.7vh"

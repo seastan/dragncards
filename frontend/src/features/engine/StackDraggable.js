@@ -19,8 +19,8 @@ const StackContainerFree = styled.div`
   float: left;
   userSelect: none;
   margin: 0vh ${props => props.margin}vh 0vh 0vh;
-  left: ${props => props.stackLeft}%;
-  top: ${props => props.stackTop}%;
+  left: ${props => props.stackLeft};
+  top: ${props => props.stackTop};
   width: ${props => props.stackWidth}vh;
   height: ${props => props.stackHeight}vh;
   opacity: ${props => props.isGroupedOver ? 0.4 : 1};

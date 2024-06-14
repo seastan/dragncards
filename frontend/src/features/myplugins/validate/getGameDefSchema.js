@@ -974,6 +974,12 @@ export const getGameDefSchema = (gameDef) => {
                 "_required_": true,
                 "_memberOf_": mytypeof(gameDef?.groups) === "object" ? Object.keys(gameDef.groups) : [],
                 "_memberOfPath_": "gameDef.groups",
+              },
+              "left": {
+                "_type_": "any",
+              },
+              "top": {
+                "_type_": "any",
               }
             }
           },
