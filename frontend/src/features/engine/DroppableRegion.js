@@ -113,7 +113,7 @@ export const DroppableRegion = React.memo(({
       direction={region.direction}>
       {(dropProvided, dropSnapshot) => {
         const timestamp = new Date().getTime();
-        console.log("Rendering DroppableRegion", {groupId, timestamp})
+        console.log("Rendering DroppableRegion", {groupId, timestamp, region})
         return(
           <Container
             ref={containerRef}

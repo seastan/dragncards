@@ -1038,13 +1038,8 @@ defmodule DragnCardsGame.GameUI do
   def create_card_in_group(game, game_def, group_id, load_list_item) do
     group_size = Enum.count(get_stack_ids(game, group_id))
     # Can't insert a card directly into a group need to make a stack first
-    Logger.debug("create_card_in_group 0")
     new_card = Card.card_from_card_details(load_list_item["cardDetails"], game_def, load_list_item["databaseId"], group_id)
-    Logger.debug("create_card_in_group 1")
     new_stack = Stack.stack_from_card(new_card)
-    Logger.debug("create_card_in_group 2")
-    IO.puts("here 1")
-    IO.inspect(load_list_item)
     game
     |> update_card(new_card)
     |> update_stack(new_stack)
@@ -1246,7 +1241,6 @@ defmodule DragnCardsGame.GameUI do
     #     Evaluate.evaluate(game, ["ERROR", "Loading cards: #{Exception.message(e)}"])
     # end
 
-    game = Evaluate.evaluate(game, ["LOG", get_alias_n(game), " loaded cards."])
 
     shuffle_changed_decks(game, old_game, game_def)
 

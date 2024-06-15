@@ -129,27 +129,29 @@ export const DragContainer = React.memo(({}) => {
   const updateDraggingUi = (draggableId, droppableId) => {
     const region = getRegionFromId(droppableId);
     console.log("updateDraggingUi", droppableId, region)
-    const destGroupId = region.groupId;
+    const destGroupId = region?.groupId;
     //const [destGroupId, destRegionType, destRegionDirection] = getGroupIdAndRegionType(droppableId);
 
     dispatch(setDraggingHoverOverDroppableId(droppableId));
 
-    const destStackIds = store.getState()?.gameUi?.game?.groupById[destGroupId]?.stackIds;
-    setTimeout(() => {
-      const rects = [];
-      destStackIds.forEach(stackId => {
-        if (stackId === draggableId) return;
-        const stackNode = document.querySelector(`[data-rbd-draggable-id="${stackId}"]`);
-        if (stackNode) {
-          const stackRect = stackNode.getBoundingClientRect();
-          stackRect.stackId = stackId;
-          rects.push(stackRect);
-        }
-      })
-      dispatch(setDraggingStackRectangles(rects));
-      const groupRectangle = document.querySelector(`[data-rbd-droppable-id="${droppableId}"]`).getBoundingClientRect();
-      dispatch(setDraggingGroupRectangle(groupRectangle));
-    }, 200);
+    if (destGroupId) {
+      const destStackIds = store.getState()?.gameUi?.game?.groupById[destGroupId]?.stackIds;
+      setTimeout(() => {
+        const rects = [];
+        destStackIds.forEach(stackId => {
+          if (stackId === draggableId) return;
+          const stackNode = document.querySelector(`[data-rbd-draggable-id="${stackId}"]`);
+          if (stackNode) {
+            const stackRect = stackNode.getBoundingClientRect();
+            stackRect.stackId = stackId;
+            rects.push(stackRect);
+          }
+        })
+        dispatch(setDraggingStackRectangles(rects));
+        const groupRectangle = document.querySelector(`[data-rbd-droppable-id="${droppableId}"]`).getBoundingClientRect();
+        dispatch(setDraggingGroupRectangle(groupRectangle));
+      }, 200);
+    }
   }
 
   const onDragUpdate = (result) => {

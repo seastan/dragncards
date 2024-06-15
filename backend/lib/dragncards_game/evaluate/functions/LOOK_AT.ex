@@ -11,7 +11,7 @@ defmodule DragnCardsGame.Evaluate.Functions.LOOK_AT do
 
   To show all cards in the group, set `topN` to `-1`.
 
-  To hide the browse window and hide the cards from the player, set `groupId` to `null` and `visibility` to `false`.
+  To hide the browse window and hide the cards from the player, see `STOP_LOOKING`.
 
   *Returns*:
   (game state) The game state with the specified browse window opened.

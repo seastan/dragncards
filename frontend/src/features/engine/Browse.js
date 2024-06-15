@@ -12,6 +12,7 @@ import { useDoActionList } from "./hooks/useDoActionList";
 import { DEFAULT_CARD_Z_INDEX, getParentCardsInGroup } from "./functions/common";
 import Draggable from "react-draggable";
 import { useCardScaleFactor } from "./hooks/useCardScaleFactor";
+import { usePlayerN } from "./hooks/usePlayerN";
 
 const isNormalInteger = (val) => {
   var n = Math.floor(Number(val));
@@ -21,17 +22,24 @@ const isNormalInteger = (val) => {
 const browseWidth = "98%";
 const browseLeft = "1%";
 
-export const browseRegion = {
-  id: "browse",
-  type: "fan",
-  direction: "horizontal",
-  groupId: "browse",
-  layerIndex: 9,
-  left: browseLeft,
-  width: "65%",
-  top: "50%",
-  disableDropAttachments: true
+export const useBrowseRegion = () => {
+  const playerN = usePlayerN();
+  const browseGroupId = useSelector(state => state?.gameUi?.game?.playerData?.[playerN]?.browseGroup?.id);
+  const cardScaleFactor = useCardScaleFactor();
+  return {
+    id: "browse",
+    type: "fan",
+    direction: "horizontal",
+    groupId: browseGroupId,
+    layerIndex: 9,
+    left: browseLeft,
+    width: "65%",
+    height: `${cardScaleFactor*1.1 + 3}vh`,
+    top: "50%",
+    disableDropAttachments: true,
+  }
 }
+
 
 export const Browse = React.memo(({}) => {
   const dispatch = useDispatch();
@@ -42,8 +50,7 @@ export const Browse = React.memo(({}) => {
   const browseGroupTopN = useSelector(state => state?.gameUi?.game?.playerData?.[playerN]?.browseGroup?.topN);
   const group = useSelector(state => state?.gameUi?.game?.groupById?.[groupId]);
   const cardScaleFactor = useCardScaleFactor();
-  const region = browseRegion;
-  browseRegion.height =`${cardScaleFactor*1.1 + 3}vh`;
+  const region = useBrowseRegion();
   const game = useSelector(state => state?.gameUi?.game);
   const parentCards = getParentCardsInGroup(game, groupId);
   const [searchForProperty, setSearchForProperty] = useState('All');
@@ -98,13 +105,7 @@ export const Browse = React.memo(({}) => {
   const closeAndShuffle = () => {
     const actionList = [
       ["LOG", "$ALIAS_N", " closed ", gameL10n(group.label)+"."],
-      ["SET", "/playerData/$PLAYER_N/browseGroup/id", null],
-      ["FOR_EACH_VAL", "$STACK_ID", `$GROUP_BY_ID.${groupId}.stackIds`,
-        [
-          ["VAR", "$CARD_ID", "$STACK_BY_ID.$STACK_ID.cardIds.[0]"],
-          ["SET", "/cardById/$CARD_ID/peeking/$PLAYER_N", false]
-        ]
-      ],
+      ["STOP_LOOKING", "$PLAYER_N"],
       ["LOG", "$ALIAS_N", " shuffled ", gameL10n(group.label)+"."],
       ["SHUFFLE_GROUP", groupId]
     ];
@@ -115,13 +116,7 @@ export const Browse = React.memo(({}) => {
   const closeAndOrder = () => {
     const actionList = [
       ["LOG", "$ALIAS_N", " closed ", gameL10n(group.label)+"."],
-      ["SET", "/playerData/$PLAYER_N/browseGroup/id", null],
-      ["FOR_EACH_VAL", "$STACK_ID", `$GROUP_BY_ID.${groupId}.stackIds`,
-        [
-          ["VAR", "$CARD_ID", "$STACK_BY_ID.$STACK_ID.cardIds.[0]"],
-          ["SET", "/cardById/$CARD_ID/peeking/$PLAYER_N", false]
-        ]
-      ]
+      ["STOP_LOOKING", "$PLAYER_N"],
     ];
     doActionList(actionList);
     if (group?.onCardEnter?.currentSide === "B") stopPeekingTopCard();
@@ -129,8 +124,8 @@ export const Browse = React.memo(({}) => {
 
   const closeAndPeeking = () => {
     const actionList = [
-      ["SET", "/playerData/$PLAYER_N/browseGroup/id", null],
       ["LOG", "$ALIAS_N", " is still peeking at ", gameL10n(group.label)+"."],
+      ["STOP_LOOKING", "$PLAYER_N", "keepPeeking"]
     ];
     doActionList(actionList);
   }

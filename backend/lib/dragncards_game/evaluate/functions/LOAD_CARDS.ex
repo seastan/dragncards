@@ -3,10 +3,29 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
   alias DragnCards.Plugins
   @moduledoc """
   *Arguments*:
-  1. `loadListId` (string): The id of a pre-built deck to load. Must be present in `gameDef.preBuiltDecks`.
+  1. `loadListId` (string) or `loadList` (list)
+
+  Takes either the id of a pre-built deck to load (must be present in `gameDef.preBuiltDecks`) or a raw load list.
 
   *Returns*:
   (game state) The game with the cards from the pre-built deck loaded.
+
+  *Examples*:
+
+  Load a pre-built deck with the id `starterDeck`:
+  ```
+  ["LOAD_CARDS", "starterDeck"]
+  ```
+
+  Load a raw list of cards:
+  ```
+  ["LOAD_CARDS",
+    ["LIST",
+      %{"databaseId" => "da365fcc-385e-4824-901a-30381b769561", "loadGroupId" => "player1Deck", "quantity" => 1},
+      %{"databaseId" => "4c4cccd3-576a-41f1-8b6c-ba11b4cc3d4b", "loadGroupId" => "player1Play1", "quantity" => 1}
+    ]
+  ]
+  ```
   """
 
   @doc """
@@ -23,6 +42,18 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
   def execute(game, code, trace) do
     load_list_or_id = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["load_list"])
     game_def = Plugins.get_game_def(game["options"]["pluginId"])
+
+    game = if is_list(load_list_or_id) do
+      Evaluate.evaluate(game, ["LOG", "{{$ALIAS_N}} loaded cards."])
+    else
+      case get_in(game_def, ["preBuiltDecks", load_list_or_id]) do
+        %{} = pre_built_deck ->
+          label = pre_built_deck["label"]
+          Evaluate.evaluate(game, ["LOG", "{{$ALIAS_N}} loaded #{label}."])
+        nil ->
+          raise("Could not find pre-built deck with id: #{inspect(load_list_or_id)} in game definition.")
+      end
+    end
 
     # Set the load_list_id
     load_list_id = if is_list(load_list_or_id) do
