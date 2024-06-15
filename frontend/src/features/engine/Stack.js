@@ -56,6 +56,7 @@ export const Stack = React.memo(({
 
   return(
     <div 
+      className="h-full w-full"
       style={{
         transform: `scale(${stackZoomFactor})`,
       }}

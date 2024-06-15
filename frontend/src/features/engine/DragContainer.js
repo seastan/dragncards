@@ -9,7 +9,11 @@ import { setDraggingEnd, setDraggingEndDelay, setDraggingStackId, setTempDragSta
 import { Table } from "./Table";
 import { useDoActionList } from "./hooks/useDoActionList";
 import { ArcherContainer } from 'react-archer';
-import { COMBINE_REGION_WIDTH_FACTOR } from "./functions/common";
+import { getVisibleFace } from "./functions/common";
+import { useGameDefinition } from "./hooks/useGameDefinition";
+import { usePlayerN } from "./hooks/usePlayerN";
+import { useHoverStackIdAndDirection } from "./hooks/useHoverStackIdAndDirection";
+import { useGetRegionFromId } from "./hooks/useGetRegionFromId";
 
 let draggableClientRect = null;
 
@@ -30,100 +34,60 @@ const getAfterDragName = (game, stackId, destGroupId, allowFlip) => {
   return card?.sides?.[card?.currentSide]?.name;
 }
 
-const isXYinBox = (x, y, boxX, boxY, boxWidth, boxHeight) => {
-  return (x >= boxX && x <= boxX + boxWidth && y >= boxY && y <= boxY + boxHeight);
-}
-
-const isDirectionValid = (direction, regionType, regionDirection) => {
-  if ((direction === "left" || direction === "right") && 
-    (
-      (regionType === "row" && regionDirection === "horizontal") ||
-      regionType === "free")
-    ) return true;
-  if ((direction === "top" || direction === "bottom") &&
-    (
-      (regionType === "row" && regionDirection === "vertical") ||
-      regionType === "free")
-    ) return true;
-  return false;
-}
-
-
-const getHoverStackIdAndDirection = (mouseCurrentX, mouseCurrentY, draggingRectangle, stackRectangles, groupRectangle, droppableId) => {
-  const [groupId, regionType, regionDirection] = getGroupIdAndRegionType(droppableId);
-  if (!stackRectangles || stackRectangles.length === 0 || !groupRectangle) {
-    return {stackId: null, direction: null};
-  }
-  
-  for (let i = 0; i < stackRectangles.length; i++) {
-    const stackRectangle = stackRectangles[i];
-    const combineRegionWidth = COMBINE_REGION_WIDTH_FACTOR*draggingRectangle.width;
-    const leftRectangle = {
-      left: stackRectangle.left - combineRegionWidth,
-      top: stackRectangle.top + 0.25*stackRectangle.height,
-      width: combineRegionWidth*2,
-      height: 0.5*stackRectangle.height
-    }
-    const rightRectangle = {
-      left: stackRectangle.left + stackRectangle.width - combineRegionWidth,
-      top: stackRectangle.top + 0.25*stackRectangle.height,
-      width: combineRegionWidth*2,
-      height: 0.5*stackRectangle.height
-    }
-    const topRectangle = {
-      left: stackRectangle.left - combineRegionWidth,
-      top: stackRectangle.top - 0.25*stackRectangle.height,
-      width: combineRegionWidth*2 + stackRectangle.width,
-      height: 0.5*stackRectangle.height
-    }
-    const bottomRectangle = {
-      left: stackRectangle.left - combineRegionWidth,
-      top: stackRectangle.top + stackRectangle.height - 0.25*stackRectangle.height,
-      width: combineRegionWidth*2 + stackRectangle.width,
-      height: 0.5*stackRectangle.height
-    }
-    const isInsideLeft = isDirectionValid("left", regionType, regionDirection) && isXYinBox(mouseCurrentX, mouseCurrentY, leftRectangle.left, leftRectangle.top, leftRectangle.width, leftRectangle.height);
-    const isInsideRight = isDirectionValid("right", regionType, regionDirection) && isXYinBox(mouseCurrentX, mouseCurrentY, rightRectangle.left, rightRectangle.top, rightRectangle.width, rightRectangle.height);
-    const isInsideTop = isDirectionValid("top", regionType, regionDirection) && isXYinBox(mouseCurrentX, mouseCurrentY, topRectangle.left, topRectangle.top, topRectangle.width, topRectangle.height);
-    const isInsideBottom = isDirectionValid("bottom", regionType, regionDirection) && isXYinBox(mouseCurrentX, mouseCurrentY, bottomRectangle.left, bottomRectangle.top, bottomRectangle.width, bottomRectangle.height);
-    if (i==0) {
-      console.log("isInsideLeft", isInsideLeft, "isInsideRight", isInsideRight, "isInsideTop", isInsideTop, "isInsideBottom", isInsideBottom)
-    }
-    if (isInsideLeft) {
-      return {stackId: stackRectangle.stackId, direction: "left"};
-    } else if (isInsideRight) {
-      return {stackId: stackRectangle.stackId, direction: "right"};
-    } else if (isInsideTop) {
-      return {stackId: stackRectangle.stackId, direction: "top"};
-    } else if (isInsideBottom) {
-      return {stackId: stackRectangle.stackId, direction: "bottom"};
-    }
-  }
-  return {stackId: null, direction: null};
-}
-
 
 export const DragContainer = React.memo(({}) => {
   console.log("Rendering DragContainer");
   const dispatch = useDispatch();
+  const gameDef = useGameDefinition();
   const doActionList = useDoActionList();
+  const playerN = usePlayerN();
   const [isDragging, setIsDragging] = useState(false);
+  const getRegionFromId = useGetRegionFromId();
   //const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   //const [mouseDownPosition, setMouseDownPosition] = useState({ x: 0, y: 0 });
-  const playerUiDroppableRefs = useSelector(state => state?.playerUi?.droppableRefs);
+  const hoverStackIdAndDirection = useHoverStackIdAndDirection();
 
   const updateMousePosition = ev => {
     const draggingStackId = store.getState()?.playerUi?.dragging?.stackId;  
-    const hoverOverDroppableId = store.getState()?.playerUi?.dragging?.hoverOverDroppableId;  
+    const hoverOverDroppableId = store.getState()?.playerUi?.dragging?.hoverOverDroppableId;
+    const hoverOverRegion = getRegionFromId(hoverOverDroppableId);  
     const draggableNode = document.querySelector(`[data-rbd-draggable-id="${draggingStackId}"]`);
     const draggableRect = draggableNode.getBoundingClientRect();
     draggableRect.stackId = draggingStackId;
     const centerX = draggableRect.left + draggableRect.width / 2;
     const centerY = draggableRect.top + draggableRect.height / 2;
 
-    const hoverData = getHoverStackIdAndDirection(centerX, centerY, draggableRect, store.getState()?.playerUi?.dragging?.stackRectangles, store.getState()?.playerUi?.dragging?.groupRectangle, hoverOverDroppableId);
-    
-    if (hoverData.stackId) {
+    const stackRectangles = store.getState()?.playerUi?.dragging?.stackRectangles;
+    const groupRectangle = store.getState()?.playerUi?.dragging?.groupRectangle;
+    const hoverData = hoverStackIdAndDirection(centerX, centerY, draggableRect, stackRectangles, groupRectangle, hoverOverDroppableId);
+
+    if (hoverData.stackId && hoverOverRegion.disableDroppableAttachments !== true) {
+
+      const draggingTopCardId = store.getState()?.gameUi?.game?.stackById[draggingStackId]?.cardIds[0];
+      const draggingTopCard = store.getState()?.gameUi?.game?.cardById[draggingTopCardId];
+      const draggingTopFace = getVisibleFace(draggingTopCard, playerN);
+      const draggingTopCardType = draggingTopFace?.type;
+      const hoverOverStackId = hoverData.stackId;
+      const canOnlyAttachToTypes = gameDef?.cardTypes?.[draggingTopCardType]?.canOnlyAttachToTypes;
+
+      const hoverOverTopCardId = store.getState()?.gameUi?.game?.stackById[hoverOverStackId]?.cardIds[0];
+      const hoverOverTopCard = store.getState()?.gameUi?.game?.cardById[hoverOverTopCardId];
+      const hoverOverTopFace = getVisibleFace(hoverOverTopCard, playerN);
+      const hoverOverTopCardType = hoverOverTopFace?.type;
+      const canOnlyHaveAttachmentsOfTypes = gameDef?.cardTypes?.[hoverOverTopCardType]?.canOnlyHaveAttachmentsOfTypes;
+      console.log("hoverData", hoverData, {canOnlyAttachToTypes, canOnlyHaveAttachmentsOfTypes, hoverOverTopCardType, draggingTopCardType})
+
+      if (canOnlyAttachToTypes && !canOnlyAttachToTypes.includes(hoverOverTopCardType)) {
+        dispatch(setDraggingHoverOverStackId(null));
+        dispatch(setDraggingHoverOverDirection(null));
+        return;
+      }
+      if (canOnlyHaveAttachmentsOfTypes && !canOnlyHaveAttachmentsOfTypes.includes(draggingTopCardType)) {
+        dispatch(setDraggingHoverOverStackId(null));
+        dispatch(setDraggingHoverOverDirection(null));
+        return;
+      }
+
       dispatch(setDraggingHoverOverStackId(hoverData.stackId));
       dispatch(setDraggingHoverOverDirection(hoverData.direction));
     } else {
@@ -163,7 +127,10 @@ export const DragContainer = React.memo(({}) => {
   }
 
   const updateDraggingUi = (draggableId, droppableId) => {
-    const [destGroupId, destRegionType, destRegionDirection] = getGroupIdAndRegionType(droppableId);
+    const region = getRegionFromId(droppableId);
+    console.log("updateDraggingUi", droppableId, region)
+    const destGroupId = region.groupId;
+    //const [destGroupId, destRegionType, destRegionDirection] = getGroupIdAndRegionType(droppableId);
 
     dispatch(setDraggingHoverOverDroppableId(droppableId));
 
@@ -223,7 +190,11 @@ export const DragContainer = React.memo(({}) => {
     const groupById = game.groupById;
     const orig = result.source;
     const origDroppableId = orig.droppableId;
-    const [origGroupId, origRegionType, origRegionDirection] = getGroupIdAndRegionType(origDroppableId);
+
+    const origRegion = getRegionFromId(origDroppableId);
+    console.log("origRegion", origDroppableId, origRegion)
+    const origGroupId = origRegion.groupId;
+    //const [origGroupId, origRegionType, origRegionDirection] = getGroupIdAndRegionType(origDroppableId);
     const origGroup = groupById[origGroupId];
     const origGroupStackIds = origGroup.stackIds;
     const origStackId = origGroupStackIds[orig.index];    
@@ -239,7 +210,10 @@ export const DragContainer = React.memo(({}) => {
     console.log("Dest: ", dest)
 
     const destDroppableId = dest?.droppableId;
-    const [destGroupId, destRegionType, destRegionDirection] = getGroupIdAndRegionType(destDroppableId);
+    const destRegion = getRegionFromId(destDroppableId);
+    const destGroupId = destRegion.groupId;
+    const destRegionType = destRegion.type;
+    //const [destGroupId, destRegionType, destRegionDirection] = getGroupIdAndRegionType(destDroppableId);
     const afterDragName = getAfterDragName(game, origStackId, destGroupId, allowFlip);
 
     const destGroup = groupById[destGroupId];
@@ -258,10 +232,11 @@ export const DragContainer = React.memo(({}) => {
 
     const draggableNode = document.querySelector(`[data-rbd-draggable-id="${result.draggableId}"]`);
 
-    console.log("Dropped in: ", destGroupId, playerUiDroppableRefs, draggableNode)
+    console.log("Dropped in: ", destGroupId, draggableNode)
     var stackLeft = 0;
     var stackTop = 0;
 
+    const playerUiDroppableRefs = store.getState()?.playerUi?.droppableRefs;
     if (playerUiDroppableRefs?.[destGroupId]) {
       const droppableRect = playerUiDroppableRefs[destGroupId].getBoundingClientRect();
       console.log("Droppable Rect: ", droppableRect)
@@ -351,7 +326,7 @@ export const DragContainer = React.memo(({}) => {
       //   return;
       // } else {
         // Moved to a different spot
-        const newGroupById = reorderGroupStackIds(groupById, orig, dest);
+        const newGroupById = reorderGroupStackIds(groupById, origGroupId, orig.index, destGroupId, dest.index);
         // We could add some logic here to flip the card locally instantly, but there would still be a delay to get load the image
         // const updates = [["game", "cardById", topOfOrigStackCardId, "currentSide", "A"]];
         // dispatch(setValues({updates: updates}));

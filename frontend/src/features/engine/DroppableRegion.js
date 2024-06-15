@@ -7,7 +7,7 @@ import { PileImage } from "./PileImage";
 import { useLayout } from "./hooks/useLayout";
 import { setDroppableRefs } from "../store/playerUiSlice";
 import { StackDraggable } from "./StackDraggable";
-import { getGroupIdAndRegionType } from "./Reorder";
+import { useGetRegionFromId } from "./hooks/useGetRegionFromId";
 
 const Container = styled.div`
   background-color: ${props => props.isDraggingOver ? "rgba(100,100,100,0.3)" : ""};
@@ -44,10 +44,13 @@ const StacksListSorted = React.memo(({
   onDragEnd
 }) => {
   const isPile = region.type == "pile";
+  const getRegionFromId = useGetRegionFromId();
   const showTopCard = useSelector((state) => {
     const draggingFromDroppableId = state?.playerUi?.dragging?.fromDroppableId;
-    const [draggingFromGroupId, dragginFromRegionType, draggingFromRegionDirection] = getGroupIdAndRegionType(draggingFromDroppableId);
-    return isPile && stackIds.length > 0 && ((draggingFromGroupId === null) || draggingFromGroupId === groupId);
+    const draggingFromRegion = getRegionFromId(draggingFromDroppableId);
+    const draggingFromGroupId = draggingFromRegion?.groupId;
+    //const [draggingFromGroupId, dragginFromRegionType, draggingFromRegionDirection] = getGroupIdAndRegionType(draggingFromDroppableId);
+    return isPile && stackIds.length > 0 && ((!draggingFromGroupId) || draggingFromGroupId === groupId);
   });
   // Truncate stacked piles
   console.log("Rendering StacksList", {groupId, region});
@@ -101,12 +104,12 @@ export const DroppableRegion = React.memo(({
   //if (region.type === "free") return <FreeZone groupId={groupId} region={region} containerRef={containerRef}/>
   return(
     <Droppable
-      droppableId={groupId + "--" + region.type + "--" + region.direction}
+      droppableId={region.id}
       key={groupId}
       isDropDisabled={false}
-      //isCombineEnabled={region.type === "free" ? false : group.canHaveAttachments}
-      isCombineEnabled={false}
+      isCombineEnabled={group.canHaveAttachments === true && region.disableDropAttachments !== true && region.type !== "free"}
       layerIndex={region.layerIndex || 0}
+      metadata={region}
       direction={region.direction}>
       {(dropProvided, dropSnapshot) => {
         const timestamp = new Date().getTime();

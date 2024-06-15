@@ -8,10 +8,12 @@ import { TableButton } from "./TableButton";
 import { TextBox } from "./TextBox";
 import { Prompts } from "./Prompts";
 import { Alert } from "./Alert";
+import { useFormatGroupId } from "./hooks/useFormatGroupId";
 
 export const TableLayout = React.memo(({onDragEnd}) => {
   const layout = useLayout();
 
+  const formatGroupId = useFormatGroupId();
   console.log("Rendering TableLayout", layout);
 
   if (!layout) return;
@@ -23,11 +25,13 @@ export const TableLayout = React.memo(({onDragEnd}) => {
       {layout.regions &&
         Object.keys(layout?.regions).map((regionId, regionIndex) => {
           const region = layout.regions[regionId];
-          if (region?.visible === false) return;
+          const formattedGroupId = formatGroupId(region.groupId);
+          const formattedRegion = {...region, id: regionId, groupId: formattedGroupId};
+          if (formattedRegion?.visible === false) return;
           return(
             <TableRegion
               key={regionIndex}
-              region={region}
+              region={formattedRegion}
               onDragEnd={onDragEnd}
             />
           )

@@ -21,6 +21,18 @@ const isNormalInteger = (val) => {
 const browseWidth = "98%";
 const browseLeft = "1%";
 
+export const browseRegion = {
+  id: "browse",
+  type: "fan",
+  direction: "horizontal",
+  groupId: "browse",
+  layerIndex: 9,
+  left: browseLeft,
+  width: "65%",
+  top: "50%",
+  disableDropAttachments: true
+}
+
 export const Browse = React.memo(({}) => {
   const dispatch = useDispatch();
   const gameL10n = useGameL10n();
@@ -30,7 +42,8 @@ export const Browse = React.memo(({}) => {
   const browseGroupTopN = useSelector(state => state?.gameUi?.game?.playerData?.[playerN]?.browseGroup?.topN);
   const group = useSelector(state => state?.gameUi?.game?.groupById?.[groupId]);
   const cardScaleFactor = useCardScaleFactor();
-  const region = {type: "fan", direction: "horizontal", groupId: groupId, layerIndex: 9, left: browseLeft, width: "65%", top: "50%", height: `${cardScaleFactor*1.1 + 3}vh`, top: "50%"};
+  const region = browseRegion;
+  browseRegion.height =`${cardScaleFactor*1.1 + 3}vh`;
   const game = useSelector(state => state?.gameUi?.game);
   const parentCards = getParentCardsInGroup(game, groupId);
   const [searchForProperty, setSearchForProperty] = useState('All');

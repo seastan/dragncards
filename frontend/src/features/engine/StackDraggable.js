@@ -13,6 +13,7 @@ import { getGroupIdAndRegionType } from "./Reorder";
 import { useOffsetTotalsAndAmounts } from "./hooks/useOffsetTotalsAndAmounts";
 import { usePlayerN } from "./hooks/usePlayerN";
 import { setDraggingEndDelay, setTempDragStack } from "../store/playerUiSlice";
+import { useGetRegionFromId } from "./hooks/useGetRegionFromId";
 
 const StackContainerFree = styled.div`
   position: absolute;
@@ -55,6 +56,7 @@ export const StackDraggable = React.memo(({
     const zoomFactor = useSelector(state => state?.playerUi?.userSettings?.zoomPercent)/100 * regionCardSizeFactor;
     const isCombined = useSelector(state => ((state?.playerUi?.dragging?.stackId === stackId) && (state?.playerUi?.dragging?.hoverOverStackId !== null)));
     const playerN = usePlayerN();
+    const getRegionFromId = useGetRegionFromId();
 
     // console.log("renda 1 ")
     // useEffect(() => {
@@ -69,7 +71,7 @@ export const StackDraggable = React.memo(({
     const layout = useLayout();
     const rowSpacing = layout?.rowSpacing;
     const cardSize = layout?.cardSize;
-    console.log('Rendering Stack in region ', region.groupId);
+    console.log('Rendering StackDraggable in ', region.groupId, stack);
     var spacingFactor = touchMode ? 1.5 : 1;
     const { height, width } = useWindowDimensions();
     const aspectRatio = width/height;
@@ -88,9 +90,14 @@ export const StackDraggable = React.memo(({
     const cardWidth = card0?.sides[card0?.currentSide]?.width;
     const cardHeight = card0?.sides[card0?.currentSide]?.height;
     const stackHeight = (cardHeight*cardSize + ATTACHMENT_OFFSET * (offsetTotals.top + offsetTotals.bottom)) * zoomFactor;
+    const stackTopOffset = ATTACHMENT_OFFSET * offsetTotals.top * zoomFactor;
+    const stackTop = region.type === "free" ? `calc(${stack.top} - ${stackTopOffset}vh)` : stack.top;
     //const stackWidth = cardWidth*cardSize + ATTACHMENT_OFFSET * (numCards - 1);
     const stackWidth = (cardWidth*cardSize + ATTACHMENT_OFFSET * (offsetTotals.left + offsetTotals.right)) * zoomFactor;
     const stackWidthFan = Math.min(fanSpacingHoriz, cardWidth*cardSize*zoomFactor);
+    const stackLeftOffset = ATTACHMENT_OFFSET * offsetTotals.left * zoomFactor;
+    const stackLeft = region.type === "free" ? `calc(${stack.left} - ${stackLeftOffset}vh)` : stack.left;
+    console.log("stackLeft", stackLeft, stack.left, stackLeftOffset)
   
     const regionHeightPercent = convertToPercentage(region.height);
     const regionHeightInt = parseInt(regionHeightPercent.substring(0, regionHeightPercent.length - 1))
@@ -112,7 +119,9 @@ export const StackDraggable = React.memo(({
             const hoverOverStackId = store.getState().playerUi?.dragging?.hoverOverStackId;
             const hoverOverDirection = store.getState().playerUi?.dragging?.hoverOverDirection;
             const hoverOverDroppableId = store.getState().playerUi?.dragging?.hoverOverDroppableId;
-            const [toGroupId, toRegionType, toRegionDirection] = getGroupIdAndRegionType(hoverOverDroppableId);
+            const toRegion = getRegionFromId(hoverOverDroppableId);
+            const toRegionType = toRegion.type;
+            //const [toGroupId, toRegionType, toRegionDirection] = getGroupIdAndRegionType(hoverOverDroppableId);
             console.log('onDragEnd hoverOverStackId 2:',{hoverOverStackId, draggingEnd});
             if (hoverOverStackId) {
               const result = {
@@ -155,7 +164,9 @@ export const StackDraggable = React.memo(({
           const draggingToDroppableId = store.getState().playerUi?.dragging?.hoverOverDroppableId;
           var draggingToFree = false;
           if (draggingToDroppableId) {
-            const [toGroupId, toRegionType, toRegionDirection] = getGroupIdAndRegionType(draggingToDroppableId);
+            const toRegion = getRegionFromId(draggingToDroppableId);
+            const toRegionType = toRegion.type;
+            //const [toGroupId, toRegionType, toRegionDirection] = getGroupIdAndRegionType(draggingToDroppableId);
             draggingToFree = toRegionType === "free";
           }
           return(
@@ -183,8 +194,8 @@ export const StackDraggable = React.memo(({
                       isGroupedOver={isCombined}
                       stackWidth={stackWidth}
                       stackHeight={stackHeight}
-                      stackLeft={stack.left}
-                      stackTop={stack.top}
+                      stackLeft={stackLeft}
+                      stackTop={stackTop}
                       margin={0}
                       ref={dragProvided.innerRef}
                       {...dragProvided.draggableProps}

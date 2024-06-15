@@ -256,6 +256,22 @@ export const getGameDefSchema = (gameDef) => {
           "zoomFactor": {
             "_type_": "float",
           },
+          "canOnlyAttachToTypes": {
+            "_type_": "array",
+            "_itemSchema_": {
+              "_type_": "string",
+              "_memberOf_": mytypeof(gameDef?.cardTypes) === "object" ? Object.keys(gameDef.cardTypes) : [],
+              "_memberOfPath_": "gameDef.cardTypes",
+            }
+          },
+          "canOnlyHaveAttachmentsOfTypes": {
+            "_type_": "array",
+            "_itemSchema_": {
+              "_type_": "string",
+              "_memberOf_": mytypeof(gameDef?.cardTypes) === "object" ? Object.keys(gameDef.cardTypes) : [],
+              "_memberOfPath_": "gameDef.cardTypes",
+            }
+          }
         }
       },
       "clearTableOptions": {
@@ -803,6 +819,9 @@ export const getGameDefSchema = (gameDef) => {
               "cardSizeFactor": {
                 "_type_": "float",
               },
+              "disableDroppableAttachments": {
+                "_type_": "boolean",
+              }
             }
           },
           "tableButtons": {

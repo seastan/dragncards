@@ -15,17 +15,16 @@ export const getGroupIdAndRegionType = (droppableId) => {
   return split;
 };
 
-export const reorderGroupStackIds = (groupById, orig, dest) => {
-  const origGroupId = getGroupIdAndRegionType(orig.droppableId)[0];
-  const destGroupId = getGroupIdAndRegionType(dest.droppableId)[0];
+export const reorderGroupStackIds = (groupById, origGroupId, origIndex, destGroupId, destIndex) => {
+
   const origGroupStackIds = groupById[origGroupId].stackIds;
   const destGroupStackIds = groupById[destGroupId].stackIds;
-  const stack = origGroupStackIds[orig.index];
+  const stack = origGroupStackIds[origIndex];
   const stackId = stack.id;
 
   // Moving to same list
   if (origGroupId === destGroupId) {
-    const reorderedStackIds = Reorder(origGroupStackIds, orig.index, dest.index);
+    const reorderedStackIds = Reorder(origGroupStackIds, origIndex, destIndex);
     const newGroupById = {
       ...groupById,
       [origGroupId]: {
@@ -40,10 +39,10 @@ export const reorderGroupStackIds = (groupById, orig, dest) => {
 
   // Remove from original
   const newOrigGroupStackIds = Array.from(origGroupStackIds);
-  newOrigGroupStackIds.splice(orig.index, 1);
+  newOrigGroupStackIds.splice(origIndex, 1);
   // Insert into next
   const newDestGroupStackIds = Array.from(destGroupStackIds);
-  newDestGroupStackIds.splice(dest.index, 0, stack);
+  newDestGroupStackIds.splice(destIndex, 0, stack);
 
   const newGroupById = {
     ...groupById,
