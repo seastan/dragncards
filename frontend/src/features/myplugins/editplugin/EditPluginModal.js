@@ -13,6 +13,14 @@ import { validateSchema } from "../validate/validateGameDef";
 import { getGameDefSchema } from "../validate/getGameDefSchema";
 import useProfile from "../../../hooks/useProfile";
 
+import tar from 'tar-stream';
+import fs from 'fs';
+import gunzip from 'gunzip-maybe';
+import pako from 'pako';
+import Tar from 'tar-js';
+import JSZip from 'jszip';
+
+
 ReactModal.setAppElement("#root");
 
 
@@ -142,7 +150,6 @@ export const EditPluginModal = ({ plugin, closeModal, doFetchHash}) => {
   });
 
   useEffect(() => {
-    console.log("plugin 1", plugin)
     if (inputs && plugin) setInputs({...inputs, public: plugin.public, repoUrl: plugin.repo_url});
   },[])
 
@@ -151,50 +158,112 @@ export const EditPluginModal = ({ plugin, closeModal, doFetchHash}) => {
     return <Redirect push to={`/room/${roomSlugCreated}`} />;
   }
 
-  const uploadGameDefJson = async(event) => {
+  const uploadGameDefJson = async (event) => {
     event.preventDefault();
     const files = event.target.files;
     let readers = [];
   
     // Abort if there were no files selected
-    if(!files.length) return;
+    if (!files.length) return;
   
-    // Store promises in array
-    for(let i = 0; i < files.length; i++){
-        readers.push(readFileAsText(files[i]));
-    }
+    // Helper function to read files as text
+    const readFileAsText = (file) => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsText(file);
+      });
+    };
+  
+    // Helper function to extract JSON files from a zip archive
+    const extractJsonFilesFromZip = async (file) => {
+      return new Promise((resolve, reject) => {
+        const jsonFiles = [];
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const zipData = new Uint8Array(reader.result);
+            const zip = new JSZip();
+            zip.loadAsync(zipData).then(() => {
+              const filePromises = Object.values(zip.files)
+                .filter((file) => file.name.endsWith('.json'))
+                .map((file) => file.async('text'));
     
-    // Trigger Promises
-    Promise.all(readers).then((jsonList) => {
-      console.log("unmerged",jsonList);
-      var mergedJSONs;
+              Promise.all(filePromises)
+                .then((contents) => {
+                  jsonFiles.push(...contents);
+                  resolve(jsonFiles);
+                })
+                .catch((error) => {
+                  reject(error);
+                });
+            }).catch((error) => {
+              reject(error);
+            });
+          } catch (error) {
+            reject(error);
+          }
+        };
+        reader.onerror = () => reject(reader.error);
+        reader.readAsArrayBuffer(file);
+      });
+    };
+  
+    // Process files
+    if (files.length === 1 && files[0].name.endsWith('.zip')) {
+      // Handle zip file
       try {
-        mergedJSONs = mergeJSONs(jsonList);
-        console.log("mergedJSONs", mergedJSONs)
-        const errors = []
-        validateSchema(mergedJSONs, "gameDef", mergedJSONs, getGameDefSchema(mergedJSONs), errors);
-        if (errors.length === 0) {
-          setSuccessMessageGameDef(`Game definition uploaded successfully: ${mergedJSONs.pluginName}`);
-          setErrorMessagesGameDef([]);
-          setValidGameDef(true);
-          setInputs({...inputs, gameDef: mergedJSONs});
-        } else {
-          // Set the error message
-          const labelSchema = "";
-          
-          setErrorMessagesGameDef(errors)
-          setValidGameDef(false);
-        }
-        if (plugin && mergedJSONs.pluginName !== plugin.name) {
-          setWarningMessagesGameDef([`Warning: Plugin name mismatch between existing definition (${plugin.name}) and uploaded definition (${mergedJSONs.pluginName}). Confirm that you are editing the appropriate plugin.`])
-        }
+        const jsonList = await extractJsonFilesFromZip(files[0]);
+        // wait for 2 seconds
+        //await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        handleJsonList(jsonList);
       } catch (error) {
-        setErrorMessagesGameDef([`Invalid JSON file(s): ${error.message}`]);
+        setErrorMessagesGameDef([`Error extracting JSON files from zip: ${error.message}`]);
       }
-    });
-
+    } else {
+      // Handle individual JSON files
+      for (let i = 0; i < files.length; i++) {
+        readers.push(readFileAsText(files[i]));
+      }
+  
+      // Trigger Promises
+      Promise.all(readers).then(handleJsonList).catch(error => {
+        setErrorMessagesGameDef([`Error reading JSON files: ${error.message}`]);
+      });
+    }
+  
     inputFileGameDef.current.value = "";
-  }
+  };
+  
+  // Function to handle the list of JSON strings
+  const handleJsonList = (jsonList) => {
+    console.log("unmerged", jsonList.length);
+    var mergedJSONs;
+    try {
+      mergedJSONs = mergeJSONs(jsonList);
+      console.log("mergedJSONs", mergedJSONs)
+      const errors = [];
+      validateSchema(mergedJSONs, "gameDef", mergedJSONs, getGameDefSchema(mergedJSONs), errors);
+      if (errors.length === 0) {
+        setSuccessMessageGameDef(`Game definition uploaded successfully: ${mergedJSONs.pluginName}`);
+        setErrorMessagesGameDef([]);
+        setValidGameDef(true);
+        setInputs({...inputs, gameDef: mergedJSONs});
+      } else {
+        // Set the error message
+        const labelSchema = "";
+        setErrorMessagesGameDef(errors);
+        setValidGameDef(false);
+      }
+      if (plugin && mergedJSONs.pluginName !== plugin.name) {
+        setWarningMessagesGameDef([`Warning: Plugin name mismatch between existing definition (${plugin.name}) and uploaded definition (${mergedJSONs.pluginName}). Confirm that you are editing the appropriate plugin.`]);
+      }
+    } catch (error) {
+      setErrorMessagesGameDef([`Invalid JSON file(s): ${error.message}`]);
+    }
+  };
 
   const uploadCardDbTsv = async(event) => {
     event.preventDefault();
@@ -294,14 +363,14 @@ export const EditPluginModal = ({ plugin, closeModal, doFetchHash}) => {
               value={inputs.plugin_name || ""}
             /> */}
           <label className="block text-sm font-bold mb-2 mt-4 text-white">
-            {siteL10n("Game definition (.json)")}
+            {siteL10n("Game definition (.json, .zip)")}
           </label>
           <label className="block text-xs mb-2 text-white">
             {siteL10n("You may upload multiple jsons at once that define different aspects of the game and they will be merged automatically.")}
           </label>
           <Button onClick={() => loadFileGameDef()}>
             {siteL10n("Load game definition (.json)")}
-            <input type='file' multiple id='file' ref={inputFileGameDef} style={{display: 'none'}} onChange={uploadGameDefJson} accept=".json"/>
+            <input type='file' multiple id='file' ref={inputFileGameDef} style={{display: 'none'}} onChange={uploadGameDefJson} accept=".json,.zip"/>
           </Button>
           {successMessageGameDef && (
             <div className="alert alert-info mt-1 text-xs p-1 pl-3">{successMessageGameDef}</div>

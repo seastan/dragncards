@@ -78,7 +78,7 @@ export const StackDraggable = React.memo(({
     const cardIds = stack?.cardIds || [];
     const card0 = store.getState().gameUi.game.cardById[cardIds[0]];
     // Calculate size of stack for proper spacing. Changes base on group type and number of stack in group.
-    const {offsetTotals, offsetAmounts} = useOffsetTotalsAndAmounts(stackId);
+    const {offsetTotals, offsetAmounts, stackEdges} = useOffsetTotalsAndAmounts(stackId);
 
     if (!stack) return null;
     //if (tempDragStackIdIsThisStackId) return null;
@@ -89,14 +89,14 @@ export const StackDraggable = React.memo(({
     const fanSpacingHoriz = (regionWidthInt-cardSize/2)*aspectRatio/numStacksNonZero;
     const cardWidth = card0?.sides[card0?.currentSide]?.width;
     const cardHeight = card0?.sides[card0?.currentSide]?.height;
-    const stackHeight = (cardHeight*cardSize + ATTACHMENT_OFFSET * (offsetTotals.top + offsetTotals.bottom)) * zoomFactor;
-    const stackTopOffset = ATTACHMENT_OFFSET * offsetTotals.top * zoomFactor;
-    const stackTop = region.type === "free" ? `calc(${stack.top} - ${stackTopOffset}vh)` : stack.top;
+    const stackHeight = (stackEdges.bottom - stackEdges.top) * zoomFactor;
+    const stackTopOffset = stackEdges.top * zoomFactor;
+    const stackTop = region.type === "free" ? `calc(${stack.top} + ${stackTopOffset}vh)` : stack.top;
     //const stackWidth = cardWidth*cardSize + ATTACHMENT_OFFSET * (numCards - 1);
-    const stackWidth = (cardWidth*cardSize + ATTACHMENT_OFFSET * (offsetTotals.left + offsetTotals.right)) * zoomFactor;
+    const stackWidth = (stackEdges.right - stackEdges.left) * zoomFactor;
     const stackWidthFan = Math.min(fanSpacingHoriz, cardWidth*cardSize*zoomFactor);
-    const stackLeftOffset = ATTACHMENT_OFFSET * offsetTotals.left * zoomFactor;
-    const stackLeft = region.type === "free" ? `calc(${stack.left} - ${stackLeftOffset}vh)` : stack.left;
+    const stackLeftOffset = stackEdges.left * zoomFactor;
+    const stackLeft = region.type === "free" ? `calc(${stack.left} + ${stackLeftOffset}vh)` : stack.left;
     console.log("stackLeft", stackLeft, stack.left, stackLeftOffset)
   
     const regionHeightPercent = convertToPercentage(region.height);

@@ -54,8 +54,10 @@ for (var p in obj2) {
 
 export const mergeJSONs = (jsonList) => {
   // Convert to list of objects
+  console.log("merging objects 1: ", jsonList.length)
   const objList = jsonList.map(json => JSON.parse(json));
   // Merge the objects
+  console.log("merging objects 2: ", objList)
   const mergedObj = mergeObjects(objList);
   return mergedObj;
 }

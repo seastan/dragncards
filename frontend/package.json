@@ -45,6 +45,7 @@
     "http-proxy-middleware": "^1.0.3",
     "immutability-helper": "^3.0.0",
     "jslint": "^0.12.1",
+    "jszip": "^3.10.1",
     "lz-string": "^1.5.0",
     "moment": "^2.29.4",
     "mui-datatables": "^3.7.7",

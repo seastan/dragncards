@@ -24,6 +24,9 @@ const browseLeft = "1%";
 
 export const useBrowseRegion = () => {
   const playerN = usePlayerN();
+  const gameDef = useGameDefinition();
+  const cardTypes = gameDef?.cardTypes;
+  const maxHeight = Math.max(...Object.values(cardTypes).map(cardType => cardType?.height || 1));
   const browseGroupId = useSelector(state => state?.gameUi?.game?.playerData?.[playerN]?.browseGroup?.id);
   const cardScaleFactor = useCardScaleFactor();
   return {
@@ -34,7 +37,7 @@ export const useBrowseRegion = () => {
     layerIndex: 9,
     left: browseLeft,
     width: "65%",
-    height: `${cardScaleFactor*1.1 + 3}vh`,
+    height: `${cardScaleFactor*maxHeight*1.1 + 3}vh`,
     top: "50%",
     disableDropAttachments: true,
   }
@@ -49,7 +52,6 @@ export const Browse = React.memo(({}) => {
   const groupId = useSelector(state => state?.gameUi?.game?.playerData?.[playerN]?.browseGroup?.id);
   const browseGroupTopN = useSelector(state => state?.gameUi?.game?.playerData?.[playerN]?.browseGroup?.topN);
   const group = useSelector(state => state?.gameUi?.game?.groupById?.[groupId]);
-  const cardScaleFactor = useCardScaleFactor();
   const region = useBrowseRegion();
   const game = useSelector(state => state?.gameUi?.game);
   const parentCards = getParentCardsInGroup(game, groupId);
@@ -220,7 +222,7 @@ export const Browse = React.memo(({}) => {
   
         <div className="float-left p-1 pl-2 h-full select-none" style={{left:"70%", width:"20%"}}>
               
-          <div className="h-1/5 w-full">
+          <div className="w-full" style={{height: `calc(100% / ${pairedFilterButtons.length+1})`}}>
             <div className="h-full float-left w-1/2 px-0.5">
               <select 
                 name="numFaceup" 
