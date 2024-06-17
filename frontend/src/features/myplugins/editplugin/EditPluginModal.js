@@ -12,12 +12,6 @@ import { mergeJSONs, processArrayOfRows, readFileAsText, stringTo2DArray } from 
 import { validateSchema } from "../validate/validateGameDef";
 import { getGameDefSchema } from "../validate/getGameDefSchema";
 import useProfile from "../../../hooks/useProfile";
-
-import tar from 'tar-stream';
-import fs from 'fs';
-import gunzip from 'gunzip-maybe';
-import pako from 'pako';
-import Tar from 'tar-js';
 import JSZip from 'jszip';
 
 
