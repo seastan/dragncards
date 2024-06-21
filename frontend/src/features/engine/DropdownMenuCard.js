@@ -138,29 +138,35 @@ export const DropdownMenuCard = React.memo(({
 
         {activeMenu === "main" &&
         <div className="menu">
-          {menuCard.cardIndex>0 ? 
+          {menuCard.cardIndex === 0 || gameDef?.cardMenu?.suppress?.includes("Detach") ? null : 
             <DropdownItem 
               action={dragnActionLists.detach(menuCard)} 
               clickCallback={handleDropdownClick}>
                 {l10n("detach")}
-            </DropdownItem> : null}
-          {menuCard.cardIndex>0 ? 
+            </DropdownItem>
+          }
+          {menuCard.cardIndex === 0 || gameDef?.cardMenu?.suppress?.includes("Attachment Direction") ? null :
             <DropdownItem
               rightIcon={<FontAwesomeIcon icon={faChevronRight}/>}
               goToMenu="attachmentDirection"
               clickCallback={handleDropdownClick}>
               {l10n("attachmentDirection")}
-            </DropdownItem>: null}
-          <DropdownItem 
-            action= {dragnActionLists.flipCard(menuCard)} 
-            clickCallback={handleDropdownClick}>
-              {l10n("flip")}
-          </DropdownItem>
-          <DropdownItem 
-            action= {dragnActionLists.deleteCard(menuCard)} 
-            clickCallback={handleDropdownClick}>
-              {l10n("delete")}
-          </DropdownItem>
+            </DropdownItem>
+          }
+          {gameDef?.cardMenu?.suppress?.includes("Flip") ? null :
+            <DropdownItem 
+              action= {dragnActionLists.flipCard(menuCard)} 
+              clickCallback={handleDropdownClick}>
+                {l10n("flip")}
+            </DropdownItem>
+          }
+          {gameDef?.cardMenu?.suppress?.includes("Delete") ? null :
+            <DropdownItem 
+              action= {dragnActionLists.deleteCard(menuCard)} 
+              clickCallback={handleDropdownClick}>
+                {l10n("delete")}
+            </DropdownItem>
+          }
           {gameDef?.cardMenu?.options?.map((menuItem, _itemIndex) => {
             if (menuItem?.showIf && !evaluateCondition(menuItem.showIf)) return;
             return ( 
@@ -171,32 +177,38 @@ export const DropdownMenuCard = React.memo(({
               </DropdownItem> 
             )
           })}
-          <DropdownItem
-            rightIcon={<FontAwesomeIcon icon={faChevronRight}/>}
-            goToMenu="moveTo"
-            clickCallback={handleDropdownClick}>
-            {l10n("moveTo")}
-          </DropdownItem>
-          <DropdownItem
-            rightIcon={<FontAwesomeIcon icon={faChevronRight}/>}
-            goToMenu="showTo"
-            clickCallback={handleDropdownClick}>
-            {l10n("showTo")}
-          </DropdownItem>
-          {menuCard?.inPlay && 
+          {gameDef?.cardMenu?.suppress?.includes("Move To") ? null :
+            <DropdownItem
+              rightIcon={<FontAwesomeIcon icon={faChevronRight}/>}
+              goToMenu="moveTo"
+              clickCallback={handleDropdownClick}>
+              {l10n("moveTo")}
+            </DropdownItem>
+          }
+          {gameDef?.cardMenu?.suppress?.includes("Show To") ? null :
+            <DropdownItem
+              rightIcon={<FontAwesomeIcon icon={faChevronRight}/>}
+              goToMenu="showTo"
+              clickCallback={handleDropdownClick}>
+              {l10n("showTo")}
+            </DropdownItem>
+          }
+          {menuCard?.inPlay !== true || gameDef?.cardMenu?.suppress?.includes("Toggle Trigger") ? null :
             <DropdownItem
               rightIcon={<FontAwesomeIcon icon={faChevronRight}/>}
               goToMenu="toggleTrigger"
               clickCallback={handleDropdownClick}>
               {l10n("toggleTriggers")}
-            </DropdownItem>}
-          {menuCard?.inPlay &&
+            </DropdownItem>
+          }
+          {menuCard?.inPlay !== true || gameDef?.cardMenu?.suppress?.includes("Set Rotation") ? null :
             <DropdownItem
               rightIcon={<FontAwesomeIcon icon={faChevronRight}/>}
               goToMenu="setRotation"
               clickCallback={handleDropdownClick}>
               {l10n("setRotation")}
-            </DropdownItem>}
+            </DropdownItem>
+          }
           <DropdownItem
             rightIcon={user?.supporter_level < 5 ? <img style={{height: "20px"}} src="https://upload.wikimedia.org/wikipedia/commons/9/94/Patreon_logo.svg"/> : null}
             clickCallback={() => setAltArt()}>

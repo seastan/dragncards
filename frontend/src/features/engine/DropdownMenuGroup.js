@@ -85,7 +85,7 @@ export const DropdownMenuGroup = React.memo(({
           <DropdownItem action={actionListShuffle} clickCallback={handleDropdownClick}>{siteL10n("Shuffle")}</DropdownItem>
           {group?.menuOptions?.map((option, _index) => {
             return(
-              <DropdownItem action={option.actionList} clickCallback={handleDropdownClick}>{siteL10n(option.label)}</DropdownItem>
+              <DropdownItem action={option.actionList} clickCallback={handleDropdownClick}>{gameL10n(option.label)}</DropdownItem>
             )
           })}
           {gameDef?.groupMenu?.options?.map((option, _index) => {
@@ -93,28 +93,39 @@ export const DropdownMenuGroup = React.memo(({
               <DropdownItem action={option.actionList} clickCallback={handleDropdownClick}>{gameL10n(option.label)}</DropdownItem>
             )
           })}
-          {menuGroup.id === playerN+"Hand" ? <DropdownItem action="makeVisible" clickCallback={handleDropdownClick}>{siteL10n("Make visible/hidden")}</DropdownItem> : null}
           
-          <DropdownItem topN="None" clickCallback={handleLookAtClick}>{siteL10n("Browse")}</DropdownItem>
-          {choicesTopN.map((topN, _index) => {
-            return(
-              <DropdownItem topN={topN} clickCallback={handleLookAtClick}>{siteL10n("Look at top") + " " + topN}</DropdownItem>
-            )
-          })}
-          <DropdownItem topN="X" clickCallback={handleLookAtClick}>{siteL10n("Look at top X")}</DropdownItem>
-          <DropdownItem action={dragnActionLists.chooseRandom(menuGroup.id)} clickCallback={handleDropdownClick}>{siteL10n("Choose Random")}</DropdownItem>
-          <DropdownItem
-            rightIcon={<FontAwesomeIcon icon={faChevronRight}/>}
-            goToMenu="setVisibility"
-            clickCallback={handleDropdownClick}>
-            {siteL10n("Set visibility")}
-          </DropdownItem>
-          <DropdownItem
-            rightIcon={<FontAwesomeIcon icon={faChevronRight}/>}
-            goToMenu="moveTo"
-            clickCallback={handleDropdownClick}>
-            {siteL10n("Move to")}
-          </DropdownItem>
+          {gameDef?.groupMenu?.suppress?.includes("Browse") ? null :
+            <DropdownItem topN="None" clickCallback={handleLookAtClick}>{siteL10n("Browse")}</DropdownItem>
+          }
+          {gameDef?.groupMenu?.suppress?.includes("Look at top") ? null :
+            choicesTopN.map((topN, _index) => {
+              return(
+                <DropdownItem topN={topN} clickCallback={handleLookAtClick}>{siteL10n("Look at top") + " " + topN}</DropdownItem>
+              )
+            })
+          }
+          {gameDef?.groupMenu?.suppress?.includes("Look at top X") ? null :
+            <DropdownItem topN="X" clickCallback={handleLookAtClick}>{siteL10n("Look at top X")}</DropdownItem>
+          }
+          {gameDef?.groupMenu?.suppress?.includes("Choose Random") ? null :
+            <DropdownItem action={dragnActionLists.chooseRandom(menuGroup.id)} clickCallback={handleDropdownClick}>{siteL10n("Choose Random")}</DropdownItem>
+          }
+          {gameDef?.groupMenu?.suppress?.includes("Set Visibility") ? null :
+            <DropdownItem
+              rightIcon={<FontAwesomeIcon icon={faChevronRight}/>}
+              goToMenu="setVisibility"
+              clickCallback={handleDropdownClick}>
+              {siteL10n("setVisibility")}
+            </DropdownItem>
+          }
+          {gameDef?.groupMenu?.suppress?.includes("Move To") ? null :
+            <DropdownItem
+              rightIcon={<FontAwesomeIcon icon={faChevronRight}/>}
+              goToMenu="moveTo"
+              clickCallback={handleDropdownClick}>
+              {siteL10n("moveTo")}
+            </DropdownItem>
+          }
           {/* <DropdownItem
             rightIcon={<FontAwesomeIcon icon={faChevronRight}/>}
             goToMenu="more"

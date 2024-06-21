@@ -78,11 +78,10 @@ const InputBox = ({
   const handleSpawnTyping = (event) => {
     const newSearchString = event.target.value;
     setSearchString(newSearchString);
-    console.log("decksearch for ", newSearchString, " in ", gameDef?.preBuiltDecks);
     const filtered = [];
     for (var deckId of Object.keys(gameDef.preBuiltDecks).sort().reverse()) {
       const deck = gameDef.preBuiltDecks[deckId];
-      console.log("decksearch is ", newSearchString, " in ", gameL10n(deck.label), "?")
+      if (deck.hideFromSearch) continue;
       if (isStringInDeckName(newSearchString, gameL10n(deck.label))) filtered.push(deckId);
       setFilteredIds(filtered);
     }
@@ -125,7 +124,8 @@ const Table = ({filteredIds}) => {
         </tr>
       </thead>
       {filteredIds.map((filteredId, index) => {
-        const deckName = gameDef.preBuiltDecks?.[filteredId]?.label;
+        const deck = gameDef.preBuiltDecks?.[filteredId]
+        const deckName = deck?.label;
         return(
           <tr className="bg-gray-600 text-white cursor-pointer hover:bg-gray-500 hover:text-black" onClick={() => handleSpawnClick(filteredId)}>
             <td className="p-1">{gameL10n(deckName)}</td>

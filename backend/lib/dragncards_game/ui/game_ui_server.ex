@@ -287,7 +287,7 @@ defmodule DragnCardsGame.GameUIServer do
   def handle_call({:set_seat, _user_id, player_i, new_user_id}, _from, gameui) do
     try do
       if new_user_id == nil do
-        put_in(gameui["playerInfo"][player_i], nil)
+        GameUI.get_up(gameui, player_i)
       else
         GameUI.sit_down(gameui, player_i, new_user_id)
       end

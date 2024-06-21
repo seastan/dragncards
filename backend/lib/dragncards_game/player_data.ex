@@ -16,6 +16,8 @@ defmodule DragnCardsGame.PlayerData do
     layout_id = default_layout_info["layoutId"]
 
     base = %{
+      "user_id" => nil,
+      "alias" => nil,
       "drawingArrowFrom" => nil,
       "label" => nil,
       "prompts" => %{},

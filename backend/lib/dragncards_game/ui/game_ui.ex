@@ -7,7 +7,7 @@ defmodule DragnCardsGame.GameUI do
   require Logger
   alias ElixirSense.Providers.Eval
   alias DragnCardsGame.GameVariables
-  alias DragnCardsGame.{Game, GameUI, Stack, Card, PlayerInfo, Evaluate, GameVariables}
+  alias DragnCardsGame.{Game, GameUI, Stack, Card, PlayerInfo, Evaluate, GameVariables, Evaluate.Variables.ALIAS_N}
 
   alias DragnCards.{Repo, Replay, Plugins, Users}
   alias DragnCards.Rooms.Room
@@ -69,9 +69,25 @@ defmodule DragnCardsGame.GameUI do
 
   def sit_down(gameui, player_n, user_id) do
     player_info = PlayerInfo.new(user_id)
-    gameui
+    log_alias = ALIAS_N.log_alias_n(player_n, player_info["alias"])
+    gameui = gameui
     |> put_in(["playerInfo", player_n], player_info)
+    |> put_in(["game", "playerData", player_n, "user_id"], user_id)
+    |> put_in(["game", "playerData", player_n, "alias"], player_info["alias"])
     |> update_player_data(player_n, user_id)
+
+    gameui
+    |> put_in(["game", "messages"], ["#{log_alias} sat down in #{player_n}'s seat."] ++ gameui["game"]["messages"])
+  end
+
+  def get_up(gameui, player_n) do
+    alias_n = gameui["game"]["playerData"][player_n]["alias"]
+    log_alias = ALIAS_N.log_alias_n(player_n, alias_n)
+    gameui
+    |> put_in(["game", "messages"], ["#{log_alias} got up from #{player_n}'s seat."])
+    |> put_in(["playerInfo", player_n], nil)
+    |> put_in(["game", "playerData", player_n, "alias"], nil)
+    |> put_in(["game", "playerData", player_n, "user_id"], nil)
   end
 
   defp update_player_data(gameui, _player_n, nil), do: gameui
@@ -80,9 +96,7 @@ defmodule DragnCardsGame.GameUI do
     user = Users.get_user(user_id)
     game_def = Plugins.get_game_def(gameui["game"]["pluginId"])
     plugin_id = gameui["options"]["pluginId"]
-    Logger.debug("update_player_data plugin_id: #{inspect(plugin_id)}")
     plugin_player_settings = user.plugin_settings["#{plugin_id}"]["player"]
-    Logger.debug("update_player_data plugin_player_settings: #{inspect(plugin_player_settings)}")
     action_list = if plugin_player_settings != nil do
       Enum.reduce(plugin_player_settings, [], fn({key, val}, acc) ->
         label = game_def["playerProperties"][key]["label"]
@@ -92,10 +106,9 @@ defmodule DragnCardsGame.GameUI do
     else
       []
     end
-    Logger.debug("update_player_data action_list: #{inspect(action_list)}")
 
     # Submit the player data changes as an action
-    if Enum.count(action_list) > 0 do
+    gameui = if Enum.count(action_list) > 0 do
       options = %{
         "action_list" => action_list,
         "player_ui" => %{"playerN" => player_n}
@@ -104,6 +117,18 @@ defmodule DragnCardsGame.GameUI do
     else
       gameui
     end
+
+    gameui = if game_def["automation"]["postSitDownActionList"] do
+      options = %{
+        "action_list" => game_def["automation"]["postSitDownActionList"],
+        "player_ui" => %{"playerN" => player_n}
+      }
+      game_action(gameui, user_id, "evaluate", options)
+    else
+      gameui
+    end
+
+    gameui
   end
 
   ############################################################

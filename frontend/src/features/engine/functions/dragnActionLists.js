@@ -1,4 +1,3 @@
-import { ca, el } from "date-fns/locale";
 
 export const dragnActionLists = {
   setRotation: (deg) => (
@@ -56,7 +55,7 @@ export const dragnActionLists = {
     ]
   ]),
   clearTargets: () => ([
-    ["LOG", "$ALIAS_N", " cleared all  targets and arrows."],
+    ["LOG", "$ALIAS_N", " cleared all targets and arrows."],
     ["FOR_EACH_KEY_VAL", "$CARD_ID", "$CARD", "$GAME.cardById", [
       ["SET", "/cardById/$CARD_ID/targeting/$PLAYER_N", false],
       ["SET", "/cardById/$CARD_ID/arrows/$PLAYER_N", ["LIST"]]

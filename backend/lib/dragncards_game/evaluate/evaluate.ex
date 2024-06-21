@@ -450,13 +450,6 @@ defmodule DragnCardsGame.Evaluate do
               IO.puts("Variable #{var_name} not found in #{inspect(game["variables"])}")
               case var_name do
 
-                "$ALIAS_N" ->
-                  IO.puts("found alias_n")
-                  IO.inspect(game["playerInfo"])
-                  player_n = evaluate(game, "$PLAYER_N", trace ++ ["$ALIAS_N"])
-                  IO.inspect(player_n)
-                  get_in(game, ["playerInfo", player_n, "alias"])
-
                 "$PLAYER_ORDER" ->
                   # Call evaluate(game, ["NEXT_PLAYER", acc]) numPlayers times, starting with the current player, and put the results in a list
                   num_players = game["numPlayers"]

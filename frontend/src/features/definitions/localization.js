@@ -371,6 +371,10 @@ export const siteL10n = {
     "English": "Toggle Triggers",
     "Chinese": "切换触发器"
   },
+  "setVisibility": {
+    "English": "Set Visibility",
+    "Chinese": "设置可见性"
+  },
   "setRotation": {
     "English": "Set Rotation",
     "Chinese": "设置旋转方向"
