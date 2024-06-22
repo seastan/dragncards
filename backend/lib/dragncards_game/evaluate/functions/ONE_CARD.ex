@@ -19,20 +19,20 @@ defmodule DragnCardsGame.Evaluate.Functions.ONE_CARD do
   ["ONE_CARD",
     "$CARD",
     ["AND",
-      ["EQUAL", "$CARD.suit", "spades"],
-      ["EQUAL", "$CARD.value", "Queen"]
+      ["EQUAL", "$CARD.sides.A.suit", "spades"],
+      ["EQUAL", "$CARD.sides.A.value", "Queen"]
     ]
   ]
   ```
 
-  Find a card in the game that has the `"suit": "spades"` and `"value": "Queen"` properties, and log whether it is in play or not.
+  Find a card in the game that has the `"suit": "spades"` and `"value": "Queen"` face properties, and log whether it is in play or not.
   ```
   [
     ["VAR", "$MATCHED_CARD", ["ONE_CARD",
       "$CARD",
       ["AND",
-        ["EQUAL", "$CARD.suit", "spades"],
-        ["EQUAL", "$CARD.value", "Queen"]
+        ["EQUAL", "$CARD.sides.A.suit", "spades"],
+        ["EQUAL", "$CARD.sides.A.value", "Queen"]
       ]
     ]],
     ["COND",

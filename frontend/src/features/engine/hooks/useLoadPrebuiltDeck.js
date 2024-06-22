@@ -11,7 +11,10 @@ export const useLoadPrebuiltDeck = () => {
         const deck = gameDef.preBuiltDecks[deckId];
         if (deck) {
             sendLocalMessage("Loading "+deck.label+"...");
-            doActionList(["LOAD_CARDS", deckId])
+            doActionList([
+                ["LOG", `{{$ALIAS_N}} loaded ${deck.label}.`],
+                ["LOAD_CARDS", deckId]
+            ])
         } else {
             alert("Deck not found");
         }
