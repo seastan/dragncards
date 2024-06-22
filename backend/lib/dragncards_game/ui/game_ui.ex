@@ -384,17 +384,20 @@ defmodule DragnCardsGame.GameUI do
 
     # Assign the prev group's onCardLeave values
     game = if orig_group["onCardLeave"] != nil do
+      IO.puts("onCardLeave")
+      IO.inspect(orig_group["onCardLeave"])
       Enum.reduce(orig_group["onCardLeave"], game, fn({key, val}, acc) ->
-        if orig_group["onCardLeave"][key] != orig_group["onCardLeave"][key] do
+        #if orig_group["onCardLeave"][key] != dest_group["onCardLeave"][key] do
+          IO.puts("Setting #{key} to #{val}")
           cond do
             key == "currentSide" and allow_flip == false ->
               acc
             true ->
               Evaluate.evaluate(acc, ["SET", "/cardById/" <> card_id <> "/" <> key, val], ["update_card_state cardId:#{card_id} #{key}:#{inspect(val)}"])
           end
-        else
-          acc
-        end
+        # else
+        #   acc
+        # end
       end)
     else
       game
@@ -402,6 +405,8 @@ defmodule DragnCardsGame.GameUI do
 
     # Assign the group's onCardEnter values
     game = if dest_group["onCardEnter"] != nil do
+      IO.puts("onCardEnter")
+      IO.inspect(dest_group["onCardEnter"])
       Enum.reduce(dest_group["onCardEnter"], game, fn({key, val}, acc) ->
         #if orig_group["onCardEnter"][key] != dest_group["onCardEnter"][key] do
           cond do
