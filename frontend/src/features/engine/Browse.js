@@ -195,7 +195,7 @@ export const Browse = React.memo(({}) => {
       }}>
       <strong className="bg-gray-600 w-full text-gray-300 flex justify-center items-center" style={{height: "3vh", borderTopLeftRadius: "1vh", borderTopRightRadius: "1vh"}}>
         <FontAwesomeIcon onClick={(event) => handleBarsClick(event)}  className="cursor-pointer hover:text-white" icon={faBars}/>
-        <span className="px-2">{gameL10n(gameDef.groups[group.id].label)}</span>
+        <span className="px-2">{gameL10n(group.label)}</span>
       </strong>
       
       <div className="w-full" style={{height: `calc(100% - 3vh)`}}>

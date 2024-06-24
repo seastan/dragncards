@@ -192,30 +192,31 @@ export const loadRingsDb = (importLoadList, doActionList, playerN, ringsDbDomain
 
 export const loadArkhamDb = (importLoadList, doActionList, playerN, arkhamDbType, arkhamDbId) => {
   doActionList(["LOG", "$ALIAS_N", " is importing a deck from RingsDB."]);
-  const urlBase = "https://www.arkhamdb.com/api/"
-  const url = arkhamDbType === "decklist" ? urlBase+"public/decklist/"+arkhamDbId+".json" : urlBase+"oauth2/deck/load/"+arkhamDbId;
+  const urlBase = "https://arkhamdb.com/api/"
+  const url = arkhamDbType === "decklist" ? urlBase+"public/decklist/"+arkhamDbId : urlBase+"public/deck/"+arkhamDbId;
   console.log("Fetching ", url);
   fetch(url, {
-    credentials: "omit",
+    method: "GET",
+    mode: "cors",
+    cache: "no-cache",
+    credentials: "omit"
   })
   .then(response => {
-    console.log("response.headers =", response.headers)
     return response.json()
   })
   .then((jsonData) => {
     // jsonData is parsed json object received from url
+
     var loadList = [];
 
     if (jsonData?.investigator_code) {
       loadList.push({'databaseId': jsonData?.investigator_code, 'quantity': 1, 'loadGroupId': "playerNInvestigator"});
     }
-
     const slots = jsonData.slots;
     for (const [slot, quantity] of Object.entries(slots)) {
       loadList.push({'databaseId': slot, 'quantity': quantity, 'loadGroupId': "playerNDeck"});
     }
-
-    const sideSlots = jsonData.side_slots;
+    const sideSlots = jsonData.sideSlots;
     for (const [slot, quantity] of Object.entries(sideSlots)) {
       loadList.push({'databaseId': slot, 'quantity': quantity, 'loadGroupId': "playerNRemoved"});
     }

@@ -197,7 +197,10 @@ defmodule DragnCardsGame.GameUI do
   end
 
   def get_group_by_stack_id(game, stack_id) do
-    Enum.reduce(game["groupById"], nil, fn({_group_id, group}, acc) ->
+    Enum.reduce(game["groupById"], nil, fn({group_id, group}, acc) ->
+      if group_id !== group["id"] do
+        raise "Group id mismatch: #{group_id} != #{group["id"]}. When manipulating groups, you must ensure that its id matches its key in groupById."
+      end
       if stack_id in group["stackIds"] do group else acc end
     end)
   end
@@ -308,8 +311,8 @@ defmodule DragnCardsGame.GameUI do
     else
       new_stack = Stack.empty_stack() |> put_in(["cardIds"], [card_id])
       insert_new_stack(game, dest_group_id, dest_stack_index, new_stack)
-    end
-    # Update game
+  end
+
     game = game
     |> remove_from_stack(card_id, orig_stack_id)
     |> update_card_state(card_id, orig_group_id, options)
@@ -331,7 +334,8 @@ defmodule DragnCardsGame.GameUI do
         true
     end
     parent_card = get_card_by_group_id_stack_index_card_index(game, [dest_group_id, dest_stack_index, 0])
-    stack_id = game["groupById"][dest_group_id]["stackIds"][dest_stack_index]
+    stack_ids = game["groupById"][dest_group_id]["stackIds"]
+    stack_id = Enum.at(stack_ids, dest_stack_index)
 
     # Update location of card
     game = Evaluate.evaluate(game, ["SET", "/cardById/" <> card_id <> "/groupId", dest_group_id], ["update_card_state cardId:#{card_id} groupId:#{dest_group_id}"])
