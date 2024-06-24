@@ -82,7 +82,9 @@ export const DropdownMenuGroup = React.memo(({
         <div className="menu-title">{dropdownMenu.title}</div>
         {activeMenu === "main" &&
         <div className="menu">
-          <DropdownItem action={actionListShuffle} clickCallback={handleDropdownClick}>{siteL10n("Shuffle")}</DropdownItem>
+          {gameDef?.groupMenu?.suppress?.includes("Shuffle") ? null :
+            <DropdownItem action={actionListShuffle} clickCallback={handleDropdownClick}>{siteL10n("Shuffle")}</DropdownItem>
+          }
           {group?.menuOptions?.map((option, _index) => {
             return(
               <DropdownItem action={option.actionList} clickCallback={handleDropdownClick}>{gameL10n(option.label)}</DropdownItem>

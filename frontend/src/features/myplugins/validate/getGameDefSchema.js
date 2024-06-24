@@ -562,7 +562,7 @@ export const getGameDefSchema = (gameDef) => {
           "_type_": "array",
           "_itemSchema_": {
             "_type_": "string",
-            "_memberOf_": ["Browse", "Look at top", "Look at top X", "Choose Random", "Set Visibility", "Move To"],
+            "_memberOf_": ["Shuffle", "Browse", "Look at top", "Look at top X", "Choose Random", "Set Visibility", "Move To"],
             "_memberOfPath_": `["Browse", "Look at top", "Look at top X", "Choose Random", "Set Visibility", "Move To"]`,
           }
         },
