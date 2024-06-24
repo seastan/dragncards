@@ -18,6 +18,8 @@ export const useImportViaUrl = () => {
       await importViaUrlMarvelCdb(importLoadList, doActionList, playerN, cardDb);
     } else if (gameDef["pluginName"].includes("Earthborne Rangers")) {
       await importViaUrlRangersDb(importLoadList, doActionList, playerN, cardDb);
+    } else if (gameDef["pluginName"].includes("Arkham Horror Living Card Game")) {
+      await importViaUrlArkhamDb(importLoadList, doActionList, playerN, cardDb);
     } else {
       alert("Importing via URL is not yet supported for this game. Please request this feature on Discord.");
     }
@@ -25,31 +27,54 @@ export const useImportViaUrl = () => {
 }
 
 const importViaUrlRingsDb = async (importLoadList, doActionList, playerN) => {
-    const ringsDbUrl = prompt("Paste full RingsDB URL","");
-    if (!ringsDbUrl.includes("ringsdb.com")) {
-      alert("Only importing from MarvelCDB is supported at this time.");
-      return;
-    }
-    if (ringsDbUrl.includes("/fellowship/")) {
-      alert("Fellowship import not yet supported.");
-      return;
-    }
-    const ringsDbDomain = ringsDbUrl.includes("test.ringsdb.com") ? "test" : "ringsdb";
-    var ringsDbType;
-    if (ringsDbUrl.includes("/decklist/")) ringsDbType = "decklist";
-    else if (ringsDbUrl.includes("/deck/")) ringsDbType = "deck";
-    if (!ringsDbType) {
-      alert("Invalid URL");
-      return;
-    }
-    var splitUrl = ringsDbUrl.split( '/' );
-    const typeIndex = splitUrl.findIndex((e) => e === ringsDbType)
-    if (splitUrl && splitUrl.length <= typeIndex + 2) {
-      alert("Invalid URL");
-      return;
-    }
-    const ringsDbId = splitUrl[typeIndex + 2];
-    return loadRingsDb(importLoadList, doActionList, playerN, ringsDbDomain, ringsDbType, ringsDbId);
+  const ringsDbUrl = prompt("Paste full RingsDB URL","");
+  if (!ringsDbUrl.includes("ringsdb.com")) {
+    alert("Only importing from MarvelCDB is supported at this time.");
+    return;
+  }
+  if (ringsDbUrl.includes("/fellowship/")) {
+    alert("Fellowship import not yet supported.");
+    return;
+  }
+  const ringsDbDomain = ringsDbUrl.includes("test.ringsdb.com") ? "test" : "ringsdb";
+  var ringsDbType;
+  if (ringsDbUrl.includes("/decklist/")) ringsDbType = "decklist";
+  else if (ringsDbUrl.includes("/deck/")) ringsDbType = "deck";
+  if (!ringsDbType) {
+    alert("Invalid URL");
+    return;
+  }
+  var splitUrl = ringsDbUrl.split( '/' );
+  const typeIndex = splitUrl.findIndex((e) => e === ringsDbType)
+  if (splitUrl && splitUrl.length <= typeIndex + 2) {
+    alert("Invalid URL");
+    return;
+  }
+  const ringsDbId = splitUrl[typeIndex + 2];
+  return loadRingsDb(importLoadList, doActionList, playerN, ringsDbDomain, ringsDbType, ringsDbId);
+}
+
+const importViaUrlArkhamDb = async (importLoadList, doActionList, playerN) => {
+  const arkhamDbUrl = prompt("Paste full ArkhamDB URL","");
+  if (!arkhamDbUrl.includes("arkhamdb.com")) {
+    alert("Only importing from ArkhamDB is supported at this time.");
+    return;
+  }
+  var arkhamDbType;
+  if (arkhamDbUrl.includes("/decklist/")) arkhamDbType = "decklist";
+  else if (arkhamDbUrl.includes("/deck/")) arkhamDbType = "deck";
+  if (!arkhamDbType) {
+    alert("Invalid URL");
+    return;
+  }
+  var splitUrl = arkhamDbUrl.split( '/' );
+  const typeIndex = splitUrl.findIndex((e) => e === arkhamDbType)
+  if (splitUrl && splitUrl.length <= typeIndex + 2) {
+    alert("Invalid URL");
+    return;
+  }
+  const arkhamDbId = splitUrl[typeIndex + 2];
+  return loadArkhamDb(importLoadList, doActionList, playerN, arkhamDbType, arkhamDbId);
 }
 
 const importViaUrlMarvelCdb = async (importLoadList, doActionList, playerN, cardDb) => {
@@ -162,6 +187,44 @@ export const loadRingsDb = (importLoadList, doActionList, playerN, ringsDbDomain
   .catch((error) => {
     // handle your errors here
     alert("Error loading deck. If you are attempting to load an unpublished deck, make sure you have link sharing turned on in your RingsDB profile settings.")
+  })
+}
+
+export const loadArkhamDb = (importLoadList, doActionList, playerN, arkhamDbType, arkhamDbId) => {
+  doActionList(["LOG", "$ALIAS_N", " is importing a deck from RingsDB."]);
+  const urlBase = "https://www.arkhamdb.com/api/"
+  const url = arkhamDbType === "decklist" ? urlBase+"public/decklist/"+arkhamDbId+".json" : urlBase+"oauth2/deck/load/"+arkhamDbId;
+  console.log("Fetching ", url);
+  fetch(url, {
+    credentials: "omit",
+  })
+  .then(response => {
+    console.log("response.headers =", response.headers)
+    return response.json()
+  })
+  .then((jsonData) => {
+    // jsonData is parsed json object received from url
+    var loadList = [];
+
+    if (jsonData?.investigator_code) {
+      loadList.push({'databaseId': jsonData?.investigator_code, 'quantity': 1, 'loadGroupId': "playerNInvestigator"});
+    }
+
+    const slots = jsonData.slots;
+    for (const [slot, quantity] of Object.entries(slots)) {
+      loadList.push({'databaseId': slot, 'quantity': quantity, 'loadGroupId': "playerNDeck"});
+    }
+
+    const sideSlots = jsonData.side_slots;
+    for (const [slot, quantity] of Object.entries(sideSlots)) {
+      loadList.push({'databaseId': slot, 'quantity': quantity, 'loadGroupId': "playerNRemoved"});
+    }
+    
+    importLoadList(loadList);
+  })
+  .catch((error) => {
+    // handle your errors here
+    alert("Error loading deck. If you are attempting to load an unpublished deck, make sure you have link sharing turned on in your ArkhamDB profile settings.")
   })
 }
 

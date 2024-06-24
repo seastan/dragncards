@@ -119,7 +119,7 @@ defmodule DragnCardsGame.Evaluate.Functions.OBJ_GET_BY_PATH do
           if Map.has_key?(acc, "parentCardId") do
             game["cardById"][acc["parentCardId"]]
           else
-            raise "Tried to access parentCards on a non-group object."
+            raise "Tried to access parentCard on a non-card object."
           end
         acc == nil ->
           nil

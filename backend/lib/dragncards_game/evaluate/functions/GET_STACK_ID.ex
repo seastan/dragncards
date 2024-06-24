@@ -18,7 +18,7 @@ defmodule DragnCardsGame.Evaluate.Functions.GET_STACK_ID do
   ```
   This is equivalent to:
   ```
-  "$GAME.groupById.{{$PLAYER_N}}Deck.stackIds.[0]"
+  "$GAME.groupById.playArea.stackIds.[0]"
   ```
 
   """

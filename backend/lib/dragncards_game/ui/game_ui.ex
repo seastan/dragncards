@@ -331,9 +331,11 @@ defmodule DragnCardsGame.GameUI do
         true
     end
     parent_card = get_card_by_group_id_stack_index_card_index(game, [dest_group_id, dest_stack_index, 0])
+    stack_id = game["groupById"][dest_group_id]["stackIds"][dest_stack_index]
 
     # Update location of card
     game = Evaluate.evaluate(game, ["SET", "/cardById/" <> card_id <> "/groupId", dest_group_id], ["update_card_state cardId:#{card_id} groupId:#{dest_group_id}"])
+    game = Evaluate.evaluate(game, ["SET", "/cardById/" <> card_id <> "/stackId", stack_id], ["update_card_state cardId:#{card_id} stackId:#{stack_id}"])
     game = Evaluate.evaluate(game, ["SET", "/cardById/" <> card_id <> "/stackIndex", dest_stack_index], ["update_card_state cardId:#{card_id} stackIndex:#{dest_stack_index}"])
     game = Evaluate.evaluate(game, ["SET", "/cardById/" <> card_id <> "/cardIndex", dest_card_index], ["update_card_state cardId:#{card_id} cardIndex:#{dest_card_index}"])
     game = Evaluate.evaluate(game, ["SET", "/cardById/" <> card_id <> "/parentCardId", parent_card["id"]], ["update_card_state cardId:#{card_id} stackParentCardId:#{parent_card["id"]}"])

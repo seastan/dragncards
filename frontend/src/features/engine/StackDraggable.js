@@ -219,7 +219,7 @@ export const StackDraggable = React.memo(({
                       {...dragProvided.dragHandleProps}
                       stackWidth={(region.type === "fan" && region.direction == "horizontal") ? stackWidthFan : stackWidth}
                       stackHeight={(region.type === "fan" && region.direction == "vertical") ? stackHeightFan : stackHeight}
-                      margin={region.type === "row" ? rowSpacing : 0}
+                      margin={region.type === "row" ? rowSpacing*zoomFactor : 0}
                       style={updatedStyle}
                     >
                       <Stack
