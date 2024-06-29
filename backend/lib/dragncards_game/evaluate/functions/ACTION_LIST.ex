@@ -24,7 +24,10 @@ defmodule DragnCardsGame.Evaluate.Functions.ACTION_LIST do
   """
   def get_action_list_from_game_def(plugin_id, action_list_id) do
     game_def = Plugins.get_game_def(plugin_id)
-    game_def["actionLists"][action_list_id]
+    action_list = game_def["actionLists"][action_list_id]
+    if action_list == nil do
+      raise("Could not find action list with id: #{inspect(action_list_id)} in game definition.")
+    end
   end
 
   def execute(game, code, trace) do

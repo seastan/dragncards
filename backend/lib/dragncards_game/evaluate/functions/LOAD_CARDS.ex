@@ -53,7 +53,6 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
     else
       load_list_or_id
     end
-    IO.puts("load_list_id: #{load_list_id}")
 
     # Set the load_list
     load_list = if is_list(load_list_or_id) do
@@ -61,9 +60,6 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
     else
       get_in(game_def, ["preBuiltDecks", load_list_id, "cards"])
     end
-
-    IO.puts("load_list_1")
-    IO.inspect(load_list)
 
     # Run preLoadActionList if it exists
     automation = Map.get(game_def, "automation", %{})

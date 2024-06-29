@@ -283,6 +283,9 @@ defmodule DragnCardsGame.Evaluate do
     # if is_list(code) do
     #   IO.puts("evaluate 1")
     #   IO.inspect(code)
+    #   IO.puts("evaluate 2")
+    #   #IO.inspect(game)
+    #   IO.puts("evaluate 3")
     # end
     try do
       # Increase scope index

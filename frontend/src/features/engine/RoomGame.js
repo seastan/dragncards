@@ -15,6 +15,7 @@ const RoomGame = React.memo(({}) => {
     const onKeyUp = (event) => {
       const k = event.key;
       if (k === "Alt") dispatch(setKeypressAlt(0));
+      if (k === "Meta") dispatch(setKeypressAlt(0));
       if (k === " ") dispatch(setKeypressSpace(0));
       if (k === "Control") dispatch(setKeypressControl(0));
       if (k === "Shift") dispatch(setKeypressShift(0));

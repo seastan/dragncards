@@ -636,14 +636,12 @@ defmodule DragnCardsGame.GameUI do
   end
 
   def insert_stack_in_group(game, group_id, stack_id, index) do
-    Logger.debug("insert_stack_in_group 1")
     old_stack_ids = get_stack_ids(game, group_id)
     new_stack_ids = List.insert_at(old_stack_ids, index, stack_id)
     update_stack_ids(game, group_id, new_stack_ids)
   end
 
   def set_stack_left_top(game, stack_id, left, top) do
-    IO.puts("Setting new stack position: #{stack_id} #{left} #{top}")
     game = game
     |> put_in(["stackById", stack_id, "left"], left)
     |> put_in(["stackById", stack_id, "top"], top)
