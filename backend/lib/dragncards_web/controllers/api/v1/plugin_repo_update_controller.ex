@@ -54,7 +54,7 @@ defmodule DragnCardsWeb.PluginRepoUpdateController do
             #IO.inspect(files)
             Enum.each(room_slugs_to_update, fn room_slug ->
               IO.puts("Broadcasting to room: #{room_slug}")
-              PubSub.broadcast(DragnCards.PubSub, "room:#{room_slug}", {:plugin_repo_update, "files"})
+              PubSub.broadcast(DragnCards.PubSub, "room:#{room_slug}", {:plugin_repo_update, files})
             end)
             send_resp(conn, :ok, "Files received and extracted successfully\n")
           {:error, error} ->

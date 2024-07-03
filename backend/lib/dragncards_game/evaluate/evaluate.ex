@@ -45,13 +45,9 @@ defmodule DragnCardsGame.Evaluate do
         end
       end
 
-      if game_new["automation"] do
+      if is_map(game_new["automation"]) and game_new["automationEnabled"] == true do
         Enum.reduce(game_new["automation"], game_new, fn({id, automation}, acc) ->
-          {time, result} = :timer.tc(fn ->
-            apply_automation_rules(automation, path, game_old, acc, trace ++ ["apply_automation_rules", id])
-          end)
-          IO.puts("Processing #{path} for id #{id} took #{time} microseconds")
-          result
+          apply_automation_rules(automation, path, game_old, acc, trace ++ ["apply_automation_rules", id])
         end)
       else
         game_new

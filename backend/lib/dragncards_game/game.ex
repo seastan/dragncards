@@ -100,6 +100,7 @@
       "groupById" => groups,
       "stackById" => %{},
       "cardById"  => %{},
+      "automationEnabled" => true,
       "currentScopeIndex" => 0,
       "imageUrlPrefix" => game_def["imageUrlPrefix"],
       "options" => options,
