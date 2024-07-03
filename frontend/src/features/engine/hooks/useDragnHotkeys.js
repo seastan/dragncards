@@ -176,7 +176,6 @@ export const useDoDragnHotkey = () => {
       case "prevStep": 
           return doActionList([
               ["VAR", "$STEP_ID", "$GAME.stepId"],
-              ["LOG", "$ALIAS_N", " set the round step to ", "$GAME.steps.$STEP_ID.label", "."],
               ["VAR", "$OLD_STEP_INDEX", ["GET_INDEX", "$GAME.stepOrder", "$GAME.stepId"]],
               ["COND",
                 ["EQUAL", "$OLD_STEP_INDEX", 0],
@@ -185,12 +184,12 @@ export const useDoDragnHotkey = () => {
                 ["DEFINE", "$NEW_STEP_INDEX", ["SUBTRACT", "$OLD_STEP_INDEX", 1]]
               ],
               ["VAR", "$STEP_ID", "$GAME.stepOrder.[$NEW_STEP_INDEX]"],
+              ["LOG", "$ALIAS_N", " set the round step to ", "$GAME.steps.$STEP_ID.label", "."],
               ["SET", "/stepId", "$STEP_ID"]
           ])
       case "nextStep":
         return doActionList([
             ["VAR", "$STEP_ID", "$GAME.stepId"],
-            ["LOG", "$ALIAS_N", " set the round step to ", "$GAME.steps.$STEP_ID.label", "."],
             ["VAR", "$OLD_STEP_INDEX", ["GET_INDEX", "$GAME.stepOrder", "$GAME.stepId"]],
             ["COND",
               ["EQUAL", "$OLD_STEP_INDEX", ["SUBTRACT", ["LENGTH", "$GAME.stepOrder"], 1]],
@@ -199,6 +198,7 @@ export const useDoDragnHotkey = () => {
               ["DEFINE", "$NEW_STEP_INDEX", ["ADD", "$OLD_STEP_INDEX", 1]]
             ],
             ["VAR", "$STEP_ID", "$GAME.stepOrder.[$NEW_STEP_INDEX]"],
+            ["LOG", "$ALIAS_N", " set the round step to ", "$GAME.steps.$STEP_ID.label", "."],
             ["SET", "/stepId", "$STEP_ID"]
         ])
       case "drawArrow":

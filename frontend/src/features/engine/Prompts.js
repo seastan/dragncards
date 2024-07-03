@@ -26,7 +26,7 @@ export const Prompts = React.memo(({
         left: "2%", 
         top: "2%", 
         width: "19%",
-        zIndex: 3e3
+        zIndex: 3e7
       }}>
         {sortedPromptIds.map((promptKey, promptIndex) => {
           return(

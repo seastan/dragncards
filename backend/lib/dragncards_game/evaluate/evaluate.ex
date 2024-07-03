@@ -45,13 +45,17 @@ defmodule DragnCardsGame.Evaluate do
         end
       end
 
-    if game_new["automation"] do
-      Enum.reduce(game_new["automation"], game_new, fn({id, automation}, acc) ->
-        apply_automation_rules(automation, path, game_old, acc, trace ++ ["apply_automation_rules", id])
-      end)
-    else
-      game_new
-    end
+      if game_new["automation"] do
+        Enum.reduce(game_new["automation"], game_new, fn({id, automation}, acc) ->
+          {time, result} = :timer.tc(fn ->
+            apply_automation_rules(automation, path, game_old, acc, trace ++ ["apply_automation_rules", id])
+          end)
+          IO.puts("Processing #{path} for id #{id} took #{time} microseconds")
+          result
+        end)
+      else
+        game_new
+      end
   end
 
   def apply_automation_rules(automation, path, game_old, game_new, trace) do
@@ -150,7 +154,6 @@ defmodule DragnCardsGame.Evaluate do
   end
 
   def path_matches_listenpaths?(path, listenpaths, game_new, trace) do
-
     if Enum.any?(listenpaths, fn(listenpath) -> path_matches_listenpath?(path, listenpath, game_new, trace ++ ["path_matches_listenpath", Jason.encode!(listenpath)]) end) do
       true
     else
@@ -172,8 +175,13 @@ defmodule DragnCardsGame.Evaluate do
   def message_list_to_string(game, statements, trace) do
     Enum.reduce(Enum.with_index(statements), "", fn({statement, index}, acc) ->
       eval_statement = evaluate(game, statement, trace ++ ["statement #{index}"])
-      str_statement = inspect(eval_statement) |> String.replace("\"","")
-      acc <> str_statement
+      # if eval_statement is not a string, convert it to a string
+      eval_statement = if is_binary(eval_statement) do
+        eval_statement
+      else
+        inspect(eval_statement)
+      end
+      acc <> eval_statement
     end)
   end
 

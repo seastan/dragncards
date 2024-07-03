@@ -18,6 +18,8 @@ import { useVisibleSide } from "./hooks/useVisibleSide";
 import { useVisibleFace } from "./hooks/useVisibleFace";
 import { setActiveCardId, setDropdownMenu, setShowModal } from "../store/playerUiSlice";
 import { usePlayerIList } from "./hooks/usePlayerIList";
+import { evaluate } from "./hooks/evaluate";
+import store from "../../store";
 
 export const DropdownMenuCard = React.memo(({
   mouseX,
@@ -35,6 +37,7 @@ export const DropdownMenuCard = React.memo(({
   const user = useProfile();
   const authOptions = useAuthOptions();
   const gameDef = useGameDefinition();
+  const gameUi = useSelector(state => state?.gameUi);
   const playerN = useSelector(state => state?.playerUi?.playerN);
   const dropdownMenu = useSelector(state => state?.playerUi?.dropdownMenu);
   const menuCardId = dropdownMenu.cardId;
@@ -168,7 +171,7 @@ export const DropdownMenuCard = React.memo(({
             </DropdownItem>
           }
           {gameDef?.cardMenu?.options?.map((menuItem, _itemIndex) => {
-            if (menuItem?.showIf && !evaluateCondition(menuItem.showIf)) return;
+            if (menuItem?.showIf && !evaluate(gameUi, menuCard, menuItem.showIf)) return null;
             return ( 
               <DropdownItem 
                 action={menuItem.actionList} 

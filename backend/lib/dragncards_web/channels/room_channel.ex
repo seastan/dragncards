@@ -42,6 +42,11 @@ defmodule DragnCardsWeb.RoomChannel do
     {:noreply, socket}
   end
 
+  def handle_info(msg, socket) do
+    Logger.warn("Unexpected message received in handle_info: #{inspect(msg)}")
+    {:noreply, socket}
+  end
+
   def handle_in("request_state", _payload, %{assigns: %{room_slug: room_slug}} = socket) do
     client_state = client_state(socket)
     push(socket, "current_state", client_state)

@@ -77,13 +77,8 @@ export const TopBarUser = React.memo(({
   }
 
   const handleObserveClick = () => {
-    if (observingPlayerN === playerI) {
-      dispatch(setObservingPlayerN(null));
-      chatBroadcast("game_update",{message: "stopped observing "+playerI+"."});
-    } else {
-      dispatch(setObservingPlayerN(playerI));
-      chatBroadcast("game_update",{message: "started observing "+playerI+"."});
-    }
+    dispatch(setObservingPlayerN(playerI));
+    chatBroadcast("game_update",{message: "started observing "+playerI+"."});
   }
 
   const sitButton = () => {

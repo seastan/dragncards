@@ -21,12 +21,14 @@ export const useMessageTextToHtml = () => {
   const user = useProfile();
   const language = user?.language || "English";
   const formatLabelsInText = useFormatLabelsInText();
+  console.log("useMessageTextToHtml 0");
 
   return (text) => {
+    console.log("useMessageTextToHtml 1", text+'"');
     // Format labels first
     const labelsFormatted = formatLabelsInText(text);
 
-    const regex = /\[player\d+\/[^\]]+\]/g; // Regex to match the pattern [playerN Name]
+    const regex = /\[player\d+\/[^\]]+\]/g; // Regex to match the pattern [playerN/Name]
     const parts = labelsFormatted.split(regex); // Split the text by these patterns
 
     // Find all matches for the pattern
@@ -49,6 +51,9 @@ export const useMessageTextToHtml = () => {
 
       return acc;
     }, []);
+
+    console.log("useMessageTextToHtml 2", aliasFormatted);
+
     return aliasFormatted;
   }
 };

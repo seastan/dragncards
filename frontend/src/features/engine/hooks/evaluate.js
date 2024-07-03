@@ -1,5 +1,20 @@
 import { isString } from "../../store/updateValues";
 
+function processCode(state, card, code) {
+  if (typeof code === 'string') {
+    return code.replace(/\{\{(.+?)\}\}/g, (match, p1) => {
+      let replacement = evaluate(state, card, p1);
+      if (Array.isArray(replacement) || (typeof replacement === 'object' && replacement !== null)) {
+        return JSON.stringify(replacement);
+      } else {
+        return String(replacement);
+      }
+    });
+  } else {
+    return code;
+  }
+}
+
 export const evaluate = (state, card, code) => {
     if (Array.isArray(code) && code.length > 0) {
       console.log("code")
@@ -10,6 +25,8 @@ export const evaluate = (state, card, code) => {
           }
           return result;
       } else {
+        // It's a string. Replace {{}} with values
+        code = processCode(state, card, code);
         var lhs, rhs;
         switch (code[0]) {
           case "LIST":
@@ -60,9 +77,37 @@ export const evaluate = (state, card, code) => {
             console.log("equal 3",code,obj,path)
             if (!path || path.length === 0) {
               return null;
+            } else if (path[0] === "currentFace") {
+              return obj.sides[obj.currentSide];
+            } else if (path[0] === "parentCard") {
+              if (!obj.parentCardId) return null;
+              return state.gameUi.game.cardById[card.parentCardId];
+            } else if (path[0] === "parentCardIds") {
+              if (!obj.stackIds) return null;
+              const stackIds = obj.stackIds;
+              const parentCardIds = [];
+              for (var stackId of stackIds) {
+                const cardIds = state.gameUi.game.stackById[stackId].cardIds;
+                if (!cardIds || cardIds.length === 0) continue;
+                parentCardIds.push(cardIds[0]);
+              }
+              return parentCardIds;
+            } else if (path[0] === "parentCards") {
+              if (!obj.stackIds) return null;
+              const stackIds = obj.stackIds;
+              const parentCards = [];
+              for (var stackId of stackIds) {
+                const cardIds = state.gameUi.game.stackById[stackId].cardIds;
+                if (!cardIds || cardIds.length === 0) continue;
+                parentCards.push(state.gameUi.game.cardById[cardIds[0]]);
+              }
+              return parentCards;
+            } else if (path[0].startsWith("[") && path[0].endsWith("]")) {
+              const index = parseInt(path[0].substring(1, path[0].length-1));
+              return obj[index];
             } else if (path.length === 1) {
               console.log("equal 4",obj[path[0]])
-              return obj[path[0]]
+              return obj[path[0]];
             } else {
               const newObj = obj[path[0]];
               const newPath = path.slice(1);
@@ -73,6 +118,8 @@ export const evaluate = (state, card, code) => {
         }
       }
     } else { // value
+      if (code === "$GAME")
+        return state.gameUi.game;
       if (code === "$ACTIVE_CARD")
         return card;
       else if (code === "$ACTIVE_FACE")

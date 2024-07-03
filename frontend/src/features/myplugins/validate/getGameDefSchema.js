@@ -223,6 +223,9 @@ export const getGameDefSchema = (gameDef) => {
             "actionList": {
               "_type_": "actionList",
               "_required_": true,
+            },
+            "showIf": {
+              "_type_": "code",
             }
           }
         }

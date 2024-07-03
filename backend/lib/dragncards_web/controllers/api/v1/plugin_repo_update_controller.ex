@@ -14,6 +14,8 @@ defmodule DragnCardsWeb.PluginRepoUpdateController do
 
     open_rooms = Rooms.list_rooms()
 
+    IO.puts("Open rooms: #{inspect(open_rooms)}")
+
     # Get list of plugin_id for open rooms
     plugin_ids = Enum.map(open_rooms, fn room -> room.plugin_id end)
 
@@ -22,6 +24,11 @@ defmodule DragnCardsWeb.PluginRepoUpdateController do
       query = from p in Plugin, where: p.id == ^plugin_id, select: p.repo_url
       Repo.one(query)
     end)
+    # Print repo_url
+    IO.puts("Repo URLs: #{inspect(repo_url)}")
+    # Print plugin_urls
+    IO.puts("Plugin URLs: #{inspect(plugin_urls)}")
+
     indices_where_url_matches = Enum.filter(0..(length(plugin_urls) - 1), fn i -> Enum.at(plugin_urls, i) == repo_url end)
 
     room_slugs_to_update = Enum.map(indices_where_url_matches, fn i -> Enum.at(open_rooms, i).slug end)
@@ -44,9 +51,10 @@ defmodule DragnCardsWeb.PluginRepoUpdateController do
           {:ok, files} ->
             # Broadcast update message to relevant rooms
             IO.puts("Broadcasting plugin_repo_update to rooms: #{inspect(room_slugs_to_update)}")
-            IO.inspect(files)
+            #IO.inspect(files)
             Enum.each(room_slugs_to_update, fn room_slug ->
-              PubSub.broadcast(DragnCards.PubSub, "room:#{room_slug}", {:plugin_repo_update, files})
+              IO.puts("Broadcasting to room: #{room_slug}")
+              PubSub.broadcast(DragnCards.PubSub, "room:#{room_slug}", {:plugin_repo_update, "files"})
             end)
             send_resp(conn, :ok, "Files received and extracted successfully\n")
           {:error, error} ->
