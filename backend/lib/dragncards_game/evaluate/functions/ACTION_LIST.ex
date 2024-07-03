@@ -28,6 +28,7 @@ defmodule DragnCardsGame.Evaluate.Functions.ACTION_LIST do
     if action_list == nil do
       raise("Could not find action list with id: #{inspect(action_list_id)} in game definition.")
     end
+    action_list
   end
 
   def execute(game, code, trace) do
@@ -48,8 +49,12 @@ defmodule DragnCardsGame.Evaluate.Functions.ACTION_LIST do
       true ->
         get_action_list_from_game_def(game["options"]["pluginId"], action_list_or_id)
     end
-    Evaluate.evaluate(game, action_list, trace)
-
+    result = Evaluate.evaluate(game, action_list, trace)
+    if is_map(result) and Map.has_key?(result, "variables") do
+      result
+    else
+      raise("ACTION_LIST #{inspect(action_list_or_id)} did not return a game state.")
+    end
   end
 
 
