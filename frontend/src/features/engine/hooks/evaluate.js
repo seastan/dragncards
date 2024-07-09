@@ -120,7 +120,9 @@ export const evaluate = (state, card, code) => {
     } else { // value
       if (code === "$GAME")
         return state.gameUi.game;
-      if (code === "$ACTIVE_CARD")
+      else if (code === "$PLAYER_N")
+        return state.playerUi.playerN;
+      else if (code === "$ACTIVE_CARD")
         return card;
       else if (code === "$ACTIVE_FACE")
         return card.sides[card.currentSide];

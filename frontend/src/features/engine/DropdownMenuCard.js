@@ -37,7 +37,7 @@ export const DropdownMenuCard = React.memo(({
   const user = useProfile();
   const authOptions = useAuthOptions();
   const gameDef = useGameDefinition();
-  const gameUi = useSelector(state => state?.gameUi);
+  const state = useSelector(state => state);
   const playerN = useSelector(state => state?.playerUi?.playerN);
   const dropdownMenu = useSelector(state => state?.playerUi?.dropdownMenu);
   const menuCardId = dropdownMenu.cardId;
@@ -171,7 +171,7 @@ export const DropdownMenuCard = React.memo(({
             </DropdownItem>
           }
           {gameDef?.cardMenu?.options?.map((menuItem, _itemIndex) => {
-            if (menuItem?.showIf && !evaluate(gameUi, menuCard, menuItem.showIf)) return null;
+            if (menuItem?.showIf && !evaluate(state, menuCard, menuItem.showIf)) return null;
             return ( 
               <DropdownItem 
                 action={menuItem.actionList} 
