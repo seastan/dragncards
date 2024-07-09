@@ -697,10 +697,6 @@ defmodule DragnCardsGame.GameUI do
   def resolve_action_type(game, type, options, user_id) do
     case type do
       "evaluate" ->
-        IO.puts("evaluating 1")
-        IO.inspect(options["action_list"])
-        IO.puts("evaluating 2")
-        IO.inspect(game["currentScopeIndex"])
         Evaluate.evaluate_with_timeout(game, options["action_list"])
       "set_game" ->
         options["game"]
