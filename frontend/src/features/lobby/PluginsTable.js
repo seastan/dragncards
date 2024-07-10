@@ -73,6 +73,7 @@ export const PluginsTable = ({ plugins }) => {
                     <div className="inline">({plugin.num_favorites})</div> */}
                     <div className="text-xs">{siteL10n("Last update:") + " " + moment.utc(plugin.updated_at).local().format("YYYY-MM-DD HH:mm:ss")}</div>
                     <div className="text-xs">{siteL10n("Author:") + " " + plugin.author_alias}</div>
+                    <div className="text-xs">{siteL10n("Games in 24hr/30d:") + " " + plugin.count_24hr + "/" + plugin.count_30d}</div>
                     {/* <div className="text-xs">{siteL10n("Games in Progress:") + " " + (roomsByPlugin[plugin.id] || 0)}</div> */}
                   </div>
                   <div className="absolute right-0 flex items-center p-4">
@@ -80,6 +81,7 @@ export const PluginsTable = ({ plugins }) => {
                       <FontAwesomeIcon size="2x" icon={faChevronRight}/>
                     </a>
                   </div>
+
                 </tr>
               )
             })}

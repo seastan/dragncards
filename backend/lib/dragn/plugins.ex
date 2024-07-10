@@ -6,7 +6,7 @@ defmodule DragnCards.Plugins do
   import Ecto.Query, warn: false
   alias DragnCards.Repo
 
-  alias DragnCards.{Plugins.Plugin, Users.User, UserPluginPermission}
+  alias DragnCards.{Plugins.Plugin, Users.User, UserPluginPermission, Rooms.RoomLog}
 
   @doc """
   Returns the list of plugins.
@@ -16,36 +16,59 @@ defmodule DragnCards.Plugins do
       iex> list_plugins()
       [%Plugin{}, ...]
   """
-
   def list_plugins_info(user_id) do
-
     admin_query = from u in User,
       where: u.id == ^user_id and u.admin == true,
       select: u.id
 
     is_admin = Repo.exists?(admin_query)
 
+    now = DateTime.utc_now()
+    one_day_ago = DateTime.add(now, -86400)
+
+    thirty_days_ago = DateTime.add(now, -30*86400)
+
+    # Subquery to count games created in the last 24 hours for each plugin
+    game_count_query_24hr = from rl in RoomLog,
+      where: rl.inserted_at > ^one_day_ago,
+      group_by: rl.plugin_id,
+      select: %{plugin_id: rl.plugin_id, count: count(rl.id)}
+
+    game_count_query_30d = from rl in RoomLog,
+      where: rl.inserted_at > ^thirty_days_ago,
+      group_by: rl.plugin_id,
+      select: %{plugin_id: rl.plugin_id, count: count(rl.id)}
+
     query = from p in Plugin,
-    join: u in User,
-    on: [id: p.author_id],
-    left_join: upp in UserPluginPermission,
-    on: upp.private_access == p.id and upp.user_id == ^user_id,
-    order_by: [desc: :version],
-    where: p.public == true or p.author_id == ^user_id or ^is_admin or not is_nil(upp.id),
-    select: {
-      p.author_id,
-      u.alias,
-      p.id,
-      p.name,
-      p.version,
-      p.num_favorites,
-      p.public,
-      p.updated_at,
-      p.game_def["announcements"],
-      p.game_def["tutorialUrl"]
-    }
+      join: u in User,
+      on: [id: p.author_id],
+      left_join: upp in UserPluginPermission,
+      on: upp.private_access == p.id and upp.user_id == ^user_id,
+      left_join: gc24hr in subquery(game_count_query_24hr),
+      on: gc24hr.plugin_id == p.id,
+      left_join: gc30d in subquery(game_count_query_30d),
+      on: gc30d.plugin_id == p.id,
+      order_by: [desc: :version],
+      where: p.public == true or p.author_id == ^user_id or ^is_admin or not is_nil(upp.id),
+      select: {
+        p.author_id,
+        u.alias,
+        p.id,
+        p.name,
+        p.version,
+        p.num_favorites,
+        p.public,
+        p.updated_at,
+        p.game_def["announcements"],
+        p.game_def["tutorialUrl"],
+        gc24hr.count,
+        gc30d.count
+      }
+
     Repo.all(query)
   end
+
+
 
   def get_plugin_info(id, user_id) do
     admin_query = from u in User,

@@ -7,7 +7,7 @@ defmodule DragnCardsGame.GameUIServer do
 
   require Logger
   alias DragnCardsGame.{GameUI, GameRegistry, User, PlayerInfo}
-  alias DragnCards.Users
+  alias DragnCards.{Rooms.RoomLog, Users}
 
   def is_player(gameui, user_id) do
     ids = gameui["playerInfo"]
@@ -181,7 +181,6 @@ defmodule DragnCardsGame.GameUIServer do
         [] ->
           Logger.debug("gameuiserver init 1")
           gameui = GameUI.new(game_name, user.id, options)
-
 
           :ets.insert(:game_uis, {game_name, gameui})
 
