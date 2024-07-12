@@ -18,11 +18,11 @@ export const PatreonModal = ({
         },
         { 
           amount: 500, 
-          benefits: ["All lower tier benefits", "Custom alt art cards", "Custom card backs", "Custom backgrounds"] 
+          benefits: ["All lower tier benefits", "Custom alt art cards", "Custom card backs", "Custom backgrounds", "Private custom content"] 
         },
         { 
           amount: 1000, 
-          benefits: ["All lower tier benefits", `Optional "Esteemed Supporter" discord role`] 
+          benefits: ["All lower tier benefits", `Optional "Esteemed Supporter" discord role`, `Access to plugin developer discord channels`] 
         },
     ];
 

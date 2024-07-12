@@ -80,25 +80,30 @@ export const stringTo2DArray = (inputString) => {
     // Initialize an empty 2D array and the current row array
     const array2D = [];
     let currentRow = [];
+
+    console.log("tsv tokens", tokens)
   
     // Iterate through each token
     for (let token of tokens) {
-      // Split the token into values based on newline characters
-      const values = token.split('\n');
-  
-      // Add the first value to the current row
-      currentRow.push(values[0]);
-  
-      // If there are more values, it means there's a new row
-      for (let i = 1; i < values.length; i++) {
-        // Add the current row to the 2D array if it has the correct number of columns
-        if (currentRow.length === numColumns) {
-          array2D.push(currentRow);
-        }
-  
-        // Start a new row with the current value
-        currentRow = [values[i]];
+      if (currentRow.length === numColumns - 1) {
+        console.log("tsv last token in row", token, token==="")
+        // If token does not contain '\n', push the token
+        const values = token.split('\n');
+        // if (values.length < 2) {
+        //   throw new Error(`Invalid TSV format at the end of line: ${array2D.length + 2}`);
+        // }
+        console.log("tsv last values in row", values)
+        // Trim the last value, rejoin the rest
+        const prefix = values.slice(0, values.length - 1).join('\n');
+        const suffix = values[values.length - 1];
+        currentRow.push(prefix);
+        console.log("tsv currentRow", currentRow)
+        array2D.push(currentRow);
+        currentRow = [suffix];
+      } else {
+        currentRow.push(token);
       }
+  
     }
   
     // Add the last row to the 2D array if it has the correct number of columns
@@ -110,12 +115,12 @@ export const stringTo2DArray = (inputString) => {
   }
 
 
-export const processArrayOfRows = (inputs, plugin, arrayOfRows, errors) => {
+export const processArrayOfRows = (gameDef, arrayOfRows) => {
 
-    const gameDef = plugin?.gameDef || inputs.gameDef;
     const cardDb = {};
     var multiSidedDbId = "";
     var multiSidedFace = "A";
+    const errors = [];
     for (var rows of arrayOfRows) {
       const header0 = rows[0];
       if (!header0.includes("databaseId")) throw new Error("Missing databaseId column.")
@@ -126,7 +131,7 @@ export const processArrayOfRows = (inputs, plugin, arrayOfRows, errors) => {
       const header0Str = JSON.stringify(header0);
       const headerStr = JSON.stringify(rows[0]);
       if (headerStr !== header0Str) throw new Error("File headers do not match.")
-      console.log("Processing file with headers: ", header0)
+      console.log(`Processing file with ${rows.length} rows and headers: `, header0)
       for (var i=1; i<rows.length; i++) {
         const row = rows[i];
         const face = {};
@@ -166,6 +171,10 @@ export const processArrayOfRows = (inputs, plugin, arrayOfRows, errors) => {
             throw new Error(`Too many sides for databaseId ${dbId}`)
           }
         } else {
+          if (cardDb[dbId]) {
+            // If database_id is already in db, raise an error
+            throw new Error(`Duplicate databaseId ${dbId} for a non-multi_sided card`)
+          }
           const faceA = face;
           var faceB = {};
           for (var key of header0) {
@@ -191,5 +200,65 @@ export const processArrayOfRows = (inputs, plugin, arrayOfRows, errors) => {
         
       }
     }
-    return cardDb;
+    return {errors, cardDb};
 }
+
+export const uploadCardDbTsv = async (gameDef, files) => {
+  let status = "fail";
+  let messages = [];
+  let cardDb = null;
+
+  // Abort if there were no files selected
+  if (!files.length) {
+    messages.push("No files selected.");
+    return { status, messages, cardDb };
+  }
+
+  let readers = [];
+
+  // Abort if there were no files selected
+  if(!files.length) return;
+
+  // Store promises in array
+  for(let i = 0; i < files.length; i++){
+      readers.push(readFileAsText(files[i]));
+  }
+
+  // Trigger Promises
+  try {
+    const tsvList = await Promise.all(readers);
+    console.log("unmerged", tsvList);
+    const arrayOfRows = []; // Each element is a 2D array representing a TSV file
+
+    for (const tsvString of tsvList) {
+      console.log("tsvString", tsvString);
+      try {
+        const rows = stringTo2DArray(tsvString);
+        console.log("tsvString rows", rows);
+        arrayOfRows.push(rows);
+      } catch (err) {
+        console.log("Error", err);
+        if (err.message.includes("data does not include separator"))
+          messages.push("Invalid file format. Make sure the data is tab-separated.");
+        return { status, messages, cardDb };
+      }
+    }
+
+    // Processing the array of rows
+    const result = processArrayOfRows(gameDef, arrayOfRows);
+    console.log("result", result);
+    if (result.errors.length) {
+      messages.push(...result.errors);
+      return { status, messages, cardDb };
+    } else {
+      cardDb = result.cardDb;
+      messages.push(`Card database uploaded successfully: ${Object.keys(cardDb).length} cards.`);
+      status = "success";
+    }
+
+  } catch (err) {
+    messages.push(err.message);
+  }
+
+  return { status, messages, cardDb };
+};

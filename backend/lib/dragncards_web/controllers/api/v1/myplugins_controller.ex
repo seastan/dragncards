@@ -7,6 +7,7 @@ defmodule DragnCardsWeb.MyPluginsController do
   action_fallback DragnCardsWeb.FallbackController
 
   def show(conn, %{"id" => user_id}) do
+    IO.inspect(conn)
     # Faster to gather all columns except game_json
 
     my_plugins = if user_id != nil and user_id != "undefined" do

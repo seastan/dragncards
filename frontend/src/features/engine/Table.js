@@ -29,6 +29,7 @@ import { useIsHost } from "./hooks/useIsHost";
 import { useDoActionList } from "./hooks/useDoActionList";
 import { useSetTouchAction } from "./hooks/useSetTouchAction";
 import { useTouchAction } from "./hooks/useTouchAction";
+import { CustomContentModal } from "./CustomContentModal";
 
 export const Table = React.memo(({onDragEnd}) => {
   const gameDef = useGameDefinition();
@@ -110,7 +111,8 @@ export const Table = React.memo(({onDragEnd}) => {
       {showModal === "prebuilt_deck" ? <SpawnPrebuiltModal/> : null}
       {showModal === "settings" ? <SettingsModal/> : null}
       {showModal === "custom" ? <SpawnCustomCardModal/> : null}
-      {showModal === "builder" ? <DeckbuilderModal/> : null}
+      {showModal === "custom_decks" ? <DeckbuilderModal/> : null}
+      {showModal === "custom_content" ? <CustomContentModal/> : null}
       {showModal === "developer" ? <DeveloperModal/> : null}
       {showModal === "patreon" ? 
         <PatreonModal isOpen={true} isLoggedIn={myUserId} closeModal={() => dispatch(setShowModal(null))}/> : null}

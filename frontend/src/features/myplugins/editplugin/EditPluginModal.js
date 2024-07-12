@@ -8,7 +8,7 @@ import useForm from "../../../hooks/useForm";
 import useAuth from "../../../hooks/useAuth";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck } from "@fortawesome/free-solid-svg-icons";
-import { mergeJSONs, processArrayOfRows, readFileAsText, stringTo2DArray } from "../uploadPluginFunctions";
+import { mergeJSONs, processArrayOfRows, readFileAsText, stringTo2DArray, uploadCardDbTsv } from "../uploadPluginFunctions";
 import { validateSchema } from "../validate/validateGameDef";
 import { getGameDefSchema } from "../validate/getGameDefSchema";
 import useProfile from "../../../hooks/useProfile";
@@ -259,49 +259,76 @@ export const EditPluginModal = ({ plugin, closeModal, doFetchHash}) => {
     }
   };
 
-  const uploadCardDbTsv = async(event) => {
-    event.preventDefault();
+  const handleTsvUpload = async (event) => {
     const files = event.target.files;
-    let readers = [];
-  
-    // Abort if there were no files selected
-    if(!files.length) return;
-  
-    // Store promises in array
-    for(let i = 0; i < files.length; i++){
-        readers.push(readFileAsText(files[i]));
+    console.log("tsvup 1", files)
+    const gameDef = inputs?.gameDef || plugin?.game_def;
+    if (!gameDef) {
+      setSuccessMessageCardDb("");
+      setErrorMessageCardDb(["Please upload a game definition first."]);
+      return;
     }
+    if (files.length > 0) {
+      const result = await uploadCardDbTsv(gameDef, files);
+      
+      // Handling the response
+      if (result.status === 'success') {
+        setSuccessMessageCardDb(result.messages[0]);
+        setErrorMessageCardDb([]);
+        setInputs({...inputs, cardDb: result.cardDb});
+      } else {
+        setSuccessMessageCardDb("");
+        setErrorMessageCardDb(result.messages);
+      }
+    } else {
+      setSuccessMessageCardDb("");
+      setErrorMessageCardDb(["No files selected."]);
+    }
+  };
+
+  // const uploadCardDbTsv = async(event) => {
+  //   event.preventDefault();
+  //   const files = event.target.files;
+  //   let readers = [];
+  
+  //   // Abort if there were no files selected
+  //   if(!files.length) return;
+  
+  //   // Store promises in array
+  //   for(let i = 0; i < files.length; i++){
+  //       readers.push(readFileAsText(files[i]));
+  //   }
     
-    // Trigger Promises
-    Promise.all(readers).then((tsvList) => {
-      console.log("unmerged",tsvList);
-      const errors = []
-      const arrayOfRows = []; // Each element is a 2D array representing a tsv file
-      for (var tsvString of tsvList) { 
-        console.log("tsvString", tsvString)
-        try {
-          const rows = stringTo2DArray(tsvString);
-          console.log("tsvString rows", rows)
-          arrayOfRows.push(rows)
-        } catch(err) {
-          console.log("err",err)
-          var message = "Error";
-          if (err.message.includes("data does not include separator")) message += ": Invalid file format. Make sure the data is tab-separated."
-          setErrorMessageCardDb([message]);
-          return;
-        }
-      }
-      try {
-        const cardDb = processArrayOfRows(inputs, plugin, arrayOfRows, errors);
-        setSuccessMessageCardDb(`Card database uploaded successfully: ${Object.keys(cardDb).length} cards.`);
-        setErrorMessageCardDb(errors);
-        setInputs({...inputs, cardDb: cardDb});
-      } catch(err) {
-        setErrorMessageCardDb([err.message]);
-      }
-    });
-    inputFileGameDef.current.value = "";
-  }
+  //   // Trigger Promises
+  //   Promise.all(readers).then((tsvList) => {
+  //     console.log("unmerged",tsvList);
+  //     const errors = []
+  //     const arrayOfRows = []; // Each element is a 2D array representing a tsv file
+  //     for (var tsvString of tsvList) { 
+  //       console.log("tsvString", tsvString)
+  //       try {
+  //         const rows = stringTo2DArray(tsvString);
+  //         console.log("tsvString rows", rows)
+  //         arrayOfRows.push(rows)
+  //       } catch(err) {
+  //         console.log("err",err)
+  //         var message = "Error";
+  //         if (err.message.includes("data does not include separator")) message += ": Invalid file format. Make sure the data is tab-separated."
+  //         setErrorMessageCardDb([message]);
+  //         return;
+  //       }
+  //     }
+  //     try {
+  //       const cardDb = processArrayOfRows(inputs, plugin, arrayOfRows, errors);
+  //       setSuccessMessageCardDb(`Card database uploaded successfully: ${Object.keys(cardDb).length} cards.`);
+  //       setErrorMessageCardDb(errors);
+  //       setInputs({...inputs, cardDb: cardDb});
+  //     } catch(err) {
+  //       setErrorMessageCardDb([err.message]);
+  //     }
+  //   });
+  //   inputFileGameDef.current.value = "";
+  // }
 
   const loadFileGameDef = () => {
     inputFileGameDef.current.click();
@@ -387,7 +414,7 @@ export const EditPluginModal = ({ plugin, closeModal, doFetchHash}) => {
           </label>
           <Button disabled={!validGameDef} onClick={() => loadFileCardDb()}>
             {plugin ? siteL10n("(Optional) Update card database (.tsv)") : siteL10n("Upload card database (.tsv)")}
-            <input type='file' multiple id='file' ref={inputFileCardDb} style={{display: 'none'}} onChange={uploadCardDbTsv} accept=".tsv"/>
+            <input type='file' multiple id='file' ref={inputFileCardDb} style={{display: 'none'}} onChange={handleTsvUpload} accept=".tsv"/>
           </Button>
           <label className="block text-sm font-bold mb-2 mt-4 text-white">
             {siteL10n("GitHub Repository URL")}
