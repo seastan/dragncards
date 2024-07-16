@@ -12,7 +12,17 @@ import { keyStyle } from "./functions/common";
 import { useGameL10n } from "./hooks/useGameL10n";
 import { useImportLoadList } from "./hooks/useImportLoadList";
 
-export const DeckbuilderCurrent = React.memo(({currentGroupId, setCurrentGroupId, numChanges, setNumChanges, doFetchHash, setHoverCardDetails, modifyDeckList, currentDeck, setCurrentDeck}) => {
+export const DeckbuilderCurrent = React.memo(({
+  currentGroupId, 
+  setCurrentGroupId, 
+  numChanges, 
+  setNumChanges, 
+  doFetchHash, 
+  setHoverCardDetails, 
+  modifyDeckList, 
+  currentDeck, 
+  setCurrentDeck
+}) => {
   const gameDef = useGameDefinition();
   const playerN = useSelector(state => state?.playerUi?.playerN)
   const authOptions = useAuthOptions();
@@ -54,8 +64,7 @@ export const DeckbuilderCurrent = React.memo(({currentGroupId, setCurrentGroupId
     console.log("playing 1", currentDeck.load_list);
     const formattedLoadList = currentDeck.load_list.map((loadListItem) => {
       return({
-        databaseId: loadListItem.databaseId,
-        quantity: loadListItem.quantity,
+        ...loadListItem,
         loadGroupId: loadListItem.loadGroupId.replace("playerN", playerN)
       })
     })
@@ -148,32 +157,32 @@ export const DeckbuilderCurrent = React.memo(({currentGroupId, setCurrentGroupId
                 {gameL10n(groupInfo.label)} ({groupLength})
               </div>
               {currentDeck?.load_list?.map((loadListItem, index) => {
-                const cardUuid = loadListItem.databaseId;
-                console.log("DeckbuilderCurrent 2", loadListItem, cardUuid, cardDb[cardUuid])
+                const databaseId = loadListItem.databaseId;
+                console.log("DeckbuilderCurrent 2", loadListItem, databaseId, cardDb[databaseId])
                 if (loadListItem.loadGroupId === groupId)
                 return(
                   <div className="relative p-1 bg-gray-700 text-white"
-                    onMouseMove={() => {setHoverCardDetails({...cardDb[cardUuid], leftSide: false})}}
+                    onMouseMove={() => {setHoverCardDetails({...cardDb[databaseId], leftSide: false})}}
                     onMouseLeave={() => setHoverCardDetails(null)}>
-                    <div 
-                      className={keyClass + " hover:bg-gray-400 cursor-pointer"} 
+                    <div
+                      className={keyClass + " hover:bg-gray-400 cursor-pointer"}
                       style={keyStyle}
-                      onClick={()=>modifyDeckList(cardUuid, -currentDeck.load_list[index].quantity, groupId, index)}>
+                      onClick={()=>modifyDeckList({...loadListItem, quantity: -loadListItem.quantity}, index)}>
                         <FontAwesomeIcon icon={faTrash}/>
                     </div>
-                    <div className="inline-block px-2 max-w-1/2">{cardDb[cardUuid]?.A?.name}</div>
+                    <div className="inline-block px-2 max-w-1/2">{loadListItem._name}</div>
                     <div className="absolute p-1 right-0 top-0">
-                      <div 
-                        className={keyClass + " hover:bg-gray-400 cursor-pointer"} 
+                      <div
+                        className={keyClass + " hover:bg-gray-400 cursor-pointer"}
                         style={keyStyle}
-                        onClick={()=>modifyDeckList(cardUuid, -1, groupId, index)}>
+                        onClick={()=>modifyDeckList({...loadListItem, quantity: -1}, index)}>
                           <FontAwesomeIcon icon={faChevronLeft}/>
                       </div>
                       <div className="inline-block px-2">{currentDeck.load_list[index].quantity}</div>
-                      <div 
-                        className={keyClass + " hover:bg-gray-400 cursor-pointer"} 
+                      <div
+                        className={keyClass + " hover:bg-gray-400 cursor-pointer"}
                         style={keyStyle}
-                        onClick={()=>modifyDeckList(cardUuid, 1, groupId, index)}>
+                        onClick={()=>modifyDeckList({...loadListItem, quantity: 1}, index)}>
                           <FontAwesomeIcon icon={faChevronRight}/>
                       </div>
                     </div>

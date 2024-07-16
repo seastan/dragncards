@@ -203,7 +203,7 @@ export const processArrayOfRows = (gameDef, arrayOfRows) => {
     return {errors, cardDb};
 }
 
-export const uploadCardDbTsv = async (gameDef, files) => {
+export const importCardDbTsv = async (gameDef, files) => {
   let status = "fail";
   let messages = [];
   let cardDb = null;

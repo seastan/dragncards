@@ -79,13 +79,12 @@ export const DeckbuilderModal = React.memo(({}) => {
   if (!cardDb) return;
   console.log("builder cardDb", cardDb)
 
-  const modifyDeckList = (cardUuid, quantity, groupId, existingIndex = null) => {
-    console.log("modifyDeckList", cardUuid, quantity, groupId, existingIndex)
+  const modifyDeckList = (loadListItem, existingIndex = null) => {
     // If it's already in the deck, adjust the quantity
     const deckCopy = {...currentDeck}
     console.log("modifyDeckList deckCopy", deckCopy)
     if (existingIndex !== null) {
-      deckCopy.load_list[existingIndex].quantity += quantity; 
+      deckCopy.load_list[existingIndex].quantity += loadListItem.quantity; 
     }
     // See if item should be deleted
     if (existingIndex !== null && deckCopy?.load_list[existingIndex]?.quantity <= 0) {
@@ -94,11 +93,7 @@ export const DeckbuilderModal = React.memo(({}) => {
     }
     // If it was not in the group already, add it to the deck
     if (existingIndex === null) {
-      deckCopy.load_list.push({
-        databaseId: cardUuid,
-        quantity: quantity,
-        loadGroupId: groupId,
-      });
+      deckCopy.load_list.push(loadListItem);
     }
     setCurrentDeck(deckCopy);
     setNumChanges(numChanges + 1);

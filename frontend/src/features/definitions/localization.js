@@ -1,12 +1,19 @@
 export const siteL10n = {
+  "author": {
+    "English": "Author",
+    "Chinese": "作者"
+  },
   "builder": {
     "English": "Builder",
+    "Chinese": "构建"
   },
   "customDecks": {
     "English": "Custom Decks",
+    "Chinese": "自定义牌组"
   },
   "customContent": {
     "English": "Custom Content",
+    "Chinese": "自定义内容"
   },
   "refreshPluginIfAuthor": {
     "English": "Refresh plugin (if you are the author)",

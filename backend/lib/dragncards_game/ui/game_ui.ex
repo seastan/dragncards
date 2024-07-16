@@ -5,11 +5,12 @@ defmodule DragnCardsGame.GameUI do
 
 
   require Logger
+  alias DragnCards.Plugins.CustomCardDb
   alias ElixirSense.Providers.Eval
   alias DragnCardsGame.GameVariables
   alias DragnCardsGame.{Game, GameUI, Stack, Card, PlayerInfo, Evaluate, GameVariables, Evaluate.Variables.ALIAS_N}
 
-  alias DragnCards.{Repo, Replay, Plugins, Users}
+  alias DragnCards.{Repo, Replay, Plugins, Plugins.CustomCardDb, Users}
   alias DragnCards.Rooms.Room
 
   @type t :: Map.t()
@@ -914,6 +915,10 @@ defmodule DragnCardsGame.GameUI do
     end
   end
 
+  def get_user_id_from_player_n(game, player_n) do
+    game["playerInfo"][player_n]["id"]
+  end
+
   def get_alias_n(game) do
     player_n = get_player_n(game)
     if player_n do
@@ -1196,6 +1201,7 @@ defmodule DragnCardsGame.GameUI do
 
   def load_cards(game, load_list) do
     player_n = get_player_n(game)
+    user_id = get_user_id_from_player_n(game, player_n)
 
     # If load_list is nil, raise an error
     if load_list == nil do
@@ -1211,10 +1217,16 @@ defmodule DragnCardsGame.GameUI do
     load_list = Enum.map(load_list, fn load_list_item ->
       # If the load_list_item has a "cardDetails"
       database_id = get_in(load_list_item, ["databaseId"])
+      IO.puts("processing load_list_item #{inspect(load_list_item)}")
 
       cardDetails =
         cond do
-          Map.has_key?(load_list_item, "cardDetails") -> load_list_item["cardDetails"]
+          Map.has_key?(load_list_item, "cardDetails") ->
+            load_list_item["cardDetails"]
+
+          Map.has_key?(load_list_item, "authorId") ->
+            IO.puts("'authorId' was found in load_list_item. Attempting to load card from custom database.")
+            CustomCardDb.get_card_details_for_user(game["pluginId"], user_id, database_id)
 
           database_id != nil ->
             case Map.fetch(card_db, database_id) do

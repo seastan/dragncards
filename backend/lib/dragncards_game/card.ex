@@ -35,9 +35,15 @@ defmodule DragnCardsGame.Card do
     Logger.debug("card_from_card_details 2")
     # loop over the sides in card_details
     # and add them to the card
-    sides = Enum.reduce(card_details, %{}, fn({side,val}, acc) ->
+    sides = Enum.reduce(["A", "B", "C", "D", "E", "F", "G", "H"], %{}, fn(side, acc) ->
       Logger.debug("Adding side #{side} to card")
-      put_in(acc[side], CardFace.card_face_from_card_face_details(val, game_def, side, card_db_id))
+      case Map.has_key?(card_details, side) do
+        true ->
+          val = card_details[side]
+          put_in(acc[side], CardFace.card_face_from_card_face_details(val, game_def, side, card_db_id))
+        false ->
+          acc
+      end
     end)
     Logger.debug("card_from_card_details 3")
 

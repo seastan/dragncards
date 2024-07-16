@@ -51,7 +51,8 @@ defmodule DragnCardsWeb.Router do
     resources("/myplugins", MyPluginsController)
 
     # Custom Content
-    get("/custom_content/:user_id/:plugin_id", CustomContentController, :get_public_and_private_card_dbs)
+    get("/my_custom_content/:user_id/:plugin_id", CustomContentController, :get_my_public_and_private_card_dbs)
+    get("/all_custom_content/:user_id/:plugin_id", CustomContentController, :get_all_public_and_my_private_card_dbs)
     resources("/custom_content", CustomContentController)
 
     # All plugins

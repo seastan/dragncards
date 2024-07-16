@@ -163,3 +163,14 @@ export const getBackEndPlayerUi = (state) => {
   playerUi = {...playerUi, droppableRefs: {}, pluginRepoUpdateGameDef: null};
   return playerUi;
 }
+
+export const makeLoadListItem = (databaseId, quantity, loadGroupId, cardName = null, authorId = null) => {
+  const loadListItem =  {
+    databaseId: databaseId,
+    quantity: quantity,
+    loadGroupId: loadGroupId,
+  }
+  if (cardName) loadListItem["_name"] = cardName;
+  if (authorId) loadListItem["authorId"] = authorId;
+  return loadListItem;
+}

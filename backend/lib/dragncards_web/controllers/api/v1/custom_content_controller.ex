@@ -3,7 +3,7 @@ defmodule DragnCardsWeb.CustomContentController do
   use DragnCardsWeb, :controller
   import Ecto.Query
 
-  alias DragnCards.{Plugins, Plugins.Plugin, Repo}
+  alias DragnCards.{Plugins, Plugins.Plugin, Repo, Users}
 
   action_fallback DragnCardsWeb.FallbackController
 
@@ -24,24 +24,30 @@ defmodule DragnCardsWeb.CustomContentController do
     end
   end
 
-  def get_public_and_private_card_dbs(conn, %{"user_id" => user_id, "plugin_id" => plugin_id}) do
-
+  def get_my_public_and_private_card_dbs(conn, %{"user_id" => user_id, "plugin_id" => plugin_id}) do
     cond do
       user_id == nil ->
         conn |> json(%{error: %{message: "User not found"}})
       plugin_id == nil ->
         conn |> json(%{error: %{message: "Plugin not found"}})
       true ->
-        {public_card_db, private_card_db} = CustomCardDb.get_custom_card_db(user_id, plugin_id)
-        IO.puts("Public card db")
-        IO.inspect(public_card_db)
-        IO.puts("Private card db")
-        IO.inspect(private_card_db)
+        {public_card_db, private_card_db} = CustomCardDb.get_my_public_and_private_card_dbs(user_id, plugin_id)
         conn |> json(%{success: %{message: "User found"}, public_card_db: public_card_db, private_card_db: private_card_db})
     end
   end
 
-  # Create: Create plugin
+  def get_all_public_and_my_private_card_dbs(conn, %{"user_id" => user_id, "plugin_id" => plugin_id}) do
+    cond do
+      user_id == nil ->
+        conn |> json(%{error: %{message: "User not found"}})
+      plugin_id == nil ->
+        conn |> json(%{error: %{message: "Plugin not found"}})
+      true ->
+        {public_card_db, private_card_db} = CustomCardDb.get_all_public_and_my_private_card_dbs(user_id, plugin_id)
+        conn |> json(%{success: %{message: "User found"}, public_card_db: public_card_db, private_card_db: private_card_db})
+    end
+  end
+
   @spec create(Conn.t(), map()) :: Conn.t()
   def create(conn, attrs) do
     IO.puts("Creating custom cards 1")
@@ -49,13 +55,18 @@ defmodule DragnCardsWeb.CustomContentController do
     IO.puts("Creating custom cards 2")
     plugin_id = attrs["plugin_id"]
     author_id = attrs["author_id"]
+    author_alias = Users.get_alias(author_id)
     public = attrs["public"]
     card_db = attrs["card_db"]
     public_bool = if public do 1 else 0 end
 
     # Prepend "custom-{author_id} to each key in card_db
     card_db = Enum.reduce(card_db, %{}, fn({database_id, card_details}, acc) ->
-      put_in(acc, ["author_id-#{author_id}-public-#{public_bool}-#{database_id}"], card_details)
+      new_id = "author_id-#{author_id}-#{database_id}"
+      acc
+      |> put_in([new_id], card_details)
+      |> put_in([new_id, "author_id"], author_id)
+      |> put_in([new_id, "author_alias"], author_alias)
     end)
 
     new_attrs = %{

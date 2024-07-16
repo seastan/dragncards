@@ -46,7 +46,6 @@ defmodule DragnCardsGame.CardFace do
     ability = get_in(game_def, ["automation", "cards", card_db_id, "ability", side])
     width = game_def["cardTypes"][type]["width"] || game_def["cardBacks"][name]["width"] || 1
     height = game_def["cardTypes"][type]["height"] || game_def["cardBacks"][name]["height"] || 1
-
     # Loop over keys in card_face_details and convert to correct type
     # for each key
     card_face = Enum.reduce(card_face_details, %{}, fn({key, value}, acc) ->
@@ -79,6 +78,7 @@ defmodule DragnCardsGame.CardFace do
         end
       end
     end)
+
     card_face
     |> Map.put("triggers", triggers)
     |> Map.put("ability", ability)

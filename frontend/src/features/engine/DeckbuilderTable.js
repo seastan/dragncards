@@ -1,29 +1,64 @@
 import React, {useEffect, useMemo, useState} from "react";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { usePlugin } from "./hooks/usePlugin";
-import { keyClass } from "./functions/common";
+import { keyClass, makeLoadListItem } from "./functions/common";
 import { keyStyle } from "./functions/common";
 import { useGameL10n } from "./hooks/useGameL10n";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSortUp, faSortDown, faSort } from '@fortawesome/free-solid-svg-icons';
+import { useAuthOptions } from "../../hooks/useAuthOptions";
+import useProfile from "../../hooks/useProfile";
+import Axios from "axios";
 
 
 const RESULTS_LIMIT = 250;
 
 export const DeckbuilderTable = React.memo(({currentGroupId, modifyDeckList, setHoverCardDetails}) => {
+  const user = useProfile();
+  const plugin = usePlugin();
+  const authOptions = useAuthOptions();
   const gameDef = useGameDefinition();
+  const gameDefColumnInfo = gameDef.deckbuilder?.columns;
   const deckbuilder = gameDef.deckbuilder;
   const [sortConfig, setSortConfig] = useState({ column: null, direction: null });
   const addButtons = [...deckbuilder.addButtons];
   const addButtonsReversed = addButtons.reverse();
   const gameL10n = useGameL10n();
 
-  const cardDb = usePlugin()?.card_db || {};
+  const officialDb = usePlugin()?.card_db || {};
+  const [publicDb, setPublicDb] = useState({});
+  const [privateDb, setPrivateDb] = useState({});
+  const [loadedCustomContent, setLoadedCustomContent] = useState(false);
+  const [selectedDbString, setSelectedDbString] = useState("official");
+  var selectedDb = officialDb;
+  if (selectedDbString === "public") selectedDb = publicDb;
+  if (selectedDbString === "private") selectedDb = privateDb;
+
+
   const [sortedCardIds, setSortedCardIds] = useState([]);
   const [filteredCardIds, setFilteredCardIds] = useState([]);
   const [filters, setFilters] = useState({});
-  console.log("Rendering DeckbuilderTable", cardDb);
 
+  const columnInfo = (selectedDbString === "official") ? gameDefColumnInfo : [{propName: "author_alias", label: "Author"}, ...gameDefColumnInfo];
+
+  console.log("Rendering DeckbuilderTable", columnInfo, filters);
+
+  const changeSelectedDb = (dbString) => {
+    const fetchCustomContent = async () => {
+      const res = await Axios.get(`/be/api/all_custom_content/${user?.id}/${plugin.id}`, authOptions);
+      if (res?.data?.success) {
+        console.log("fetchCustomContent x", res?.data);
+        if (res?.data?.public_card_db) setPublicDb(res?.data?.public_card_db);
+        if (res?.data?.private_card_db) setPrivateDb(res?.data?.private_card_db);
+      }
+      setLoadedCustomContent(true);
+    }
+    if (dbString !== "official" && !loadedCustomContent) {
+      fetchCustomContent();
+    }
+    //if (dbString === "official") setFilters({...filters, author_alias: ""});
+    setSelectedDbString(dbString);
+  }
 
   const handleFilterTyping = (event, propName) => {
     const filteredVal = event.target.value;
@@ -45,8 +80,8 @@ export const DeckbuilderTable = React.memo(({currentGroupId, modifyDeckList, set
     // Stable sort the cardIds
     const sortedCardIdsCopy = [...sortedCardIds];
     sortedCardIdsCopy.sort((a, b) => {
-      const aValue = cardDb[a].A[columnName];
-      const bValue = cardDb[b].A[columnName];
+      const aValue = selectedDb[a].A[columnName];
+      const bValue = selectedDb[b].A[columnName];
       // Assuming string or number values, adjust if your data includes other types
       if (gameDef?.faceProperties?.[columnName]?.type === 'integer') {
         return direction === 'asc' ? parseInt(aValue) - parseInt(bValue) : parseInt(bValue) - parseInt(aValue);
@@ -61,8 +96,9 @@ export const DeckbuilderTable = React.memo(({currentGroupId, modifyDeckList, set
   };
 
   useEffect(() => {
-    setSortedCardIds(Object.keys(cardDb));
-  }, [cardDb]);
+    console.log("jkl selectedDb", selectedDb)
+    setSortedCardIds(Object.keys(selectedDb));
+  }, [selectedDb]);
 
   useEffect(() => {
     const tableContainer = document.querySelector('.deckbuilder-table');
@@ -72,11 +108,13 @@ export const DeckbuilderTable = React.memo(({currentGroupId, modifyDeckList, set
   }, []);
 
   useEffect(() => {
+    console.log("jkl sortedCardIds", selectedDb, sortedCardIds)
     // Filter the cardIds
     const filteredCardIds = sortedCardIds.filter(cardId => {
       return Object.entries(filters).every(([propName, filterVal]) => {
-        const sideA = cardDb[cardId]["A"];
-        const sideB = cardDb[cardId]["B"];
+        if (selectedDbString === "official" && propName === "author_alias") return true;
+        const sideA = selectedDb[cardId]["A"];
+        const sideB = selectedDb[cardId]["B"];
         const matchSideA = (
           sideA[propName] !== null &&
           sideA[propName] !== "" &&
@@ -94,15 +132,36 @@ export const DeckbuilderTable = React.memo(({currentGroupId, modifyDeckList, set
   }, [filters, sortedCardIds]);
 
   //return;
-  if (!cardDb) return;
+  if (!selectedDb) return;
+
+  console.log("deckbuilder selectedDb 2", columnInfo)
 
   return(
         <div className="overflow-scroll deckbuilder-table" style={{width:"60%"}}>
+          <div className="flex justify-center w-full">
+            <div className="flex justify-between text-white">
+              <div
+                className={`m-1 p-1 px-4 cursor-pointer ${selectedDbString === "official" ? "bg-red-800" : "bg-gray-700"}`}
+                onClick={() => changeSelectedDb("official")}>
+                Official
+              </div>
+              <div
+                className={`m-1 p-1 px-4 cursor-pointer ${selectedDbString === "public" ? "bg-red-800" : "bg-gray-700"}`}
+                onClick={() => changeSelectedDb("public")}>
+                Public
+              </div>
+              <div
+                className={`m-1 p-1 px-4 cursor-pointer ${selectedDbString === "private" ? "bg-red-800" : "bg-gray-700"}`}
+                onClick={() => changeSelectedDb("private")}>
+                Private
+              </div>
+            </div>
+          </div>
           <table className="table-fixed rounded-lg w-full">
             <thead>
               <tr className="bg-gray-800">
                 <th key={-1} className="text-white p-1" style={{width:"12vh"}}></th>
-                  {gameDef.deckbuilder?.columns?.map((colDetails, colindex) => {
+                  {columnInfo?.map((colDetails, colindex) => {
                     const isSorted = sortConfig.column === colDetails.propName;
                     return (
                       <th key={colindex} style={{width:"15vh"}}>
@@ -126,6 +185,7 @@ export const DeckbuilderTable = React.memo(({currentGroupId, modifyDeckList, set
                             name="name" 
                             className="m-2 rounded" 
                             placeholder={"Filter "+gameL10n(colDetails.label)} 
+                            value={filters[colDetails.propName] || ""}
                             onChange={(event) => {handleFilterTyping(event, colDetails.propName)}}/>
                         </div>
                       </th>
@@ -135,9 +195,13 @@ export const DeckbuilderTable = React.memo(({currentGroupId, modifyDeckList, set
               </tr>
             </thead>
             {filteredCardIds.length <= RESULTS_LIMIT && filteredCardIds.map((cardId, rowindex) => {
-              const cardDetails = cardDb[cardId];
-              const sideA = cardDb[cardId]["A"];
-              return(
+              console.log("deckbuilder cardId", cardId, selectedDb)
+              const cardDetails = selectedDb?.[cardId];
+              if (!cardDetails) return null;
+              const sideA = selectedDb?.[cardId]?.["A"];
+              if (selectedDbString !== "official") sideA["author_alias"] = cardDetails.author_alias;
+
+              if (cardDetails) return(
                 <tr 
                   key={rowindex} 
                   className="text-white hover:bg-gray-600" 
@@ -147,20 +211,21 @@ export const DeckbuilderTable = React.memo(({currentGroupId, modifyDeckList, set
                   onMouseLeave={() => setHoverCardDetails(null)}>
                   <td key={-1} className="p-1">
                     {addButtonsReversed.map((addButtonVal, _index) => {
+                      const loadListItem = makeLoadListItem(cardId, addButtonVal, currentGroupId, sideA.name, cardDetails.author_id)
                       return(
                         <div 
                           className={keyClass + " float-right text-white hover:bg-gray-400 cursor-pointer"} 
                           style={keyStyle}
-                          onClick={()=>modifyDeckList(sideA?.databaseId, addButtonVal, currentGroupId)}>
+                          onClick={()=>modifyDeckList(loadListItem)}>
                             +{addButtonVal}
                         </div>
                       )
                     })}
                   </td>
-                  {gameDef.deckbuilder?.columns?.map((colDetails, colindex) => {
+                  {columnInfo?.map((colDetails, colindex) => {
+                    console.log("deckbuilder colDetails", colDetails)
                     const content = sideA[colDetails.propName];
-                    // Determine if the content length is less than 5
-                    console.log("deckbuilder content", sideA)
+                    // Determine if the content should be centered
                     const isCenteredContent = (typeof content === 'string' && content.length === 1) || !isNaN(+content);
                     // Combine the classes based on the condition
                     const cellClass = `p-1 whitespace-nowrap text-ellipsis overflow-hidden ${isCenteredContent ? 'text-center' : ''}`;

@@ -9,7 +9,7 @@ import useProfile from "../../hooks/useProfile";
 import useDataApi from "../../hooks/useDataApi";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faDownload, faUpload } from "@fortawesome/free-solid-svg-icons";
-import { uploadCardDbTsv } from "../myplugins/uploadPluginFunctions";
+import { importCardDbTsv } from "../myplugins/uploadPluginFunctions";
 import { useAuthOptions } from "../../hooks/useAuthOptions";
 import Axios from "axios";
 import { StatusMessageBlock } from "./StatusMessageBlock";
@@ -17,21 +17,13 @@ import { RotatingLines } from "react-loader-spinner";
 
 const RESULTS_LIMIT = 3;
 
-const CustomCardSection = ({cardDb, loading}) => {
+const CustomCardSection = ({cardDb}) => {
   return(
     <>
       {Object.keys(cardDb).length === 0 ? 
-        loading ?
-          <div className="flex h-full w-full items-center justify-center" style={{width:"30px", height:"30px"}}>
-            <RotatingLines
-              height={100}
-              width={100}
-              strokeColor="white"/>
-          </div>
-          :
-          <div>
-            No cards found.
-          </div>
+        <div>
+          No cards found.
+        </div>
         :
         <CustomCardList cardDb={cardDb}/>
       }
@@ -44,11 +36,12 @@ const CustomCardList = ({cardDb}) => {
   return(
     <div className="overflow-y-scroll bg-gray-600" style={{width: "600px", maxHeight: "300px"}}>
       <div key={"header"} className="flex bg-gray-900 p-2">
-        <div style={{width:"200px"}}>Database ID</div>
+        <div style={{width:"200px"}}>databaseId</div>
         <div style={{width:"200px"}}>Side A Name</div>
-        <div style={{width:"200px"}}>Side A Type</div>
+        <div style={{width:"200px"}}>Type</div>
+        <div style={{width:"70px"}}>Image</div>
       </div>
-      {Object.keys(cardDb).map((cardId) => {
+      {Object.keys(cardDb).sort().map(cardId => {
         const cardDetails = cardDb[cardId];
         const databaseId = cardDetails.A.databaseId;
         // If databaseId is more than 10 characters, truncate it and return ...<last 7 characters>
@@ -58,6 +51,7 @@ const CustomCardList = ({cardDb}) => {
             <div style={{width:"200px"}}>{cardIdDisplay}</div>
             <div style={{width:"200px"}}>{cardDetails.A.name}</div>
             <div style={{width:"200px"}}>{cardDetails.A.type}</div>
+            <div style={{width:"70px"}}><a href={cardDetails.A.imageUrl} target="_blank" rel="noreferrer"><img src={cardDetails.A.imageUrl} style={{width:"50px"}}/></a></div>
           </div>
         )
       })}
@@ -146,7 +140,7 @@ export const CustomContentModal = React.memo(({}) => {
 
   useEffect(() => {
     const fetchCustomContent = async () => {
-      const res = await Axios.get(`/be/api/custom_content/${user?.id}/${pluginId}`, authOptions);
+      const res = await Axios.get(`/be/api/my_custom_content/${user?.id}/${pluginId}`, authOptions);
       
       if (res?.data?.success) {
         console.log("custom content 3", res?.data)
@@ -197,44 +191,44 @@ export const CustomContentModal = React.memo(({}) => {
     const setError = mode === "private" ? setErrorMessageCardDbPrivate : setErrorMessageCardDbPublic;
     const setSuccess = mode === "private" ? setSuccessMessageCardDbPrivate : setSuccessMessageCardDbPublic;
     const setCustomCardDb = mode === "private" ? setCustomCardDbPrivate : setCustomCardDbPublic;
+    const customCardDb = mode === "private" ? customCardDbPrivate : customCardDbPublic;
     setError([]);
     const files = event.target.files;
     console.log("custom content 1", files)
 
     if (files.length > 0) {
-      const result = await uploadCardDbTsv(gameDef, files);
-      console.log("custom content 2", result)
+      const importResult = await importCardDbTsv(gameDef, files);
+      console.log("custom content 2", importResult)
       
-      if (result.status === 'success') {
-        console.log("Card database uploaded successfully", result);
+      if (importResult.status === 'success') {
+        console.log("Card database uploaded successfully", importResult);
+        setCustomCardDb(importResult.cardDb);
+        const updateData = {
+          plugin_id: pluginId,
+          card_db: importResult.cardDb,
+          public: mode === "public",
+          author_id: user?.id,
+        };
+        const writeToServerResult = await Axios.post("/be/api/custom_content", updateData, authOptions);
+        const writtenCardDb = writeToServerResult?.data?.data?.card_db;
+        if (writtenCardDb) {
+          setCustomCardDb(writtenCardDb)
+          setError([]);
+          setSuccess([writeToServerResult?.data?.success?.message])
+        } else if (writeToServerResult?.data?.errror?.message) {
+          setSuccess([]);
+          setError([writeToServerResult?.data?.errror.message])
+        } else {
+          setSuccess([]);
+          setError(["Unknown error"])
+        }
       } else {
-        setError(result.messages);
+        setError(importResult.messages);
       }
     } else {
       setError(["No files selected."]);
     }
-    const updateData = {
-      plugin_id: pluginId,
-      card_db: cardDb,
-      public: mode === "public",
-      author_id: user?.id,
-    };
 
-    const res = await Axios.post("/be/api/custom_content", updateData, authOptions);
-    const writtenCardDb = res?.data?.data?.card_db;
-    if (writtenCardDb) {
-      setCustomCardDb(writtenCardDb)
-      setError([]);
-      setSuccess([res?.data?.success?.message])
-    }
-    else if (res?.data?.errror?.message) {
-      setSuccess([]);
-      setError([res?.data?.errror.message])
-    }
-    else {
-      setSuccess([]);
-      setError(["Unknown error"])
-    }
   };
 
 
@@ -251,7 +245,7 @@ export const CustomContentModal = React.memo(({}) => {
       className="relative insert-auto overflow-auto p-5 bg-gray-800 border mx-auto my-12 rounded-lg outline-none text-white"
       style={{
         content: {
-          width: "92vw",
+          width: "700px",
           height: "85vh",
           maxHeight: "85vh",
           overflowY: "scroll",
@@ -267,19 +261,30 @@ export const CustomContentModal = React.memo(({}) => {
       </div>
 
       <h2 className="my-2">Public</h2>
-      <CustomCardSection cardDb={customCardDbPublic} loading={loading}/>
-        
-      <div className="text-black py-1"style={{width:"300px"}}>
-        <Button onClick={() => loadFileCardDbPublic()}>
-          <FontAwesomeIcon icon={faUpload} className="mr-2"/>
-          Upload Public Cards (.tsv)
-          <input type='file' multiple id='file' ref={inputFileCardDbPublic} style={{display: 'none'}} onChange={(e) => handleTsvUpload(e, "public")} accept=".tsv"/>
-        </Button>
-        <StatusMessageBlock successMessages={successMessageCardDbPublic} errorMessages={errorMessageCardDbPublic}/>
-      </div>
+      {loading ?
+        <div className="flex h-full w-full items-center justify-center" style={{width:"30px", height:"30px"}}>
+          <RotatingLines
+            height={100}
+            width={100}
+            strokeColor="white"/>
+        </div>
+          :
+        <>
+          <CustomCardSection cardDb={customCardDbPublic}/>
+          <div className="text-black py-1"style={{width:"300px"}}>
+            <Button onClick={() => loadFileCardDbPublic()}>
+              <FontAwesomeIcon icon={faUpload} className="mr-2"/>
+              {Object.keys(customCardDbPublic).length === 0 ? "Upload Public Cards (.tsv)" : "Replace Public Cards (.tsv)"}
+              <input type='file' multiple id='file' ref={inputFileCardDbPublic} style={{display: 'none'}} onChange={(e) => handleTsvUpload(e, "public")} accept=".tsv"/>
+            </Button>
+            <StatusMessageBlock successMessages={successMessageCardDbPublic} errorMessages={errorMessageCardDbPublic}/>
+          </div>
+          {Object.keys(customCardDbPublic).length > 0 && <div>Note that DragnCards uses the databaseId column to determine what card to load. So if you replace your cards, if any of the databaseIds from the previous upload do not exist in the new upload, any existing decks that have been built using those cards will fail to load properly.</div>}
+
+        </>
+      }
 
       <h2 className="my-2">Private</h2>
-      <CustomCardSection cardDb={customCardDbPrivate} loading={loading}/>
 
       {user?.supporter_level < 3 ? (
         <div className="text-black" style={{width:"300px"}}>
@@ -291,14 +296,28 @@ export const CustomContentModal = React.memo(({}) => {
           </Button>
         </div>
       ) : (
-        <div className="text-black py-1" style={{width:"300px"}}>
-        <Button onClick={() => loadFileCardDbPrivate()}>
-            <FontAwesomeIcon icon={faUpload} className="mr-2"/>
-            Upload Private Cards (.tsv)
-            <input type='file' multiple id='file' ref={inputFileCardDbPrivate} style={{display: 'none'}} onChange={(e) => handleTsvUpload(e, "private")} accept=".tsv"/>
-          </Button>
-          <StatusMessageBlock successMessages={successMessageCardDbPrivate} errorMessages={errorMessageCardDbPrivate}/>
-        </div>
+        loading ?
+          <div className="flex h-full w-full items-center justify-center" style={{width:"30px", height:"30px"}}>
+            <RotatingLines
+              height={100}
+              width={100}
+              strokeColor="white"/>
+          </div>
+            :
+          <>
+            <CustomCardSection cardDb={customCardDbPrivate}/>
+            <div className="text-black py-1" style={{width:"300px"}}>
+              <Button onClick={() => loadFileCardDbPrivate()}>
+                <FontAwesomeIcon icon={faUpload} className="mr-2"/>
+                {Object.keys(customCardDbPrivate).length === 0 ? "Upload Private Cards (.tsv)" : "Replace Private Cards (.tsv)"}
+                <input type='file' multiple id='file' ref={inputFileCardDbPrivate} style={{display: 'none'}} onChange={(e) => handleTsvUpload(e, "private")} accept=".tsv"/>
+              </Button>
+              <StatusMessageBlock successMessages={successMessageCardDbPrivate} errorMessages={errorMessageCardDbPrivate}/>
+            </div>
+            {Object.keys(customCardDbPrivate).length > 0 && <div>Note that DragnCards uses the databaseId column to determine what card to load. So if you replace your cards, if any of the databaseIds from the previous upload do not exist in the new upload, any existing decks that have been built using those cards will fail to load properly.</div>}
+
+          </>
+        
       )}
 
 

@@ -8,7 +8,7 @@ import useForm from "../../../hooks/useForm";
 import useAuth from "../../../hooks/useAuth";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck } from "@fortawesome/free-solid-svg-icons";
-import { mergeJSONs, processArrayOfRows, readFileAsText, stringTo2DArray, uploadCardDbTsv } from "../uploadPluginFunctions";
+import { mergeJSONs, processArrayOfRows, readFileAsText, stringTo2DArray, importCardDbTsv } from "../uploadPluginFunctions";
 import { validateSchema } from "../validate/validateGameDef";
 import { getGameDefSchema } from "../validate/getGameDefSchema";
 import useProfile from "../../../hooks/useProfile";
@@ -269,7 +269,7 @@ export const EditPluginModal = ({ plugin, closeModal, doFetchHash}) => {
       return;
     }
     if (files.length > 0) {
-      const result = await uploadCardDbTsv(gameDef, files);
+      const result = await importCardDbTsv(gameDef, files);
       
       // Handling the response
       if (result.status === 'success') {
