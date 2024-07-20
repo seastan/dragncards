@@ -57,7 +57,10 @@ export const SpawnExistingCardModal = React.memo(({}) => {
       <ReactModal
         closeTimeoutMS={200}
         isOpen={true}
-        onRequestClose={() => dispatch(setShowModal(null))}
+        onRequestClose={() => {
+          dispatch(setShowModal(null));
+          dispatch(setTyping(false));
+        }}
         contentLabel="Spawn a card"
         overlayClassName="fixed inset-0 bg-black-50 z-10000"
         className="insert-auto overflow-auto p-5 bg-gray-700 border max-w-lg mx-auto my-12 rounded-lg outline-none max-h-3/4">

@@ -34,6 +34,19 @@ const getAfterDragName = (game, stackId, destGroupId, allowFlip) => {
   return card?.sides?.[card?.currentSide]?.name;
 }
 
+const getXY = (e) => {
+  let clientX, clientY;
+  console.log("getXY", e)
+  if (e.type.startsWith('mouse')) {
+    clientX = e.clientX;
+    clientY = e.clientY;
+  } else if (e.type.startsWith('touch')) {
+    clientX = e.touches[0].clientX;
+    clientY = e.touches[0].clientY;
+  }
+  return {clientX, clientY};
+}
+
 
 export const DragContainer = React.memo(({}) => {
   console.log("Rendering DragContainer");
@@ -47,7 +60,7 @@ export const DragContainer = React.memo(({}) => {
   //const [mouseDownPosition, setMouseDownPosition] = useState({ x: 0, y: 0 });
   const hoverStackIdAndDirection = useHoverStackIdAndDirection();
 
-  const updateMousePosition = ev => {
+  const updateMousePosition = (e) => {
     const draggingStackId = store.getState()?.playerUi?.dragging?.stackId;  
     const hoverOverDroppableId = store.getState()?.playerUi?.dragging?.hoverOverDroppableId;
     const hoverOverRegion = getRegionFromId(hoverOverDroppableId);  
@@ -94,18 +107,21 @@ export const DragContainer = React.memo(({}) => {
       dispatch(setDraggingHoverOverStackId(null));
       dispatch(setDraggingHoverOverDirection(null));
     }
-    dispatch(setDraggingMouseCurrentX(ev.clientX));
-    dispatch(setDraggingMouseCurrentY(ev.clientY));
+    const {clientX, clientY} = getXY(e);
+    dispatch(setDraggingMouseCurrentX(clientX));
+    dispatch(setDraggingMouseCurrentY(clientY));
     // dispatch(setDraggingMouseCurrentX(centerX));
     // dispatch(setDraggingMouseCurrentY(centerY));
     //setMousePosition({ x: ev.clientX, y: ev.clientY });
   };
 
   const updateMouseDown = (e) => {
+    const {clientX, clientY} = getXY(e);
+
     console.log("updateMouseDown", e)
     const rect = e.target.parentElement.parentElement.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
     console.log(`Relative mouse position: ${x}, ${y}`);
     dispatch(setDraggingMouseDownX(x));
     dispatch(setDraggingMouseDownY(y));
@@ -162,20 +178,24 @@ export const DragContainer = React.memo(({}) => {
   useEffect(() => {
     if (isDragging) {
       document.addEventListener("mousemove", updateMousePosition);
+      document.addEventListener('touchmove', updateMousePosition);
     }
 
     return () => {
       if (isDragging) {
         document.removeEventListener("mousemove", updateMousePosition);
+        document.removeEventListener('touchmove', updateMousePosition);
       }
     };
   }, [isDragging]);
 
   useEffect(() => {
     document.addEventListener("mousedown", updateMouseDown);
+    document.addEventListener('touchstart', updateMouseDown);
 
     return () => {
       document.removeEventListener("mousedown", updateMouseDown);
+      document.removeEventListener('touchstart', updateMouseDown);
     };
   }, []);
 

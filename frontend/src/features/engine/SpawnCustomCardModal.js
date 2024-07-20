@@ -109,7 +109,10 @@ export const SpawnCustomCardModal = React.memo(({}) => {
       <ReactModal
         closeTimeoutMS={200}
         isOpen={true}
-        onRequestClose={() => dispatch(setShowModal(null))}
+        onRequestClose={() => {
+          dispatch(setShowModal(null));
+          dispatch(setTyping(false));
+        }}
         contentLabel="Spawn a custom card"
         overlayClassName="fixed inset-0 bg-black-50 z-10000"
         className="insert-auto overflow-auto p-5 bg-gray-700 border mx-auto my-12 rounded-lg outline-none"

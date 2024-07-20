@@ -46,7 +46,10 @@ export const SettingsModal = React.memo(({}) => {
       <ReactModal
         closeTimeoutMS={200}
         isOpen={true}
-        onRequestClose={() => {dispatch(setShowModal(null)); dispatch(setTyping(false))}}
+        onRequestClose={() => {
+          dispatch(setShowModal(null));
+          dispatch(setTyping(false));
+        }}
         contentLabel={"Load quest"}
         overlayClassName="fixed inset-0 bg-black-50 z-10000"
         className="insert-auto p-5 bg-gray-700 border max-h-lg mx-auto my-2 rounded-lg outline-none"
@@ -211,7 +214,7 @@ const ModalContent = () => {
       const value = currentPlayerKeyVals[key];
       if (value !== onRenderPlayerKeyVals[key]) {
         actionList.push(["SET", `/playerData/$PLAYER_N/${key}`, value]);
-        actionList.push(["LOG", `{{$ALIAS_N}} set thier ${label} to ${value}.`]);
+        actionList.push(["LOG", `{{$ALIAS_N}} set their ${label} to ${value}.`]);
       }
     }
     for (const key of Object.keys(currentGameKeyVals)) {
