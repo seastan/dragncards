@@ -28,11 +28,11 @@ export const useCardStyle = (cardId, cardIndexFromGui, isDragging, offset) => {
 
     const style = {
         position: "absolute",
-        height: `${cardScaleFactor*height}vh`,
-        width: `${cardScaleFactor*width}vh`,
-        left: `${offset.left}vh`,
-        top: `${offset.top}vh`,
-        borderRadius: '0.6vh',
+        height: `${cardScaleFactor*height}dvh`,
+        width: `${cardScaleFactor*width}dvh`,
+        left: `${offset.left}dvh`,
+        top: `${offset.top}dvh`,
+        borderRadius: '0.6dvh',
         transform: `rotate(${cardRotation}deg)`,
         zIndex: zIndex,
         cursor: "default",

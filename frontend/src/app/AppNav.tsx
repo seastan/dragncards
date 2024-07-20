@@ -20,7 +20,7 @@ export const AppNav: React.FC<Props> = () => {
   // alert(aspectRatio)
   // if (aspectRatio > 2) return null;
   return (
-    <header className="bg-gray-700 flex justify-between items-center px-4" style={{height:"3vh",fontFamily:"Roboto", fontSize: "2vh"}}>
+    <header className="bg-gray-700 flex justify-between items-center px-4" style={{height:"3dvh",fontFamily:"Roboto", fontSize: "2dvh"}}>
       <div className="flex items-center justify-between p-0 h-full">
         <div className="h-full flex text-white justify-center cursor-pointer" onClick={() => history.push("/")}>
             {/*
@@ -30,7 +30,7 @@ export const AppNav: React.FC<Props> = () => {
               alt="Logo "
             />
                 */}
-            Dragn <img className="mt-0.5 mx-0.5" style={{display:"inline", height: "2vh"}} src={process.env.PUBLIC_URL + '/logosvg.svg'}/> Cards
+            Dragn <img className="mt-0.5 mx-0.5" style={{display:"inline", height: "2dvh"}} src={process.env.PUBLIC_URL + '/logosvg.svg'}/> Cards
         </div>
       </div>
       <div

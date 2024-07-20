@@ -14,12 +14,12 @@ import { StackContainerSorted } from "./StackDraggable";
 // Template for the returned element
 const ImageElement = styled.div`
   background: url(${props => props.src}) no-repeat scroll 0% 0% / contain;
-  borderRadius: 0.6vh;
+  borderRadius: 0.6dvh;
   borderColor: transparent;
   position: absolute;
-  width: ${props => props.width}vh;
-  height: ${props => props.height}vh;
-  left: ${props => props.leftOffset}vh;
+  width: ${props => props.width}dvh;
+  height: ${props => props.height}dvh;
+  left: ${props => props.leftOffset}dvh;
   top: 50%;
   transform: translate(0%,-50%);
 `;

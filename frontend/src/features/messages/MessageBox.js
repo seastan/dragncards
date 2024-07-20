@@ -36,13 +36,13 @@ export const MessageBox = ({ hover }) => {
 
   return (
     <div className="overflow-hidden h-full bg-gray-900">
-      <div className="overflow-y-auto" style={{height: `calc(100% - 3vh)`}}>
+      <div className="overflow-y-auto" style={{height: `calc(100% - 3dvh)`}}>
         {showingLog && <LogDiv hover={hover}/>}
         {!showingLog && <ChatDiv hover={hover}/>}
       </div>
       <div 
         className={`flex items-center float-left w-full text-white select-none`}
-        style={{height: "3vh", borderTop: "1px solid gray"}}
+        style={{height: "3dvh", borderTop: "1px solid gray"}}
       >
         <div className="flex px-2">
           <MessageBoxButton selected={showingLog} clickCallback={handleShowLogClick} icon={faRectangleList}/>
@@ -57,13 +57,13 @@ export const MessageBox = ({ hover }) => {
       </div>
       {/* <div 
         className={`flex items-center justify-center float-left text-white ${showingLog ? "bg-gray-700" : "bg-gray-500"} hover:bg-gray-400 select-none`  }
-        style={{height: "3vh", width: "calc(50% - 1.5vh)", animation: smoothScroll ? "glowing 1s infinite ease" : ""}}
+        style={{height: "3dvh", width: "calc(50% - 1.5dvh)", animation: smoothScroll ? "glowing 1s infinite ease" : ""}}
         onClick={() => handleShowChatClick()}>
         Chat
       </div>
       <div 
         className="flex items-center justify-center float-left border-l text-white bg-gray-900 hover:bg-red-700" onClick={(e) => {e.stopPropagation(); downloadHTML(displayedMessages)}}
-        style={{height: "3vh", width: "2.99vh", animation: smoothScroll ? "glowing 1s infinite ease" : ""}}>
+        style={{height: "3dvh", width: "2.99dvh", animation: smoothScroll ? "glowing 1s infinite ease" : ""}}>
           <FontAwesomeIcon icon={faDownload}/>
       </div> */}
     </div>

@@ -128,7 +128,7 @@ export const DropdownMenuCard = React.memo(({
     )
   }
 
-  // Subtract the equivalent of 35vh in pixels from the mouse position to make sure the menu is visible
+  // Subtract the equivalent of 35dvh in pixels from the mouse position to make sure the menu is visible
   const windowHeight = window.innerHeight;
   const left = mouseX < (window.innerWidth/2)  ? mouseX + windowHeight * 0.01 : mouseX - windowHeight * 0.36;
   const top = mouseY < (window.innerHeight/2) ? mouseY - windowHeight * 0.1 : mouseY - windowHeight * 0.35;

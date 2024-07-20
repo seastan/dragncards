@@ -64,7 +64,7 @@ export const RoomProviders = ({ gameBroadcast, chatBroadcast }) => {
         key={backgroundUrl}
         className="background"
         style={{
-          height: "97vh",
+          height: "97dvh",
           background: backgroundUrl ? `url(${backgroundUrl})` : "",
           backgroundRepeat: "no-repeat",
           backgroundSize: "cover",

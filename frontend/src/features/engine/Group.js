@@ -65,13 +65,13 @@ export const Group = React.memo(({
       
       <div
         className="relative h-full float-left select-none text-gray-400"
-        style={{width:"1.7vh"}}>
+        style={{width:"1.7dvh"}}>
           <div className="relative w-full h-full">
           {region.hideTitle ? null :
             <span 
               className="absolute mt-1 px-1 overflow-hidden rounded bg-gray-600-70" 
               style={{
-                fontSize: "1.5vh", 
+                fontSize: "1.5dvh", 
                 top: "50%", 
                 left: "50%", 
                 transform: `translate(${iconsVisible ? "-30%" : "-40%"}, -70%) rotate(90deg)`, 
@@ -80,7 +80,7 @@ export const Group = React.memo(({
                 boxShadow: "0 0 10px 5px rgba(0,0,0,0.6)",
               }}>
                 {iconsVisible &&
-                  <div className="text-gray-300 w-full h-full flex items-center justify-center" style={{fontSize: "2vh"}}>
+                  <div className="text-gray-300 w-full h-full flex items-center justify-center" style={{fontSize: "2dvh"}}>
                     <div className="w-1/2 flex items-center justify-center py-1 rounded hover:bg-gray-500" onClick={(event) => handleEyeClick(event)}>
                       <FontAwesomeIcon  className="mx-2 -rotate-90" icon={faEye}/>
                     </div>
@@ -96,14 +96,14 @@ export const Group = React.memo(({
           }
           </div>
       </div>
-      <div className="h-full" style={{marginLeft: "1.7vh", width: region.type === "free" ? "100%" : "calc(100% - 1.7vh)"}}>
+      <div className="h-full" style={{marginLeft: "1.7dvh", width: region.type === "free" ? "100%" : "calc(100% - 1.7dvh)"}}>
         {(region.type === "free" && tempDragStack && tempDragStack?.toGroupId === groupId) &&
           <div style={{
             left: `${tempDragStack.left}`, 
             top: `${tempDragStack.top}`, 
             position: "absolute", 
             zIndex: 1e9, 
-            marginLeft: "1.7vh"
+            marginLeft: "1.7dvh"
           }}>
             <Stack
               stackId={tempDragStack.stackId}

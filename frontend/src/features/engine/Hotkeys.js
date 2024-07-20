@@ -24,9 +24,9 @@ const windowStyleL = {
   position:"absolute", 
   zIndex: 2e4, 
   left: "3vw", 
-  top: "3vh", 
+  top: "3dvh", 
   width:"94vw", 
-  height: "94vh",
+  height: "94dvh",
 }
 const col1Class = "w-1/3";
 const col2Class = "w-2/3";
@@ -73,7 +73,7 @@ export const HotkeyTable = React.memo(({hotkeyList, l10n}) => {
               {keysDiv(keysString)}
             </td>
             
-            <td className="text-center" style={{fontSize: "1.5vh"}}>
+            <td className="text-center" style={{fontSize: "1.5dvh"}}>
               {labelList.map((labelEl, _labelElIndex) => {
                 if (labelEl.startsWith("icon(")) return <img className="m-auto h-6 inline-block" src={labelEl.slice(5,-1)}/> 
                 else return labelEl
@@ -106,7 +106,7 @@ export const Hotkeys = React.memo(({}) => {
             >
             <img
               style={{
-                width: "30vh"
+                width: "30dvh"
               }}
               src="https://dragncards-shared.s3.amazonaws.com/graphics/hover_mouse_tokens.png"/>
             </div>

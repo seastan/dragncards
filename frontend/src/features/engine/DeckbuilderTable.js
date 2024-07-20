@@ -160,11 +160,11 @@ export const DeckbuilderTable = React.memo(({currentGroupId, modifyDeckList, set
           <table className="table-fixed rounded-lg w-full">
             <thead>
               <tr className="bg-gray-800">
-                <th key={-1} className="text-white p-1" style={{width:"12vh"}}></th>
+                <th key={-1} className="text-white p-1" style={{width:"12dvh"}}></th>
                   {columnInfo?.map((colDetails, colindex) => {
                     const isSorted = sortConfig.column === colDetails.propName;
                     return (
-                      <th key={colindex} style={{width:"15vh"}}>
+                      <th key={colindex} style={{width:"15dvh"}}>
                         <div className="text-white whitespace-nowrap p-1 flex justify-between items-center">
                           {gameL10n(colDetails.label)}
                           <div 

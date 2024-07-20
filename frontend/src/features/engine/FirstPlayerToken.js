@@ -29,10 +29,10 @@ export const FirstPlayerToken = React.memo(() => {
       onClickHandler={(event) => handleFirstPlayerClick(event)} 
       extraButtonClass={"bg-gray-500 px-0 cursor-pointer px-1"}
       extraParentClass={"mr-1"}>
-        <div style={{fontSize: "1.3vh"}}>
+        <div style={{fontSize: "1.3dvh"}}>
           1st
         </div>
-        <FontAwesomeIcon icon={faChevronDown} className="ml-1" style={{fontSize: "1.2vh"}}/>
+        <FontAwesomeIcon icon={faChevronDown} className="ml-1" style={{fontSize: "1.2dvh"}}/>
     </TopBarUserButton>
 
     // <img 

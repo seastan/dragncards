@@ -78,7 +78,7 @@ export const Alert = React.memo(({
         <div 
           className=""
           style={{
-            maxHeight: "60vh",
+            maxHeight: "60dvh",
             textAlign: alertLevel === "crash" ? "left" : "center",
             overflowY: "scroll"
           }}
@@ -103,14 +103,14 @@ export const Alert = React.memo(({
           style={{
             left: "100%",
             top: "0%",
-            width: "3vh",
-            height: "3vh",
+            width: "3dvh",
+            height: "3dvh",
             transform: "translate(-50%, -50%)",
-            borderRadius: "1.5vh",
+            borderRadius: "1.5dvh",
           }}
           onClick={() => dispatch(setAlert(null))}
           >
-            <FontAwesomeIcon style={{fontSize: "1.7vh"}} icon={faTimes} />
+            <FontAwesomeIcon style={{fontSize: "1.7dvh"}} icon={faTimes} />
         </div>
       </div>  
     </div>

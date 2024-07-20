@@ -35,9 +35,9 @@ export const GiantCard = React.memo(() => {
 
   const cardType = visibleFace?.type;
   const zoomFactor = gameDef?.cardTypes?.[cardType]?.zoomFactor;
-  let height = zoomFactor ? `${zoomFactor * 95}vh` : "70vh";
+  let height = zoomFactor ? `${zoomFactor * 95}dvh` : "70dvh";
 
-  if (visibleFace.height < visibleFace.width) height = "50vh";
+  if (visibleFace.height < visibleFace.width) height = "50dvh";
 
   return (
     <img

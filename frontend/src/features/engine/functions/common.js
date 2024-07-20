@@ -1,9 +1,9 @@
 import React from "react";
 
 export const keyClass = "m-auto border bg-gray-500 text-center bottom inline-block text-white";
-export const keyStyle = {width: "3vh", height: "3vh", borderRadius: "0.5vh"}
-export const keyStyleL = {width: "7vh", height: "3vh", borderRadius: "0.5vh"}
-export const keyStyleXL = {width: "12vh", height: "3vh", borderRadius: "0.5vh"}
+export const keyStyle = {width: "3dvh", height: "3dvh", borderRadius: "0.5dvh"}
+export const keyStyleL = {width: "7dvh", height: "3dvh", borderRadius: "0.5dvh"}
+export const keyStyleXL = {width: "12dvh", height: "3dvh", borderRadius: "0.5dvh"}
 export const ATTACHMENT_OFFSET = 3.5;
 export const COMBINE_REGION_WIDTH_FACTOR = 0.45;
 export const DEFAULT_CARD_Z_INDEX = 100;

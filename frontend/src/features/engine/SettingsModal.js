@@ -56,7 +56,7 @@ export const SettingsModal = React.memo(({}) => {
         style={{
           content: {
             width: "800px",
-            maxHeight: "95vh",
+            maxHeight: "95dvh",
             overflowY: "scroll",
           }
         }}>

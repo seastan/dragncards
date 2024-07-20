@@ -119,7 +119,7 @@ export const SpawnCustomCardModal = React.memo(({}) => {
         style={{
           content: {
             width: "50vw",
-            maxHeight: "85vh",
+            maxHeight: "85dvh",
             overflowY: "scroll",
           }
         }}>

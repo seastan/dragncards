@@ -113,8 +113,8 @@ export const DeckbuilderModal = React.memo(({}) => {
       style={{
         content: {
           width: "92vw",
-          height: "85vh",
-          maxHeight: "85vh",
+          height: "85dvh",
+          maxHeight: "85dvh",
           overflowY: "scroll",
         }
       }}>

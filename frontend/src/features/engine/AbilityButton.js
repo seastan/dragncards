@@ -36,9 +36,9 @@ export const AbilityButton = React.memo(({
             <div 
                 className="absolute flex rounded-3xl bg-gray-600 border hover:bg-red-700 text-gray-300 justify-center items-center"
                 style={{
-                    width: "3.5vh",
-                    height: "3.5vh",
-                    fontSize: "2vh",
+                    width: "3.5dvh",
+                    height: "3.5dvh",
+                    fontSize: "2dvh",
                     top: "0%",
                     right: "0%",
                     zIndex:zIndex+1,

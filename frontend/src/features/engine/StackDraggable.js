@@ -19,20 +19,20 @@ const StackContainerFree = styled.div`
   position: absolute;
   float: left;
   userSelect: none;
-  margin: 0vh ${props => props.margin}vh 0vh 0vh;
+  margin: 0dvh ${props => props.margin}dvh 0dvh 0dvh;
   left: ${props => props.stackLeft};
   top: ${props => props.stackTop};
-  width: ${props => props.stackWidth}vh;
-  height: ${props => props.stackHeight}vh;
+  width: ${props => props.stackWidth}dvh;
+  height: ${props => props.stackHeight}dvh;
   opacity: ${props => props.isGroupedOver ? 0.4 : 1};
 `;
 
 export const StackContainerSorted = styled.div`
   position: relative;
   userSelect: none;
-  width: ${props => props.stackWidth}vh;
-  height: ${props => props.stackHeight}vh;
-  margin: 0vh ${props => props.margin}vh 0vh 0vh;
+  width: ${props => props.stackWidth}dvh;
+  height: ${props => props.stackHeight}dvh;
+  margin: 0dvh ${props => props.margin}dvh 0dvh 0dvh;
   opacity: ${props => props.isGroupedOver ? 0.4 : 1};
 `;
 //
@@ -91,12 +91,12 @@ export const StackDraggable = React.memo(({
     const cardHeight = card0?.sides[card0?.currentSide]?.height;
     const stackHeight = (stackEdges.bottom - stackEdges.top) * zoomFactor;
     const stackTopOffset = stackEdges.top * zoomFactor;
-    const stackTop = region.type === "free" ? `calc(${stack.top} + ${stackTopOffset}vh)` : stack.top;
+    const stackTop = region.type === "free" ? `calc(${stack.top} + ${stackTopOffset}dvh)` : stack.top;
     //const stackWidth = cardWidth*cardSize + ATTACHMENT_OFFSET * (numCards - 1);
     const stackWidth = (stackEdges.right - stackEdges.left) * zoomFactor;
     const stackWidthFan = Math.min(fanSpacingHoriz, cardWidth*cardSize*zoomFactor);
     const stackLeftOffset = stackEdges.left * zoomFactor;
-    const stackLeft = region.type === "free" ? `calc(${stack.left} + ${stackLeftOffset}vh)` : stack.left;
+    const stackLeft = region.type === "free" ? `calc(${stack.left} + ${stackLeftOffset}dvh)` : stack.left;
     console.log("stackLeft", stackLeft, stack.left, stackLeftOffset)
   
     const regionHeightPercent = convertToPercentage(region.height);
@@ -181,7 +181,7 @@ export const StackDraggable = React.memo(({
                 if (updatedStyle.transform && dragSnapshot.isDragging) updatedStyle.transform = updatedStyle.transform + " scale(1.1)";
                 if (region.type === "free" && !dragSnapshot.isDragging) updatedStyle.transform = "none";
                 // If isInBrowseGroup, add -50% to transform Y
-                //if (isInBrowseGroup && dragSnapshot.isDragging) updatedStyle.transform = updatedStyle.transform + " translate(0%, -50vh)";
+                //if (isInBrowseGroup && dragSnapshot.isDragging) updatedStyle.transform = updatedStyle.transform + " translate(0%, -50dvh)";
                 updatedStyle.visibility = draggingToFree && ((thisDrag && style.transform === null) || dragSnapshot.isDropAnimating) ? "hidden" : "visible";
                 if (region.direction === "horizontal") updatedStyle.display = "inline-block";
                 if (tempDragStackIdIsThisStackId) updatedStyle.visibility = "hidden";

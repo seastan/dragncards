@@ -58,7 +58,7 @@ export const LobbyContainer = ({ children }) => {
   return (
       <div 
         className="w-full overflow-y-scroll overflow-x-hidden" 
-        style={{fontFamily:"Roboto", height: "97vh", 
+        style={{fontFamily:"Roboto", height: "97dvh", 
         // background: `url(${process.env.PUBLIC_URL + '/images/other/background.jpg'}) no-repeat center center fixed`,
         background: `url("https://dragncards-shared.s3.amazonaws.com/backgrounds/Sharable_Tristan_Delgado_A_Wizards_Ire.jpg") no-repeat center center fixed`,
         backgroundSize: 'cover',

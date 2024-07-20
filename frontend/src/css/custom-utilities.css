@@ -181,12 +181,12 @@ padding: 0;
     margin: 0;
     display: none;
     overflow-y: scroll;
-    max-height: 50vh;
+    max-height: 50dvh;
 }
 
 .third-level-menu > li
 {
-    height: 4vh;
+    height: 4dvh;
     background: rgb(75, 85, 99);
     padding-left: 10px;
     padding-top: 5px;
@@ -208,7 +208,7 @@ padding: 0;
 .second-level-menu > li
 {
     position: relative;
-    height: 4vh;
+    height: 4dvh;
     background: rgb(75, 85, 99);
     z-index: 10000;
     padding-left: 10px;

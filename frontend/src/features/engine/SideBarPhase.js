@@ -22,7 +22,7 @@ export const SideBarPhase = React.memo(({
       style={{height: phaseInfo.height, maxHeight: phaseInfo.height, borderBottom: (phaseId === "End") ? "" : "1px solid"}}>
       <div
         className={`absolute h-full pointer-events-none ${isPhase ? "bg-red-800" : ""}`}
-        style={{width:"3vh"}}>
+        style={{width:"3dvh"}}>
         <div className="absolute h-full w-full" style={{writingMode: "vertical-rl"}}>
           {gameL10n(phaseInfo.label)}
         </div>

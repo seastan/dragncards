@@ -308,9 +308,9 @@ export const TopBarMenu = React.memo(({}) => {
               return(
                 <li className="p-1" key={info.layoutId}>
                   <div className="absolute" style={{width: "40%"}}>{gameL10n(info.label)}</div>
-                  <div className="absolute px-1 flex justify-end" style={{width: "20%", left: "40%", borderRadius: "0.5vh"}}>{siteL10n("Set for: ")}</div>
-                  <div className="absolute bg-gray-500 hover:bg-gray-400 px-1 flex justify-center" style={{width: "19%", left: "60%", borderRadius: "0.5vh"}} onClick={() => handleMenuClick({action:"layout", value: info, playerI: "shared"})}>{siteL10n("Everyone")}</div>
-                  <div className="absolute bg-gray-500 hover:bg-gray-400 px-1 flex justify-center" style={{width: "19%", left: "80%", borderRadius: "0.5vh"}} onClick={() => handleMenuClick({action:"layout", value: info, playerI: playerN})}>{siteL10n("Just Me")}</div>
+                  <div className="absolute px-1 flex justify-end" style={{width: "20%", left: "40%", borderRadius: "0.5dvh"}}>{siteL10n("Set for: ")}</div>
+                  <div className="absolute bg-gray-500 hover:bg-gray-400 px-1 flex justify-center" style={{width: "19%", left: "60%", borderRadius: "0.5dvh"}} onClick={() => handleMenuClick({action:"layout", value: info, playerI: "shared"})}>{siteL10n("Everyone")}</div>
+                  <div className="absolute bg-gray-500 hover:bg-gray-400 px-1 flex justify-center" style={{width: "19%", left: "80%", borderRadius: "0.5dvh"}} onClick={() => handleMenuClick({action:"layout", value: info, playerI: playerN})}>{siteL10n("Just Me")}</div>
                 </li>
               )
             })}

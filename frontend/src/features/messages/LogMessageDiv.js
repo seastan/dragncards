@@ -18,7 +18,7 @@ export const LogMessageDiv = ({ delta, deltaIndex }) => {
       onClick={() => gameBroadcast("step_through", {options: {size: "index", index: deltaIndex}})}
     >
       <div className="flex">
-        {hover && <div className="flex items-center jusitfy-center" style={{width: "3vh", paddingLeft: "0.5vh"}}>
+        {hover && <div className="flex items-center jusitfy-center" style={{width: "3dvh", paddingLeft: "0.5dvh"}}>
           <FontAwesomeIcon icon={faCircleRight} className="text-white"/>
         </div>}
         <div className="text-white pl-1" style={{width: "100%"}}>

@@ -28,7 +28,7 @@ export const SideBar = React.memo(({}) => {
   }, [cardById])
 
   return(
-    <div className="bg-gray-500" style={{width:"6vh", zIndex: 1e4}}>
+    <div className="bg-gray-500" style={{width:"6dvh", zIndex: 1e4}}>
       <div className="h-full">
         {gameDef?.phaseOrder?.map((phaseId, phaseIndex) => {
           return(<SideBarPhase key={phaseIndex} phaseId={phaseId} triggerMap={triggerMap}/>)

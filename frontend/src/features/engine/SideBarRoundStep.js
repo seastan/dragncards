@@ -35,7 +35,7 @@ export const ReminderButton = React.memo(({
   return(
     <div 
       className="absolute flex items-center justify-center bg-red-800 hover:bg-red-600 border"
-      style={{height:"2.5vh", width:"2.5vh", right:"-2vh", borderRadius: "2.5vh"}}
+      style={{height:"2.5dvh", width:"2.5dvh", right:"-2dvh", borderRadius: "2.5dvh"}}
       onClick={(event) => targetTriggers(event)}
       onMouseEnter={() => handleStartHover()}
       onMouseLeave={() => handleStopHover()}>
@@ -69,13 +69,13 @@ export const SideBarRoundStep = React.memo(({
       className={`flex flex-1 items-center`} 
       style={{
         width: hovering ? "750px" : "100%",
-        fontSize: "1.7vh",
+        fontSize: "1.7dvh",
       }}
       onClick={() => handleButtonClick()}
       onMouseEnter={() => setHovering(stepId)}
       onMouseLeave={() => setHovering(null)}>
-      <div className="flex justify-center" style={{width:"3vh"}}/>
-      <div className={`flex h-full items-center justify-center ${isRoundStep ? "bg-red-800" : "bg-gray-500"}`} style={{width:"3vh"}}>
+      <div className="flex justify-center" style={{width:"3dvh"}}/>
+      <div className={`flex h-full items-center justify-center ${isRoundStep ? "bg-red-800" : "bg-gray-500"}`} style={{width:"3dvh"}}>
         {stepId}
       </div>
       {triggerCardIds?.length > 0 &&

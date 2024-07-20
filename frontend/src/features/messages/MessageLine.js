@@ -65,7 +65,7 @@ export const MessageLine = ({ message }) => {
   const processedText = messageTextToHtml(cleanText);
 
   return (
-    <div className="ml-4" style={{fontFamily: "monospace", fontSize: "1.4vh"}}>
+    <div className="ml-4" style={{fontFamily: "monospace", fontSize: "1.4dvh"}}>
       <span className="text-white">{processedText}</span>
     </div>
   )

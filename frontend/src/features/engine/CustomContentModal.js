@@ -246,8 +246,8 @@ export const CustomContentModal = React.memo(({}) => {
       style={{
         content: {
           width: "700px",
-          height: "85vh",
-          maxHeight: "85vh",
+          height: "85dvh",
+          maxHeight: "85dvh",
           overflowY: "scroll",
         }
       }}>

@@ -81,12 +81,12 @@
   
   .dropdown {
     position: absolute;
-    width: 35vh;
+    width: 35dvh;
     /* transform: translateX(-45%); */
     background-color: var(--bg);
     border: var(--border);
     border-radius: var(--border-radius);
-    padding: 1vh;
+    padding: 1dvh;
     overflow: hidden;
     transition: height var(--speed) ease;
   }
@@ -98,7 +98,7 @@
     background-color: var(--bg);
     border: var(--border);
     border-radius: var(--border-radius);
-    padding: 1vh;
+    padding: 1dvh;
     overflow: hidden;
     transition: height var(--speed) ease;
   }
@@ -108,15 +108,15 @@
   }
   
   .menu-title {
-    height: 4vh;
+    height: 4dvh;
     width: 100%;
     font-weight: bold;
     align-items: center;
     text-align: center;
-    font-size: 2.5vh;
+    font-size: 2.5dvh;
     border-radius: var(--border-radius);
     padding: 0px;
-    margin-bottom: 1vh;
+    margin-bottom: 1dvh;
     color: white;
     text-decoration: none;
     vertical-align: text-top;
@@ -125,14 +125,14 @@
   }
 
   .menu-item {
-    height: 4vh;
+    height: 4dvh;
     display: flex;
     align-items: center;
-    font-size: 2vh;
+    font-size: 2dvh;
     border-radius: var(--border-radius);
     transition: background var(--speed);
-    padding: 1vh;
-    margin: 0vh;
+    padding: 1dvh;
+    margin: 0dvh;
     color: white;
     text-decoration: none;
   }

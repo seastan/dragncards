@@ -37,7 +37,7 @@ export const useBrowseRegion = () => {
     layerIndex: 9,
     left: browseLeft,
     width: "65%",
-    height: `${cardScaleFactor*maxHeight*1.1 + 3}vh`,
+    height: `${cardScaleFactor*maxHeight*1.1 + 3}dvh`,
     top: "50%",
     disableDropAttachments: true,
   }
@@ -193,25 +193,25 @@ export const Browse = React.memo(({}) => {
         zIndex: 2*DEFAULT_CARD_Z_INDEX+2,
         boxShadow: "0 0 10px 5px rgba(0,0,0,0.6)"
       }}>
-      <strong className="bg-gray-600 w-full text-gray-300 flex justify-center items-center" style={{height: "3vh", borderTopLeftRadius: "1vh", borderTopRightRadius: "1vh"}}>
+      <strong className="bg-gray-600 w-full text-gray-300 flex justify-center items-center" style={{height: "3dvh", borderTopLeftRadius: "1dvh", borderTopRightRadius: "1dvh"}}>
         <FontAwesomeIcon onClick={(event) => handleBarsClick(event)}  className="cursor-pointer hover:text-white" icon={faBars}/>
         <span className="px-2">{gameL10n(group.label)}</span>
       </strong>
       
-      <div className="w-full" style={{height: `calc(100% - 3vh)`}}>
+      <div className="w-full" style={{height: `calc(100% - 3dvh)`}}>
         <div className="h-full float-left" style={{width: "70%"}}>        
           <div
             className="relative h-full float-left select-none text-gray-300"
-            style={{width:"1.7vh"}}>
+            style={{width:"1.7dvh"}}>
               <div className="relative w-full h-full">
                 <span 
                   className="absolute pb-2 overflow-hidden" 
-                  style={{fontSize: "1.5vh", top: "50%", left: "50%", transform: `translate(-50%, -70%) rotate(90deg)`, whiteSpace: "nowrap"}}>
+                  style={{fontSize: "1.5dvh", top: "50%", left: "50%", transform: `translate(-50%, -70%) rotate(90deg)`, whiteSpace: "nowrap"}}>
                   (Top)
                 </span>
               </div>
           </div>
-          <div className="h-full" style={{marginLeft: "1.7vh", width: "calc(100% - 1.7vh)"}}>
+          <div className="h-full" style={{marginLeft: "1.7dvh", width: "calc(100% - 1.7dvh)"}}>
             <DroppableRegion
               groupId={groupId}
               region={region}

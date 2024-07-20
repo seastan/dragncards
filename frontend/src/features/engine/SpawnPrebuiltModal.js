@@ -37,7 +37,7 @@ export const SpawnPrebuiltModal = React.memo(({}) => {
           content: {
             width: "40vw",
             maxWidth: "1200px",
-            maxHeight: "95vh",
+            maxHeight: "95dvh",
             overflowY: "scroll",
           }
         }}>

@@ -29,10 +29,10 @@ export const ChatDiv = ({ hover }) => {
         <PlayersInRoom/>
       </div>
       <div className="flex flex-col" style={{height: "100%", width: "65%"}}>
-        <div className="bg-gray-900 overflow-y-auto" style={{height: `calc(100% - 3vh)`}}>
+        <div className="bg-gray-900 overflow-y-auto" style={{height: `calc(100% - 3dvh)`}}>
           <MessageLines hover={hover} messageDivs={allChatMessageDivs} />
         </div>
-        <div className="text-center float-left" style={{height: "3vh", width: "100%"}}>
+        <div className="text-center float-left" style={{height: "3dvh", width: "100%"}}>
           <ChatInput chatBroadcast={chatBroadcast}/>
         </div>
       </div>

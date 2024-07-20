@@ -28,11 +28,11 @@ export const DropZone = styled.div`
   overflow-x: ${props => props.type === "row" ? "auto" : props.type === "fan" ? "hidden" : "visible"};
   overflow-y: ${props => props.type === "row" ? "hidden" : "visible"};
   white-space: nowrap;
-  width: calc(100% - ${props => props.margin}vh);
+  width: calc(100% - ${props => props.margin}dvh);
   height: 100%;
   min-height: 100%;
-  padding: 0.5vh;
-  margin: 0 0 0 ${props => props.margin}vh;
+  padding: 0.5dvh;
+  margin: 0 0 0 ${props => props.margin}dvh;
 `;
 
 const StacksListSorted = React.memo(({

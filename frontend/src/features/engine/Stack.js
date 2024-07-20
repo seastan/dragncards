@@ -21,7 +21,7 @@ const hideUnderActionList = (stackId) => {
   ])
 }
 
-//left: ${props => props.left || 0}vh;
+//left: ${props => props.left || 0}dvh;
 // background: ${props => (props.hidden) ? "red" : "blue"};
   // display: ${props => (props.hidden) ? "none" : "flex"};
 
@@ -61,10 +61,10 @@ export const Stack = React.memo(({
         transform: `scale(${stackZoomFactor})`,
       }}
     >
-      {isHoveredOver && hoverOverDirection == "top" && <LinkIcon top="0" left="0" width="100%" height="6vh"  transform="translate(0%, -50%)"/>}
-      {isHoveredOver && hoverOverDirection == "left" && <LinkIcon top="0" left="0" width="6vh"  height="100%" transform="translate(-50%, 0%)"/>}
-      {isHoveredOver && hoverOverDirection == "right" && <LinkIcon top="0" left="100%" width="6vh"  height="100%" transform="translate(-50%, 0%)"/>}
-      {isHoveredOver && hoverOverDirection == "bottom" && <LinkIcon top="100%" left="0" width="100%" height="6vh"  transform="translate(0%, -50%)"/>}
+      {isHoveredOver && hoverOverDirection == "top" && <LinkIcon top="0" left="0" width="100%" height="6dvh"  transform="translate(0%, -50%)"/>}
+      {isHoveredOver && hoverOverDirection == "left" && <LinkIcon top="0" left="0" width="6dvh"  height="100%" transform="translate(-50%, 0%)"/>}
+      {isHoveredOver && hoverOverDirection == "right" && <LinkIcon top="0" left="100%" width="6dvh"  height="100%" transform="translate(-50%, 0%)"/>}
+      {isHoveredOver && hoverOverDirection == "bottom" && <LinkIcon top="100%" left="0" width="100%" height="6dvh"  transform="translate(0%, -50%)"/>}
       {cardIds.map((cardId, cardIndex) => {
         return(
           <Card
@@ -81,8 +81,8 @@ export const Stack = React.memo(({
           className="flex items-center justify-center"
           style={{
             position: "absolute", 
-            height: "3vh",
-            top: "calc(100% - 3vh)",
+            height: "3dvh",
+            top: "calc(100% - 3dvh)",
             zIndex: DEFAULT_CARD_Z_INDEX,
             opacity: 0.85,
           }}>
@@ -132,13 +132,13 @@ const LinkIcon = React.memo(({
       <div
         className="flex items-center justify-center bg-gray-200"
         style={{
-          width: "6vh",
-          height: "6vh",
-          border: "0.5vh solid black",
+          width: "6dvh",
+          height: "6dvh",
+          border: "0.5dvh solid black",
           borderRadius: "50%",
         }}
       >
-        <FontAwesomeIcon className="w-full h-full" style={{fontSize: '4vh'}} icon={controlPressed ? faArrowDown : faLink}/>
+        <FontAwesomeIcon className="w-full h-full" style={{fontSize: '4dvh'}} icon={controlPressed ? faArrowDown : faLink}/>
       </div>
     </div>
   );
