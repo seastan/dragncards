@@ -114,6 +114,8 @@ export const TopBarMenu = React.memo(({}) => {
       dispatch(setShowModal("developer"));
     } else if (data.action === "spawn_deck") {
       dispatch(setShowModal("prebuilt_deck"));
+    } else if (data.action === "spawn_public_deck") {
+      dispatch(setShowModal("public_deck"));
     } else if (data.action === "download") {
       downloadGameAsJson();
     } else if (data.action === "downloadReplay") {
@@ -288,7 +290,8 @@ export const TopBarMenu = React.memo(({}) => {
             {siteL10n("load")}
             <span className="float-right mr-1"><FontAwesomeIcon icon={faChevronRight}/></span>
           <ul className="third-level-menu">
-            <li key={"load_prebuilt_deck"} onClick={() => handleMenuClick({action:"spawn_deck"})}>{siteL10n("Load prebuilt deck")}</li>
+            <li key={"load_prebuilt_deck"} onClick={() => handleMenuClick({action:"spawn_deck"})}>{siteL10n("loadPrebuiltDeck")}</li>
+            <li key={"load_public_custom_deck"} onClick={() => handleMenuClick({action:"spawn_public_deck"})}>{siteL10n("loadPublicCustomDeck")}</li>
             <li key={"load_url"} onClick={() => handleMenuClick({action:"load_url"})}>{siteL10n("Load via URL")}</li>
             <li key={"load_game"} onClick={() => handleMenuClick({action:"load_game"})}>
               {siteL10n("loadGameOrReplayJson")}

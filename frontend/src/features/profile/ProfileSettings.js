@@ -23,22 +23,12 @@ export const ProfileSettings = () => {
 
 
   const { inputs, handleSubmit, handleInputChange, setInputs } = useForm(async () => {
-    var valid = true;
-    [inputs.background_url, inputs.player_back_url, inputs.encounter_back_url].forEach((str) => {
-      if (str && !str.endsWith(".png") && !str.endsWith(".jpg")) valid = false;
-    })
-    if (!valid) {
-      setErrorMessage("All images must be .jpg or .png");
-      return;
-    }
+
     const updateData = {
       user: {
         ...user,
         id: user?.id,
         language: inputs.language,
-        background_url: inputs.background_url,
-        player_back_url: inputs.player_back_url,
-        encounter_back_url: inputs.encounter_back_url,
       },
     };
     //const res = await axios.post("/be/api/v1/profile/update", data);
@@ -48,9 +38,6 @@ export const ProfileSettings = () => {
         ...user,
         id: user?.id,
         language: inputs.language,
-        background_url: inputs.background_url,
-        player_back_url: inputs.player_back_url,
-        encounter_back_url: inputs.encounter_back_url,
       }}
     user.setData(newProfileData);
     if (
@@ -69,9 +56,6 @@ export const ProfileSettings = () => {
       setInputs((inputs) => ({
         ...inputs,
         language: user.language || "",
-        background_url: user.background_url || "",
-        player_back_url: user.player_back_url || "",
-        encounter_back_url: user.encounter_back_url || "",
       }));
     }
   }, [user]);

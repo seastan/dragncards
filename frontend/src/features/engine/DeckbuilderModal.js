@@ -78,6 +78,7 @@ export const DeckbuilderModal = React.memo(({}) => {
 
   if (!cardDb) return;
   console.log("builder cardDb", cardDb)
+  console.log("builder myDecks", myDecks)
 
   const modifyDeckList = (loadListItem, existingIndex = null) => {
     // If it's already in the deck, adjust the quantity

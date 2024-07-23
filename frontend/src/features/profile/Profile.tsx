@@ -10,6 +10,8 @@ import ShareGameModal from "./ShareGameModal";
 import { parseISO, format, formatDistanceToNow } from "date-fns";
 import axios from "axios";
 import RecaptchaForm from "./RecaptchaForm";
+import { useAuthOptions } from "../../hooks/useAuthOptions";
+import { useSiteL10n } from "../../hooks/useSiteL10n";
 
 const columns = [
   {name: "uuid", label: "UUID", options: { filter: false, display: false }},
@@ -22,6 +24,8 @@ interface Props {}
 
 export const Profile: React.FC<Props> = () => {
   const user = useProfile();
+  const authOptions = useAuthOptions();
+  const siteL10n = useSiteL10n();
   const history = useHistory();
   const [showModal, setShowModal] = useState(false);
   const [shareReplayUrl, setShareReplayUrl] = useState("");
@@ -60,7 +64,14 @@ export const Profile: React.FC<Props> = () => {
       const res = await axios.post("/be/api/replays/delete",data);
       setDeletedIndices([...deletedIndices, index]);
     }
-  }     
+  }
+  const issueDowntimeNotice = async() => {
+    let text = window.prompt("Enter the message to send to all users. Leave blank to send default message.");
+    if (text == null) return;
+    if (text == "") text = siteL10n("defaultMaintenenceMessage");
+
+    const res = await axios.post("/be/api/rooms/send_alert", {level: "crash", text: text, autoClose: false}, authOptions);
+  }
 
   const options: MUIDataTableOptions = {
     filterType: "checkbox",
@@ -121,9 +132,15 @@ export const Profile: React.FC<Props> = () => {
           </div>
           {user.email_confirmed_at == null && <RecaptchaForm/>}
           {user.admin && 
-            <div>
-              <span className="font-semibold">Admin</span>
-            </div>
+            <>
+              <div>
+                <span className="font-semibold">Admin</span>
+              </div>
+
+              <Button onClick={() => issueDowntimeNotice()}>
+                Issue downtime notice
+              </Button>
+            </>
           }
         </div>
       </Container>

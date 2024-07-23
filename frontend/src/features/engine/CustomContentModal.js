@@ -268,7 +268,7 @@ export const CustomContentModal = React.memo(({}) => {
             width={100}
             strokeColor="white"/>
         </div>
-          :
+        :
         <>
           <CustomCardSection cardDb={customCardDbPublic}/>
           <div className="text-black py-1"style={{width:"300px"}}>
@@ -280,7 +280,6 @@ export const CustomContentModal = React.memo(({}) => {
             <StatusMessageBlock successMessages={successMessageCardDbPublic} errorMessages={errorMessageCardDbPublic}/>
           </div>
           {Object.keys(customCardDbPublic).length > 0 && <div>Note that DragnCards uses the databaseId column to determine what card to load. So if you replace your cards, if any of the databaseIds from the previous upload do not exist in the new upload, any existing decks that have been built using those cards will fail to load properly.</div>}
-
         </>
       }
 

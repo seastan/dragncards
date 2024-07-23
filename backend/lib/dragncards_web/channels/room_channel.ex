@@ -42,6 +42,11 @@ defmodule DragnCardsWeb.RoomChannel do
     {:noreply, socket}
   end
 
+  def handle_info({:send_alert, payload}, socket) do
+    broadcast!(socket, "send_alert", payload)
+    {:noreply, socket}
+  end
+
   def handle_info(msg, socket) do
     Logger.warn("Unexpected message received in handle_info: #{inspect(msg)}")
     {:noreply, socket}

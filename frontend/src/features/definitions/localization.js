@@ -1,4 +1,32 @@
 export const siteL10n = {
+  "defaultMaintenenceMessage": {
+    "English": "The server is going down for scheduled maintenance in the next 5 minutes. Please save your game. The server should be back up in 10 minutes, and you can resume your game from your profile.",
+    "Chinese": "服务器将在接下来的 5 分钟内进行计划维护。请保存您的游戏。服务器应该在 10 分钟内恢复，您可以从您的个人资料中恢复您的游戏。"
+  },
+  "myCustomDecks": {
+    "English": "My Custom Decks",
+    "Chinese": "我的自定义牌组"
+  },
+  "loadPrebuiltDeck": {
+    "English": "Load prebuilt deck",
+    "Chinese": "加载预组牌库"
+  },
+  "loadPublicCustomDeck": {
+    "English": "Load public custom deck",
+    "Chinese": "加载公开的自定义牌组"
+  },
+  "public": {
+    "English": "Public",
+    "Chinese": "公开"
+  },
+  "isNowPublic": {
+    "English": "is now public. Press this button again to make it private.",
+    "Chinese": "现在是公开的。再次按下此按钮可将其设为私有。"
+  },
+  "isNowPrivate": {
+    "English": "is now private.",
+    "Chinese": "现在是私有的。"
+  },
   "author": {
     "English": "Author",
     "Chinese": "作者"

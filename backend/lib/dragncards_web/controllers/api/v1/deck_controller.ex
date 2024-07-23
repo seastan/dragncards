@@ -46,6 +46,16 @@ defmodule DragnCardsWeb.API.V1.DeckController do
     json(conn, %{my_decks: my_decks})
   end
 
+  def get_public_decks(conn, %{"plugin_id" => plugin_id}) do
+    IO.puts("Getting public decks for plugin_id #{plugin_id}")
+    public_decks = if plugin_id != nil do
+      Decks.get_public_decks_for_plugin(plugin_id)
+    else
+      []
+    end
+    json(conn, %{public_decks: public_decks})
+  end
+
   def edit(conn, %{"id" => id}) do
     deck = Decks.get_deck!(id)
     changeset = Decks.change_deck(deck)

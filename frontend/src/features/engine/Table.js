@@ -30,6 +30,7 @@ import { useDoActionList } from "./hooks/useDoActionList";
 import { useSetTouchAction } from "./hooks/useSetTouchAction";
 import { useTouchAction } from "./hooks/useTouchAction";
 import { CustomContentModal } from "./CustomContentModal";
+import { SpawnPublicDeckModal } from "./SpawnPublicDeckModal";
 
 export const Table = React.memo(({onDragEnd}) => {
   const gameDef = useGameDefinition();
@@ -109,6 +110,7 @@ export const Table = React.memo(({onDragEnd}) => {
       <GiantCard/>
       {showModal === "card" ? <SpawnExistingCardModal/> : null}
       {showModal === "prebuilt_deck" ? <SpawnPrebuiltModal/> : null}
+      {showModal === "public_deck" ? <SpawnPublicDeckModal/> : null}
       {showModal === "settings" ? <SettingsModal/> : null}
       {showModal === "custom" ? <SpawnCustomCardModal/> : null}
       {showModal === "custom_decks" ? <DeckbuilderModal/> : null}

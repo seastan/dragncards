@@ -30,6 +30,7 @@ defmodule DragnCardsWeb.Router do
   # Other scopes may use custom stacks.
   scope "/api", DragnCardsWeb do
     pipe_through(:api)
+    post("/rooms/send_alert", RoomController, :send_alert)
     resources("/rooms", RoomController, except: [:new, :edit])
   end
 
@@ -100,6 +101,7 @@ defmodule DragnCardsWeb.Router do
     # Decks
     resources("/decks", DeckController)
     get("/decks/:user_id/:plugin_id", DeckController, :get_decks)
+    get("/public_decks/:plugin_id", DeckController, :get_public_decks)
 
     # Testing Junk
     get("/authtest", JunkController, :authtest)

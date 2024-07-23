@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from "react";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { usePlugin } from "./hooks/usePlugin";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faChevronLeft, faChevronRight, faDownload, faPlay, faSave, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faChevronLeft, faChevronRight, faDownload, faPlay, faSave, faShare, faTimes, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { useAuthOptions } from "../../hooks/useAuthOptions";
 import axios from "axios";
 import { useSelector } from "react-redux";
@@ -11,6 +11,8 @@ import { keyClass } from "./functions/common";
 import { keyStyle } from "./functions/common";
 import { useGameL10n } from "./hooks/useGameL10n";
 import { useImportLoadList } from "./hooks/useImportLoadList";
+import { useSendLocalMessage } from "./hooks/useSendLocalMessage";
+import { useSiteL10n } from "../../hooks/useSiteL10n";
 
 export const DeckbuilderCurrent = React.memo(({
   currentGroupId, 
@@ -31,6 +33,8 @@ export const DeckbuilderCurrent = React.memo(({
   const importLoadList = useImportLoadList();
   const gameL10n = useGameL10n();
   const cardDb = usePlugin()?.card_db || {};
+  const sendLocalMessage = useSendLocalMessage();
+  const siteL10n = useSiteL10n();
 
   useEffect(() => {
     if (numChanges > 10) {
@@ -39,7 +43,7 @@ export const DeckbuilderCurrent = React.memo(({
     }
   }, [numChanges]);
 
-  console.log("Rendering DeckbuilderCurrent", cardDb);
+  console.log("Rendering DeckbuilderCurrent", currentDeck);
   if (Object.keys(cardDb).length === 0) return(
     <div className="bg-gray-800" style={{width:"20%"}}>
       <div className="flex h-full w-full items-center justify-center">
@@ -57,6 +61,18 @@ export const DeckbuilderCurrent = React.memo(({
     const res = await axios.patch(`/be/api/v1/decks/${currentDeck.id}`, updateData, authOptions);
     setNumChanges(0);
     doFetchHash((new Date()).toISOString());
+  }
+
+  const setDeckPublic = async(val) => {
+    const newDeck = {...currentDeck, public: val}
+    const updateData = {deck: newDeck}
+    console.log("myDecks writing", updateData)
+    const res = await axios.patch(`/be/api/v1/decks/${currentDeck.id}`, updateData, authOptions);
+    setNumChanges(0);
+    setCurrentDeck(newDeck);
+    doFetchHash((new Date()).toISOString());
+    if (val) sendLocalMessage(newDeck.name + " " + siteL10n("isNowPublic"));
+    else sendLocalMessage(newDeck.name + " " + siteL10n("isNowPrivate"));
   }
 
   const playCurrentDeck = async() => {
@@ -135,6 +151,12 @@ export const DeckbuilderCurrent = React.memo(({
                 style={keyStyle}
                 onClick={()=>{exportCurrentDeck()}}>
                   <FontAwesomeIcon icon={faDownload}/>
+              </div>
+              <div 
+                className={keyClass + (currentDeck.public ? " m-1 hover:bg-red-400 bg-red-700 cursor-pointer" : " m-1 hover:bg-gray-400 cursor-pointer")}
+                style={keyStyle}
+                onClick={()=>{setDeckPublic(!currentDeck.public)}}>
+                    <FontAwesomeIcon icon={faShare}/>
               </div>
               <div 
                 className={keyClass + " m-1 hover:bg-gray-400 cursor-pointer"} 

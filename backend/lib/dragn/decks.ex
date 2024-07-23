@@ -4,9 +4,7 @@ defmodule DragnCards.Decks do
   """
 
   import Ecto.Query, warn: false
-  alias DragnCards.Repo
-
-  alias DragnCards.Decks.Deck
+  alias DragnCards.{Repo, Decks.Deck, Users.User}
 
   @doc """
   Returns the list of decks.
@@ -36,6 +34,23 @@ defmodule DragnCards.Decks do
 
   """
   def get_deck!(id), do: Repo.get!(Deck, id)
+
+  def get_public_decks_for_plugin(plugin_id) do
+    from(d in Deck,
+      where: d.plugin_id == ^plugin_id and d.public == true,
+      left_join: u in User, on: d.author_id == u.id,
+      select: %{
+        id: d.id,
+        name: d.name,
+        plugin_id: d.plugin_id,
+        load_list: d.load_list,
+        public: d.public,
+        author_id: d.author_id,
+        author_alias: u.alias
+      }
+    )
+    |> Repo.all()
+  end
 
   @doc """
   Creates a deck.
