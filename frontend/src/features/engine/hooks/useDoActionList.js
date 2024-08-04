@@ -11,15 +11,14 @@ export const useDoActionList = () => {
     //const playerUi = null; //useSelector(state => state?.playerUi)
 
     return (idOrList) => {
-        if (store.getState().playerUi.dragging.stackId) {
-            sendLocalMessage("You must finish dragging before you can perform this action.");
-            return;
-        }
+        // if (store.getState().playerUi.dragging.stackId) {
+        //     sendLocalMessage("You must finish dragging before you can perform this action.");
+        //     return;
+        // }
         // This fuction can take either an id for an action list, in which case it
         // executes the corresponding action list in the game definition, or it can
         // take a list, which it interprests as a custom action list and executes it.
         const isList = Array.isArray(idOrList);
-
         var actionList = null;
         if (isList) {
             actionList = idOrList;

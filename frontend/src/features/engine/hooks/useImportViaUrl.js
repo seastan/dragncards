@@ -218,7 +218,7 @@ export const loadArkhamDb = (importLoadList, doActionList, playerN, arkhamDbType
     }
     const sideSlots = jsonData.sideSlots;
     for (const [slot, quantity] of Object.entries(sideSlots)) {
-      loadList.push({'databaseId': slot, 'quantity': quantity, 'loadGroupId': "playerNRemoved"});
+      loadList.push({'databaseId': slot, 'quantity': quantity, 'loadGroupId': "playerNSideDeck"});
     }
     
     importLoadList(loadList);

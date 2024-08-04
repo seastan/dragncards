@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { useSelector, shallowEqual } from "react-redux";
 import { useLayout } from "./useLayout";
 import { ATTACHMENT_OFFSET } from "../functions/common";
+import { useCardScaleFactor } from "./useCardScaleFactor";
 
 // Generalized selector factory to get specific properties of cards
 const makeGetStackCardProperties = (property) => createSelector(
@@ -27,7 +28,7 @@ export const useOffsetTotalsAndAmounts = (stackId) => {
   const cardIds = stack?.cardIds || [];
   const lookingUnder = stack?.lookingUnder;
   const layout = useLayout();
-  const cardSize = layout?.cardSize;
+  const cardScaleFactor = useCardScaleFactor();
   // Memoize the selector factory
 
   // Memoize the selector factory with the specified property
@@ -50,12 +51,12 @@ export const useOffsetTotalsAndAmounts = (stackId) => {
   
   const offsetTotals = { top: 0, left: 0, right: 0, bottom: 0, behind: 0 };
   const offsetAmounts = [{ top: 0, left: 0 }];
-  const stackEdges = { top: 0, left: 0, right: cardWidths[0]*cardSize, bottom: cardHeights[0]*cardSize };
+  const stackEdges = { top: 0, left: 0, right: cardWidths[0]*cardScaleFactor, bottom: cardHeights[0]*cardScaleFactor };
   
   for (let i = 1; i < attachmentDirections.length; i++) {
     const attachmentDirection = attachmentDirections[i];
-    const currentWidth = cardWidths[i]*cardSize;
-    const currentHeight = cardHeights[i]*cardSize;
+    const currentWidth = cardWidths[i]*cardScaleFactor;
+    const currentHeight = cardHeights[i]*cardScaleFactor;
     if (attachmentDirection === "left") {
       const left = stackEdges.left - ATTACHMENT_OFFSET;
       offsetAmounts.push({ top: 0, left: left });
@@ -74,8 +75,9 @@ export const useOffsetTotalsAndAmounts = (stackId) => {
     } else if (attachmentDirection === "behind") {
       offsetTotals.behind++;
       if (lookingUnder) {
-        const top = stackEdges.bottom - currentHeight + 0.3*ATTACHMENT_OFFSET;
+        const top = stackEdges.bottom - currentHeight + 0.5*ATTACHMENT_OFFSET;
         offsetAmounts.push({ top: top, left: 0 });
+        stackEdges.bottom += 0.5*ATTACHMENT_OFFSET;
         offsetTotals.bottom++;
       } else {
         offsetAmounts.push({ top: 0, left: 0 });

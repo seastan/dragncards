@@ -43,16 +43,22 @@ export const CardMouseRegion = React.memo(({
     }
 
     const handleClick = (event) => {
-        console.log("cardclick", card);
-        event.stopPropagation();        
-        makeActive(event);
-        // What to do depends on whether touch mode is active
-        if (touchMode) handleTouchAction(card);
-        else handleSetDropDownMenu();
+        console.log("cardaction click", card);
+        event.stopPropagation(); 
+        if (touchMode) {
+            if (touchAction !== null || isActive) {
+                handleTouchAction(card);
+            } else {
+                makeActive(event); 
+                handleSetDropDownMenu();
+            }
+        } else {
+            handleSetDropDownMenu();
+        }
     }
     
     const handleMouseOver = (event) => {
-        console.log("cardmouseover", card);
+        console.log("cardaction mouseover", card);
         event.stopPropagation();
         if (!dropdownMenuVisible) makeActive(event);
         //setIsActive(true);
@@ -63,12 +69,12 @@ export const CardMouseRegion = React.memo(({
         handleSetDropDownMenu();
     };
 
-    const defaultOptions = {
-        shouldPreventDefault: true,
-        delay: 800,
-    };
+    // const defaultOptions = {
+    //     shouldPreventDefault: true,
+    //     delay: 800,
+    // };
 
-    const longPress = useLongPress(onLongPress, handleClick, defaultOptions);
+    //const longPress = useLongPress(onLongPress, handleClick, defaultOptions);
     const regionStyle = {
         position: 'absolute',
         top: topOrBottom === "top" ? "0%" : "50%",
@@ -77,18 +83,19 @@ export const CardMouseRegion = React.memo(({
         zIndex: zIndex,
     }
 
-    if (touchMode) {
-        return(
-            <div 
-                {...longPress}
-                style={regionStyle}
-                onMouseOver={event => !isActive && !touchAction && makeActive(event)}
-            />
-    )} else return (
-            <div 
-                style={regionStyle}
-                onMouseOver={event =>  handleMouseOver(event)}
-                onClick={event => handleClick(event)}
-            />  
+    // if (touchMode) {
+    //     return(
+    //         <div 
+    //             {...longPress}
+    //             style={regionStyle}
+    //             onMouseOver={event => !isActive && !touchAction && makeActive(event)}
+    //         />
+    // )} else 
+    return (
+        <div 
+            style={regionStyle}
+            onMouseOver={event =>  handleMouseOver(event)}
+            onClick={event => handleClick(event)}
+        />  
     )
 })

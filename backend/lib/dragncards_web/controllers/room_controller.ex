@@ -40,12 +40,18 @@ defmodule DragnCardsWeb.RoomController do
   end
 
   def send_alert(conn, payload) do
-    Rooms.list_rooms()
-    |> Enum.map(& &1.slug)
-    |> Enum.each(fn room_slug ->
-      PubSub.broadcast(DragnCards.PubSub, "room:#{room_slug}", {:send_alert, payload})
-    end)
-    send_resp(conn, :ok, "Alert sent successfully\n")
+    case conn.assigns.current_user.admin do
+      true ->
+        Rooms.list_rooms()
+        |> Enum.map(& &1.slug)
+        |> Enum.each(fn room_slug ->
+          PubSub.broadcast(DragnCards.PubSub, "room:#{room_slug}", {:send_alert, payload})
+        end)
+        send_resp(conn, :ok, "Alert sent successfully")
+      false ->
+        send_resp(conn, :forbidden, "You are not authorized to send alerts")
+      end
+
   end
 
 end

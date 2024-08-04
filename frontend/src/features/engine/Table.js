@@ -55,6 +55,7 @@ export const Table = React.memo(({onDragEnd}) => {
   }, [loadedADeck]);
 
   const handleTableClick = (event) => {
+    console.log("cardaction table click", event.target);
     dispatch(setMouseXY(null));
     dispatch(setDropdownMenu(null));
     dispatch(setActiveCardId(null));

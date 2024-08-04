@@ -121,8 +121,9 @@
     Logger.debug("Made new Game")
     # Add player data
     player_data = %{}
-    player_data = Enum.reduce(1..game_def["maxPlayers"], player_data, fn(n, acc) ->
-      put_in(acc["player"<>Integer.to_string(n)], PlayerData.new(game_def))
+    player_data = Enum.reduce(1..game_def["maxPlayers"], player_data, fn(i, acc) ->
+      player_i = "player#{i}"
+      put_in(acc[player_i], PlayerData.new(game_def, player_i))
     end)
     Logger.debug("Made player data")
     base = put_in(base["playerData"], player_data)

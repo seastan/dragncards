@@ -24,7 +24,8 @@ export const GiantCard = React.memo(() => {
   console.log("Rendering GiantCard", visibleFace, visibleFaceSrc);
 
   useEffect(() => {
-    if (activeCard && initialActiveCard && (activeCard.id && initialActiveCard.id) && (activeCard.groupId !== initialActiveCard.groupId)) {
+    if (activeCard && initialActiveCard && (activeCard.id == initialActiveCard.id) && (activeCard.groupId !== initialActiveCard.groupId)) {
+      console.log("cardaction giant", activeCard, initialActiveCard);
       dispatch(setActiveCardId(null));
     } else {
       setInitialActiveCard(activeCard);

@@ -10,18 +10,18 @@ defmodule DragnCardsGame.PlayerData do
   @doc """
   new/1:  Create a player.
   """
-  @spec new(Map.t()) :: PlayerData.t()
-  def new(game_def) do
+  @spec new(Map.t(), String.t()) :: PlayerData.t()
+  def new(game_def, player_i) do
     default_layout_info = Enum.at(game_def["layoutMenu"],0)
     layout_id = default_layout_info["layoutId"]
 
     base = %{
+      "id" => player_i,
       "user_id" => nil,
       "alias" => nil,
       "drawingArrowFrom" => nil,
       "label" => nil,
       "prompts" => %{},
-      "touchAction" => nil,
       "browseGroup" => %{
         "id" => nil,
         "topN" => 0

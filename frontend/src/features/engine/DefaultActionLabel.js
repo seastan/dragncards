@@ -2,6 +2,7 @@ import React from "react";
 import { useSelector } from "react-redux";
 import { useGameL10n } from "./hooks/useGameL10n";
 import { useGetDefaultAction } from "./hooks/useGetDefaultAction";
+import { useTouchAction } from "./hooks/useTouchAction";
 
 export const DefaultActionLabel = React.memo(({
     cardId,
@@ -9,8 +10,9 @@ export const DefaultActionLabel = React.memo(({
     const l10n = useGameL10n();
     const touchMode = useSelector(state => state?.playerUi?.userSettings?.touchMode);
     const isActive = useSelector(state => {return state?.playerUi?.activeCardId === cardId});
+    const selectedTouchAction = useTouchAction();
     const getDefaultAction = useGetDefaultAction(cardId);
-    const defaultAction = touchMode && isActive ? getDefaultAction(cardId) : null;
+    const defaultAction = touchMode && isActive && (selectedTouchAction == null) ? getDefaultAction(cardId) : null;
 
     if (!defaultAction || defaultAction.label === "") return null;
 

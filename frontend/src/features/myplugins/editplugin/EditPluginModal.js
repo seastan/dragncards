@@ -10,7 +10,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck } from "@fortawesome/free-solid-svg-icons";
 import { mergeJSONs, processArrayOfRows, readFileAsText, stringTo2DArray, importCardDbTsv } from "../uploadPluginFunctions";
 import { validateSchema } from "../validate/validateGameDef";
-import { getGameDefSchema } from "../validate/getGameDefSchema";
+import { generateMarkdown, getGameDefSchema } from "../validate/getGameDefSchema";
 import useProfile from "../../../hooks/useProfile";
 import JSZip from 'jszip';
 
@@ -147,6 +147,9 @@ export const EditPluginModal = ({ plugin, closeModal, doFetchHash}) => {
     if (inputs && plugin) setInputs({...inputs, public: plugin.public, repoUrl: plugin.repo_url});
   },[])
 
+  const schema = getGameDefSchema(inputs?.gameDef);
+  const markdownDocs = generateMarkdown(schema);
+  console.log("markdownDocs", markdownDocs);
 
   if (roomSlugCreated != null) {
     return <Redirect push to={`/room/${roomSlugCreated}`} />;

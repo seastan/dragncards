@@ -4,6 +4,8 @@ import { uiSettings } from "../engine/SettingsModal";
 
 const draggingDefault = {
   stackId: null,
+  dragStep: null,
+  started: false,
   end: true,
   endDelay: false,
   transform: null,
@@ -17,6 +19,7 @@ const draggingDefault = {
   hoverOverStackId: null,
   hoverOverDirection: null,
   hoverOverDroppableId: null,
+  prevStackId: null,
 };
 
 export const defaultKeypress = {
@@ -54,6 +57,9 @@ const initialState = {
   dragging: draggingDefault,
   spectatorMode: {
     peekingAll: false,
+  },
+  status: {
+    text: null,
   },
   pluginRepoUpdateGameDef: null,
   pluginRepoUpdateAutoRefresh: false,
@@ -160,12 +166,20 @@ const playerUiSlice = createSlice({
     },
     setDraggingDefault: (state) => {
       state.dragging = draggingDefault;
+      //state.status.text = "null";
     },
     setDraggingFromDroppableId: (state, { payload }) => {
       state.dragging.fromDroppableId = payload;
     },
     setDraggingStackId: (state, { payload }) => {
       state.dragging.stackId = payload;
+    },
+    setDragStep: (state, { payload }) => {
+      state.dragging.dragStep = payload;
+      //state.status.text = payload;
+    },
+    setDraggingStarted: (state, { payload }) => {
+      state.dragging.started = payload;
     },
     setDraggingEnd: (state, { payload }) => {
       state.dragging.end = payload;
@@ -206,6 +220,9 @@ const playerUiSlice = createSlice({
     setDraggingHoverOverDroppableId: (state, { payload }) => {
       state.dragging.hoverOverDroppableId = payload;
     },
+    setDraggingPrevStackId: (state, { payload }) => {
+      state.dragging.prevStackId = payload;
+    },
     setUserSettings: (state, { payload }) => {
       state.userSettings = payload; 
     },
@@ -229,6 +246,9 @@ const playerUiSlice = createSlice({
     },
     setPluginRepoUpdateAutoRefresh: (state, { payload }) => {
       state.pluginRepoUpdateAutoRefresh = payload;
+    },
+    setStatusText: (state, { payload }) => {
+      state.status.text = payload;
     }
   }
 });
@@ -265,6 +285,8 @@ export const {
   setDraggingDefault,
   setDraggingFromDroppableId,
   setDraggingStackId,
+  setDragStep,
+  setDraggingStarted,
   setDraggingEnd,
   setDraggingEndDelay,
   setDraggingTransform,
@@ -278,6 +300,7 @@ export const {
   setDraggingHoverOverStackId,
   setDraggingHoverOverDirection,
   setDraggingHoverOverDroppableId,
+  setDraggingPrevStackId,
   setUserSettings,
   setAlert,
   setAutoLoadedDecks,
@@ -286,6 +309,7 @@ export const {
   setSpectatorModeEnabled,
   setSpectatorModePeekingAll,
   setPluginRepoUpdateGameDef,
-  setPluginRepoUpdateAutoRefresh
+  setPluginRepoUpdateAutoRefresh,
+  setStatusText
  } = playerUiSlice.actions;
 export default playerUiSlice.reducer;

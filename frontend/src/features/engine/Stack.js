@@ -35,11 +35,13 @@ export const Stack = React.memo(({
   const hoverOverDirection = useSelector(state => isHoveredOver ? state?.playerUi?.dragging.hoverOverDirection : null);
   const [showingUnder, setShowingUnder] = useState(stack?.lookingUnder);
   const doActionList = useDoActionList();
-  console.log('Rendering StackId ', isHoveredOver, hoverOverDirection)
   const cardIds = stack?.cardIds;
 
   const {offsetTotals, offsetAmounts, stackEdges} = useOffsetTotalsAndAmounts(stackId);
   if (!stack) return null;
+
+  console.log('Rendering StackId ', isHoveredOver, hoverOverDirection)
+  console.log('Rendering StackId offsets', offsetTotals, offsetAmounts)
 
   const numBehind = offsetTotals.behind;
 

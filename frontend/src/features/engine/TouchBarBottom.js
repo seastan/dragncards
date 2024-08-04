@@ -84,20 +84,22 @@ export const TouchBarBottom = React.memo(({}) => {
             return (
               <tr key={rowIndex} className={"bg-gray-700"} style={{height: `${100/gameDef.touchBar.length}%`}}>
                 {row.map((buttonObj, colIndex) => {
-                  var displayText = "";
-                  if (buttonObj.dragnButton) {
-                    const dragnButton = dragnTouchButtons[buttonObj.dragnButton];
-                    if (!dragnButton) {
-                      alert("Error: dragnButton " + buttonObj.dragnButton + " not found in dragnTouchButtons");
+                  console.log("buttonObj", buttonObj)
+                  var processedButtonObj = {...buttonObj};
+                  var displayText = gameL10n(buttonObj.label);
+                  if (buttonObj.actionType === "engine") {
+                    processedButtonObj = dragnTouchButtons[buttonObj.actionList];
+                    if (!processedButtonObj) {
+                      //alert("Error: dragnButton " + buttonObj.dragnButton + " not found in dragnTouchButtons");
                       return null;
                     }
-                    buttonObj = dragnButton;
-                    buttonObj.isDragnButton = true;
-                    displayText = siteL10n(buttonObj.label);
-                  } else displayText = gameL10n(buttonObj.label);
+                    processedButtonObj.isDragnButton = true;
+                    displayText = siteL10n(processedButtonObj.label);
+                  }
+                  console.log("processedButtonObj", processedButtonObj)
                   return (
                     <td key={colIndex} className={containerClass} style={containerStyle}>
-                      <TouchButton buttonObj={buttonObj} displayText={displayText}/>
+                      <TouchButton buttonObj={processedButtonObj} displayText={displayText}/>
                     </td>
                   )
                 })}

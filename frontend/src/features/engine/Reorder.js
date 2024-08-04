@@ -20,7 +20,6 @@ export const reorderGroupStackIds = (groupById, origGroupId, origIndex, destGrou
   const origGroupStackIds = groupById[origGroupId].stackIds;
   const destGroupStackIds = groupById[destGroupId].stackIds;
   const stack = origGroupStackIds[origIndex];
-  const stackId = stack.id;
 
   // Moving to same list
   if (origGroupId === destGroupId) {

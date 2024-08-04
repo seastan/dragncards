@@ -9,6 +9,7 @@ import { TextBox } from "./TextBox";
 import { Prompts } from "./Prompts";
 import { Alert } from "./Alert";
 import { useFormatGroupId } from "./hooks/useFormatGroupId";
+import { Status } from "./Status";
 
 export const TableLayout = React.memo(({onDragEnd}) => {
   const layout = useLayout();
@@ -68,6 +69,7 @@ export const TableLayout = React.memo(({onDragEnd}) => {
       <TableChat region={layout.chat}/>
       <Prompts/>
       <Alert/>
+      <Status/>
 
     </>
   )

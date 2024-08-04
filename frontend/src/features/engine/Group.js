@@ -6,8 +6,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useBrowseTopN } from "./hooks/useBrowseTopN"; 
 import { setDropdownMenu } from "../store/playerUiSlice";
 import { useGameL10n } from "./hooks/useGameL10n";
-import { useGameDefinition } from "./hooks/useGameDefinition";
-import { useDoActionList } from "./hooks/useDoActionList";
 import { Stack } from "./Stack";
 import { DEFAULT_CARD_Z_INDEX } from "./functions/common";
 
@@ -19,7 +17,6 @@ export const Group = React.memo(({
   console.log("Rendering Group ",groupId);
   const dispatch = useDispatch();
   const gameL10n = useGameL10n();
-  const gameDef = useGameDefinition();
   const group = useSelector(state => state?.gameUi?.game?.groupById?.[groupId]);
   const isPile = region.type === "pile";
   const [isMouseOverPile, setIsMouseOverPile] = useState(false);
@@ -28,11 +25,10 @@ export const Group = React.memo(({
   const iconsVisible = playerN && (region.showMenu || (isPile && region.showMenu !== false)) ;
   const regionCardSizeFactor = region.cardSizeFactor || 1.0;
   const browseTopN = useBrowseTopN();
-  const doActionList = useDoActionList();
   console.log("Group tempDragStack", tempDragStack)
+
   // Print a warning to the console if the group is not found
   if (!group) {
-    doActionList(["LOG", "Error: Tried to display an unknown group: ", groupId]);
     return null;
   }
 
@@ -58,7 +54,7 @@ export const Group = React.memo(({
   const tablename = gameL10n(group.tableLabel);
   return(
     <div 
-      className="h-full w-full"
+      className="h-full w-full overflow-y-visible"
       // onMouseEnter={() => {if (region.type === "pile") setIsMouseOverPile(true); alert("Mouse Enter")}}
       // onMouseLeave={() => {if (region.type === "pile") setIsMouseOverPile(false)}}
       >
@@ -96,14 +92,20 @@ export const Group = React.memo(({
           }
           </div>
       </div>
-      <div className="h-full" style={{marginLeft: "1.7dvh", width: region.type === "free" ? "100%" : "calc(100% - 1.7dvh)"}}>
+      <div 
+        className="h-full" 
+        style={{
+          marginLeft: "1.7dvh", 
+          width: region.type === "free" ? "100%" : "calc(100% - 1.7dvh)"
+        }}
+      >
         {(region.type === "free" && tempDragStack && tempDragStack?.toGroupId === groupId) &&
           <div style={{
             left: `${tempDragStack.left}`, 
             top: `${tempDragStack.top}`, 
             position: "absolute", 
             zIndex: 1e9, 
-            marginLeft: "1.7dvh"
+            marginLeft: "1.7dvh",
           }}>
             <Stack
               stackId={tempDragStack.stackId}

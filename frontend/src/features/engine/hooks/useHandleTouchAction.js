@@ -33,15 +33,13 @@ export const useHandleTouchAction = () => {
         // Must be a player
         if (!playerN) return null;
         if (touchAction) {
-            if (touchAction?.actionType === "game") {
-                touchAction.isDragnButton ? doDragnHotkey(touchAction?.actionList) : doActionList(touchAction?.actionList);
-                setTouchAction(null);
-            } else if (touchAction?.actionType === "token" && touchedCard) {
+            if (touchAction?.actionType === "token" && touchedCard) {
                 const tokenType = touchAction?.tokenType;
                 const increment = touchAction?.doubleClicked ? -1 : 1;
                 const hasToken = touchedCard.tokens[tokenType] > 0;
                 if (!hasToken && increment < 0 && gameDef["tokens"]?.[tokenType]?.modifier !== true) return; // Can't have negative non-modifier tokens
                 const actionList = [
+                    ["DEFINE", "$ACTIVE_CARD_ID", touchedCard.id],
                     ["LOG", "$ALIAS_N", increment > 0 ? " added " : " removed ", Math.abs(increment), " ", gameDef["tokens"]?.[tokenType]?.name," token to ", "$ACTIVE_FACE.name", "."],
                     ["INCREASE_VAL", "/cardById/$ACTIVE_CARD_ID/tokens/" + tokenType, increment]
                 ]
@@ -55,7 +53,15 @@ export const useHandleTouchAction = () => {
                     }
                 }
             } else if (touchAction?.actionType === "card" && touchedCard) {
-                touchAction.isDragnButton ? doDragnHotkey(touchAction?.actionList) : doActionList(touchAction?.actionList);
+                const actionListId = touchAction?.actionList;
+                const actionList = [...gameDef?.actionLists?.[actionListId]];
+                if (actionList === null || actionList === undefined) {
+                    alert("Action list not found: " + actionListId);
+                    return;
+                }
+                // Prepend the actionList with the touched card id
+                actionList.unshift(["DEFINE", "$ACTIVE_CARD_ID", touchedCard.id]);
+                doActionList(actionList);
                 dispatch(setMouseXY(null));
             }
             dispatch(setMouseXY(null));

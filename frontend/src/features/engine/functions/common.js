@@ -30,7 +30,8 @@ export const keyDiv = (key, extraClasses = "") => {
 }
 
 export const keysDiv = (keysString, extraClasses = "") => {
-  const keys = keysString.split("+");
+  var keys = keysString.split("+");
+  if (keysString === "+") keys = ["+"];
   return(
   <>
     {keys.map((key) => keyDiv(key, extraClasses))}

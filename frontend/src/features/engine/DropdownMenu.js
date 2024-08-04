@@ -7,6 +7,7 @@ import { useTouchAction } from "./hooks/useTouchAction";
 
 export const DropdownMenu = React.memo(({}) => {
   const dropdownMenu = useSelector(state => state?.playerUi?.dropdownMenu);
+  const touchMode = useSelector(state => state?.playerUi?.userSettings?.touchMode);
   const touchAction = useTouchAction();
   const mouseXY = useSelector(state => state?.playerUi?.mouseXY);
   
@@ -15,7 +16,8 @@ export const DropdownMenu = React.memo(({}) => {
   const [isNull, setIsNull] = useState(true);
 
   useEffect(() => {
-    setMouseX(mouseXY?.x);
+    const xOffset = (touchMode ? 50 : 0);
+    setMouseX(mouseXY?.x + xOffset);
     setMouseY(mouseXY?.y);
     setIsNull(dropdownMenu === null);
   }, [dropdownMenu])

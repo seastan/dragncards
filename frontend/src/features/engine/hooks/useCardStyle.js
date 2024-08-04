@@ -25,6 +25,7 @@ export const useCardStyle = (cardId, cardIndexFromGui, isDragging, offset) => {
 
     console.log({width, height});
     console.log("Rendering CardFace ",cardVisibleFace);
+    console.log("Rendering CardFace {cardScaleFactor, width, height}",{cardScaleFactor, width, height});
 
     const style = {
         position: "absolute",

@@ -10,7 +10,6 @@ export const useGetRegionFromId = () => {
   return (regionId) => {
     if (regionId === "browse") return browseRegion;
     const region = store.getState()?.gameUi?.game?.playerData?.[playerN]?.layout?.regions?.[regionId];
-    console.log("useGetRegionFromId", {regionId, region});
     if (!region) return null;
     var formattedGroupId = formatGroupId(region.groupId);
     return {...region, id: regionId, groupId: formattedGroupId};
