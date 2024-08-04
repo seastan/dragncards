@@ -55,9 +55,7 @@ export const Group = React.memo(({
   return(
     <div 
       className="h-full w-full overflow-y-visible"
-      // onMouseEnter={() => {if (region.type === "pile") setIsMouseOverPile(true); alert("Mouse Enter")}}
-      // onMouseLeave={() => {if (region.type === "pile") setIsMouseOverPile(false)}}
-      >
+    >
       
       <div
         className="relative h-full float-left select-none text-gray-400"

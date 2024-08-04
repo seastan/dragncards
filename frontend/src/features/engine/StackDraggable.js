@@ -213,7 +213,6 @@ export const StackDraggable = React.memo(({
               }));
               //onDragEnd(result);
             } else {
-              alert(toRegionType);
               dispatch(setDraggingDefault());
             }
           }
