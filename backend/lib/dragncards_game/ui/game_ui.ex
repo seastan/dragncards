@@ -48,7 +48,7 @@ defmodule DragnCardsGame.GameUI do
     end
 
     # Post New Game Action List
-    gameui = if game_def["automation"]["postNewGameActionList"] do
+    gameui = if game_def["automation"]["postNewGameActionList"] != nil and options["replayUuid"] == nil do
       options = %{
         "action_list" => game_def["automation"]["postNewGameActionList"],
         "player_ui" => %{"playerN" => "player1"}
