@@ -118,7 +118,7 @@ export const TopBarUser = React.memo(({
   }
   
   return(
-    <div className="float-left h-full pr-1 border-t" style={{width: "16%", borderLeft: "1px solid lightgrey", borderTopColor: borderColor}}>
+    <div className="w-full h-full pr-1 border-t" style={{borderLeft: "1px solid lightgrey", borderTopColor: borderColor}}>
       <div className="float-left h-full w-2/3">
         <div className="h-1/2 w-full flex justify-center">
           {/* Show First player token */}

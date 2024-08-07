@@ -1027,6 +1027,10 @@ export const getGameDefSchema = (gameDef) => {
           "_description_": "Definition of a layout",
           "_type_": "object",
           "_strictKeys_": true,
+          "testBorders": {
+            "_description_": "If set to true, the layout will display borders around the regions to help with layout testing",
+            "_type_": "boolean",
+          },
           "postSetActionList": {
             "_description_": "The action list to call after the layout is set",
             "_type_": "actionList",

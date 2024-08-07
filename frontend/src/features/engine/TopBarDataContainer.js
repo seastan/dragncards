@@ -10,10 +10,18 @@ export const TopBarDataContainer = React.memo(({}) => {
     
     return(
       <div className="h-full">
-        <TopBarShared/>
-        {playerIList.map((playerI, playerIndex) => (
-          <TopBarUser key={playerIndex} playerI={playerI}/>
-        ))}
+        <div className="float-left h-full" style={{width: "16%"}}>
+          <TopBarShared/>
+        </div>
+        <div className="h-full overflow-auto" style={{width: "64%"}}>
+          <div className="flex h-full" style={{minWidth: "100%"}}>
+            {playerIList.map((playerI, playerIndex) => (
+              <div className="h-full" style={{width: "25%", minWidth: "25%"}} key={playerIndex}>
+                <TopBarUser key={playerIndex} playerI={playerI}/>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     )
 })
