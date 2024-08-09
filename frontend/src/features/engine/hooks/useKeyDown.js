@@ -11,16 +11,15 @@ import { useSendLocalMessage } from './useSendLocalMessage';
 import { usePlayerN } from './usePlayerN';
 import { useVisibleFace } from './useVisibleFace';
 
+function isLetter(value) {
+    return /^[a-z,A-Z]$/.test(value);
+}
 
 export const useKeyDown = () => {
     const gameDef = useGameDefinition();
     const dispatch = useDispatch();
     
-    const keypress = useSelector(state => state?.playerUi?.keypress); 
-    const keypressControl = keypress?.Control;
-    const keypressShift = keypress?.Shift;
-    const keypressAlt = keypress?.Alt;
-    const keypressCommand = keypress?.Command;
+    const keypress = useSelector(state => state?.playerUi?.keypress);
     const mouseTopBottom = useSelector(state => state?.playerUi?.mouseTopBottom);
     const playerN = usePlayerN();
     const prompts = useSelector(state => state?.gameUi?.game?.playerData?.[playerN]?.prompts) || {};
@@ -62,14 +61,12 @@ export const useKeyDown = () => {
             sendLocalMessage("You must be logged in and seated at the table to use hotkeys.");   
             return;
         }
+        console.log("Keydown event: ", event, event.ctrlKey, event.shiftKey, event.altKey, event.metaKey)
         const k = event.key;
         const unix_sec = Math.floor(Date.now() / 1000);
         console.log("Keydown detected: ", k)
-        if (k === "Alt") dispatch(setKeypressAlt(unix_sec));
-        if (k === "Meta") dispatch(setKeypressAlt(unix_sec)); // We are using Meta as Alt on Macs
+
         if (k === " ") dispatch(setKeypressSpace(unix_sec));
-        if (k === "Control") dispatch(setKeypressControl(unix_sec));
-        if (k === "Shift") dispatch(setKeypressShift(unix_sec));
         if (k === "Tab") {
             if (keypress?.Shift) {
                 dispatch(setShowModal("settings"));
@@ -80,20 +77,29 @@ export const useKeyDown = () => {
         if (["Alt", " ", "Control", "Shift", "Tab", "Meta"].includes(k)) return;
 
         var dictKey = k.length === 1 ? k.toUpperCase() : k;
-        //if ((unix_sec - keypressShift) < 30) dictKey = "Shift+"+dictKey;
-        //if ((unix_sec - keypressControl) < 30) dictKey = "Ctrl+"+dictKey;
-        //if ((unix_sec - keypressAlt) < 30) dictKey = "Alt+"+dictKey;
-        if (Math.abs(keypressShift)) { //-unix_sec) < 5) {
+        const newKeypress = {
+            ...keypress,
+            Control: event.ctrlKey ? unix_sec : 0,
+            Alt: event.altKey || event.metaKey ? unix_sec : 0,
+            Shift: event.shiftKey ? unix_sec : 0,
+        }
+        dispatch(setKeypress(newKeypress));
+        
+        if (Math.abs(newKeypress.Shift && isLetter(dictKey))) { //-unix_sec) < 5) {
             dictKey = "Shift+" + dictKey;
         }
-        if (Math.abs(keypressControl)) { //-unix_sec) < 5) {
+        if (Math.abs(newKeypress.Control)) { //-unix_sec) < 5) {
             dictKey = "Ctrl+" + dictKey;
         }
-        if (Math.abs(keypressAlt)) { //-unix_sec) < 5) {
+        if (Math.abs(newKeypress.Alt)) { //-unix_sec) < 5) {
+            dictKey = "Alt+" + dictKey;
+        }
+        if (Math.abs(newKeypress.Meta)) { //-unix_sec) < 5) {
             dictKey = "Alt+" + dictKey;
         }
 
-        console.log("Detected hotkey: ", dictKey)
+        console.log("Keydown dictKey: ", dictKey)
+
         // Prompt hotkeys
         if (sortedPromptIds.length > 0) {
             const prompt = prompts[sortedPromptIds[0]];

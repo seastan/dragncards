@@ -25,6 +25,7 @@ const draggingDefault = {
 export const defaultKeypress = {
   Control: 0,
   Alt: 0,
+  Shift: 0,
   Tab: 0,
   Space: 0,
 };

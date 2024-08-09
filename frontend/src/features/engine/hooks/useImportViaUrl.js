@@ -191,7 +191,7 @@ export const loadRingsDb = (importLoadList, doActionList, playerN, ringsDbDomain
 }
 
 export const loadArkhamDb = (importLoadList, doActionList, playerN, arkhamDbType, arkhamDbId) => {
-  doActionList(["LOG", "$ALIAS_N", " is importing a deck from RingsDB."]);
+  doActionList(["LOG", "$ALIAS_N", " is importing a deck from ArkhamDB."]);
   const urlBase = "https://arkhamdb.com/api/"
   const url = arkhamDbType === "decklist" ? urlBase+"public/decklist/"+arkhamDbId : urlBase+"public/deck/"+arkhamDbId;
   console.log("Fetching ", url);
