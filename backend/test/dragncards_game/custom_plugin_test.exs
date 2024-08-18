@@ -6,6 +6,16 @@
 # export PLUGIN_TSV_PATH=/path/to/directory/containing/your/plugin/tsvs/
 # mix test test/dragncards_game/custom_plugin_test.exs
 
+defmodule StringReplacer do
+  def replace_placeholders(str, values) do
+    # Use regex to find all occurrences of {0}, {1}, etc.
+    Regex.replace(~r/\{(\d+)\}/, str, fn _, index ->
+      # Convert the captured index to an integer and fetch the corresponding value from the list
+      Enum.at(values, String.to_integer(index))
+    end)
+  end
+end
+
 defmodule DragnCardsGame.CustomPluginTest do
   # ExUnit.Case module brings the functionality for testing in Elixir
   # async: true runs the tests concurrently
@@ -1299,6 +1309,99 @@ defmodule DragnCardsGame.CustomPluginTest do
     # ]])
   end
 
+
+  @tag :sort_obj_list
+  test "sort_obj_list", %{user: _user, game: game, game_def: game_def} do
+
+    # Load some decks into the game
+    game = Evaluate.evaluate(game, ["LOAD_CARDS", "Q06.6"])
+    game = Evaluate.evaluate(game, ["LOAD_CARDS", "coreLeadership"]) # Leadership core set deck
+
+    # Load Stargazer
+    res = Evaluate.evaluate(game, ["SORT_OBJ_LIST", "$GAME.groupById.player1Deck.parentCards", "$CARD", "$CARD.sides.A.name"])
+
+    assert Enum.at(res, 0)["sides"]["A"]["name"] == "Brok Ironfist"
+
+  end
+
+
+  @tag :to_int
+  test "to_int", %{user: _user, game: game, game_def: game_def} do
+
+    # Load some decks into the game
+    a = Evaluate.evaluate(game, ["TO_INT", "6.6"])
+    assert a == 6
+
+    b = Evaluate.evaluate(game, ["TO_INT", "6"])
+    assert b == 6
+
+    c = Evaluate.evaluate(game, ["TO_INT", 6.6])
+    assert c == 6
+
+    d = Evaluate.evaluate(game, ["TO_INT", 6])
+    assert d == 6
+
+    e = Evaluate.evaluate(game, ["TO_INT", "6.0"])
+    assert e == 6
+
+    f = Evaluate.evaluate(game, ["TO_INT", nil])
+    assert f == nil
+
+  end
+
+
+  @tag :remove_first
+  test "remove_first", %{user: _user, game: game, game_def: game_def} do
+
+    res = Evaluate.evaluate(game, ["REMOVE_FIRST_FROM_LIST_BY_VALUE", ["LIST", 1, 2, 3], 1])
+    assert res == [2, 3]
+
+    res = Evaluate.evaluate(game, ["REMOVE_FIRST_FROM_LIST_BY_VALUE", ["LIST", 1], 1])
+    assert res == []
+
+    res = Evaluate.evaluate(game, ["REMOVE_FIRST_FROM_LIST_BY_VALUE", ["LIST"], 1])
+    assert res == []
+
+    res = Evaluate.evaluate(game, ["REMOVE_FIRST_FROM_LIST_BY_VALUE", ["LIST", 1, 2, 3], 2])
+    assert res == [1, 3]
+
+    res = Evaluate.evaluate(game, ["REMOVE_FIRST_FROM_LIST_BY_VALUE", ["LIST", 1, 2, 3], 3])
+    assert res == [1, 2]
+
+    res = Evaluate.evaluate(game, ["REMOVE_FIRST_FROM_LIST_BY_VALUE", ["LIST", 1, 2, 3], 4])
+    assert res == [1, 2, 3]
+
+    res = Evaluate.evaluate(game, ["REMOVE_FIRST_FROM_LIST_BY_VALUE", ["LIST", 1, 2, 3], nil])
+    assert res == [1, 2, 3]
+
+    res = Evaluate.evaluate(game, ["REMOVE_FIRST_FROM_LIST_BY_VALUE", ["LIST", 1, 2, 3], "1"])
+    assert res == [1, 2, 3]
+
+    res = Evaluate.evaluate(game, ["REMOVE_FIRST_FROM_LIST_BY_VALUE", ["LIST", 1, 2, 3], 1.0])
+    assert res == [1, 2, 3]
+
+    res = Evaluate.evaluate(game, ["REMOVE_FIRST_FROM_LIST_BY_VALUE", ["LIST", 1, 2, 3, 2, 3], 2])
+    assert res == [1, 3, 2, 3]
+
+  end
+
+
+  @tag :regex_replace
+  test "regex_replace", %{user: _user, game: game, game_def: game_def} do
+
+    res = Evaluate.evaluate(game, ["REGEX_REPLACE", "Hello World", "World", "There"])
+    assert res == "Hello There"
+
+    res = Evaluate.evaluate(game, ["REGEX_REPLACE", "Hello World", ".", "1"])
+    assert res == "11111111111"
+
+    res = Evaluate.evaluate(game, ["REGEX_REPLACE", "Hello World", " \\w+", "1"])
+    assert res == "Hello1"
+
+
+
+
+  end
   # @tag :glittering
   # test "glittering", %{user: _user, game: game, game_def: game_def} do
 
@@ -1324,9 +1427,14 @@ defmodule DragnCardsGame.CustomPluginTest do
   @tag :temp
   test "temp", %{user: _user, game: game, game_def: _game_def} do
 
+    str = "Hello {0}, your order {1} is ready for pickup at {2}."
+    values = ["John", "#1234", "5:00 PM"]
 
-    game = Evaluate.evaluate(game, ["LOAD_CARDS", "Q01.2"])
-    game = Evaluate.evaluate(game, ["ACTION_LIST", "revealEncounterFaceup"])
+    res = StringReplacer.replace_placeholders(str, values)
+
+    IO.puts(res)
+
+
   end
 
   # # temp

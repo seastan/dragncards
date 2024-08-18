@@ -12,7 +12,7 @@ export const DefaultActionLabel = React.memo(({
     const isActive = useSelector(state => {return state?.playerUi?.activeCardId === cardId});
     const selectedTouchAction = useTouchAction();
     const getDefaultAction = useGetDefaultAction(cardId);
-    const defaultAction = touchMode && isActive && (selectedTouchAction == null) ? getDefaultAction(cardId) : null;
+    const defaultAction = touchMode && isActive && (selectedTouchAction == null) ? getDefaultAction() : null;
 
     if (!defaultAction || defaultAction.label === "") return null;
 

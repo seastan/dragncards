@@ -53,15 +53,18 @@ for (var p in obj2) {
 } 
 
 export const mergeJSONs = (jsonList) => {
-  // Convert to list of objects
-  console.log("merging objects 1: ", jsonList.length)
-  const objList = jsonList.map(json => JSON.parse(json));
+  // Helper function to remove comments from JSON strings
+  const removeComments = (json) => {
+    return json.replace(/(^|[^:])\/\/.*(?=[\n\r])/g, '$1'); // Remove comments starting with // but not URLs
+  };
+
+  const objList = jsonList.map(json => JSON.parse(removeComments(json)));
+  
   // Merge the objects
-  console.log("merging objects 2: ", objList)
   const mergedObj = mergeObjects(objList);
+  
   return mergedObj;
 }
-
 export const mergeObjects = (objList) => {
   const obj0 = objList[0];
   for (var i = 1; i < objList.length; i++) {

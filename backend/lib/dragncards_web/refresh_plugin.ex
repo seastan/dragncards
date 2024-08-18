@@ -2,6 +2,7 @@ defmodule DragnCardsWeb.RefreshPlugin do
   @moduledoc """
   Handle refreshing the plugin.
   """
+  alias DragnCardsUtil.Merger
 
   def refresh do
     file_path = "/tmp/plugin_jsons"
@@ -37,18 +38,26 @@ defmodule DragnCardsWeb.RefreshPlugin do
     |> String.split("\n")
     |> length()
   end
-
   defp process_file(file_path) do
     case File.read(file_path) do
       {:ok, content} ->
-        case Jason.decode(content) do
+        # Remove comments from the content
+        cleaned_content = Merger.remove_comments(content)
+
+        case Jason.decode(cleaned_content) do
           {:ok, decoded} -> decoded
           {:error, %Jason.DecodeError{data: data, position: position}} ->
             line_number = calculate_line_number(data, position)
             raise "JSON parsing error in #{file_path} at line #{line_number}\n"
         end
+
       {:error, reason} ->
         IO.puts("Failed to read file #{file_path}: #{reason}")
     end
   end
+
+  defp remove_comments(content) do
+    Regex.replace(~r/(?<!http:|https:)\/\/.*(?=\n|\r)/, content, "")
+  end
+
 end

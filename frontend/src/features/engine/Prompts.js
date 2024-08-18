@@ -4,6 +4,7 @@ import { usePlayerN } from "./hooks/usePlayerN";
 import { keysDiv } from "./functions/common";
 import { useDoActionList } from "./hooks/useDoActionList";
 import { useGameL10n } from "./hooks/useGameL10n";
+import Draggable from "react-draggable";
 
 const promptStyle = {
   MozBoxShadow: '0 0 50px 20px black',
@@ -21,6 +22,7 @@ export const Prompts = React.memo(({
   if (!prompts) return null;
 
   return (
+    <Draggable>
     <div className="absolute text-white" 
       style={{
         left: "2%", 
@@ -47,5 +49,6 @@ export const Prompts = React.memo(({
           )
         })}
   </div>
+  </Draggable>
   )
 })

@@ -21,8 +21,8 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
   ```
   ["LOAD_CARDS",
     ["LIST",
-      %{"databaseId" => "da365fcc-385e-4824-901a-30381b769561", "loadGroupId" => "player1Deck", "quantity" => 1},
-      %{"databaseId" => "4c4cccd3-576a-41f1-8b6c-ba11b4cc3d4b", "loadGroupId" => "player1Play1", "quantity" => 1}
+      {"databaseId": "da365fcc-385e-4824-901a-30381b769561", "loadGroupId": "player1Deck", "quantity": 1},
+      {"databaseId": "4c4cccd3-576a-41f1-8b6c-ba11b4cc3d4b", "loadGroupId": "player1Play1", "quantity": 1}
     ]
   ]
   ```

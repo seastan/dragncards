@@ -1,32 +1,20 @@
 // Handle behavior when a card is touched/clicked
 
-import { useState, useContext } from "react";
 import { useDispatch } from 'react-redux';
 import { useSelector } from 'react-redux';
-import { setMouseXY, setDropdownMenu, setTouchAction } from "../../store/playerUiSlice";
-import store from "../../../store";
-import BroadcastContext from "../../../contexts/BroadcastContext";
+import { setMouseXY, setDropdownMenu } from "../../store/playerUiSlice";
 import { useDoActionList } from "./useDoActionList";
 import { useGameDefinition } from "./useGameDefinition";
-import { useGetDefaultAction } from "./useGetDefaultAction";
-import { useDoDragnHotkey } from "./useDragnHotkeys";
 import { useSetTouchAction } from "./useSetTouchAction";
 import { useTouchAction } from "./useTouchAction";
 
 export const useHandleTouchAction = () => {
-    const {gameBroadcast, chatBroadcast} = useContext(BroadcastContext);
     const dispatch = useDispatch();
     const gameDef = useGameDefinition();
     const playerN = useSelector(state => state?.playerUi?.playerN);
     const touchAction = useTouchAction();
     const setTouchAction = useSetTouchAction();
-    const activeCardId = useSelector(state => state?.playerUi?.activeCardId);
     const doActionList = useDoActionList();
-    const doDragnHotkey = useDoDragnHotkey();
-    const [prevActive, setPrevActive] = useState(null);
-    const getDefaultAction = useGetDefaultAction(activeCardId);
-    const state = store.getState();
-    const actionProps = {state, dispatch, gameBroadcast, chatBroadcast};
     console.log("Rendering HandleTouchActions")
     return ((touchedCard) => {
         console.log("handleTouchAction", touchedCard)
@@ -66,11 +54,6 @@ export const useHandleTouchAction = () => {
             }
             dispatch(setMouseXY(null));
             dispatch(setDropdownMenu(null));
-        } else if (touchedCard.id === activeCardId) {
-            // If a touched card is the active card, we do the default action
-            const defaultAction = getDefaultAction(touchedCard.id);
-            doActionList(defaultAction?.actionList)
-            return;
         }
     })
 }

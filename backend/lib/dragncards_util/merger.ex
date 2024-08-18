@@ -9,6 +9,7 @@ defmodule DragnCardsUtil.Merger do
   defp read_and_parse_json(filename) do
     filename
     |> File.read!()
+    |> remove_comments()
     |> Jason.decode!()
   end
 
@@ -25,4 +26,8 @@ defmodule DragnCardsUtil.Merger do
   end
 
   defp merge_values(_key, _v1, v2), do: v2
+
+  def remove_comments(content) do
+    Regex.replace(~r/(?<!http:|https:)\/\/.*(?=\n|\r)/, content, "")
+  end
 end
