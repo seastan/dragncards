@@ -1,10 +1,18 @@
 import React, { useRef, useEffect } from "react";
 import { useSelector } from "react-redux";
 
+
 export const MessageLines = ({ hover, messageDivs }) => {
   const touchMode = useSelector(state => state?.playerUi?.userSettings?.touchMode);
   const bottomRef = useRef();
   console.log("Rendering MessageLines", messageDivs)
+
+  const isUserZoomedIn = () => {
+    if (window.visualViewport) {
+      return window.visualViewport.scale > 1;
+    }
+    return window.innerWidth !== window.outerWidth || window.innerHeight !== window.outerHeight;
+  };
 
   const scrollToBottom = () => {
     if (bottomRef?.current)
@@ -15,7 +23,7 @@ export const MessageLines = ({ hover, messageDivs }) => {
   };
 
   useEffect(() => {
-    if (!touchMode) scrollToBottom();
+    if (!isUserZoomedIn()) scrollToBottom();
   }, [messageDivs, hover, touchMode])
 
   return (

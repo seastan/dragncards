@@ -1,6 +1,5 @@
 
-import React, { useEffect } from "react";
-import useLongPress from "./hooks/useLongPress";
+import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setMouseTopBottom, setDropdownMenu, setActiveCardId, setScreenLeftRight, setCardClicked } from "../store/playerUiSlice";
 import { useHandleTouchAction } from "./hooks/useHandleTouchAction";
@@ -98,38 +97,37 @@ export const CardMouseRegion = React.memo(({
     //             onMouseOver={event => !isActive && !touchAction && makeActive(event)}
     //         />
     // )} else 
-      const handleEvent = (event) => {
-        console.log("clicklog", event.type, event);
-        if (touchMode) doActionList(["LOG", "click", event.type]);
-        if (event.type === "click") handleClick(event);
-        if (event.type === "mouseover") handleMouseOver(event);
-      };
+    //   const handleEvent = (event) => {
+    //     console.log("clicklog", event.type, event);
+    //     if (event.type === "click") handleClick(event);
+    //     if (event.type === "mouseover") handleMouseOver(event);
+    //   };
     
-      return (
-        <div
-          id="my-element"
-          style={regionStyle}
-          onTouchStart={handleEvent}
-          onTouchMove={handleEvent}
-          onTouchEnd={handleEvent}
-          onMouseDown={handleEvent}
-          onMouseOver={handleEvent}
-          onMouseUp={handleEvent}
-          onClick={handleEvent}
-          onDoubleClick={handleEvent}
-          onPointerDown={handleEvent}
-          onPointerUp={handleEvent}
-          onPointerCancel={handleEvent}
-          onKeyDown={handleEvent}
-          onKeyUp={handleEvent}
-        />
-      );
+    //   return (
+    //     <div
+    //       id="my-element"
+    //       style={regionStyle}
+    //       onTouchStart={handleEvent}
+    //       onTouchMove={handleEvent}
+    //       onTouchEnd={handleEvent}
+    //       onMouseDown={handleEvent}
+    //       onMouseOver={handleEvent}
+    //       onMouseUp={handleEvent}
+    //       onClick={handleEvent}
+    //       onDoubleClick={handleEvent}
+    //       onPointerDown={handleEvent}
+    //       onPointerUp={handleEvent}
+    //       onPointerCancel={handleEvent}
+    //       onKeyDown={handleEvent}
+    //       onKeyUp={handleEvent}
+    //     />
+    //   );
 
-    // return (
-    //     <div 
-    //         style={regionStyle}
-    //         onMouseOver={event =>  handleMouseOver(event)}
-    //         onClick={event => handleClick(event)}
-    //     />  
-    // )
+    return (
+        <div 
+            style={regionStyle}
+            onMouseOver={event =>  handleMouseOver(event)}
+            onClick={event => handleClick(event)}
+        />  
+    )
 })
