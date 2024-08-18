@@ -56,13 +56,15 @@ export const useKeyDown = () => {
     }, []);
 
     return (event) => {
+        const k = event.key;
+        if (k === "F5") return;
+        if (k === "F11") return;
         event.preventDefault();
         if (!playerN) {
             sendLocalMessage("You must be logged in and seated at the table to use hotkeys.");   
             return;
         }
         console.log("Keydown event: ", event, event.ctrlKey, event.shiftKey, event.altKey, event.metaKey)
-        const k = event.key;
         const unix_sec = Math.floor(Date.now() / 1000);
         console.log("Keydown detected: ", k)
 

@@ -102,6 +102,7 @@ export const CardMouseRegion = React.memo(({
         console.log("clicklog", event.type, event);
         if (touchMode) doActionList(["LOG", "click", event.type]);
         if (event.type === "click") handleClick(event);
+        if (event.type === "mouseover") handleMouseOver(event);
       };
     
       return (
