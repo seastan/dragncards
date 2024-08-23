@@ -69,7 +69,7 @@ defmodule DragnCardsGame.CardFace do
             Map.put(acc, key, ConvertType.convert_to_string(value))
           "float" ->
             Map.put(acc, key, ConvertType.convert_to_float(value))
-          "map" ->
+          "object" ->
             Map.put(acc, key, ConvertType.convert_to_map(value))
           "list" ->
             Map.put(acc, key, ConvertType.convert_to_list(value))

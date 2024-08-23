@@ -632,8 +632,8 @@ export const getGameDefSchema = (gameDef) => {
             "_description_": "The data type of the property",
             "_type_": "string",
             "_required_": true,
-            "_memberOf_": ["boolean", "integer", "string", "float"],
-            "_memberOfPath_": `["boolean", "integer", "string", "float"]`,
+            "_memberOf_": ["boolean", "integer", "string", "float", "object", "list"],
+            "_memberOfPath_": `["boolean", "integer", "string", "float", "object", "list"]`,
           },
           "default": {
             "_description_": "The default value of the property",
