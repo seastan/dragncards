@@ -68,7 +68,7 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
     end
 
     # Generate the variable definition statements that we to resolve the message and to prepended to the code
-    var_statements = Enum.reduce(Enum.with_index(orig_args), [], fn({arg, index}, acc) ->
+    multi_var_command = Enum.reduce(Enum.with_index(orig_args), ["MULTI_VAR"], fn({arg, index}, acc) ->
       [{arg_name, arg_val}] = cond do
         index >= Enum.count(arg_vals) -> # If we are beyond the range of input arguments, look for default arguments
           if is_map(arg) do
@@ -86,14 +86,11 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
             [{arg_name, arg_val}]
           end
       end
-      acc ++ [["VAR", arg_name, arg_val]]
+      acc ++ [arg_name, arg_val]
     end)
+    game = Evaluate.evaluate(game, multi_var_command, trace ++ ["define prompt args"])
 
-    temp_game = Enum.reduce(var_statements, game, fn(var_statement, acc) ->
-      Evaluate.evaluate(acc, var_statement, trace ++ ["var_statement"])
-    end)
-
-    new_message = Evaluate.evaluate(temp_game, orig_message, trace ++ ["message"])
+    new_message = Evaluate.evaluate(game, orig_message, trace ++ ["message"])
     prompt_uuid = Ecto.UUID.generate
 
 
@@ -113,7 +110,7 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
           else
             [option["code"]]
           end
-          put_in(option, ["code"], var_statements ++ prompt_code ++ [unset_command])
+          put_in(option, ["code"], [multi_var_command] ++ prompt_code ++ [unset_command])
         else
           put_in(option, ["code"], unset_command)
         end

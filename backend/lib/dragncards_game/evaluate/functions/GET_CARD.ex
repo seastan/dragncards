@@ -24,10 +24,7 @@ defmodule DragnCardsGame.Evaluate.Functions.GET_CARD do
   The result of the 'GET_CARD' operation.
   """
   def execute(game, code, trace) do
-    IO.puts("Getting card")
-    IO.inspect(code)
     card_id = Evaluate.evaluate(game, ["GET_CARD_ID", Enum.at(code,1), Enum.at(code,2), Enum.at(code,3)], trace ++ ["get_card_id"])
-    IO.puts("Card id: #{card_id}")
     if card_id do Evaluate.evaluate(game, "$GAME.cardById.#{card_id}", trace) else nil end
   end
 

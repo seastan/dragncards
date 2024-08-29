@@ -1083,28 +1083,75 @@ defmodule DragnCardsGame.GameUI do
 
   end
 
-  def preprocess_card_automation_rule(rule) do
-    if rule["type"] == "entersPlay" do
-      base_listen_to = ["/cardById/$THIS_ID/inPlay", "/cardById/$THIS_ID/currentSide"]
-      listen_to = if rule["listenTo"] do
-        base_listen_to ++ rule["listenTo"]
-      else
-        base_listen_to
-      end
-      base_condition = ["AND", "$THIS.inPlay", ["EQUAL", "$THIS.currentSide", rule["side"]]]
-      condition = if rule["condition"] do
-        base_condition ++ [rule["condition"]]
-      else
-        base_condition
-      end
-      rule
-      |> Map.put("type", "trigger")
-      |> Map.put("listenTo", listen_to)
-      |> Map.put("condition", condition)
+  def get_enters_play_condition(side) do
+    curr_condition = "$THIS.inPlay"
+    curr_condition = if side != nil do
+      ["AND", curr_condition , ["EQUAL", "$THIS.currentSide", side]]
     else
-      rule
+      ["AND", curr_condition]
     end
+    prev_condition = [["NOT", ["PREV", "$THIS.inPlay"]]]
+    prev_condition = if side != nil do
+      prev_condition ++ [["NOT_EQUAL", ["PREV", "$THIS.currentSide"], side]]
+    else
+      prev_condition
+    end
+    curr_condition ++ [["OR"] ++ prev_condition]
+  end
 
+  def get_in_play_condition(side) do
+    curr_condition = "$THIS.inPlay"
+    curr_condition = if side != nil do
+      ["AND", curr_condition, ["EQUAL", "$THIS.currentSide", side]]
+    else
+      curr_condition
+    end
+  end
+
+  def add_liten_to(listeners, listen_to) do
+    if listen_to != nil do
+      listeners ++ listen_to
+    else
+      listeners
+    end
+  end
+
+  def add_condition(condition, new_condition) do
+    if new_condition != nil do
+      ["AND", condition, new_condition]
+    else
+      condition
+    end
+  end
+
+  def add_listen_to_side(listen_to, side) do
+    if side != nil do
+      listen_to ++ ["/cardById/$THIS_ID/currentSide"]
+    else
+      listen_to
+    end
+  end
+
+  def preprocess_card_automation_rule(rule) do
+    rule_type = rule["type"]
+    case rule_type do
+      "entersPlay" ->
+        listen_to = ["/cardById/$THIS_ID/inPlay"] |> add_listen_to_side(rule["side"]) |> add_liten_to(rule["listenTo"])
+        condition = get_enters_play_condition(rule["side"]) |> add_condition(rule["condition"])
+        rule
+        |> Map.put("type", "trigger")
+        |> Map.put("listenTo", listen_to)
+        |> Map.put("condition", condition)
+      "whileInPlay" ->
+        listen_to = ["/cardById/$THIS_ID/inPlay"] |> add_listen_to_side(rule["side"]) |> add_liten_to(rule["listenTo"])
+        condition = get_in_play_condition(rule["side"]) |> add_condition(rule["condition"])
+        rule
+        |> Map.put("type", "passive")
+        |> Map.put("listenTo", listen_to)
+        |> Map.put("condition", condition)
+      _ ->
+        rule
+    end
   end
 
   def preprocess_card_automation_rules(card_rules) do
@@ -1217,7 +1264,6 @@ defmodule DragnCardsGame.GameUI do
     load_list = Enum.map(load_list, fn load_list_item ->
       # If the load_list_item has a "cardDetails"
       database_id = get_in(load_list_item, ["databaseId"])
-      IO.puts("processing load_list_item #{inspect(load_list_item)}")
 
       cardDetails =
         cond do

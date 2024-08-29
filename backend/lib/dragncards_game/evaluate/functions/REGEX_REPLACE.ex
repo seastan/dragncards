@@ -4,8 +4,9 @@ defmodule DragnCardsGame.Evaluate.Functions.REGEX_REPLACE do
   *Arguments*:
   1. `inputString` (string)
   2. `regexString` (string)
+  3. `replacementString` (string)
 
-  Replaces the first occurrence of the regex in the input string with the given value.
+  Replaces each occurrence of the regex in the input string with the given value.
 
   *Returns*:
   (string) The updated string.
@@ -26,9 +27,6 @@ defmodule DragnCardsGame.Evaluate.Functions.REGEX_REPLACE do
     input_string = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["inputString"])
     regex_string = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["regexString"])
     replacement_string = Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["replacementString"])
-    IO.inspect(input_string)
-    IO.inspect(regex_string)
-    IO.inspect(replacement_string)
     case Regex.compile(regex_string, "i") do
       {:ok, regex} ->
         result = Regex.replace(regex, input_string, replacement_string)

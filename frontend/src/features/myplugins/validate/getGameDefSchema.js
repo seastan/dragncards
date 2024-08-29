@@ -179,7 +179,7 @@ export const getGameDefSchema = (gameDef) => {
                   "_type_": "string",
                   "_required_": true,
                   "_memberOf_": ["trigger", "passive", "entersPlay", "whileInPlay"],
-                  "_memberOfPath_": `["trigger", "passive", "entersPlay", "inPlay"]`,
+                  "_memberOfPath_": `["trigger", "passive", "entersPlay", "whileInPlay"]`,
                 },
                 "listenTo": {
                   "_description_": "The paths in the game state to listen to for changes",

@@ -694,9 +694,6 @@ defmodule DragnCardsGame.CustomPluginTest do
     assert game["cardById"][dwarf_card_id]["tokens"]["willpower"] == 0
     assert game["cardById"][dwarf_card_id]["tokens"]["attack"] == 0
 
-
-
-
     # Print all messages
     Enum.each(game["messages"], fn message ->
       IO.puts(message)
@@ -1422,17 +1419,32 @@ defmodule DragnCardsGame.CustomPluginTest do
 
 
   # end
+  # Local variables
+  @tag :multi_var
+  test "multi_var", %{user: _user, game: game, game_def: _game_def} do
+
+    game = Evaluate.evaluate(game, [
+      ["MULTI_VAR", "$A", 5, "$B", 10],
+      ["LOG_DEV", "$A"],
+      ["LOG_DEV", "$B"]
+    ])
+    game = Evaluate.evaluate(game, [
+      ["VAR", "$A", 5],
+      ["MULTI_VAR", "$A", 5, "$B", "$A"],
+      ["LOG_DEV", "$A"],
+      ["LOG_DEV", "$B"]
+    ])
+    IO.inspect(game["variables"])
+
+
+
+  end
 
   # Local variables
   @tag :temp
   test "temp", %{user: _user, game: game, game_def: _game_def} do
 
-    str = "Hello {0}, your order {1} is ready for pickup at {2}."
-    values = ["John", "#1234", "5:00 PM"]
-
-    res = StringReplacer.replace_placeholders(str, values)
-
-    IO.puts(res)
+    res = Evaluate.evaluate(game, ["REGEX_REPLACE", "Hello World", "World", "There"])
 
 
   end
