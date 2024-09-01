@@ -51,7 +51,7 @@ const doesTypeMatch = (exp, act) => {
     return true;
   } else if (exp === "actionList" && act === "string") {
     return true;
-  } else if (exp === "code" && act === "array") {
+  } else if (exp === "code") {
     return true;
   } else if (exp === "option" && act === "string") {
     return true;

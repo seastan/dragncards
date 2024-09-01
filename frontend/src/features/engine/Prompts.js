@@ -23,7 +23,7 @@ export const Prompt = React.memo(({
   const [showPrompt, setShowPrompt] = useState(true);
   if (!showPrompt) return null;
   const handleOptionClick = (option) => {
-    setShowPrompt(false);
+    //setShowPrompt(false);
     doActionList(option.code);
   }
   return (

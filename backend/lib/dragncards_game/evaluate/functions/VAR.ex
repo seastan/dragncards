@@ -1,4 +1,4 @@
-defmodule DragnCardsGame.Evaluate.Functions.VAR do
+  defmodule DragnCardsGame.Evaluate.Functions.VAR do
   alias DragnCardsGame.Evaluate
   @moduledoc """
   *Arguments*:
