@@ -77,9 +77,18 @@ const gameUiSlice = createSlice({
     },
     appendDelta: (state, { payload }) => {
       state.deltas.push(payload);
+    },
+    setPromptVisible: (state, { payload }) => {
+      const { playerI, promptUuid, visible } = payload;
+      
+      // Ensure playerData and prompts exist
+      if (!state?.game?.playerData?.[playerI]?.prompts?.[promptUuid]) {
+        return;
+      }
+      state.game.playerData[playerI].prompts[promptUuid].visible = visible;
     }
   }
 });
 
-export const { setGameUi, applyDeltaRedo, applyDeltaUndo, setGame, setRoomSlug, setPlayerInfo, setSockets, setSpectators, setGroupById, setStackIds, setCardIds, setValues, setDeltas, appendDelta } = gameUiSlice.actions;
+export const { setGameUi, applyDeltaRedo, applyDeltaUndo, setGame, setRoomSlug, setPlayerInfo, setSockets, setSpectators, setGroupById, setStackIds, setCardIds, setValues, setDeltas, appendDelta, setPromptVisible } = gameUiSlice.actions;
 export default gameUiSlice.reducer;

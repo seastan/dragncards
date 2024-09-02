@@ -10,6 +10,7 @@ import { useActiveCardId } from './useActiveCardId';
 import { useSendLocalMessage } from './useSendLocalMessage';
 import { usePlayerN } from './usePlayerN';
 import { useVisibleFace } from './useVisibleFace';
+import { setPromptVisible } from '../../store/gameUiSlice';
 
 function isLetter(value) {
     return /^[a-z,A-Z]$/.test(value);
@@ -103,10 +104,11 @@ export const useKeyDown = () => {
         console.log("Keydown dictKey: ", dictKey)
 
         // Prompt hotkeys
-        if (sortedPromptIds.length > 0) {
+        if (sortedPromptIds.length > 0 && prompts[sortedPromptIds[0]].visible !== false) {
             const prompt = prompts[sortedPromptIds[0]];
             for (var option of prompt.options) {
                 if (keyMatch(option.hotkey, dictKey)) {
+                    dispatch(setPromptVisible({playerI: playerN, promptUuid: prompt.uuid, visible: false}));
                     doActionList(option.code);
                     return;
                 }
