@@ -7,7 +7,7 @@
   require Logger
   import Ecto.Query
   alias ElixirSense.Log
-  alias DragnCardsGame.{Groups, Game, PlayerData, GameVariables, Evaluate}
+  alias DragnCardsGame.{Groups, Game, PlayerData, GameVariables, Evaluate, AutomationRules}
   alias DragnCards.{Repo, Replay, Users, Plugins}
 
   @type t :: Map.t()
@@ -70,7 +70,6 @@
     default_layout_info = Enum.at(game_def["layoutMenu"],0)
     layout_id = default_layout_info["layoutId"]
     groups = Groups.new(game_def)
-    automation = if get_in(game_def, ["automation", "gameRules"]) do %{"_game_" => %{"rules" => game_def["automation"]["gameRules"]}} else %{} end
     step_id =
       game_def
       |> Map.get("stepOrder", [])
@@ -108,7 +107,8 @@
       "loadedCardIds" => [],
       "variables" => GameVariables.default(),
       "functions" => game_def["functions"] || %{},
-      "automation" => automation,
+      "ruleById" => %{},
+      "ruleMap" => %{},
       "messageByTimestamp" => %{},
       "messages" => [] # These messages will be delivered to the GameUi parent, which will then relay them to chat
     }
@@ -119,6 +119,7 @@
         IO.puts("Error detected")
     end
     Logger.debug("Made new Game")
+
     # Add player data
     player_data = %{}
     player_data = Enum.reduce(1..game_def["maxPlayers"], player_data, fn(i, acc) ->
@@ -127,11 +128,19 @@
     end)
     Logger.debug("Made player data")
     base = put_in(base["playerData"], player_data)
+
     # Add custom properties
     game = Enum.reduce(Map.get(game_def, "gameProperties", %{}), base, fn({key,val}, acc) ->
       put_in(acc[key], val["default"])
     end)
     Logger.debug("Made custom properties")
+
+    # Add rules
+    game = if is_map(game_def["automation"]["gameRules"]) do
+      AutomationRules.implement_game_rules(game, game_def["automation"]["gameRules"])
+    else
+      game
+    end
 
     # If the user has some default game settings, apply them
     user = Users.get_user(user_id)

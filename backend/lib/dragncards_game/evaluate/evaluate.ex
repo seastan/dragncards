@@ -3,176 +3,14 @@ defmodule DragnCardsGame.Evaluate do
   Module that defines and evaluates the LISP-like language used to modify the game state.
   """
   require Logger
-  alias DragnCardsGame.{GameUI}
+  alias DragnCardsGame.{GameUI, AutomationRules, RuleMap}
   alias DragnCards.{Rooms, Plugins}
 
-
-  def put_by_path(game_old, path, val_new, trace) do
-    #if Enum.member?(path, "arkhamEventCustomBeforeDraw") do
-      # IO.puts("val_new 1")
-      # IO.inspect(path)
-      # IO.inspect(val_new)
-      # IO.puts("val_new 2")
-    #end
-    path_minus_key = try do
-      Enum.slice(path, 0, Enum.count(path)-1)
-    rescue
-      _ ->
-        raise "Tried to set a value (#{val_new}) at a nonexistent path: #{inspect(path)}."
-    end
-    key = Enum.at(path, -1)
-    # IO.puts("path_minus_key 1")
-    # IO.inspect(path_minus_key)
-    # IO.puts("put_by_keys 1")
-    # IO.inspect(Map.keys(game_old))
-    game_new =
-      if path_minus_key == [] do
-        put_in(game_old, path, val_new)
-      else
-        case get_in(game_old, path_minus_key) do
-          nil ->
-            if Enum.at(path_minus_key, 0) == "layoutVariants" do # legacy code
-              game_old
-            else
-              raise "Tried to set a value (#{val_new}) at a nonexistent path: #{inspect(path_minus_key)}."
-            end
-
-          val_old ->
-            # Check if val_old is a map
-            if is_map(val_old) do
-              put_in(game_old, path, val_new)
-            else
-              raise("Tried to set a key (#{key}) at a path that does not point to a map: #{inspect(path_minus_key)} = #{inspect(val_old)}")
-            end
-        end
-      end
-
-      if is_map(game_new["automation"]) and game_new["automationEnabled"] == true do
-        Enum.reduce(game_new["automation"], game_new, fn({id, automation}, acc) ->
-          apply_automation_rules(automation, path, game_old, acc, trace ++ ["apply_automation_rules", id])
-        end)
-      else
-        game_new
-      end
-  end
-
-  def apply_automation_rules(automation, path, game_old, game_new, trace) do
-
-    # Save current values of THIS and TARGET
-    prev_this_id = evaluate(game_new, "$THIS_ID", trace ++ ["$THIS_ID"])
-    prev_this = evaluate(game_new, "$THIS", trace ++ ["$THIS"])
-    prev_target_id = evaluate(game_new, "$TARGET_ID", trace ++ ["$TARGET_ID"])
-    prev_target = evaluate(game_new, "$TARGET", trace ++ ["$TARGET"])
-
-    game_new =
-      if automation["this_id"] do
-        game_new |>
-        evaluate(["DEFINE", "$THIS_ID", automation["this_id"]], trace ++ ["game_new"]) |>
-        evaluate(["DEFINE", "$THIS", "$GAME.cardById.$THIS_ID"], trace ++ ["game_new"])
-      else
-        game_new
-      end
-    game_old =
-      if automation["this_id"] do
-        game_old |>
-        evaluate(["DEFINE", "$THIS_ID", automation["this_id"]], trace ++ ["game_old"]) |>
-        evaluate(["DEFINE", "$THIS", "$GAME.cardById.$THIS_ID"], trace ++ ["game_old"])
-      else
-        game_old
-      end
-    game_new =
-      if Enum.count(path) > 2 do
-        game_new |>
-        evaluate(["DEFINE", "$TARGET_ID", Enum.at(path,1)], trace ++ ["game_new"]) |>
-        evaluate(["DEFINE", "$TARGET", "$GAME."<>Enum.at(path,0)<>".$TARGET_ID"], trace ++ ["game_new"])
-      else
-        game_new
-      end
-    game_old =
-      if Enum.count(path) > 2 do
-        game_old |>
-        evaluate(["DEFINE", "$TARGET_ID", Enum.at(path,1)], trace ++ ["game_old"]) |>
-        evaluate(["DEFINE", "$TARGET", "$GAME."<>Enum.at(path,0)<>".$TARGET_ID"], trace ++ ["game_old"])
-      else
-        game_old
-      end
-    game_new = Enum.reduce(automation["rules"], game_new, fn(rule, acc)->
-      #IO.puts("applying rule")
-      #IO.inspect(rule)
-      apply_automation_rule(rule, path, game_old, acc, trace)
+  def print_card_status(game) do
+    IO.puts("Card status:")
+    Enum.reduce(game["cardById"], nil, fn {card_id, card}, _acc ->
+      IO.puts('Card #{card["sides"]["A"]["name"]}: #{card["inPlay"]}')
     end)
-
-    # Restore THIS and TARGET
-    game_new |>
-      evaluate(["DEFINE", "$THIS_ID", prev_this_id], trace ++ ["restore"]) |>
-      evaluate(["DEFINE", "$THIS", prev_this], trace ++ ["restore"]) |>
-      evaluate(["DEFINE", "$TARGET_ID", prev_target_id], trace ++ ["restore"]) |>
-      evaluate(["DEFINE", "$TARGET", prev_target], trace ++ ["restore"])
-  end
-
-  def apply_automation_rule(rule, path, game_old, game_new, trace) do
-    if path_matches_listenpaths?(path, rule["listenTo"], game_new, trace) do
-      comment = rule["_comment"]
-      case rule["type"] do
-        "trigger" ->
-          if Enum.member?(path, "arkhamEventCustomBeforeDraw") do
-            IO.puts("apply_automation_rule 1 ===================================================================================================")
-            IO.inspect(path)
-            IO.puts("apply_automation_rule 2 =======================================================================================================================")
-          end
-          apply_trigger_rule(rule, game_old, game_new, trace ++ ["apply_trigger_rule #{comment}"])
-        "passive" ->
-          apply_passive_rule(rule, game_old, game_new, trace ++ ["apply_passive_rule #{comment}"])
-        _ ->
-          game_new
-      end
-    else
-      game_new
-    end
-  end
-
-  def apply_trigger_rule(rule, game_old, game_new, trace) do
-    # Stringify the rule
-    game_new = put_in(game_new["prev_game"], game_old)
-    game_new = if evaluate(game_new, rule["condition"], trace ++ [Jason.encode!(rule["condition"])]) do
-      evaluate(game_new, rule["then"], trace ++ [Jason.encode!("THEN")])
-    else
-      game_new
-    end
-    put_in(game_new["prev_game"], nil)
-  end
-
-  def apply_passive_rule(rule, game_old, game_new, trace) do
-    onBefore = evaluate(game_old, rule["condition"], trace ++ ["game_old", Jason.encode!(rule["condition"])])
-    onAfter = evaluate(game_new, rule["condition"], trace ++ ["game_new", Jason.encode!(rule["condition"])])
-
-    cond do
-      !onBefore && onAfter ->
-        evaluate(game_new, rule["onDo"], trace ++ ["ON_DO"])
-      onBefore && !onAfter ->
-        evaluate(game_new, rule["offDo"], trace ++ ["OFF_DO"])
-      true ->
-        game_new
-    end
-  end
-
-  def path_matches_listenpaths?(path, listenpaths, game_new, trace) do
-    if Enum.any?(listenpaths, fn(listenpath) -> path_matches_listenpath?(path, listenpath, game_new, trace ++ ["path_matches_listenpath", Jason.encode!(listenpath)]) end) do
-      true
-    else
-      false
-    end
-  end
-
-  def path_matches_listenpath?(path, listenpath, game_new, trace) do
-
-    # Process listenpath into a list
-    listenpath = evaluate(game_new, listenpath, trace ++ ["path_matches_listenpath"])
-
-    # Check if each element in path and listenpath match or if listenpath element is a wildcard
-    Enum.count(path) == Enum.count(listenpath)
-    && Enum.zip(path, listenpath)
-    |> Enum.all?(fn {x, y} -> evaluate(game_new, x, trace) == evaluate(game_new, y, trace) || y == "*" end)
   end
 
   def message_list_to_string(game, statements, trace) do
@@ -269,12 +107,12 @@ defmodule DragnCardsGame.Evaluate do
   def evaluate_with_timeout(game, code, timeout_ms \\ 35_000) do
     trace = [code]
     task = Task.async(fn ->
-      try do
+      #try do
         evaluate(game, code, trace)
-      rescue
-        e ->
-          evaluate(game, ["ERROR", e.message], trace)
-      end
+      # rescue
+      #   e ->
+      #     evaluate(game, ["ERROR", e.message], trace)
+      # end
     end)
 
     case Task.yield(task, timeout_ms) do
@@ -298,7 +136,7 @@ defmodule DragnCardsGame.Evaluate do
     #   #IO.inspect(game)
     #   IO.puts("evaluate 3")
     # end
-    try do
+   # try do
       # Increase scope index
       current_scope_index = game["currentScopeIndex"] + 1
       game = put_in(game, ["currentScopeIndex"], current_scope_index)
@@ -324,22 +162,22 @@ defmodule DragnCardsGame.Evaluate do
         result
       end
 
-    rescue
-      e in RecursiveEvaluationError ->
-        raise RecursiveEvaluationError, message: e.message
-      e ->
-        # Check if e has a message
-        message = if is_map(e) and Map.has_key?(e, :message) do
-          e.message
-        else
-          inspect(e)
-        end
-        if String.starts_with?(message, "ABORT") do
-          raise RecursiveEvaluationError, message: message
-        else
-          raise RecursiveEvaluationError, message: ": #{message} Trace: #{inspect(trace)}"
-        end
-    end
+    # rescue
+    #   e in RecursiveEvaluationError ->
+    #     raise RecursiveEvaluationError, message: e.message
+    #   e ->
+    #     # Check if e has a message
+    #     message = if is_map(e) and Map.has_key?(e, :message) do
+    #       e.message
+    #     else
+    #       inspect(e)
+    #     end
+    #     if String.starts_with?(message, "ABORT") do
+    #       raise RecursiveEvaluationError, message: message
+    #     else
+    #       raise RecursiveEvaluationError, message: ": #{message} Trace: #{inspect(trace)}"
+    #     end
+    # end
   end
 
 

@@ -36,7 +36,6 @@ defmodule DragnCardsGame.Evaluate.Functions.UPDATE_LAYOUT do
     game = try do
       shared_path = ["LIST"] ++ path
       Evaluate.evaluate(game, ["SET", shared_path, value], trace ++ ["set shared"])
-      #Evaluate.put_by_path(game, path, value, trace ++ ["put_by_path shared"])
     rescue
       _ ->
         game
@@ -47,11 +46,9 @@ defmodule DragnCardsGame.Evaluate.Functions.UPDATE_LAYOUT do
       player_path = ["LIST", "playerData", player_i] ++ path
       try do # Not all players' layouts will have the region defined
         Evaluate.evaluate(acc, ["SET", player_path, value], trace ++ ["set player_i"])
-        #Evaluate.put_by_path(acc, player_path, value, trace ++ ["put_by_path player_i"])
       rescue
         _ ->
           acc
-          #Evaluate.evaluate(acc, ["LOG", "WARNING: Could not update layout at path: #{player_path} with value: #{value}"])
       end
     end)
   end

@@ -45,9 +45,6 @@
     end
 
     var_values = Enum.map(var_values_unprocessed, fn value -> Evaluate.evaluate(game, value, trace ++ ["process MULTI_VAR value"]) end)
-    IO.puts("MULTI_VAR 1")
-    IO.inspect(var_names)
-    IO.inspect(var_values)
     current_scope_index = game["currentScopeIndex"]
     game = Enum.zip(var_names, var_values) |> Enum.reduce(game, fn {var_name, value}, acc ->
       if String.starts_with?(var_name, "$") do
@@ -56,8 +53,6 @@
         raise "MULTI_VAR: Tried to define variable '#{var_name}' but it does not start with $."
       end
     end)
-    IO.puts("MULTI_VAR 2")
-    IO.inspect(game["variables"])
     game
   end
 

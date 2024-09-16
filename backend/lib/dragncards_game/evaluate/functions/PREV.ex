@@ -39,11 +39,11 @@ defmodule DragnCardsGame.Evaluate.Functions.PREV do
   """
   def execute(game, code, trace) do
     prev_game = game["prev_game"]
-    |> Map.put("variables", game["variables"])
-    |> put_in(["variables", "$TARGET"], game["prev_game"]["variables"]["$TARGET"])
-    |> put_in(["variables", "$TARGET_ID"], game["prev_game"]["variables"]["$TARGET_ID"])
-    |> put_in(["variables", "$THIS"], game["prev_game"]["variables"]["$THIS"])
-    |> put_in(["variables", "$THIS_ID"], game["prev_game"]["variables"]["$THIS_ID"])
+    # |> Map.put("variables", game["variables"])
+    # |> put_in(["variables", "$TARGET"], game["prev_game"]["variables"]["$TARGET"])
+    # |> put_in(["variables", "$TARGET_ID"], game["prev_game"]["variables"]["$TARGET_ID"])
+    # |> put_in(["variables", "$THIS"], game["prev_game"]["variables"]["$THIS"])
+    # |> put_in(["variables", "$THIS_ID"], game["prev_game"]["variables"]["$THIS_ID"])
     Evaluate.evaluate(prev_game, Enum.at(code, 1), trace)
   end
 

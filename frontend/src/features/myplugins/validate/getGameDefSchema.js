@@ -115,7 +115,7 @@ export const getGameDefSchema = (gameDef) => {
         },
         "gameRules": {
           "_description_": "Game rules",
-          "_type_": "array",
+          "_type_": "object",
           "_required_": false,
           "_itemSchema_": {
             "_description_": "A rule that is triggered automatically by the game state",
@@ -151,6 +151,10 @@ export const getGameDefSchema = (gameDef) => {
             "offDo": {
               "_description_": "(`passive` type only) The action list to call when the condition is no longer met",
               "_type_": "actionList",
+            },
+            "priority": {
+              "_description_": "The priority of the rule. Lower values are executed first.",
+              "_type_": "integer",
             }
           }
         },
@@ -170,7 +174,7 @@ export const getGameDefSchema = (gameDef) => {
             },
             "rules": {
               "_description_": "Rules that are triggered automatically by the card",
-              "_type_": "array",
+              "_type_": "object",
               "_itemSchema_": {
                 "_description_": "A rule that is triggered automatically by the card",
                 "_type_": "object",
@@ -208,6 +212,10 @@ export const getGameDefSchema = (gameDef) => {
                 "offDo": {
                   "_description_": "(`passive` and `whileInPlay` types only) The action list to call when the condition is no longer met",
                   "_type_": "actionList",
+                },
+                "priority": {
+                  "_description_": "The priority of the rule. Lower values are executed first.",
+                  "_type_": "integer",
                 }
               }
             }

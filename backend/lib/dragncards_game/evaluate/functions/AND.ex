@@ -21,6 +21,9 @@ defmodule DragnCardsGame.Evaluate.Functions.AND do
   """
   def execute(game, code, trace) do
     statements = Enum.slice(code, 1, Enum.count(code) - 1)
+    # if game["prev_game"] do
+    #   IO.inspect(Evaluate.evaluate(game, ["LOG_DEV", ["PREV", "$TARGET"]], trace ++ ["statements"]))
+    # end
     Enum.all?(Enum.with_index(statements), fn {statement, index} ->
       Evaluate.evaluate(game, statement, trace ++ ["index #{index}"])
     end)

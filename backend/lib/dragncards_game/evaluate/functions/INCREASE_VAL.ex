@@ -1,5 +1,5 @@
 defmodule DragnCardsGame.Evaluate.Functions.INCREASE_VAL do
-  alias DragnCardsGame.Evaluate
+  alias DragnCardsGame.{Evaluate, PutByPath}
   @moduledoc """
   *Arguments*:
   1. `path` (string of keys separated by `/`)
@@ -36,7 +36,7 @@ defmodule DragnCardsGame.Evaluate.Functions.INCREASE_VAL do
     path = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["path"])
     delta = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["delta"]) || 0
     old_value = get_in(game, path) || 0
-    Evaluate.put_by_path(game, path, old_value + delta, trace ++ ["put_by_path"])
+    PutByPath.put_by_path(game, path, old_value + delta, trace ++ ["put_by_path"])
   end
 
 

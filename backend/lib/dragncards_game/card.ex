@@ -31,6 +31,7 @@ defmodule DragnCardsGame.Card do
       "targeting" => %{},
       "arrows" => %{},
       "tokens" => Tokens.new(),
+      "ruleIds" => [],
     }
     Logger.debug("card_from_card_details 2")
     # loop over the sides in card_details

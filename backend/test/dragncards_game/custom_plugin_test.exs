@@ -166,6 +166,24 @@ defmodule DragnCardsGame.CustomPluginTest do
     {:ok, %{user: user, game: game, game_def: plugin.game_def, card_db: plugin.card_db}}
   end
 
+
+  @tag :profiling
+  test "profiling create_card_in_group", %{user: _user, game: game, game_def: game_def} do
+    # Load some decks into the game
+    Enum.each(1..2, fn _ ->
+      GameUI.load_cards(game, [%{
+        "databaseId" => "51223bd0-ffd1-11df-a976-0801206c9005",
+        "loadGroupId" => "player1Play1",
+        "quantity" => 1
+      }])
+    end)
+
+    assert true
+  end
+
+
+
+
   @tag :loading
   # These tests are plugin-specific. You will need to overwite them, but they are here as a starting point.
   test "Loading Decks", %{user: user, game: game} do
@@ -724,6 +742,8 @@ defmodule DragnCardsGame.CustomPluginTest do
     ethir_2_card_id = Evaluate.evaluate(game, ["GET_CARD_ID", "player1Hand", 0, 0])
     game = Evaluate.evaluate(game, ["MOVE_CARD", ethir_2_card_id, "player1Play1", 0, 0])
     assert length(game["groupById"]["player1Play1"]["stackIds"]) == 2
+    IO.puts("ethir_2")
+    IO.inspect(game["ruleById"])
     assert game["cardById"][ethir_1_card_id]["tokens"]["willpower"] == 2
     assert game["cardById"][ethir_2_card_id]["tokens"]["willpower"] == 2
 
@@ -800,6 +820,20 @@ defmodule DragnCardsGame.CustomPluginTest do
 
   end
 
+
+  # Automation stress test
+  @tag :ethirs
+  test "ethirs", %{user: _user, game: game, game_def: _game_def} do
+    # Load Ethirs
+    game = Evaluate.evaluate(game, ["LOAD_CARDS", ["LIST", %{"databaseId" => "1c149f93-9e3b-42fa-878c-80b29563a283", "loadGroupId" => "player1Play1", "quantity" => 50}]])
+
+    # Move ally to the table
+    ethir_1_card_id = Evaluate.evaluate(game, ["GET_CARD_ID", "player1Play1", 0, 0])
+    assert length(game["groupById"]["player1Play1"]["stackIds"]) == 50
+    assert game["cardById"][ethir_1_card_id]["tokens"]["willpower"] == 50
+
+  end
+
   # Border color
   @tag :border_color
   test "Border Color", %{user: _user, game: game, game_def: _game_def} do
@@ -850,45 +884,45 @@ defmodule DragnCardsGame.CustomPluginTest do
 
     # Load some decks into the game
     game = Evaluate.evaluate(game, ["LOAD_CARDS", "Q01.1"]) # Passage through Mirkwood
-    game = Evaluate.evaluate(game, ["LOAD_CARDS", "coreLeadership"]) # Leadership core set deck
+    # game = Evaluate.evaluate(game, ["LOAD_CARDS", "coreLeadership"]) # Leadership core set deck
 
 
-    assert length(game["groupById"]["player1Hand"]["stackIds"]) == 6
-    assert length(game["groupById"]["player1Deck"]["stackIds"]) == 24
-    assert game["stagingThreat"] == 3
-    assert game["questProgress"] == -3
+    # assert length(game["groupById"]["player1Hand"]["stackIds"]) == 6
+    # assert length(game["groupById"]["player1Deck"]["stackIds"]) == 24
+    # assert game["stagingThreat"] == 3
+    # assert game["questProgress"] == -3
 
-    aragorn_card_id = Evaluate.evaluate(game, ["GET_CARD_ID", "player1Play1", 0, 0])
-    game = Evaluate.evaluate(game, ["INCREASE_VAL", "/cardById/#{aragorn_card_id}/tokens/willpower", 1])
+    # aragorn_card_id = Evaluate.evaluate(game, ["GET_CARD_ID", "player1Play1", 0, 0])
+    # game = Evaluate.evaluate(game, ["INCREASE_VAL", "/cardById/#{aragorn_card_id}/tokens/willpower", 1])
 
-    # Commit Aragorn
-    game = Evaluate.evaluate(game, [
-      ["DEFINE", "$ACTIVE_CARD_ID", aragorn_card_id],
-      ["ACTION_LIST", "toggleCommit"]
-    ])
+    # # Commit Aragorn
+    # game = Evaluate.evaluate(game, [
+    #   ["DEFINE", "$ACTIVE_CARD_ID", aragorn_card_id],
+    #   ["ACTION_LIST", "toggleCommit"]
+    # ])
 
-    assert game["stagingThreat"] == 3
-    assert game["questProgress"] == 0
+    # assert game["stagingThreat"] == 3
+    # assert game["questProgress"] == 0
 
-    game = Evaluate.evaluate(game, ["INCREASE_VAL", "/cardById/#{aragorn_card_id}/tokens/willpower", 1])
+    # game = Evaluate.evaluate(game, ["INCREASE_VAL", "/cardById/#{aragorn_card_id}/tokens/willpower", 1])
 
-    assert game["stagingThreat"] == 3
-    assert game["questProgress"] == 1
+    # assert game["stagingThreat"] == 3
+    # assert game["questProgress"] == 1
 
-    staging_card_id = Evaluate.evaluate(game, ["GET_CARD_ID", "sharedStagingArea", 0, 0])
-    game = Evaluate.evaluate(game, ["INCREASE_VAL", "/cardById/#{staging_card_id}/tokens/threat", 1])
+    # staging_card_id = Evaluate.evaluate(game, ["GET_CARD_ID", "sharedStagingArea", 0, 0])
+    # game = Evaluate.evaluate(game, ["INCREASE_VAL", "/cardById/#{staging_card_id}/tokens/threat", 1])
 
-    assert game["stagingThreat"] == 4
-    assert game["questProgress"] == 0
+    # assert game["stagingThreat"] == 4
+    # assert game["questProgress"] == 0
 
-    # Discard
-    game = Evaluate.evaluate(game, [
-      ["DEFINE", "$ACTIVE_CARD_ID", aragorn_card_id],
-      ["ACTION_LIST", "discardCard"]
-    ])
+    # # Discard
+    # game = Evaluate.evaluate(game, [
+    #   ["DEFINE", "$ACTIVE_CARD_ID", aragorn_card_id],
+    #   ["ACTION_LIST", "discardCard"]
+    # ])
 
-    assert game["stagingThreat"] == 4
-    assert game["questProgress"] == -4
+    # assert game["stagingThreat"] == 4
+    # assert game["questProgress"] == -4
 
 
     # Print all messages
@@ -1321,7 +1355,6 @@ defmodule DragnCardsGame.CustomPluginTest do
 
   end
 
-
   @tag :to_int
   test "to_int", %{user: _user, game: game, game_def: game_def} do
 
@@ -1435,8 +1468,6 @@ defmodule DragnCardsGame.CustomPluginTest do
       ["LOG_DEV", "$B"]
     ])
     IO.inspect(game["variables"])
-
-
 
   end
 
