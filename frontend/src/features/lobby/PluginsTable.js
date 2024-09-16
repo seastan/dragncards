@@ -43,7 +43,7 @@ export const PluginsTable = ({ plugins }) => {
     </div>
   }
 
-  const trClass = "relative m-2 h-full w-full flex items-center text-white no-underline select-none rounded-lg w-full bg-gray-600-30 hover:bg-red-600-30"
+  const trClass = "relative mb-2 h-full w-full flex items-center text-white no-underline select-none rounded-lg w-full bg-gray-600-30 hover:bg-red-600-30"
 
   return (
         <div className="w-full">
