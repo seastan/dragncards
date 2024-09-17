@@ -50,6 +50,7 @@ export const useCardStyle = (cardId, cardIndexFromGui, isDragging, offset) => {
         boxShadow: isDragging ? '10px 10px 30px 20px rgba(0, 0, 0, 0.3)': null,  
         '--tw-shadow': cardBorderColor ? `0 0 10px ${cardBorderColor}` : null,
         boxShadow: cardBorderColor ? 'var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)' : null,
+        //opacity: 0.3
       
     }
     return style;

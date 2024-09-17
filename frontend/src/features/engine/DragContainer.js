@@ -199,6 +199,7 @@ export const DragContainer = React.memo(({}) => {
   }, []);
 
   const onDragEnd = (result) => {
+    console.log("onDragEnd", result);
     if (!isDragging) return;
     setIsDragging(false);
     const game = store.getState()?.gameUi.game;

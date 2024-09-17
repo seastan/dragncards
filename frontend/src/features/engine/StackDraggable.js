@@ -14,6 +14,7 @@ import { useOffsetTotalsAndAmounts } from "./hooks/useOffsetTotalsAndAmounts";
 import { usePlayerN } from "./hooks/usePlayerN";
 import { setDraggingDefault, setDraggingEndDelay, setDraggingStarted, setDragStep, setStatusText, setTempDragStack } from "../store/playerUiSlice";
 import { useGetRegionFromId } from "./hooks/useGetRegionFromId";
+import zIndex from "@material-ui/core/styles/zIndex";
 
 const StackContainerFree = styled.div`
   position: absolute;
@@ -68,12 +69,25 @@ export const StackDraggable = React.memo(({
     stackIndex,
     stackId,
     numStacksVisible,
-    onDragEnd
+    onDragEnd,
+    hideStack,
   }) => {
 
     const dispatch = useDispatch();
     const stack = useSelector(state => state?.gameUi?.game?.stackById[stackId]);
     const touchMode = useSelector(state => state?.playerUi?.userSettings?.touchMode);
+
+    const isInPileAndAnotherStackIsActive = useSelector((state) => {
+      const activeCardId = state?.playerUi?.activeCardId;
+      const activeCard = state?.gameUi?.game?.cardById?.[activeCardId];
+      const activeStackId = activeCard?.stackId;
+      const draggingStackId = state?.playerUi?.dragging?.stackId;
+      const regionId = region.id;
+      console.log("isInPileAndAnotherStackIsActive", {activeStackId, draggingStackId, stackId, regionId});
+      return ((activeStackId && activeStackId !== stackId) || (draggingStackId !== null && draggingStackId !== stackId)) && region.type === "pile";
+    });
+    //const absoluteDragStep = useSelector(state => state?.playerUi?.dragging?.dragStep);
+
     const dragStep = useSelector(state => ( state?.playerUi?.dragging?.stackId === stackId) ? state?.playerUi?.dragging?.dragStep : null);
     const regionCardSizeFactor = region.cardSizeFactor || 1;
     const zoomFactor = useSelector(state => state?.playerUi?.userSettings?.zoomPercent)/100 * regionCardSizeFactor;
@@ -82,7 +96,7 @@ export const StackDraggable = React.memo(({
     const getRegionFromId = useGetRegionFromId();
 
     const layout = useLayout();
-    const rowSpacing = layout?.rowSpacing;
+    var rowSpacing = layout?.rowSpacing;
     const cardSize = layout?.cardSize;
     if (stackId === store.getState().playerUi?.dragging?.stackId) console.log('Changed props dragStep ', dragStep);
     var spacingFactor = touchMode ? 1.5 : 1;
@@ -115,7 +129,11 @@ export const StackDraggable = React.memo(({
     const stackHeight = (stackEdges.bottom - stackEdges.top) * zoomFactor;
     const stackTopOffset = stackEdges.top * zoomFactor;
     const stackTop = region.type === "free" ? `calc(${stack.top} + ${stackTopOffset}dvh)` : stack.top;
-    const stackWidth = (stackEdges.right - stackEdges.left) * zoomFactor;
+    var stackWidth = (stackEdges.right - stackEdges.left) * zoomFactor;
+    if (isInPileAndAnotherStackIsActive) {
+      stackWidth = stackWidth * 0.1;
+      rowSpacing = 0;
+    }
     const stackWidthFan = Math.min(fanSpacingHoriz, cardWidth*cardSize*zoomFactor);
     const stackLeftOffset = stackEdges.left * zoomFactor;
     const stackLeft = region.type === "free" ? `calc(${stack.left} + ${stackLeftOffset}dvh)` : stack.left;
@@ -133,7 +151,7 @@ export const StackDraggable = React.memo(({
         index={stackIndex}
         isDragDisabled={playerN === null}>
         {(dragProvided, dragSnapshot) => {
-
+          console.log("Rendering StackDraggable dragSnapshot", {dragSnapshot});
           const draggingStackId = store.getState().playerUi?.dragging?.stackId;
           if (dragStep === "beforeDragStart" && dragSnapshot.isDragging) {
             dispatch(setDragStep("dragging"));
@@ -141,8 +159,6 @@ export const StackDraggable = React.memo(({
 
           // End of animation
           if (stackId === draggingStackId && dragStep === "dropAnimating" && !dragSnapshot.isDropAnimating) {
-            //alert("doneDropAnimating");
-            dispatch(setDragStep("doneDropAnimating"));
             dispatch(setDraggingDefault());
           }
             
@@ -151,7 +167,6 @@ export const StackDraggable = React.memo(({
           // Mouse let go
           if (stackId === draggingStackId && dragStep === "dragging" && dragSnapshot.isDropAnimating && onDragEnd) {
             dispatch(setDragStep("dropAnimating"));
-            //alert("dropAnimating");
             const fromDroppableId = store.getState().playerUi?.dragging?.fromDroppableId;
             const hoverOverStackId = store.getState().playerUi?.dragging?.hoverOverStackId;
             const hoverOverDirection = store.getState().playerUi?.dragging?.hoverOverDirection;
@@ -216,7 +231,6 @@ export const StackDraggable = React.memo(({
               }));
               //onDragEnd(result);
             } else {
-              //alert("setDraggingDefault");
               //dispatch(setDraggingDefault());
             }
           }
@@ -232,7 +246,14 @@ export const StackDraggable = React.memo(({
                 //if (isCombined) updatedStyle.zIndex = 0;
                 if (updatedStyle.transform && dragSnapshot.isDragging) updatedStyle.transform = updatedStyle.transform + " scale(1.1)";
                 if (region.type === "free" && !dragSnapshot.isDragging) updatedStyle.transform = "none";
+                if (isInPileAndAnotherStackIsActive) updatedStyle.opacity = "0";
                 if (toRegionType === "free" && (dragStep === "dropAnimating" || dragStep === "doneDropAnimating") ) updatedStyle.opacity = "0.01";
+                // if (region.type === "pile" && !thisIsDragging) {
+                //   stackWidth = stackWidth * 0.;
+                //   rowSpacing = 0;
+                // }
+                // if (thisIsDragging) updatedStyle.width = "10px";
+                // if (thisIsDragging) updatedStyle.opacity = 0.4;
                 //if (updatedStyle.transition !== null) updatedStyle.transition = null;
                 //if (updatedStyle.zIndex === 4500) updatedStyle = {"transform":"none","transition":null}
                 //dispatch(setStatusText(JSON.stringify(dragSnapshot)))

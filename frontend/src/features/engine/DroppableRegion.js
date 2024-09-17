@@ -45,21 +45,27 @@ const StacksListSorted = React.memo(({
 }) => {
   const isPile = region.type == "pile";
   const getRegionFromId = useGetRegionFromId();
-  const showTopCard = useSelector((state) => {
+  const isPileAndDragStackNotFromHere = useSelector((state) => {
+    const activeCardId = state?.playerUi?.activeCardId;
+    const activeCard = state?.gameUi?.game?.cardById?.[activeCardId];
+    const activeGroupId = activeCard?.groupId;
     const draggingFromDroppableId = state?.playerUi?.dragging?.fromDroppableId;
     const draggingFromRegion = getRegionFromId(draggingFromDroppableId);
     const draggingFromGroupId = draggingFromRegion?.groupId;
-    //const [draggingFromGroupId, dragginFromRegionType, draggingFromRegionDirection] = getGroupIdAndRegionType(draggingFromDroppableId);
-    return isPile && stackIds.length > 0 && ((!draggingFromGroupId) || draggingFromGroupId === groupId);
+    const hoverOverDroppableId = state?.playerUi?.dragging?.hoverOverDroppableId;
+    const hoverOverRegion = getRegionFromId(hoverOverDroppableId);
+    const hoverOverGroupId = hoverOverRegion?.groupId;
+    const dragStep = state?.playerUi?.dragging?.dragStep;
+    return isPile && draggingFromGroupId && draggingFromGroupId !== groupId;
   });
   // Truncate stacked piles
   console.log("Rendering StacksList", {groupId, region});
   var stackIdsToShow = stackIds;
-  if (isPile) stackIdsToShow = [];
-  if (showTopCard) stackIdsToShow = [stackIds[0]];
+  if (isPile && stackIds.length > 0) stackIdsToShow = [stackIds[0]];
+  //if (isPileAndActiveNotFromHere) stackIdsToShow = [];
 
 
-  if (!stackIdsToShow) return null;
+  //if (!stackIdsToShow) return null;
   return (
     <>
     {/* <BoundingBoxesSorted
@@ -75,6 +81,7 @@ const StacksListSorted = React.memo(({
           stackId={stackId}
           numStacksVisible={selectedStackIndices.length}
           onDragEnd={onDragEnd}
+          hideStack={isPileAndDragStackNotFromHere ? true : false}
         /> 
       ) : null 
     ))}
@@ -88,7 +95,7 @@ export const DroppableRegion = React.memo(({
   selectedStackIndices,
   onDragEnd
 }) => {
-  const showPileImage = useSelector(state => state?.playerUi?.dragging?.stackId && region.type === "pile");
+  const showPileImage = true; //useSelector(state => state?.playerUi?.dragging?.stackId && region.type === "pile");
   const containerRef = useRef(null);
   const dispatch = useDispatch();
   console.log("Rendering Stacks for ",groupId, region);
