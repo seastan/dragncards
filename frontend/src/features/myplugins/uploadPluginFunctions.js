@@ -52,11 +52,39 @@ for (var p in obj2) {
 }
 } 
 
+const removeComments = (json) => {
+  let insideString = false;
+  let result = '';
+  
+  for (let i = 0; i < json.length; i++) {
+    let currentChar = json[i];
+    let nextChar = json[i + 1];
+
+    // Toggle the insideString flag when encountering unescaped double quotes
+    if (currentChar === '"' && json[i - 1] !== '\\') {
+      insideString = !insideString;
+    }
+
+    // If we're not inside a string, and we encounter //, ignore the comment
+    if (!insideString && currentChar === '/' && nextChar === '/') {
+      // Skip to the end of the line
+      while (i < json.length && json[i] !== '\n') {
+        i++;
+      }
+      continue;
+    }
+
+    result += currentChar;
+  }
+  
+  return result;
+};
+
 export const mergeJSONs = (jsonList) => {
   // Helper function to remove comments from JSON strings
-  const removeComments = (json) => {
-    return json.replace(/(^|[^:])\/\/.*(?=[\n\r])/g, '$1'); // Remove comments starting with // but not URLs
-  };
+  // const removeComments = (json) => {
+  //   return json.replace(/(^|[^:])\/\/.*(?=[\n\r])/g, '$1'); // Remove comments starting with // but not URLs
+  // };
 
   const objList = jsonList.map(json => JSON.parse(removeComments(json)));
   

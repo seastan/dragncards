@@ -132,9 +132,7 @@ defmodule DragnCardsGame.AutomationRules do
   def implement_card_rules(game, game_def, card) do
     card_automation = game_def["automation"]["cards"][card["databaseId"]]
     card_rules = get_in(card_automation, ["rules"])
-    if card_rules == nil do
-      game
-    else
+    if is_map(card_rules) do
       preprocess_card_automation_rules(card_rules, card["id"])
       |> Enum.reduce(game, fn ({rule_id, rule}, acc) ->
 
@@ -142,6 +140,8 @@ defmodule DragnCardsGame.AutomationRules do
         |> add_rule_to_game(rule, rule_id)
         |> add_rule_id_to_card(card, rule_id)
       end)
+    else
+      game
     end
   end
 

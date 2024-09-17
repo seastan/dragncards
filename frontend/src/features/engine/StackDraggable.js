@@ -141,7 +141,9 @@ export const StackDraggable = React.memo(({
 
           // End of animation
           if (stackId === draggingStackId && dragStep === "dropAnimating" && !dragSnapshot.isDropAnimating) {
+            //alert("doneDropAnimating");
             dispatch(setDragStep("doneDropAnimating"));
+            dispatch(setDraggingDefault());
           }
             
           const hoverOverDroppableId = store.getState().playerUi?.dragging?.hoverOverDroppableId;
@@ -149,6 +151,7 @@ export const StackDraggable = React.memo(({
           // Mouse let go
           if (stackId === draggingStackId && dragStep === "dragging" && dragSnapshot.isDropAnimating && onDragEnd) {
             dispatch(setDragStep("dropAnimating"));
+            //alert("dropAnimating");
             const fromDroppableId = store.getState().playerUi?.dragging?.fromDroppableId;
             const hoverOverStackId = store.getState().playerUi?.dragging?.hoverOverStackId;
             const hoverOverDirection = store.getState().playerUi?.dragging?.hoverOverDirection;
@@ -213,7 +216,8 @@ export const StackDraggable = React.memo(({
               }));
               //onDragEnd(result);
             } else {
-              dispatch(setDraggingDefault());
+              //alert("setDraggingDefault");
+              //dispatch(setDraggingDefault());
             }
           }
 

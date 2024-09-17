@@ -58,6 +58,7 @@ const StacksListSorted = React.memo(({
   if (isPile) stackIdsToShow = [];
   if (showTopCard) stackIdsToShow = [stackIds[0]];
 
+
   if (!stackIdsToShow) return null;
   return (
     <>
