@@ -1,4 +1,12 @@
 export const siteL10n = {
+  "loadUrl": {
+    "English": "Load deck via URL",
+    "Chinese": "通过 URL 加载牌组"
+  },
+  "loadPrebuilt": {
+    "English": "Load prebuilt deck",
+    "Chinese": "加载预组牌库"
+  },
   "defaultMaintenenceMessage": {
     "English": "The server is going down for scheduled maintenance in the next 5 minutes. Please save your game. The server should be back up in 10 minutes, and you can resume your game from your profile.",
     "Chinese": "服务器将在接下来的 5 分钟内进行计划维护。请保存您的游戏。服务器应该在 10 分钟内恢复，您可以从您的个人资料中恢复您的游戏。"

@@ -11,8 +11,8 @@ export const Status = React.memo(({
 }) => {
   const formatLabelsInText = useFormatLabelsInText();
   const status = useSelector(state => state?.playerUi?.status);
-  //var statusText = status?.text;
-  var statusText = useSelector(state => state?.playerUi?.dragging?.dragStep);
+  var statusText = status?.text;
+  //var statusText = useSelector(state => state?.playerUi?.dragging?.dragStep);
   statusText = formatLabelsInText(statusText).replace(/\n/g, '<br />');
   statusText = DOMPurify.sanitize(statusText);
   console.log("Rendering Status", {statusText});
