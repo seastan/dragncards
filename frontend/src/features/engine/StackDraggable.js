@@ -159,7 +159,8 @@ export const StackDraggable = React.memo(({
 
           // End of animation
           if (stackId === draggingStackId && dragStep === "dropAnimating" && !dragSnapshot.isDropAnimating) {
-            dispatch(setDraggingDefault());
+            dispatch(setDragStep("doneDropAnimating"));
+            //dispatch(setDraggingDefault());
           }
             
           const hoverOverDroppableId = store.getState().playerUi?.dragging?.hoverOverDroppableId;

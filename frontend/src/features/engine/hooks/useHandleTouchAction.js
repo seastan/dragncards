@@ -7,6 +7,7 @@ import { useDoActionList } from "./useDoActionList";
 import { useGameDefinition } from "./useGameDefinition";
 import { useSetTouchAction } from "./useSetTouchAction";
 import { useTouchAction } from "./useTouchAction";
+import { useDoDragnHotkey } from './useDragnHotkeys';
 
 export const useHandleTouchAction = () => {
     const dispatch = useDispatch();
@@ -15,6 +16,7 @@ export const useHandleTouchAction = () => {
     const touchAction = useTouchAction();
     const setTouchAction = useSetTouchAction();
     const doActionList = useDoActionList();
+    const doDragnHotkey = useDoDragnHotkey();
     console.log("Rendering HandleTouchActions")
     return ((touchedCard) => {
         console.log("handleTouchAction", touchedCard)
@@ -42,6 +44,8 @@ export const useHandleTouchAction = () => {
                 }
             } else if (touchAction?.actionType === "card" && touchedCard) {
                 const actionListId = touchAction?.actionList;
+                //if (touchAction.isDragnButton) {
+
                 const actionList = [...gameDef?.actionLists?.[actionListId]];
                 if (actionList === null || actionList === undefined) {
                     alert("Action list not found: " + actionListId);

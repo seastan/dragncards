@@ -46,16 +46,9 @@ const StacksListSorted = React.memo(({
   const isPile = region.type == "pile";
   const getRegionFromId = useGetRegionFromId();
   const isPileAndDragStackNotFromHere = useSelector((state) => {
-    const activeCardId = state?.playerUi?.activeCardId;
-    const activeCard = state?.gameUi?.game?.cardById?.[activeCardId];
-    const activeGroupId = activeCard?.groupId;
     const draggingFromDroppableId = state?.playerUi?.dragging?.fromDroppableId;
     const draggingFromRegion = getRegionFromId(draggingFromDroppableId);
     const draggingFromGroupId = draggingFromRegion?.groupId;
-    const hoverOverDroppableId = state?.playerUi?.dragging?.hoverOverDroppableId;
-    const hoverOverRegion = getRegionFromId(hoverOverDroppableId);
-    const hoverOverGroupId = hoverOverRegion?.groupId;
-    const dragStep = state?.playerUi?.dragging?.dragStep;
     return isPile && draggingFromGroupId && draggingFromGroupId !== groupId;
   });
   // Truncate stacked piles
