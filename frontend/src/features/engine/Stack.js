@@ -28,7 +28,8 @@ const hideUnderActionList = (stackId) => {
 export const Stack = React.memo(({
   stackId,
   isDragging,
-  stackZoomFactor
+  stackZoomFactor,
+  hideArrows,
 }) => {
   const stack = useSelector(state => state?.gameUi?.game?.stackById[stackId]);
   const isHoveredOver = useSelector(state => state?.playerUi?.dragging.hoverOverStackId === stackId);
@@ -75,6 +76,7 @@ export const Stack = React.memo(({
             cardId={cardId}
             cardIndexFromGui={cardIndex}
             isDragging={(cardIndex === cardIds.length - 1) ? isDragging : false}
+            hideArrows={hideArrows}
           />
         )
       })}

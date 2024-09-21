@@ -38,7 +38,6 @@ export const useKeyDown = () => {
 
     useEffect(() => {
         const handleFocus = () => {
-            console.log('Tab is in focus');
             dispatch(setKeypress(defaultKeypress));
         };
 

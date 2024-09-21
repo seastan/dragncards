@@ -82,8 +82,6 @@ export const StackDraggable = React.memo(({
       const activeCard = state?.gameUi?.game?.cardById?.[activeCardId];
       const activeStackId = activeCard?.stackId;
       const draggingStackId = state?.playerUi?.dragging?.stackId;
-      const regionId = region.id;
-      console.log("isInPileAndAnotherStackIsActive", {activeStackId, draggingStackId, stackId, regionId});
       return ((activeStackId && activeStackId !== stackId) || (draggingStackId !== null && draggingStackId !== stackId)) && region.type === "pile";
     });
     //const absoluteDragStep = useSelector(state => state?.playerUi?.dragging?.dragStep);
@@ -137,7 +135,6 @@ export const StackDraggable = React.memo(({
     const stackWidthFan = Math.min(fanSpacingHoriz, cardWidth*cardSize*zoomFactor);
     const stackLeftOffset = stackEdges.left * zoomFactor;
     const stackLeft = region.type === "free" ? `calc(${stack.left} + ${stackLeftOffset}dvh)` : stack.left;
-    console.log("stackLeft", stackLeft, stack.left, stackLeftOffset)
   
     const regionHeightPercent = convertToPercentage(region.height);
     const regionHeightInt = parseInt(regionHeightPercent.substring(0, regionHeightPercent.length - 1))

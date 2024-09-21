@@ -18,6 +18,7 @@ export const Card = React.memo(({
     cardIndexFromGui,
     offset,
     isDragging,
+    hideArrows,
 }) => { 
     const dispatch = useDispatch();
     const gameDef = useGameDefinition();
@@ -72,7 +73,7 @@ export const Card = React.memo(({
                     isActive={isActive}
                     aspectRatio={width/height}/>
 
-                <CardArrows cardId={cardId}/>
+                <CardArrows cardId={cardId} hideArrows={hideArrows}/>
 
                 <AbilityButton cardId={cardId}/>
                 

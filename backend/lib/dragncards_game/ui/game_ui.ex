@@ -78,7 +78,7 @@ defmodule DragnCardsGame.GameUI do
     |> update_player_data(player_n, user_id)
 
     gameui
-    |> put_in(["game", "messages"], ["#{log_alias} sat down in #{player_n}'s seat."] ++ gameui["game"]["messages"])
+    |> put_in(["game", "messages"], ["#{log_alias} sat down in #{player_n}'s seat."])
   end
 
   def get_up(gameui, player_n) do

@@ -63,9 +63,7 @@ export const useHoverStackIdAndDirection = () => {
       const isInsideRight = isDirectionValid("right", regionType, regionDirection) && isXYinBox(mouseCurrentX, mouseCurrentY, rightRectangle.left, rightRectangle.top, rightRectangle.width, rightRectangle.height);
       const isInsideTop = isDirectionValid("top", regionType, regionDirection) && isXYinBox(mouseCurrentX, mouseCurrentY, topRectangle.left, topRectangle.top, topRectangle.width, topRectangle.height);
       const isInsideBottom = isDirectionValid("bottom", regionType, regionDirection) && isXYinBox(mouseCurrentX, mouseCurrentY, bottomRectangle.left, bottomRectangle.top, bottomRectangle.width, bottomRectangle.height);
-      if (i==0) {
-        console.log("isInsideLeft", isInsideLeft, "isInsideRight", isInsideRight, "isInsideTop", isInsideTop, "isInsideBottom", isInsideBottom)
-      }
+
       if (isInsideLeft) {
         return {stackId: stackRectangle.stackId, direction: "left"};
       } else if (isInsideRight) {

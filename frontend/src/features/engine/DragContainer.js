@@ -37,7 +37,6 @@ const getAfterDragName = (game, stackId, destGroupId, allowFlip) => {
 
 const getXY = (e) => {
   let clientX, clientY;
-  console.log("getXY", e)
   if (e.type.startsWith('mouse')) {
     clientX = e.clientX;
     clientY = e.clientY;
@@ -117,8 +116,6 @@ export const DragContainer = React.memo(({}) => {
 
   const updateMouseDown = (e) => {
     const {clientX, clientY} = getXY(e);
-
-    console.log("updateMouseDown", e)
     const rect = e.target.parentElement.parentElement.getBoundingClientRect();
     const x = clientX - rect.left;
     const y = clientY - rect.top;

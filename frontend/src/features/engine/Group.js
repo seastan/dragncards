@@ -25,7 +25,6 @@ export const Group = React.memo(({
   const iconsVisible = playerN && (region.showMenu || (isPile && region.showMenu !== false)) ;
   const regionCardSizeFactor = region.cardSizeFactor || 1.0;
   const browseTopN = useBrowseTopN();
-  console.log("Group tempDragStack", tempDragStack)
 
   // Print a warning to the console if the group is not found
   if (!group) {
@@ -109,6 +108,7 @@ export const Group = React.memo(({
               stackId={tempDragStack.stackId}
               isDragging={false}
               stackZoomFactor={regionCardSizeFactor}
+              hideArrows={true}
             />
           </div>
         }

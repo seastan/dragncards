@@ -8,6 +8,7 @@ import { useGameDefinition } from "./useGameDefinition";
 import { useSetTouchAction } from "./useSetTouchAction";
 import { useTouchAction } from "./useTouchAction";
 import { useDoDragnHotkey } from './useDragnHotkeys';
+import { dragnActionLists } from '../functions/dragnActionLists';
 
 export const useHandleTouchAction = () => {
     const dispatch = useDispatch();
@@ -44,17 +45,26 @@ export const useHandleTouchAction = () => {
                 }
             } else if (touchAction?.actionType === "card" && touchedCard) {
                 const actionListId = touchAction?.actionList;
-                //if (touchAction.isDragnButton) {
-
-                const actionList = [...gameDef?.actionLists?.[actionListId]];
-                if (actionList === null || actionList === undefined) {
-                    alert("Action list not found: " + actionListId);
-                    return;
+                if (touchAction.isDragnButton) {
+                    const actionList = [...dragnActionLists[actionListId]()];
+                    if (actionList === null || actionList === undefined) {
+                        alert("Action list not found: " + actionListId);
+                        return;
+                    }
+                    // Prepend the actionList with the touched card id
+                    actionList.unshift(["DEFINE", "$ACTIVE_CARD_ID", touchedCard.id]);
+                    doActionList(actionList);
+                } else {
+                    const actionList = [...gameDef?.actionLists?.[actionListId]];
+                    if (actionList === null || actionList === undefined) {
+                        alert("Action list not found: " + actionListId);
+                        return;
+                    }
+                    // Prepend the actionList with the touched card id
+                    actionList.unshift(["DEFINE", "$ACTIVE_CARD_ID", touchedCard.id]);
+                    doActionList(actionList);
+                    dispatch(setMouseXY(null));
                 }
-                // Prepend the actionList with the touched card id
-                actionList.unshift(["DEFINE", "$ACTIVE_CARD_ID", touchedCard.id]);
-                doActionList(actionList);
-                dispatch(setMouseXY(null));
             }
             dispatch(setMouseXY(null));
             dispatch(setDropdownMenu(null));

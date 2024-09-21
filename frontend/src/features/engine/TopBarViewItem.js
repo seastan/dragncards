@@ -25,8 +25,6 @@ export const TopBarViewItem = React.memo(({
     } 
   }
 
-  console.log("TopBarViewItem", groupId, group)
-
   if (!group) return;
 
   const stackIds = group.stackIds;

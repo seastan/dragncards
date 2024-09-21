@@ -21,10 +21,8 @@ export const useMessageTextToHtml = () => {
   const user = useProfile();
   const language = user?.language || "English";
   const formatLabelsInText = useFormatLabelsInText();
-  console.log("useMessageTextToHtml 0");
 
   return (text) => {
-    console.log("useMessageTextToHtml 1", text+'"');
     // Format labels first
     const labelsFormatted = formatLabelsInText(text);
 
@@ -51,8 +49,6 @@ export const useMessageTextToHtml = () => {
 
       return acc;
     }, []);
-
-    console.log("useMessageTextToHtml 2", aliasFormatted);
 
     return aliasFormatted;
   }

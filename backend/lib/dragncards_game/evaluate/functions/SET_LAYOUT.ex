@@ -45,7 +45,9 @@ defmodule DragnCardsGame.Evaluate.Functions.SET_LAYOUT do
 
         # Update the player layouts
         Enum.reduce(game["playerData"], game, fn({player_i, _player_data}, acc) ->
-          Evaluate.evaluate(acc, ["SET_LAYOUT", player_i, layout_id], trace)
+          acc
+          |> Evaluate.evaluate(["SET", "/playerData/#{player_i}/layoutId", layout_id])
+          |> Evaluate.evaluate(["SET", "/playerData/#{player_i}/layout", layout])
         end)
       _ ->
         game

@@ -12,7 +12,6 @@ export const useCardStyle = (cardId, cardIndexFromGui, isDragging, offset) => {
     const cardIndex = cardIndexFromGui || 0;
     const cardScaleFactor = useCardScaleFactor();
     const cardVisibleFace = useVisibleFace(cardId);
-    console.log("zIndex card", DEFAULT_CARD_Z_INDEX, cardIndex);
     const zIndex = DEFAULT_CARD_Z_INDEX - cardIndex;
     const isActive = useSelector(state => {return state?.playerUi?.activeCardId === cardId});
     const cardBorderColor = useSelector(state => state?.gameUi?.game?.cardById[cardId]?.borderColor);

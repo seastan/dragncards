@@ -202,30 +202,7 @@ export const useDoDragnHotkey = () => {
             ["SET", "/stepId", "$STEP_ID"]
         ])
       case "drawArrow":
-          return doActionList([
-              ["VAR", "$FROM_CARD_ID", "$GAME.playerData.$PLAYER_N.drawingArrowFrom"],
-              ["COND",
-                ["EQUAL", "$FROM_CARD_ID", null],
-                [
-                  ["LOG", "$ALIAS_N", " is drawing an arrow from ", "$ACTIVE_CARD.currentFace.name", "."],
-                  ["SET", "/playerData/$PLAYER_N/drawingArrowFrom", "$ACTIVE_CARD_ID"]
-                ],
-                ["IN_LIST", "$GAME.cardById.$FROM_CARD_ID.arrows.$PLAYER_N", "$ACTIVE_CARD_ID"],
-                [
-                  ["LOG", "$ALIAS_N", " removed an arrow to ", "$ACTIVE_CARD.currentFace.name", "."],
-                  ["SET", "/cardById/$FROM_CARD_ID/arrows/$PLAYER_N", 
-                    ["REMOVE_FROM_LIST_BY_VALUE", "$GAME.cardById.$FROM_CARD_ID.arrows.$PLAYER_N", "$ACTIVE_CARD_ID"]
-                  ],
-                  ["SET", "/playerData/$PLAYER_N/drawingArrowFrom", null]
-                ],
-                true,
-                [
-                  ["LOG", "$ALIAS_N", " drew an arrow to ", "$ACTIVE_CARD.currentFace.name", "."],
-                  ["SET", "/cardById/$FROM_CARD_ID/arrows/$PLAYER_N", ["APPEND", "$GAME.cardById.$FROM_CARD_ID.arrows.$PLAYER_N", "$ACTIVE_CARD_ID"]],
-                  ["SET", "/playerData/$PLAYER_N/drawingArrowFrom", null]
-                ]
-              ]
-          ])
+          return doActionList(dragnActionLists.drawArrow());
       }
   }
 }

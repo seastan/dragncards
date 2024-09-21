@@ -1,4 +1,8 @@
 export const siteL10n = {
+  "drawArrow": {
+    "English": "Draw Arrow",
+    "Chinese": "绘制箭头"
+  },
   "loadUrl": {
     "English": "Load deck via URL",
     "Chinese": "通过 URL 加载牌组"

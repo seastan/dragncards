@@ -41,8 +41,6 @@ export const useOffsetTotalsAndAmounts = (stackId) => {
   const getCardHeights = useMemo(() => makeGetStackFaceProperties("height"), []);
   const cardHeights = useSelector(state => getCardHeights(state, cardIds), shallowEqual);
 
-  console.log("Rendering useOffsetTotalsAndAmounts", stackId, attachmentDirections, cardWidths);
-
   if (!stack) return { 
     offsetTotals: { top: 0, left: 0, right: 0, bottom: 0, behind: 0 }, 
     offsetAmounts: [{ top: 0, left: 0 }],
@@ -95,6 +93,5 @@ export const useOffsetTotalsAndAmounts = (stackId) => {
     offsetAmount.top -= stackEdges.top;
     offsetAmount.left -= stackEdges.left;
   });
-  console.log("Returning offsetTotals", offsetTotals, offsetAmounts, stackEdges)
   return { offsetTotals, offsetAmounts, stackEdges };
 }
