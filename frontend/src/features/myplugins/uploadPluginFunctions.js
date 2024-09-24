@@ -81,18 +81,18 @@ const removeComments = (json) => {
 };
 
 export const mergeJSONs = (jsonList) => {
-  // Helper function to remove comments from JSON strings
-  // const removeComments = (json) => {
-  //   return json.replace(/(^|[^:])\/\/.*(?=[\n\r])/g, '$1'); // Remove comments starting with // but not URLs
-  // };
+  const objList = jsonList.map((json, idx) => {
+    try {
+      return JSON.parse(removeComments(json));
+    } catch (error) {
+      throw new Error(`Error parsing JSON in file: ${jsonList[idx].fileName}, ${error.message}`);
+    }
+  });
 
-  const objList = jsonList.map(json => JSON.parse(removeComments(json)));
-  
-  // Merge the objects
   const mergedObj = mergeObjects(objList);
-  
   return mergedObj;
 }
+
 export const mergeObjects = (objList) => {
   const obj0 = objList[0];
   for (var i = 1; i < objList.length; i++) {

@@ -218,7 +218,9 @@ defmodule DragnCardsGame.AutomationRules do
         game_old
       end
 
-    case rule["type"] do
+    prev_prev_game = game_new["prev_game"]
+    game_new = put_in(game_new["prev_game"], game_old)
+    game_new = case rule["type"] do
       "trigger" ->
         apply_trigger_rule(rule, game_old, game_new, trace ++ ["apply_trigger_rule #{rule['id']}"])
       "passive" ->
@@ -226,17 +228,16 @@ defmodule DragnCardsGame.AutomationRules do
       _ ->
         game_new
     end
+    game_new = put_in(game_new["prev_game"], prev_prev_game)
+    game_new
   end
 
-  def apply_trigger_rule(rule, game_old, game_new, trace) do
-    # Stringify the rule
-    game_new = put_in(game_new["prev_game"], game_old)
-    game_new = if Evaluate.evaluate(game_new, rule["condition"], trace ++ [Jason.encode!(rule["condition"])]) do
+  def apply_trigger_rule(rule, _game_old, game_new, trace) do
+    if Evaluate.evaluate(game_new, rule["condition"], trace ++ [Jason.encode!(rule["condition"])]) do
       Evaluate.evaluate(game_new, rule["then"], trace ++ [Jason.encode!("THEN")])
     else
       game_new
     end
-    put_in(game_new["prev_game"], nil)
   end
 
   def apply_passive_rule(rule, game_old, game_new, trace) do

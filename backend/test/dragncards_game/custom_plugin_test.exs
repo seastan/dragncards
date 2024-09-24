@@ -1471,6 +1471,19 @@ defmodule DragnCardsGame.CustomPluginTest do
 
   end
 
+  # Variable function name
+  @tag :var_func
+  test "var_func", %{user: _user, game: game, game_def: _game_def} do
+
+    game = Evaluate.evaluate(game, ["VAR", "$MYVAR", "LOG"])
+    game = Evaluate.evaluate(game, ["$MYVAR", "Hello World"])
+
+    # Print all messages
+    Enum.each(game["messages"], fn message ->
+      IO.puts(message)
+    end)
+
+  end
   # Local variables
   @tag :temp
   test "temp", %{user: _user, game: game, game_def: _game_def} do

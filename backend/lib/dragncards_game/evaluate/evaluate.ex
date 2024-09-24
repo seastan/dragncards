@@ -202,6 +202,12 @@ defmodule DragnCardsGame.Evaluate do
         # IO.puts("evaluate_inner 2")
         # IO.inspect(code)
         function_name = Enum.at(code, 0)
+        # If function_name starts with a $, evaluate it
+        function_name = if is_binary(function_name) and String.starts_with?(function_name, "$") do
+          evaluate(game, function_name, trace ++ ["function_name"])
+        else
+          function_name
+        end
         trace = trace ++ [function_name]
 
         function_module = try do
