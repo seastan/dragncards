@@ -55,25 +55,28 @@ const importViaUrlRingsDb = async (importLoadList, doActionList, playerN) => {
 }
 
 const importViaUrlArkhamDb = async (importLoadList, doActionList, playerN) => {
-  const arkhamDbUrl = prompt("Paste full ArkhamDB URL","");
-  if (!arkhamDbUrl.includes("arkhamdb.com")) {
-    alert("Only importing from ArkhamDB is supported at this time.");
+  const arkhamDbUrl = prompt("Paste full ArkhamDB/arkham.build URL","");
+  if (!arkhamDbUrl.includes("arkhamdb.com") && !arkhamDbUrl.includes("arkham.build")) {
+    alert("Only importing from ArkhamDB or arkhamdb.com is supported at this time.");
     return;
   }
   var arkhamDbType;
-  if (arkhamDbUrl.includes("/decklist/")) arkhamDbType = "decklist";
-  else if (arkhamDbUrl.includes("/deck/")) arkhamDbType = "deck";
+  var typeIndexMod = 2;
+  if (arkhamDbUrl.includes("arkhamdb.com") && arkhamDbUrl.includes("/decklist/")) arkhamDbType = "decklist";
+  else if (arkhamDbUrl.includes("arkhamdb.com") && arkhamDbUrl.includes("/deck/")) arkhamDbType = "deck";
+  else if (arkhamDbUrl.includes("arkham.build") && arkhamDbUrl.includes("/view/")) { arkhamDbType = "view"; typeIndexMod = 1; }
+  else if (arkhamDbUrl.includes("arkham.build") && arkhamDbUrl.includes("/share/")) { arkhamDbType = "share"; typeIndexMod = 1; }
   if (!arkhamDbType) {
     alert("Invalid URL");
     return;
   }
   var splitUrl = arkhamDbUrl.split( '/' );
   const typeIndex = splitUrl.findIndex((e) => e === arkhamDbType)
-  if (splitUrl && splitUrl.length <= typeIndex + 2) {
+  if (splitUrl && splitUrl.length <= typeIndex + typeIndexMod) {
     alert("Invalid URL");
     return;
   }
-  const arkhamDbId = splitUrl[typeIndex + 2];
+  const arkhamDbId = splitUrl[typeIndex + typeIndexMod];
   return loadArkhamDb(importLoadList, doActionList, playerN, arkhamDbType, arkhamDbId);
 }
 
@@ -191,9 +194,10 @@ export const loadRingsDb = (importLoadList, doActionList, playerN, ringsDbDomain
 }
 
 export const loadArkhamDb = (importLoadList, doActionList, playerN, arkhamDbType, arkhamDbId) => {
-  doActionList(["LOG", "$ALIAS_N", " is importing a deck from ArkhamDB."]);
-  const urlBase = "https://arkhamdb.com/api/"
-  const url = arkhamDbType === "decklist" ? urlBase+"public/decklist/"+arkhamDbId : urlBase+"public/deck/"+arkhamDbId;
+  const arkhamBuild = arkhamDbType === "view" || arkhamDbType === "share";
+  doActionList(["LOG", "$ALIAS_N", " is importing a deck from " + (arkhamBuild ? "arkham.build" : "ArkhamDB") + "."]);
+  const urlBase = arkhamBuild ? "https://api.arkham.build/v1/public/share/" : "https://arkhamdb.com/api/public/";
+  const url = urlBase + (arkhamBuild ? arkhamDbId : arkhamDbType + "/" + arkhamDbId);
   console.log("Fetching ", url);
   fetch(url, {
     method: "GET",
@@ -233,20 +237,51 @@ export const loadArkhamDb = (importLoadList, doActionList, playerN, arkhamDbType
         loadList.push({'databaseId': ic, 'quantity': 1, 'loadGroupId': "playerNInvestigator"});
       }
     }
-    const slots = jsonData.slots;
-    for (const [slot, quantity] of Object.entries(slots)) {
-      loadList.push({'databaseId': slot, 'quantity': quantity, 'loadGroupId': "playerNDeck"});
+    const slots = jsonData?.slots;
+    if (slots) {
+      for (const [slot, quantity] of Object.entries(slots)) {
+        loadList.push({'databaseId': slot, 'quantity': quantity, 'loadGroupId': "playerNDeck"});
+      }
     }
-    const sideSlots = jsonData.sideSlots;
-    for (const [slot, quantity] of Object.entries(sideSlots)) {
-      loadList.push({'databaseId': slot, 'quantity': quantity, 'loadGroupId': "playerNSideDeck"});
+    const sideSlots = jsonData?.sideSlots;
+    if (sideSlots) {
+      for (const [slot, quantity] of Object.entries(sideSlots)) {
+        loadList.push({'databaseId': slot, 'quantity': quantity, 'loadGroupId': "playerNSideDeck"});
+      }
     }
-    
+    var metaActionList = [];
+    const extraDeck = meta?.extra_deck;
+    if (extraDeck) {
+      metaActionList.push(["INCREASE_VAL", "/playerData/" + playerN + "/arkham/showExtraDeck", 1]);
+      for (const slot of extraDeck.split(',')) {
+        loadList.push({'databaseId': slot, 'quantity': 1, 'loadGroupId': "playerNExtraDeck"});
+      }
+    }
+    metaActionList.push(["SET", "/playerData/" + playerN + "/arkham/deckCustomizable", {}]);
+    metaActionList.push(["SET", "/playerData/" + playerN + "/arkham/deckAttachments", {}]);
+    if (meta) {
+      for (const [key, value] of Object.entries(meta)) {
+        if (key.startsWith("cus_")) {
+          metaActionList.push(["SET", "/playerData/" + playerN + "/arkham/deckCustomizable/" + key.substring(4), {}]);
+          for (const customization of value.split(',')) {
+            const customizationValues = customization.split('|');
+            const customizationKey = customizationValues.shift();
+            customizationValues.unshift("LIST");
+            metaActionList.push(["SET", "/playerData/" + playerN + "/arkham/deckCustomizable/" + key.substring(4) + "/" + customizationKey, customizationValues]);
+          }
+        } else if (key.startsWith("attachments_")) {
+          const attachments = value.split(',');
+          attachments.unshift("LIST");
+          metaActionList.push(["SET", "/playerData/" + playerN + "/arkham/deckAttachments/" + key.substring(12), attachments]);
+        }
+      }
+    }    
+    doActionList(metaActionList);
     importLoadList(loadList);
   })
   .catch((error) => {
     // handle your errors here
-    alert("Error loading deck. If you are attempting to load an unpublished deck, make sure you have link sharing turned on in your ArkhamDB profile settings.")
+    alert("Error loading deck. If you are attempting to load an unpublished deck, make sure you have sharing turned on in your " + (arkhamBuild ? "arkham.build deck" : "ArkhamDB profile") + " settings.")
   })
 }
 
