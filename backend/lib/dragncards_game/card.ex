@@ -30,7 +30,7 @@ defmodule DragnCardsGame.Card do
       "peeking" => %{},
       "targeting" => %{},
       "arrows" => %{},
-      "tokens" => Tokens.new(),
+      "tokens" => Tokens.new(game_def),
       "ruleIds" => [],
     }
     Logger.debug("card_from_card_details 2")

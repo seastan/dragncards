@@ -11,7 +11,7 @@ defmodule DragnCardsGame.Evaluate.Functions.TARGET do
 
   *Examples*:
 
-  Target the active card with the ID `card1`:
+  Target the active card:
   ```
   ["TARGET", "$ACTIVE_CARD_ID"]
   ```
@@ -29,6 +29,7 @@ defmodule DragnCardsGame.Evaluate.Functions.TARGET do
   The result of the 'TARGET' operation.
   """
   def execute(game, code, trace) do
+    Evaluate.argc?(code, 1)
     card_id = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["card_id"])
     Evaluate.evaluate(game, ["SET", "/cardById/" <> card_id <> "/targeting/$PLAYER_N", true], trace ++ ["set"])
   end

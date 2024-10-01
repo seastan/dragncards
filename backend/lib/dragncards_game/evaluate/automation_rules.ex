@@ -244,11 +244,16 @@ defmodule DragnCardsGame.AutomationRules do
     onBefore = Evaluate.evaluate(game_old, rule["condition"], trace ++ ["game_old", Jason.encode!(rule["condition"])])
     onAfter = Evaluate.evaluate(game_new, rule["condition"], trace ++ ["game_new", Jason.encode!(rule["condition"])])
 
+    onDo = rule["onDo"]
+    offDo = rule["offDo"]
+
     cond do
-      !onBefore && onAfter ->
-        Evaluate.evaluate(game_new, rule["onDo"], trace ++ ["ON_DO"])
-      onBefore && !onAfter ->
-        Evaluate.evaluate(game_new, rule["offDo"], trace ++ ["OFF_DO"])
+      onDo == nil && offDo == nil ->
+        raise "Tried to trigger a passive rule that does not have an onDo or offDo."
+      !onBefore && onAfter && onDo != nil ->
+        Evaluate.evaluate(game_new, onDo, trace ++ ["ON_DO"])
+      onBefore && !onAfter && offDo != nil ->
+        Evaluate.evaluate(game_new, offDo, trace ++ ["OFF_DO"])
       true ->
         game_new
     end

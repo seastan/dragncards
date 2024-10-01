@@ -1,5 +1,5 @@
 defmodule DragnCardsGame.Evaluate.Functions.COND do
-  alias DragnCardsGame.Evaluate
+  alias DragnCardsGame.{Evaluate, StringifyVar}
   @moduledoc """
   *Arguments*:
   Any number of pairs of booleans and DragnLang code blocks
@@ -75,10 +75,17 @@ defmodule DragnCardsGame.Evaluate.Functions.COND do
   def execute(game, code, trace) do
     ifthens = Enum.slice(code, 1, Enum.count(code))
     Enum.reduce_while(0..Enum.count(ifthens)-1//2, game, fn(i, _acc) ->
-      if Evaluate.evaluate(game, Enum.at(ifthens, i), trace ++ ["index #{i} (if)"]) == true do
-        {:halt, Evaluate.evaluate(game, Enum.at(ifthens, i+1), trace ++ ["index #{i} (then)"])}
+      if_statement = Enum.at(ifthens, i)
+      result = Evaluate.evaluate(game, if_statement, trace ++ ["index #{i} (if)"])
+      if is_boolean(result) or is_nil(result) do
+        if result do
+          then_statement = Enum.at(ifthens, i+1)
+          {:halt, Evaluate.evaluate(game, then_statement, trace ++ ["index #{i} (then)"])}
+        else
+          {:cont, game}
+        end
       else
-        {:cont, game}
+        raise "COND: Expected a boolean or null result, but #{StringifyVar.stringify_var(if_statement)} resulted in #{StringifyVar.stringify_var(result)}"
       end
     end)
   end

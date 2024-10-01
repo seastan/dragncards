@@ -68,7 +68,7 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
     end
 
     # Generate the variable definition statements that we to resolve the message and to prepended to the code
-    multi_var_command = Enum.reduce(Enum.with_index(orig_args), ["MULTI_VAR"], fn({arg, index}, acc) ->
+    multi_var_command = Enum.reduce(Enum.with_index(orig_args), ["MULTI_VAR_NO_EVAL"], fn({arg, index}, acc) ->
       [{arg_name, arg_val}] = cond do
         index >= Enum.count(arg_vals) -> # If we are beyond the range of input arguments, look for default arguments
           if is_map(arg) do
@@ -77,7 +77,7 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
             raise "Prompt #{prompt_id} expects #{Enum.count(orig_args)} arguments, but got #{Enum.count(arg_vals)}."
           end
         true -> # We are within the range of input arguments, so use the input argument
-          arg_val = Evaluate.evaluate(game, Enum.at(arg_vals, index), trace ++ ["arg_val #{index}"])
+          arg_val = Evaluate.evaluate(game, Enum.at(arg_vals, index), trace ++ ["arg_val #{index}"]) # We evaluate the arguments now rather than when the prompt is triggered
           if is_map(arg) do
             arg_name = Enum.at(Map.keys(arg), 0)
             [{arg_name, arg_val}]
@@ -88,11 +88,13 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
       end
       acc ++ [arg_name, arg_val]
     end)
-    game = Evaluate.evaluate(game, multi_var_command, trace ++ ["define prompt args"])
 
-    new_message = Evaluate.evaluate(game, orig_message, trace ++ ["message"])
+    # Create a temporary game state to evaluate the message
+    game_for_message = Evaluate.evaluate(game, multi_var_command, trace ++ ["define prompt args"])
+    new_message = Evaluate.evaluate(game_for_message, orig_message, trace ++ ["message"])
+
+    # Generate a new prompt with a new UUID and the resolved message
     prompt_uuid = Ecto.UUID.generate
-
 
     new_prompt = orig_prompt
     |> Map.put("uuid", prompt_uuid)

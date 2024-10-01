@@ -5,8 +5,11 @@ defmodule DragnCardsGame.Tokens do
 
   @type t :: Map.t()
 
-  @spec new() :: Map.t()
-  def new() do
-    %{}
+  @spec new(Map.t()) :: Map.t()
+  def new(game_def) do
+    tokensDef = game_def["tokens"]
+    Enum.reduce(tokensDef, %{}, fn({tokenType, _tokenDefDetails}, acc) ->
+      Map.put(acc, tokenType, 0)
+    end)
   end
 end

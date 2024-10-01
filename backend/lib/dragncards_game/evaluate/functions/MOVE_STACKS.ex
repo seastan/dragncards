@@ -57,7 +57,7 @@ defmodule DragnCardsGame.Evaluate.Functions.MOVE_STACKS do
   The result of the 'MOVE_STACKS' operation.
   """
   def execute(game, code, trace) do
-    argc = Enum.count(code) - 1
+    argc = Evaluate.argc(code, 2, 5)
     orig_group_id = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["orig_group_id"])
     dest_group_id = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["dest_group_id"])
     top_n = if argc >= 3 do Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["top_n"]) else length(game["groupById"][orig_group_id]["stackIds"]) end

@@ -34,9 +34,16 @@ defmodule DragnCardsGame.Evaluate.Functions.DECREASE_VAL do
   The result of the 'DECREASE_VAL' operation.
   """
   def execute(game, code, trace) do
-    path = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["path"])
+    path_raw = Enum.at(code, 1)
+    path = Evaluate.evaluate(game, path_raw, trace ++ ["path"])
     delta = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["delta"])
-    old_value = get_in(game, path) || 0
+    old_value = get_in(game, path)
+    game = if old_value == nil do
+      Evaluate.evaluate(game, ["LOG", "Warning: Decreasing a value at a non-existing path: #{inspect(path_raw)}. Assuming an initial value of 0."], trace ++ ["LOG"])
+    else
+      game
+    end
+    old_value = old_value || 0
     PutByPath.put_by_path(game, path, old_value - delta, trace ++ ["put_by_path"])
   end
 

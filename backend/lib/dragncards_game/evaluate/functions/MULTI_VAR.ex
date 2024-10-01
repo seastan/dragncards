@@ -4,7 +4,7 @@
   *Arguments*:
   Any number of pairs of variable names and values
 
-  Defines a the local variables with the given names and values. This variable can only be accessed within the current scope or lower/child scopes.
+  Defines a the local variables with the given names and values. This variable can only be accessed within the current scope or lower/child scopes. The values are evaluated prior to assignment.
 
   *Returns*:
   (game state) The updated game state.
@@ -19,6 +19,8 @@
   [
     ["VAR", "$X", 5],
     ["MULTI_VAR", "$X", 10, "$Y", "$X"] // This will define X as 10 and Y as 5
+    ["LOG", "$X"], // Logs 10
+    ["LOG", "$Y"] // Logs 5
   ]
   ```
 

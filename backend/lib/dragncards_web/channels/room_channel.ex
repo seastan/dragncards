@@ -71,19 +71,23 @@ defmodule DragnCardsWeb.RoomChannel do
     old_state = GameUIServer.state(room_slug)
     old_replay_step = old_state["replayStep"]
     GameUIServer.game_action(room_slug, user_id, action, options)
+
     new_state = GameUIServer.state(room_slug)
 
     # If round changed, save replay
     if get_in(new_state, ["game", "roundNumber"]) != get_in(old_state, ["game", "roundNumber"]) do
-      {alert_text, alert_level} = case GameUI.save_replay(new_state, user_id, options) do
-        {:ok, message} -> {message, "success"}
-        _ -> {"Failed to save game.", "error"}
-      end
+      IO.puts("Round changed, saving replay, user_id: #{user_id}")
+      save_replay(socket, room_slug, user_id, options)
+      # {alert_text, alert_level} = case GameUI.save_replay(new_state, user_id, options) do
+      #   {:ok, message} -> {message, "success"}
+      #   {:error, message} -> {message, "error"}
+      #   _ -> {"Failed to save game.", "error"}
+      # end
 
-      notify_alert(socket, room_slug, user_id, %{
-        "level" => alert_level,
-        "text" => alert_text
-      })
+      # notify_alert(socket, room_slug, user_id, %{
+      #   "level" => alert_level,
+      #   "text" => alert_text
+      # })
     end
 
     notify_update(socket, room_slug, user_id, old_state)
@@ -99,19 +103,8 @@ defmodule DragnCardsWeb.RoomChannel do
     },
     %{assigns: %{room_slug: room_slug, user_id: user_id}} = socket
   ) do
-
-    new_state = GameUIServer.state(room_slug)
-
-    {alert_text, alert_level} = case GameUI.save_replay(new_state, user_id, options) do
-      {:ok, message} -> {message, "success"}
-      _ -> {"Failed to save game.", "error"}
-    end
-
-    notify_alert(socket, room_slug, user_id, %{
-      "level" => alert_level,
-      "text" => alert_text
-    })
-
+    IO.puts("Save replay, user_id: #{user_id}")
+    save_replay(socket, room_slug, user_id, options)
     {:reply, {:ok, "save_replay"}, socket}
   end
 
@@ -286,6 +279,24 @@ defmodule DragnCardsWeb.RoomChannel do
     end
   end
 
+  defp save_replay(socket, room_slug, user_id, options) do
+    new_state = GameUIServer.state(room_slug)
+    {alert_text, alert_level} = try do
+      case GameUI.save_replay(new_state, user_id, options) do
+        {:ok, message} -> {message, "success"}
+        {:error, message} -> {message, "error"}
+        _ -> {"Failed to save game.", "error"}
+      end
+    rescue
+      _ ->
+      {"Failed to save game.", "error"}
+    end
+
+    notify_alert(socket, room_slug, user_id, %{
+      "level" => alert_level,
+      "text" => alert_text
+    })
+  end
 
   defp notify_update(socket, room_slug, user_id, old_gameui) do
 

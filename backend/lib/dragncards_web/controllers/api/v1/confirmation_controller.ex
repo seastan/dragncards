@@ -38,7 +38,6 @@ defmodule DragnCardsWeb.API.V1.ConfirmationController do
         #     conn
         #     |> json(%{success: %{message: "Email confirmed"}})
         #   {:error, changeset, conn} ->
-        #     errors = Changeset.traverse_errors(changeset, &ErrorHelpers.translate_error/1)
         #     conn
         #     |> put_status(500)
         #     |> json(%{error: %{status: 500, message: "Couldn't confirm email", errors: errors}})

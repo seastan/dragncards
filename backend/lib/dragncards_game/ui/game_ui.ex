@@ -992,50 +992,53 @@ defmodule DragnCardsGame.GameUI do
   end
 
   def save_replay(gameui, user_id, options) do
+    if user_id == nil do
+      {:error, "Error saving game: user not recognized."}
+    else
+      game = gameui["game"]
+      game = game
+        |> put_in(["playerUi"], options["player_ui"])
+        |> put_in(["playerInfo"], gameui["playerInfo"])
 
-    game = gameui["game"]
-    game = game
-      |> put_in(["playerUi"], options["player_ui"])
-      |> put_in(["playerInfo"], gameui["playerInfo"])
+      game_uuid = game["id"]
 
-    game_uuid = game["id"]
+      deltas = gameui["deltas"] |> trim_saved_deltas(user_id)
 
-    deltas = gameui["deltas"] |> trim_saved_deltas(user_id)
+      game_def = Plugins.get_game_def(game["options"]["pluginId"])
+      save_metadata = get_in(game_def, ["saveGame", "metadata"])
 
-    game_def = Plugins.get_game_def(game["options"]["pluginId"])
-    save_metadata = get_in(game_def, ["saveGame", "metadata"])
+      updates = %{
+        game_json: game,
+        metadata: if save_metadata == nil do nil else Evaluate.evaluate(game, ["PROCESS_MAP", save_metadata], ["save_replay"]) end,
+        plugin_id: game["pluginId"],
+        deltas: deltas,
+      }
 
-    updates = %{
-      game_json: game,
-      metadata: if save_metadata == nil do nil else Evaluate.evaluate(game, ["PROCESS_MAP", save_metadata], ["save_replay"]) end,
-      plugin_id: game["pluginId"],
-      deltas: deltas,
-    }
+      result = case Repo.get_by(Replay, [user_id: user_id, uuid: game_uuid]) do
+        nil  -> %Replay{user_id: user_id, uuid: game_uuid} # Replay not found, we build one
+        replay -> replay  # Replay exists, let's use it
+      end
 
-    result = case Repo.get_by(Replay, [user_id: user_id, uuid: game_uuid]) do
-      nil  -> %Replay{user_id: user_id, uuid: game_uuid} # Replay not found, we build one
-      replay -> replay  # Replay exists, let's use it
-    end
+      result = result
+      |> Replay.changeset(updates)
+      |> Repo.insert_or_update
 
-    result = result
-    |> Replay.changeset(updates)
-    |> Repo.insert_or_update
+      # Check if it worked
+      case result do
+        {:ok, _struct} ->
+          Logger.debug("Insert or update was successful!")
 
-    # Check if it worked
-    case result do
-      {:ok, _struct} ->
-        Logger.debug("Insert or update was successful!")
+        {:error, changeset} ->
+          Logger.debug("An error occurred:")
+          Logger.debug(inspect(changeset.errors)) # Print the errors
+      end
 
-      {:error, changeset} ->
-        Logger.debug("An error occurred:")
-        Logger.debug(inspect(changeset.errors)) # Print the errors
-    end
-
-    case Users.get_replay_save_permission(user_id) do
-      true ->
-        {:ok, "Full replay saved."}
-      false ->
-        {:ok, "Current game saved. To save full replays, become a supporter."}
+      case Users.get_replay_save_permission(user_id) do
+        true ->
+          {:ok, "Full replay saved."}
+        false ->
+          {:ok, "Current game saved. To save full replays, become a supporter."}
+      end
     end
   end
 
@@ -1240,6 +1243,7 @@ defmodule DragnCardsGame.GameUI do
           database_id != nil ->
             card_details = {:ok, card_db[database_id]}
             case card_details do
+              {:ok, nil} -> raise "Card with databaseId #{database_id} not found."
               {:ok, card_details} -> card_details
               :error -> raise "Card with databaseId #{database_id} not found."
             end
@@ -1283,7 +1287,6 @@ defmodule DragnCardsGame.GameUI do
 
     {reduce_load_list_time, game} = :timer.tc(fn ->
       Enum.reduce(load_list, game, fn load_list_item, acc ->
-        Logger.debug("load_card #{load_list_item["cardDetails"]["A"]["name"]} into #{load_list_item["loadGroupId"]}")
         load_card(acc, game_def, load_list_item)
       end)
     end)
