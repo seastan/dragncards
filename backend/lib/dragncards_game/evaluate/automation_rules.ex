@@ -234,7 +234,8 @@ defmodule DragnCardsGame.AutomationRules do
 
   def apply_trigger_rule(rule, _game_old, game_new, trace) do
     if Evaluate.evaluate(game_new, rule["condition"], trace ++ [Jason.encode!(rule["condition"])]) do
-      Evaluate.evaluate(game_new, rule["then"], trace ++ [Jason.encode!("THEN")])
+      run_rule_code(game_new, rule, rule["then"], trace ++ ["then"])
+      #Evaluate.evaluate(game_new, rule["then"], trace ++ [Jason.encode!("THEN")])
     else
       game_new
     end
@@ -251,12 +252,46 @@ defmodule DragnCardsGame.AutomationRules do
       onDo == nil && offDo == nil ->
         raise "Tried to trigger a passive rule that does not have an onDo or offDo."
       !onBefore && onAfter && onDo != nil ->
-        Evaluate.evaluate(game_new, onDo, trace ++ ["ON_DO"])
+        run_rule_code(game_new, rule, onDo, trace ++ ["onDo"])
+        #Evaluate.evaluate(game_new, onDo, trace ++ ["onDo"])
       onBefore && !onAfter && offDo != nil ->
-        Evaluate.evaluate(game_new, offDo, trace ++ ["OFF_DO"])
+        run_rule_code(game_new, rule, offDo, trace ++ ["offDo"])
+        #Evaluate.evaluate(game_new, offDo, trace ++ ["offDo"])
       true ->
         game_new
     end
+  end
+
+  def run_rule_code(game, rule, rule_code, trace) do
+    case rule["autoRun"]["status"] do
+      "prompt" ->
+        askPlayerI = Evaluate.evaluate(game, rule["askPlayerI"], trace ++ ["askPlayerI"])
+        if askPlayerI == nil do
+          raise "Tried to confirm rule automation #{rule["id"]} with a null player."
+        end
+        game = Evaluate.evaluate(game, ["TARGET_PLAYER_I", "$TARGET_ID", askPlayerI, true])
+        yes_code = ["POINTER", [
+          ["TARGET_PLAYER_I", "$TARGET_ID", askPlayerI, false],
+          ["LOG", "{{$ALIAS_N}} picked yes."]
+        ]]
+        always_code = ["POINTER", [
+          ["TARGET_PLAYER_I", "$TARGET_ID", askPlayerI, false],
+          ["LOG", "{{$ALIAS_N}} picked yes."]
+        ]]
+        no_code = ["POINTER", [
+          ["TARGET_PLAYER_I", "$TARGET_ID", askPlayerI, false],
+          ["LOG", "{{$ALIAS_N}} picked no."]
+        ]]
+        never_code = ["POINTER", [
+          ["TARGET_PLAYER_I", "$TARGET_ID", askPlayerI, false],
+          ["LOG", "{{$ALIAS_N}} picked never."]
+        ]]
+        Evaluate.evaluate(game, ["PROMPT", askPlayerI, "confirmAutomation", always_code, yes_code, no_code, never_code])
+      "never" ->
+        game
+      _ ->
+        Evaluate.evaluate(game, rule_code, trace ++ ["run_rule_code"])
+      end
   end
 
 end

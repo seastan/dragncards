@@ -38,6 +38,7 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
 
   The result of the 'PROMPT' operation.
   """
+
   def execute(game, code, trace) do
     target_player_list = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["target_player_n"])
     target_player_list = if is_list(target_player_list) do
@@ -49,7 +50,7 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
     arg_vals = Enum.slice(code, 3, Enum.count(code))
     game_def = Plugins.get_game_def(game["options"]["pluginId"])
 
-    orig_prompt = game_def["prompts"][prompt_id]
+    orig_prompt = game_def["prompts"][prompt_id] || dragn_prompt(prompt_id)
     if orig_prompt == nil do
       raise "Prompt #{prompt_id} not found in game definition."
     end
@@ -128,5 +129,39 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
     game
   end
 
+
+  def dragn_prompt(prompt_id) do
+    case prompt_id do
+      "confirmAutomation" ->
+        %{
+          "args" => ["$MESSAGE", "$ALWAYS_CODE", "$YES_CODE", "$NO_CODE", "$NEVER_CODE"],
+          "message" => "$MESSAGE",
+          "options" => [
+            %{
+                "label" => "id:always",
+                "hotkey" => "Shift+Y",
+                "code" => ["ACTION_LIST", "$ALWAYS_CODE"]
+            },
+            %{
+                "label" => "id:yes",
+                "hotkey" => "Y",
+                "code" => ["ACTION_LIST", "$YES_CODE"]
+            },
+            %{
+                "label" => "id:no",
+                "hotkey" => "N",
+                "code" => ["ACTION_LIST", "$NO_CODE"]
+            },
+            %{
+                "label" => "id:never",
+                "hotkey" => "Shift+N",
+                "code" => ["ACTION_LIST", "$NEVER_CODE"]
+            }
+          ]
+        }
+      _ ->
+        nil
+    end
+  end
 
 end
