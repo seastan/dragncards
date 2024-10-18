@@ -722,16 +722,14 @@ defmodule DragnCardsGame.CustomPluginTest do
   # Treebeard
   @tag :treebeard
   test "Treebeard", %{user: _user, game: game, game_def: _game_def} do
-    # game = Evaluate.evaluate(game, ["VAR", "$CODE", ["POINTER", ["LOG_DEV", "Hello World"]]])
-    # game = Evaluate.evaluate(game, ["UPDATE_VAR", "$CODE", ["LIST", "$CODE"]])
-    # game = Evaluate.evaluate(game, ["ACTION_LIST", "$CODE"])
 
-    # Load Dain
+    # Load Treebeard
     game = Evaluate.evaluate(game, ["LOAD_CARDS", ["LIST", %{"databaseId" => "c266126d-cf2d-4a61-aac7-28bac2d1ea0d", "loadGroupId" => "player1Play1", "quantity" => 1}]])
     assert length(game["groupById"]["player1Play1"]["stackIds"]) == 1
-    game = Evaluate.evaluate(game, ["SET", "/stepId", "1.R"])
 
-    IO.inspect(game["playerData"]["player1"]["prompts"])
+    # New round
+    game = Evaluate.evaluate(game, ["ACTION_LIST", "newRound"])
+
 
     prompt_id = Enum.at(Map.keys(game["playerData"]["player1"]["prompts"]), 0)
     prompt = game["playerData"]["player1"]["prompts"][prompt_id]
@@ -739,6 +737,22 @@ defmodule DragnCardsGame.CustomPluginTest do
     game = Evaluate.evaluate(game, optionYes["code"])
 
     assert Evaluate.evaluate(game, "$GAME.groupById.player1Play1.parentCards.[0].tokens.resource") == 1
+
+
+    game = Evaluate.evaluate(game, ["ACTION_LIST", "newRound"])
+
+    prompt_id = Enum.at(Map.keys(game["playerData"]["player1"]["prompts"]), 0)
+    prompt = game["playerData"]["player1"]["prompts"][prompt_id]
+    optionAlways = Enum.at(prompt["options"], 0)
+    game = Evaluate.evaluate(game, optionAlways["code"])
+
+    assert Evaluate.evaluate(game, "$GAME.groupById.player1Play1.parentCards.[0].tokens.resource") == 2
+
+
+    game = Evaluate.evaluate(game, ["ACTION_LIST", "newRound"])
+
+    assert Evaluate.evaluate(game, "$GAME.groupById.player1Play1.parentCards.[0].tokens.resource") == 3
+
 
     # Print all messages
     Enum.each(game["messages"], fn message ->

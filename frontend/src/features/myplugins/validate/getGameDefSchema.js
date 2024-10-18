@@ -42,6 +42,30 @@ export function generateMarkdown(schema, parentPath = 'gameDef') {
 
   return markdown;
 }
+
+const autoRunSchema = {
+  "_description_": "Parameters for the rule to automatically run",
+  "_type_": "object",
+  "_strictKeys_": true,
+  "status": {
+    "_description_": "The status of the rule. If set to 'always', the rule will automatically run when the condition is met. If set to 'never', the rule will not automatically run. If set to 'propmt', the user will be prompted to run the rule.",
+    "_type_": "string",
+    "_required_": true,
+    "_memberOf_": ["always", "never", "prompt"],
+    "_memberOfPath_": `["always", "never", "prompt"]`,
+  },
+  "promptPlayerI": {
+    "_description_": "The player that should be prompted to run the rule. Example: 'player1' or '$PLAYER_N' or some code that returns a playerI value.",
+    "_type_": "code",
+    "_required_": true,
+  },
+  "promptMessage": {
+    "_description_": "The message to display to the player when prompting them to run the rule",
+    "_type_": "string",
+    "_required_": true,
+  }
+};
+
 export const getGameDefSchema = (gameDef) => {
     return ({
       "_description_": "The game definition schema",
@@ -114,11 +138,11 @@ export const getGameDefSchema = (gameDef) => {
           "_type_": "actionList",
         },
         "gameRules": {
-          "_description_": "Game rules",
+          "_description_": "Automation rules",
           "_type_": "object",
           "_required_": false,
           "_itemSchema_": {
-            "_description_": "A rule that is triggered automatically by the game state",
+            "_description_": "A rule that is triggered automatically",
             "_type_": "object",
             "type": {
               "_description_": "The type of rule",
@@ -127,6 +151,7 @@ export const getGameDefSchema = (gameDef) => {
               "_memberOf_": ["trigger", "passive"],
               "_memberOfPath_": `["trigger", "passive"]`,
             },
+            "autoRun": autoRunSchema,
             "listenTo": {
               "_description_": "The paths in the game state to listen to for changes",
               "_type_": "array",
@@ -173,10 +198,10 @@ export const getGameDefSchema = (gameDef) => {
               }
             },
             "rules": {
-              "_description_": "Rules that are triggered automatically by the card",
+              "_description_": "Rules that are triggered automatically",
               "_type_": "object",
               "_itemSchema_": {
-                "_description_": "A rule that is triggered automatically by the card",
+                "_description_": "A rule that is triggered automatically",
                 "_type_": "object",
                 "type": {
                   "_description_": "The type of rule",
@@ -185,6 +210,7 @@ export const getGameDefSchema = (gameDef) => {
                   "_memberOf_": ["trigger", "passive", "entersPlay", "whileInPlay"],
                   "_memberOfPath_": `["trigger", "passive", "entersPlay", "whileInPlay"]`,
                 },
+                "autoRun": autoRunSchema,
                 "listenTo": {
                   "_description_": "The paths in the game state to listen to for changes",
                   "_type_": "array",

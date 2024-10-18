@@ -150,7 +150,6 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
             %{
                 "label" => "id:no",
                 "hotkey" => "N",
-                "code" => ["ACTION_LIST", "$NO_CODE"]
             },
             %{
                 "label" => "id:never",
