@@ -132,7 +132,23 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
 
   def dragn_prompt(prompt_id) do
     case prompt_id do
-      "confirmAutomation" ->
+      "confirmAutomationYN" ->
+        %{
+          "args" => ["$MESSAGE", "$YES_CODE", "$NO_CODE"],
+          "message" => "$MESSAGE",
+          "options" => [
+            %{
+                "label" => "id:yes",
+                "hotkey" => "Y",
+                "code" => ["ACTION_LIST", "$YES_CODE"]
+            },
+            %{
+                "label" => "id:no",
+                "hotkey" => "N",
+            }
+          ]
+        }
+      "confirmAutomationAYNN" ->
         %{
           "args" => ["$MESSAGE", "$ALWAYS_CODE", "$YES_CODE", "$NO_CODE", "$NEVER_CODE"],
           "message" => "$MESSAGE",

@@ -275,17 +275,11 @@ defmodule DragnCardsGame.AutomationRules do
   end
 
   def run_rule_code(game, rule, rule_code, trace) do
-    case rule["autoRun"]["status"] do
-      "prompt" ->
-        IO.puts("rune 1")
-        IO.inspect(rule)
+    status = rule["autoRun"]["status"]
+    cond do
+      status == "prompt" or status == "promptYN" ->
         promptPlayerI = Evaluate.evaluate(game, rule["autoRun"]["promptPlayerI"], trace ++ ["promptPlayerI"])
         promptMessage = Evaluate.evaluate(game, rule["autoRun"]["promptMessage"], trace ++ ["promptMessage"])
-        # IO.inspect(promptPlayerI)
-        # IO.inspect(rule)
-        # IO.inspect(Evaluate.evaluate(game, "$THIS_ID"))
-        # IO.inspect(Evaluate.evaluate(game, "$THIS"))
-        # IO.inspect(Evaluate.evaluate(game, "$THIS.controller"))
         if promptPlayerI == nil do
           raise "Tried to confirm rule automation #{rule["id"]} with a null player."
         end
@@ -307,10 +301,15 @@ defmodule DragnCardsGame.AutomationRules do
           #["TARGET_PLAYER_I", "$THIS_ID", promptPlayerI, false],
           ["SET", "/ruleById/#{rule["id"]}/autoRun/status", "never"]
         ]]
-        Evaluate.evaluate(game, ["PROMPT", promptPlayerI, "confirmAutomation", promptMessage, always_code, yes_code, no_code, never_code])
-      "never" ->
+        prompt_id = if status == "promptYN" do
+          "confirmAutomationYN"
+        else
+          "confirmAutomationAYNN"
+        end
+        Evaluate.evaluate(game, ["PROMPT", promptPlayerI, prompt_id, promptMessage, always_code, yes_code, no_code, never_code])
+      status == "never" ->
         game
-      _ ->
+      true ->
         Evaluate.evaluate(game, rule_code, trace ++ ["run_rule_code"])
       end
   end

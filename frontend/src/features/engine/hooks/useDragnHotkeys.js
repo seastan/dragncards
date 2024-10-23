@@ -151,7 +151,7 @@ export const useDoDragnHotkey = () => {
         playerUi = {...playerUi, droppableRefs: {}}
         return gameBroadcast("save_replay", {options: {player_ui: playerUi}});
       case "clearTargets":
-          return doActionList(dragnActionLists.clearTargets());
+        return doActionList(dragnActionLists.clearTargets());
       case "peekAtAllFacedownCards":
           const isSpectator = store.getState().gameUi.spectators[user?.id];
           if (!isSpectator) {
@@ -166,43 +166,19 @@ export const useDoDragnHotkey = () => {
             return dispatch(setSpectatorModePeekingAll(!isPeekingAll));
           }
       case "undo":
-          return gameBroadcast("step_through", {options: {size: "single", direction: "undo"}});
+        return gameBroadcast("step_through", {options: {size: "single", direction: "undo"}});
       case "redo":
-          return gameBroadcast("step_through", {options: {size: "single", direction: "redo"}});
+        return gameBroadcast("step_through", {options: {size: "single", direction: "redo"}});
       case "undoMany":
-          return gameBroadcast("step_through", {options: {size: "round", direction: "undo"}});
+        return gameBroadcast("step_through", {options: {size: "round", direction: "undo"}});
       case "redoMany":
-          return gameBroadcast("step_through", {options: {size: "round", direction: "redo"}});
+        return gameBroadcast("step_through", {options: {size: "round", direction: "redo"}});
       case "prevStep": 
-          return doActionList([
-              ["VAR", "$STEP_ID", "$GAME.stepId"],
-              ["VAR", "$OLD_STEP_INDEX", ["GET_INDEX", "$GAME.stepOrder", "$GAME.stepId"]],
-              ["COND",
-                ["EQUAL", "$OLD_STEP_INDEX", 0],
-                ["DEFINE", "$NEW_STEP_INDEX", ["SUBTRACT", ["LENGTH", "$GAME.stepOrder"], 1]],
-                true,
-                ["DEFINE", "$NEW_STEP_INDEX", ["SUBTRACT", "$OLD_STEP_INDEX", 1]]
-              ],
-              ["VAR", "$STEP_ID", "$GAME.stepOrder.[$NEW_STEP_INDEX]"],
-              ["LOG", "$ALIAS_N", " set the round step to ", "$GAME.steps.$STEP_ID.label", "."],
-              ["SET", "/stepId", "$STEP_ID"]
-          ])
+        return doActionList(["PREV_STEP"]);
       case "nextStep":
-        return doActionList([
-            ["VAR", "$STEP_ID", "$GAME.stepId"],
-            ["VAR", "$OLD_STEP_INDEX", ["GET_INDEX", "$GAME.stepOrder", "$GAME.stepId"]],
-            ["COND",
-              ["EQUAL", "$OLD_STEP_INDEX", ["SUBTRACT", ["LENGTH", "$GAME.stepOrder"], 1]],
-              ["DEFINE", "$NEW_STEP_INDEX", 0],
-              true,
-              ["DEFINE", "$NEW_STEP_INDEX", ["ADD", "$OLD_STEP_INDEX", 1]]
-            ],
-            ["VAR", "$STEP_ID", "$GAME.stepOrder.[$NEW_STEP_INDEX]"],
-            ["LOG", "$ALIAS_N", " set the round step to ", "$GAME.steps.$STEP_ID.label", "."],
-            ["SET", "/stepId", "$STEP_ID"]
-        ])
+        return doActionList(["NEXT_STEP"]);
       case "drawArrow":
-          return doActionList(dragnActionLists.drawArrow());
+        return doActionList(dragnActionLists.drawArrow());
       }
   }
 }

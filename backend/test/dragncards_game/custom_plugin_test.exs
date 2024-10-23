@@ -310,6 +310,12 @@ defmodule DragnCardsGame.CustomPluginTest do
 
     # newRound
     res = Evaluate.evaluate(game, game_def["actionLists"]["newRound"])
+
+    # Print all messages
+    Enum.each(game["messages"], fn message ->
+      IO.puts(message)
+    end)
+
     assert length(res["groupById"]["player1Hand"]["stackIds"]) == 7
     assert GameUI.get_card_by_group_id_stack_index_card_index(res, ["player1Play1", 0, 0])["tokens"]["resource"] == 1
     assert GameUI.get_card_by_group_id_stack_index_card_index(res, ["player1Play1", 1, 0])["tokens"]["resource"] == 1
@@ -722,6 +728,11 @@ defmodule DragnCardsGame.CustomPluginTest do
   # Treebeard
   @tag :treebeard
   test "Treebeard", %{user: _user, game: game, game_def: _game_def} do
+    # Select 1 player
+    prompt_id = Enum.at(Map.keys(game["playerData"]["player1"]["prompts"]), 0)
+    prompt = game["playerData"]["player1"]["prompts"][prompt_id]
+    option1 = Enum.at(prompt["options"], 0)
+    game = Evaluate.evaluate(game, option1["code"])
 
     # Load Treebeard
     game = Evaluate.evaluate(game, ["LOAD_CARDS", ["LIST", %{"databaseId" => "c266126d-cf2d-4a61-aac7-28bac2d1ea0d", "loadGroupId" => "player1Play1", "quantity" => 1}]])
@@ -729,7 +740,6 @@ defmodule DragnCardsGame.CustomPluginTest do
 
     # New round
     game = Evaluate.evaluate(game, ["ACTION_LIST", "newRound"])
-
 
     prompt_id = Enum.at(Map.keys(game["playerData"]["player1"]["prompts"]), 0)
     prompt = game["playerData"]["player1"]["prompts"][prompt_id]
@@ -1288,6 +1298,11 @@ defmodule DragnCardsGame.CustomPluginTest do
 
   @tag :mount_gram
   test "mount_gram", %{user: _user, game: game, game_def: game_def} do
+    # Select 1 player
+    prompt_id = Enum.at(Map.keys(game["playerData"]["player1"]["prompts"]), 0)
+    prompt = game["playerData"]["player1"]["prompts"][prompt_id]
+    option1 = Enum.at(prompt["options"], 0)
+    game = Evaluate.evaluate(game, option1["code"])
 
     # Load some decks into the game
     game = Evaluate.evaluate(game, ["LOAD_CARDS", "Q05.5"])
@@ -1309,6 +1324,12 @@ defmodule DragnCardsGame.CustomPluginTest do
 
   @tag :totd
   test "totd", %{user: _user, game: game, game_def: game_def} do
+
+    # Select 1 player
+    prompt_id = Enum.at(Map.keys(game["playerData"]["player1"]["prompts"]), 0)
+    prompt = game["playerData"]["player1"]["prompts"][prompt_id]
+    option1 = Enum.at(prompt["options"], 0)
+    game = Evaluate.evaluate(game, option1["code"])
 
     # Load some decks into the game
     game = Evaluate.evaluate(game, ["LOAD_CARDS", "Q06.6"])
@@ -1359,6 +1380,7 @@ defmodule DragnCardsGame.CustomPluginTest do
 
   @tag :dynamic_prompt
   test "dynamic_prompt", %{user: _user, game: game, game_def: _game_def} do
+
 
     game = Evaluate.evaluate(game, ["FUNCTION", "LOCATION_NAME_TO_PROMPT_OPTION", "$LOCATION_NAME", ["PROCESS_MAP",
         %{

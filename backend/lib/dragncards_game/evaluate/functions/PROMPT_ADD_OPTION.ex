@@ -6,7 +6,7 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT_ADD_OPTION do
   1. `targetPlayerI` (string like "player1") or `targetPlayerList` (list of such strings)
   2. `label` (string)
   3. `hotkey` (string)
-  4. `promptCode` (DragnLang code)
+  4. `promptCode` (DragnLang code, optional)
 
   Adds an option to the most recent prompt for the given player(s).
 
@@ -41,6 +41,7 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT_ADD_OPTION do
   The result of the 'PROMPT_ADD_OPTION' operation.
   """
   def execute(game, code, trace) do
+    argc = Evaluate.argc(3, 4)
     target_player_list = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["target_player_n"])
     target_player_list = if is_list(target_player_list) do
       target_player_list
@@ -49,16 +50,19 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT_ADD_OPTION do
     end
     label = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["label"])
     hotkey = Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["hotkey"])
-    prompt_code = Evaluate.evaluate(game, Enum.at(code, 4), trace ++ ["prompt_code"])
-    if not is_list(prompt_code) do
-      raise "Code given to prompt option is not a list. Remember to use the \"LIST\" function to create a list. For example, [\"LIST\", \"SET\", \"/playerData/player1/health\", 10] will result in the action list [\"SET\", \"/playerData/player1/health\", 10] being assigned to the prompt option."
-    end
-    prompt_code = if is_list(Enum.at(prompt_code, 0)) do
-      prompt_code
+    prompt_code = if argc >= 4 do
+      prompt_code = Evaluate.evaluate(game, Enum.at(code, 4), trace ++ ["prompt_code"])
+      if not is_list(prompt_code) do
+        raise "Code given to prompt option is not a list. Remember to use the \"LIST\" function to create a list. For example, [\"LIST\", \"SET\", \"/playerData/player1/health\", 10] will result in the action list [\"SET\", \"/playerData/player1/health\", 10] being assigned to the prompt option."
+      end
+      prompt_code = if is_list(Enum.at(prompt_code, 0)) do
+        prompt_code
+      else
+        [prompt_code]
+      end
     else
-      [prompt_code]
+      nil
     end
-
 
     game = Enum.reduce(target_player_list, game, fn(target_player_n, acc) ->
       prompt_uuid = acc["playerData"][target_player_n]["mostRecentPromptId"]
@@ -67,9 +71,13 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT_ADD_OPTION do
       prompt_code = prompt_code ++ [unset_command]
       new_option = %{
         "label" => label,
-        "hotkey" => hotkey,
-        "code" => prompt_code
+        "hotkey" => hotkey
       }
+      new_option = if prompt_code != nil do
+        put_in(new_option, ["code"], prompt_code)
+      else
+        new_option
+      end
       new_options = options ++ [new_option]
       put_in(acc, ["playerData", target_player_n, "prompts", prompt_uuid, "options"], new_options)
     end)

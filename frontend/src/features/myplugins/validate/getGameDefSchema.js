@@ -51,8 +51,8 @@ const autoRunSchema = {
     "_description_": "The status of the rule. If set to 'always', the rule will automatically run when the condition is met. If set to 'never', the rule will not automatically run. If set to 'propmt', the user will be prompted to run the rule.",
     "_type_": "string",
     "_required_": true,
-    "_memberOf_": ["always", "never", "prompt"],
-    "_memberOfPath_": `["always", "never", "prompt"]`,
+    "_memberOf_": ["always", "never", "prompt", "promptYN"],
+    "_memberOfPath_": `["always", "never", "prompt", "promptYN"]`,
   },
   "promptPlayerI": {
     "_description_": "The player that should be prompted to run the rule. Example: 'player1' or '$PLAYER_N' or some code that returns a playerI value.",

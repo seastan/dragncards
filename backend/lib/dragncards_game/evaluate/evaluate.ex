@@ -56,6 +56,14 @@ defmodule DragnCardsGame.Evaluate do
     argc
   end
 
+  def argc(code, min_expected_argc, nil) do
+    argc = Enum.count(code)-1
+    if argc < min_expected_argc do
+      raise "#{Enum.at(code,0)} expected at least #{min_expected_argc} arguments, but got #{Enum.count(code)-1}."
+    end
+    argc
+  end
+
   def argc(code, min_expected_argc, max_expected_argc) do
     argc = Enum.count(code)-1
     if argc < min_expected_argc or argc > max_expected_argc do
