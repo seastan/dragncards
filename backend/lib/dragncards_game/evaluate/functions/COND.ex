@@ -74,9 +74,9 @@ defmodule DragnCardsGame.Evaluate.Functions.COND do
   """
   def execute(game, code, trace) do
     # Argument count must be between 2 and infinity, and must be an even number
-    #argc = Evaluate.argc(2, nil)
+    argc = Evaluate.argc(code, 2, nil)
     ifthens = Enum.slice(code, 1, Enum.count(code))
-    if rem(Enum.count(ifthens), 2) != 0 do
+    if rem(argc, 2) != 0 do
       raise "COND: Expected an event number of arguments, but got #{Enum.count(ifthens)}"
     end
     Enum.reduce_while(0..Enum.count(ifthens)-1//2, game, fn(i, _acc) ->

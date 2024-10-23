@@ -57,7 +57,7 @@ defmodule DragnCardsGame.Evaluate.Functions.MOVE_CARD do
   The result of the 'MOVE_CARD' operation.
   """
   def execute(game, code, trace) do
-    argc = Enum.count(code) - 1
+    argc = Evaluate.argc(code, 3, 5)
     card_id = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["card_id"])
     if card_id do
       dest_group_id = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["dest_group_id"])

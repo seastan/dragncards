@@ -41,7 +41,7 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT_ADD_OPTION do
   The result of the 'PROMPT_ADD_OPTION' operation.
   """
   def execute(game, code, trace) do
-    argc = Evaluate.argc(3, 4)
+    argc = Evaluate.argc(code, 3, 4)
     target_player_list = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["target_player_n"])
     target_player_list = if is_list(target_player_list) do
       target_player_list

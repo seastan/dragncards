@@ -28,7 +28,7 @@ defmodule DragnCardsGame.Evaluate.Functions.STOP_LOOKING do
   The result of the 'STOP_LOOKING' operation.
   """
   def execute(game, code, trace) do
-    argc = Enum.count(code) - 1
+    argc = Evaluate.argc(code, 1, 2)
     player_i = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["player_i"])
     option = if argc > 1 do
       Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["keep_peeking"])
