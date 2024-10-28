@@ -62,8 +62,7 @@ export const dragnActionLists = {
     ]]
   ]),
   setStep: (stepId, stepInfo) => ([
-    ["SET", "/stepId", stepId],
-    ["LOG", "$ALIAS_N", " set the round step to ", stepInfo?.label, "."]
+    ["ADVANCE_TO_STEP", stepId]
   ]),
   moveAllStacksTo: (origGroupId, destGroupId, numStacks, position) => ([
     ["COND",

@@ -921,6 +921,27 @@ defmodule DragnCardsGame.CustomPluginTest do
 
   end
 
+  # Test for the new round action
+  @tag :end_of_round
+  test "End of round", %{user: _user, game: game, game_def: game_def} do
+
+    # Load Treebeard
+    game = Evaluate.evaluate(game, ["LOAD_CARDS", ["LIST", %{"databaseId" => "51223bd0-ffd1-11df-a976-0801200c9073", "loadGroupId" => "player1Play1", "quantity" => 1}]])
+    assert length(game["groupById"]["player1Play1"]["stackIds"]) == 1
+    card_id = Evaluate.evaluate(game, ["GET_CARD_ID", "player1Play1", 0, 0])
+    card = game["cardById"][card_id]
+
+    game = Evaluate.evaluate(game, game_def["actionLists"]["newRound"])
+    game = Evaluate.evaluate(game, game_def["actionLists"]["newRound"])
+
+
+    # Print all messages
+    Enum.each(game["messages"], fn message ->
+      IO.puts(message)
+    end)
+
+  end
+
   @tag :for_each
   test "for_each", %{user: _user, game: game, game_def: _game_def} do
 
