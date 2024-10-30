@@ -23,6 +23,13 @@ defmodule DragnCardsGame.Evaluate.Functions.NEXT_STEP do
   """
   def execute(game, code, trace) do
     next_step_action_list = [
+      ["COND",
+        ["EQUAL", "$GAME.roundNumber", 0],
+        [
+          ["LOG", "{{$ALIAS_N}} increased the round number by 1."],
+          ["INCREASE_VAL", "/roundNumber", 1]
+        ]
+      ],
       ["VAR", "$STEP_ID", "$GAME.stepId"],
       ["VAR", "$OLD_STEP_INDEX", ["GET_INDEX", "$GAME.stepOrder", "$GAME.stepId"]],
       ["COND",

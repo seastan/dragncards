@@ -308,8 +308,8 @@ defmodule DragnCardsGame.CustomPluginTest do
     res = Evaluate.evaluate(game, game_def["actionLists"]["mulligan"])
     assert length(res["groupById"]["player1Hand"]["stackIds"]) == 6
 
-    # newRound
-    res = Evaluate.evaluate(game, game_def["actionLists"]["newRound"])
+    # advanceRound
+    res = Evaluate.evaluate(game, game_def["actionLists"]["advanceRound"])
 
     # Print all messages
     Enum.each(game["messages"], fn message ->
@@ -320,13 +320,13 @@ defmodule DragnCardsGame.CustomPluginTest do
     assert GameUI.get_card_by_group_id_stack_index_card_index(res, ["player1Play1", 0, 0])["tokens"]["resource"] == 1
     assert GameUI.get_card_by_group_id_stack_index_card_index(res, ["player1Play1", 1, 0])["tokens"]["resource"] == 1
     assert GameUI.get_card_by_group_id_stack_index_card_index(res, ["player1Play1", 2, 0])["tokens"]["resource"] == 1
-    assert res["playerData"]["player1"]["threat"] == 29 # first time doing newRound doesn't increase threat
+    assert res["playerData"]["player1"]["threat"] == 29 # first time doing advanceRound doesn't increase threat
     assert res["roundNumber"] == 1
 
     # Increase cards drawn
     res = Evaluate.evaluate(res, ["SET", "/playerData/player1/cardsDrawn", 4])
 
-    res = Evaluate.evaluate(res, game_def["actionLists"]["newRound"])
+    res = Evaluate.evaluate(res, game_def["actionLists"]["advanceRound"])
     assert length(res["groupById"]["player1Hand"]["stackIds"]) == 11
     assert GameUI.get_card_by_group_id_stack_index_card_index(res, ["player1Play1", 0, 0])["tokens"]["resource"] == 2
     assert GameUI.get_card_by_group_id_stack_index_card_index(res, ["player1Play1", 1, 0])["tokens"]["resource"] == 2
@@ -340,21 +340,21 @@ defmodule DragnCardsGame.CustomPluginTest do
     assert Evaluate.evaluate(res, "$GAME.cardById.#{aragorn_card_id}.rotation") == 90
 
     # Refresh
-    res = Evaluate.evaluate(game, game_def["actionLists"]["refresh"])
+    res = Evaluate.evaluate(game, ["ADVANCE_TO_STEP", "7.R"])
     assert Evaluate.evaluate(res, "$GAME.cardById.#{aragorn_card_id}.exhausted") == false
     assert Evaluate.evaluate(res, "$GAME.cardById.#{aragorn_card_id}.rotation") == 0
-    assert Evaluate.evaluate(res, "$GAME.roundNumber") == 0
+    assert Evaluate.evaluate(res, "$GAME.roundNumber") == 1
     assert Evaluate.evaluate(res, "$GAME.playerData.player1.threat") == 30
     assert Evaluate.evaluate(res, "$GAME.firstPlayer") == "player1"
 
     # Set player count
     res = Evaluate.evaluate(res, ["SET", "/numPlayers", 3])
     # Refresh again, make sure firstplayer token is passed correctly
-    res = Evaluate.evaluate(res, game_def["actionLists"]["refresh"])
+    res = Evaluate.evaluate(res, ["ADVANCE_TO_STEP", "7.R"])
     assert Evaluate.evaluate(res, "$GAME.firstPlayer") == "player2"
-    res = Evaluate.evaluate(res, game_def["actionLists"]["refresh"])
+    res = Evaluate.evaluate(res, ["ADVANCE_TO_STEP", "7.R"])
     assert Evaluate.evaluate(res, "$GAME.firstPlayer") == "player3"
-    res = Evaluate.evaluate(res, game_def["actionLists"]["refresh"])
+    res = Evaluate.evaluate(res, ["ADVANCE_TO_STEP", "7.R"])
     assert Evaluate.evaluate(res, "$GAME.firstPlayer") == "player1"
 
     # Reveal Encounter
@@ -476,8 +476,7 @@ defmodule DragnCardsGame.CustomPluginTest do
 
 
     # Call refresh action
-    game = Evaluate.evaluate(game, [["DEFINE", "$PLAYER_N", "player1"], ["ACTION_LIST", "refresh"]])
-    game = Evaluate.evaluate(game, [["DEFINE", "$PLAYER_N", "player2"], ["ACTION_LIST", "refresh"]])
+    game = Evaluate.evaluate(game, ["ADVANCE_TO_STEP", "7.R"])
 
     # Check that card 1 is not refreshed
     assert Evaluate.evaluate(game, "$GAME.cardById." <> card_id_1 <> ".exhausted") == true
@@ -606,6 +605,9 @@ defmodule DragnCardsGame.CustomPluginTest do
   @tag :celeborn
   test "Celeborn", %{user: _user, game: game, game_def: _game_def} do
 
+    # Advance to planning phase
+    game = Evaluate.evaluate(game, ["ACTION_LIST", "advanceRound"])
+
     # Load Celeborn
     game = Evaluate.evaluate(game, ["LOAD_CARDS", ["LIST", %{"databaseId" => "4c4cccd3-576a-41f1-8b6c-ba11b4cc3d4b", "loadGroupId" => "player1Play1", "quantity" => 1}]])
     assert length(game["groupById"]["player1Play1"]["stackIds"]) == 1
@@ -635,13 +637,13 @@ defmodule DragnCardsGame.CustomPluginTest do
     assert game["cardById"][lookout_card_id]["tokens"]["defense"] == 0
 
     # New Round
-    game = Evaluate.evaluate(game, ["ACTION_LIST", "newRound"])
+    game = Evaluate.evaluate(game, ["ACTION_LIST", "advanceRound"])
     assert game["cardById"][naith_card_id]["tokens"]["willpower"] == 0
     assert game["cardById"][naith_card_id]["tokens"]["attack"] == 0
     assert game["cardById"][naith_card_id]["tokens"]["defense"] == 0
 
     # New Round
-    game = Evaluate.evaluate(game, ["ACTION_LIST", "newRound"])
+    game = Evaluate.evaluate(game, ["ACTION_LIST", "advanceRound"])
 
 
     # Print all messages
@@ -739,7 +741,7 @@ defmodule DragnCardsGame.CustomPluginTest do
     assert length(game["groupById"]["player1Play1"]["stackIds"]) == 1
 
     # New round
-    game = Evaluate.evaluate(game, ["ACTION_LIST", "newRound"])
+    game = Evaluate.evaluate(game, ["ACTION_LIST", "advanceRound"])
 
     prompt_id = Enum.at(Map.keys(game["playerData"]["player1"]["prompts"]), 0)
     prompt = game["playerData"]["player1"]["prompts"][prompt_id]
@@ -749,7 +751,7 @@ defmodule DragnCardsGame.CustomPluginTest do
     assert Evaluate.evaluate(game, "$GAME.groupById.player1Play1.parentCards.[0].tokens.resource") == 1
 
 
-    game = Evaluate.evaluate(game, ["ACTION_LIST", "newRound"])
+    game = Evaluate.evaluate(game, ["ACTION_LIST", "advanceRound"])
 
     prompt_id = Enum.at(Map.keys(game["playerData"]["player1"]["prompts"]), 0)
     prompt = game["playerData"]["player1"]["prompts"][prompt_id]
@@ -759,7 +761,7 @@ defmodule DragnCardsGame.CustomPluginTest do
     assert Evaluate.evaluate(game, "$GAME.groupById.player1Play1.parentCards.[0].tokens.resource") == 2
 
 
-    game = Evaluate.evaluate(game, ["ACTION_LIST", "newRound"])
+    game = Evaluate.evaluate(game, ["ACTION_LIST", "advanceRound"])
 
     assert Evaluate.evaluate(game, "$GAME.groupById.player1Play1.parentCards.[0].tokens.resource") == 3
 
@@ -931,8 +933,8 @@ defmodule DragnCardsGame.CustomPluginTest do
     card_id = Evaluate.evaluate(game, ["GET_CARD_ID", "player1Play1", 0, 0])
     card = game["cardById"][card_id]
 
-    game = Evaluate.evaluate(game, game_def["actionLists"]["newRound"])
-    game = Evaluate.evaluate(game, game_def["actionLists"]["newRound"])
+    game = Evaluate.evaluate(game, game_def["actionLists"]["advanceRound"])
+    game = Evaluate.evaluate(game, game_def["actionLists"]["advanceRound"])
 
 
     # Print all messages

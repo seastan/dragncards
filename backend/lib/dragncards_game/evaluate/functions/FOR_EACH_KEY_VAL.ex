@@ -52,6 +52,7 @@ defmodule DragnCardsGame.Evaluate.Functions.FOR_EACH_KEY_VAL do
   The result of the 'FOR_EACH_KEY_VAL' operation.
   """
   def execute(game, code, trace) do
+    Evaluate.argc(code, 4)
     key_name = Enum.at(code, 1)
     val_name = Enum.at(code, 2)
     old_list = Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["old_list"])
