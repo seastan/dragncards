@@ -75,7 +75,15 @@ defmodule DragnCards.Plugins.CustomCardDb do
   end
 
   def get_all_public_and_my_private_card_dbs(user_id, plugin_id) do
-    public_card_db = from(c in CustomCardDb, select: c.card_db, where: c.plugin_id == ^plugin_id and c.public == true) |> Repo.one()
+    # Get the CustomCardDb from all users that are public
+    public_card_db = from(c in CustomCardDb, select: c.card_db, where: c.plugin_id == ^plugin_id and c.public == true)
+    |> Repo.all()
+    |> Enum.reduce(%{}, fn(card_db, acc) ->
+      acc
+      |> Map.merge(card_db)
+    end)
+
+    # Get the CustomCardDb from the current user that are private
     private_card_db = from(c in CustomCardDb, select: c.card_db, where: c.plugin_id == ^plugin_id and c.author_id == ^user_id and c.public == false) |> Repo.one()
     {public_card_db, private_card_db}
   end

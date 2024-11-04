@@ -8,7 +8,7 @@ defmodule DragnCardsGame.GameUI do
   alias DragnCards.Plugins.CustomCardDb
   alias ElixirSense.Providers.Eval
   alias DragnCardsGame.GameVariables
-  alias DragnCardsGame.{Game, GameUI, Stack, Card, PlayerInfo, Evaluate, GameVariables, Evaluate.Variables.ALIAS_N, AutomationRules, RuleMap}
+  alias DragnCardsGame.{Game, GameUI, Stack, Card, PlayerInfo, Evaluate, GameVariables, Evaluate.Variables.ALIAS_N, AutomationRules, RuleMap, PluginCache}
 
   alias DragnCards.{Repo, Replay, Plugins, Plugins.CustomCardDb, Users}
   alias DragnCards.Rooms.Room
@@ -19,7 +19,7 @@ defmodule DragnCardsGame.GameUI do
   def new(room_slug, user_id, %{} = options) do
     Logger.debug("Making new GameUI")
     plugin_id = options["pluginId"]
-    game_def = Plugins.get_game_def(plugin_id)
+    game_def = PluginCache.get_game_def_cached(plugin_id)
     plugin_author_id = Plugins.get_author_id(options["pluginId"])
     %{game: game, deltas: deltas} = Game.load(room_slug, user_id, game_def, options)
 
@@ -95,7 +95,7 @@ defmodule DragnCardsGame.GameUI do
 
   defp update_player_data(gameui, player_n, user_id) do
     user = Users.get_user(user_id)
-    game_def = Plugins.get_game_def(gameui["game"]["pluginId"])
+    game_def = PluginCache.get_game_def_cached(gameui["game"]["pluginId"])
     plugin_id = gameui["options"]["pluginId"]
     plugin_player_settings = user.plugin_settings["#{plugin_id}"]["player"]
     action_list = if plugin_player_settings != nil do
@@ -172,26 +172,6 @@ defmodule DragnCardsGame.GameUI do
     game["cardById"][card_id]
   end
 
-  def get_targeting(game, card_id) do
-    get_card(game, card_id)["targeting"]
-  end
-
-  def get_tokens(game, card_id) do
-    get_card(game, card_id)["tokens"]
-  end
-
-  def get_token(game, card_id, token_type) do
-    get_tokens(game, card_id)[token_type]
-  end
-
-  def get_tokens_per_round(game, card_id) do
-    get_card(game, card_id)["tokensPerRound"]
-  end
-
-  def get_token_per_round(game, card_id, token_type) do
-    get_tokens_per_round(game, card_id)[token_type]
-  end
-
   def get_current_card_face(game, card_id) do
     card = get_card(game, card_id)
     card["sides"][card["currentSide"]]
@@ -231,6 +211,20 @@ defmodule DragnCardsGame.GameUI do
   def get_stack_by_index(game, group_id, stack_index) do
     stack_ids = game["groupById"][group_id]["stackIds"]
     game["stackById"][Enum.at(stack_ids, stack_index)]
+  end
+
+  def get_parent_card_by_stack_id(game, stack_id) do
+    if stack_id == nil do
+      nil
+    else
+      stack = get_stack(game, stack_id)
+      parent_card_id = Enum.at(stack["cardIds"], 0)
+      if parent_card_id != nil do
+        get_card(game, parent_card_id)
+      else
+        nil
+      end
+    end
   end
 
   def get_card_index_by_card_id(game, card_id, stack_id) do
@@ -1004,7 +998,7 @@ defmodule DragnCardsGame.GameUI do
 
       deltas = gameui["deltas"] |> trim_saved_deltas(user_id)
 
-      game_def = Plugins.get_game_def(game["options"]["pluginId"])
+      game_def = PluginCache.get_game_def_cached(game["options"]["pluginId"])
       save_metadata = get_in(game_def, ["saveGame", "metadata"])
 
       updates = %{
@@ -1078,7 +1072,7 @@ defmodule DragnCardsGame.GameUI do
 
   def reset_game(game, user_id, action_list) do
     game_old = game
-    game_def = Plugins.get_game_def(game["options"]["pluginId"])
+    game_def = PluginCache.get_game_def_cached(game["options"]["pluginId"])
     game = Evaluate.evaluate_with_timeout(game, action_list)
     #game = save_replay(game, user_id)
     game = Game.new(game["roomSlug"], user_id, game_def, game["options"])
@@ -1154,6 +1148,19 @@ defmodule DragnCardsGame.GameUI do
   #   end
   # end
 
+  def do_automation_action_list(game, action_list_id, trace) do
+    # Run postLoadActionList if it exists
+    automation_action_list = game["automationActionLists"][action_list_id]
+    game = if automation_action_list do
+      if game["automationEnabled"] == true do
+        Evaluate.evaluate(game, automation_action_list, trace ++ ["action_list_id"])
+      else
+        Evaluate.evaluate(game, ["LOG", "Skipping automation action list ", action_list_id, " because automation is disabled."], trace ++ ["action_list_id"])
+      end
+    else
+      game
+    end
+  end
 
 
   def load_card(game, game_def, load_list_item) do

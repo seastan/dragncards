@@ -1,5 +1,5 @@
 defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
-  alias DragnCardsGame.{Evaluate, GameUI}
+  alias DragnCardsGame.{Evaluate, GameUI, PluginCache}
   alias DragnCards.Plugins
   @moduledoc """
   *Arguments*:
@@ -41,7 +41,7 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
   """
   def execute(game, code, trace) do
     load_list_or_id = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["load_list"])
-    game_def = Plugins.get_game_def(game["options"]["pluginId"])
+    game_def = PluginCache.get_game_def_cached(game["options"]["pluginId"])
 
     if !is_list(load_list_or_id) and get_in(game_def, ["preBuiltDecks", load_list_or_id]) == nil do
       raise("Could not find pre-built deck with id: #{inspect(load_list_or_id)} in game definition.")
@@ -62,15 +62,14 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
     end
 
     # Run preLoadActionList if it exists
-    automation = Map.get(game_def, "automation", %{})
-    game = if automation["preLoadActionList"] do
-      Evaluate.evaluate(game, ["ACTION_LIST", automation["preLoadActionList"]], trace ++ ["game preLoadActionList"])
-    else
-      game
-    end
-    # Run deck's preLoadActionList if it exists
+    game = GameUI.do_automation_action_list(game, "preLoadActionList", trace ++ ["preLoadActionList"])
+
     game = if load_list_id && game_def["preBuiltDecks"][load_list_id]["preLoadActionList"] do
-      Evaluate.evaluate(game, ["ACTION_LIST", game_def["preBuiltDecks"][load_list_id]["preLoadActionList"]], trace ++ ["deck preLoadActionList"])
+      if game["automationEnabled"] do
+        Evaluate.evaluate(game, ["ACTION_LIST", game_def["preBuiltDecks"][load_list_id]["preLoadActionList"]], trace ++ ["deck preLoadActionList"])
+      else
+        Evaluate.evaluate(game, ["LOG", "Skipping deck's preLoadActionList because automation is disabled."], trace ++ ["action_list_id"])
+      end
     else
       game
     end
@@ -81,17 +80,17 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
 
     # Run deck's postLoadActionList if it exists
     game = if load_list_id && game_def["preBuiltDecks"][load_list_id]["postLoadActionList"] do
-      Evaluate.evaluate(game, ["ACTION_LIST", game_def["preBuiltDecks"][load_list_id]["postLoadActionList"]], trace ++ ["deck postLoadActionList"])
+      if game["automationEnabled"] do
+        Evaluate.evaluate(game, ["ACTION_LIST", game_def["preBuiltDecks"][load_list_id]["postLoadActionList"]], trace ++ ["deck postLoadActionList"])
+      else
+        Evaluate.evaluate(game, ["LOG", "Skipping deck's postLoadActionList because automation is disabled."], trace ++ ["action_list_id"])
+      end
     else
       game
     end
 
     # Run postLoadActionList if it exists
-    game = if automation["postLoadActionList"] do
-      Evaluate.evaluate(game, ["ACTION_LIST", automation["postLoadActionList"]], trace ++ ["game postLoadActionList"])
-    else
-      game
-    end
+    game = GameUI.do_automation_action_list(game, "postLoadActionList", trace ++ ["postLoadActionList"])
 
     # Restore prev_loaded_card_ids
     game = put_in(game, ["loadedCardIds"], prev_loaded_card_ids)

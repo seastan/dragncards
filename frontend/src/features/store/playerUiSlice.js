@@ -16,6 +16,7 @@ const draggingDefault = {
   mouseDownY: null,
   stackRectangles: [],
   groupRectangle: null,
+  hoverOverAttachmentAllowed: true,
   hoverOverStackId: null,
   hoverOverDirection: null,
   hoverOverDroppableId: null,
@@ -212,6 +213,9 @@ const playerUiSlice = createSlice({
     setDraggingGroupRectangle: (state, { payload }) => {
       state.dragging.groupRectangle = payload;
     },
+    setDraggingHoverOverAttachmentAllowed: (state, { payload }) => {
+      state.dragging.hoverOverAttachmentAllowed = payload;
+    },
     setDraggingHoverOverStackId: (state, { payload }) => {
       state.dragging.hoverOverStackId = payload;
     },
@@ -298,6 +302,7 @@ export const {
   setDraggingMouseDownY,
   setDraggingStackRectangles,
   setDraggingGroupRectangle,
+  setDraggingHoverOverAttachmentAllowed,
   setDraggingHoverOverStackId,
   setDraggingHoverOverDirection,
   setDraggingHoverOverDroppableId,

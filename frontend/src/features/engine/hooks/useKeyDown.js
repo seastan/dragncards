@@ -70,13 +70,14 @@ export const useKeyDown = () => {
 
         if (k === " ") dispatch(setKeypressSpace(unix_sec));
         if (k === "Tab") {
-            if (keypress?.Shift) {
+            if (event.shiftKey) {
                 dispatch(setShowModal("settings"));
+                return;
             } else {
                 dispatch(setKeypressTab(unix_sec));
+                return;
             }
         }
-        if (["Alt", " ", "Control", "Shift", "Tab", "Meta"].includes(k)) return;
 
         var dictKey = k.length === 1 ? k.toUpperCase() : k;
         const newKeypress = {
@@ -86,6 +87,8 @@ export const useKeyDown = () => {
             Shift: event.shiftKey ? unix_sec : 0,
         }
         dispatch(setKeypress(newKeypress));
+
+        if (["Alt", " ", "Control", "Shift", "Tab", "Meta"].includes(k)) return;
         
         if (Math.abs(newKeypress.Shift && isLetter(dictKey))) { //-unix_sec) < 5) {
             dictKey = "Shift+" + dictKey;

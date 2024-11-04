@@ -773,6 +773,32 @@ defmodule DragnCardsGame.CustomPluginTest do
 
   end
 
+  # Gandalf
+  @tag :gandalf
+  test "Gandalf", %{user: _user, game: game, game_def: _game_def} do
+    # Select 1 player
+    prompt_id = Enum.at(Map.keys(game["playerData"]["player1"]["prompts"]), 0)
+    prompt = game["playerData"]["player1"]["prompts"][prompt_id]
+    option1 = Enum.at(prompt["options"], 0)
+    game = Evaluate.evaluate(game, option1["code"])
+
+    # Load Gandalf
+    game = Evaluate.evaluate(game, ["LOAD_CARDS", ["LIST", %{"databaseId" => "51223bd0-ffd1-11df-a976-0801200c9073", "loadGroupId" => "player1Play1", "quantity" => 1}]])
+    assert length(game["groupById"]["player1Play1"]["stackIds"]) == 1
+
+    # Advance to resouce phase
+    game = Evaluate.evaluate(game, ["ACTION_LIST", "advanceRound"])
+
+    # Advance again, should halt ar end of round
+    game = Evaluate.evaluate(game, ["ACTION_LIST", "advanceRound"])
+
+    # Print all messages
+    Enum.each(game["messages"], fn message ->
+      IO.puts(message)
+    end)
+
+  end
+
 
   # Outlands
   @tag :outlands
@@ -1582,6 +1608,24 @@ defmodule DragnCardsGame.CustomPluginTest do
 
   end
 
+
+  # Post move
+  @tag :post_move
+  test "post move", %{user: _user, game: game, game_def: _game_def} do
+    game = Evaluate.evaluate(game, ["LOAD_CARDS", "coreLeadership"]) # Leadership core set deck
+    stack_ids = game["groupById"]["player1Play1"]["stackIds"]
+    stack_id_0 = Enum.at(stack_ids, 0)
+
+    {post_move_time, game} = :timer.tc(fn ->
+      Enum.reduce(1..100, game, fn _, acc ->
+        Evaluate.evaluate(acc, ["MOVE_STACK", stack_id_0, "player1Deck", 0])
+      end)
+    end)
+    IO.puts("Post move time: #{post_move_time / 1000}ms")
+
+
+
+
   # # temp
   # @tag :temp
   # test "temp", %{user: _user, game: game, game_def: _game_def} do
@@ -1590,6 +1634,8 @@ defmodule DragnCardsGame.CustomPluginTest do
   #   res = Evaluate.evaluate(game, ["DEFINED", "$GAME.stackById/123abc"])
   #   IO.inspect(res)
   # end
+
+  end
 
 
 end

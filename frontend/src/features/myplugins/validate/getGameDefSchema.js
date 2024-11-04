@@ -137,6 +137,10 @@ export const getGameDefSchema = (gameDef) => {
           "_description_": "Action list that is called right before a deck is loaded",
           "_type_": "actionList",
         },
+        "postMoveStackActionList": {
+          "_description_": "Action list that is called after a stack is moved, either via drag and drop or via `MOVE_STACK` / `MOVE_STACKS`. This is called after the cards in the stack have their properties updated via the `onCardEnter` settings of the group the stack moved to. The following variables are pre-defined and can be used in this action list: `$ORIG_STACK_ID` (the ID for the stack that moved), `$ORIG_GROUP_ID` (the ID of the group the stack moved from), `$DEST_GROUP_ID` (the ID of the group the stack moved to), `$DEST_STACK_ID` (if the moved stack was attached to a target stack, this is the ID of the target stack, otherwise it is unchanged from `$ORIG_STACK_ID`), `$ORIG_PARENT_CARD` (the card object for the parent card in the moved stack), `$DEST_PARENT_CARD` (if the moved stack was attached to a target stack, this is the card object of the parent card in the target stack, otherwise it is identical to `$ORIG_PARENT_CARD`). Note that when one stack attaches to some target stack, the moved stack is disbanded, so `$ORIG_STACK_ID` will no longer point to a valid stack.",
+          "_type_": "actionList",
+        },
         "gameRules": {
           "_description_": "Automation rules",
           "_type_": "object",
@@ -1064,6 +1068,14 @@ export const getGameDefSchema = (gameDef) => {
           "testBorders": {
             "_description_": "If set to true, the layout will display borders around the regions to help with layout testing",
             "_type_": "boolean",
+          },
+          "stackStyleWhenHoveredOver": {
+            "_description_": "The CSS style of a stack overlay that appears when a stack is hovered over. Must be formatted in JSX. Example: {'backgroundColor': 'rgba(255, 0, 0, 0.5)'} will give stacks a transparent red overlay when hovered over.",
+            "_type_": "object",
+            "_itemSchema_": {
+              "_description_": "A CSS style property",
+              "_type_": "string",
+            }
           },
           "postSetActionList": {
             "_description_": "The action list to call after the layout is set",

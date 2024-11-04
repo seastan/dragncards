@@ -108,7 +108,7 @@ export const DroppableRegion = React.memo(({
       droppableId={region.id}
       key={groupId}
       isDropDisabled={false}
-      isCombineEnabled={group.canHaveAttachments === true && region.disableDropAttachments !== true && region.type !== "free"}
+      isCombineEnabled={false}
       layerIndex={region.layerIndex || 0}
       metadata={region}
       direction={region.direction}>

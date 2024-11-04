@@ -59,7 +59,12 @@
     # TODO: Set room name
   end
 
-
+  def automation_action_lists(game_def) do
+    # Delete the gameRules and cards keys from game_def["automation"]
+    game_def["automation"]
+    |> Map.delete("gameRules")
+    |> Map.delete("cards")
+  end
 
   @doc """
   new/2:  Create a game with specified options.
@@ -99,6 +104,7 @@
       "groupById" => groups,
       "stackById" => %{},
       "cardById"  => %{},
+      "automationActionLists" => automation_action_lists(game_def),
       "automationEnabled" => true,
       "currentScopeIndex" => 0,
       "imageUrlPrefix" => game_def["imageUrlPrefix"],

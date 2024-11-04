@@ -5,7 +5,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { setStackIds, setCardIds, setGroupById } from "../store/gameUiSlice";
 import { getGroupIdAndRegionType, reorderGroupStackIds } from "./Reorder";
 import store from "../../store";
-import { setDraggingEnd, setDraggingEndDelay, setDraggingStackId, setTempDragStack, setDraggingMouseCurrentX, setDraggingMouseCurrentY, setDraggingMouseDownX, setDraggingMouseDownY, setDraggingStackRectangles, setDraggingGroupRectangle, setDraggingDefault, setDraggingHoverOverStackId, setDraggingHoverOverDirection, setDraggingHoverOverDroppableId, setDraggingFromDroppableId, setStatusText, setDraggingPrevStackId, setDragStep } from "../store/playerUiSlice";
+import { setDraggingEnd, setDraggingEndDelay, setDraggingStackId, setTempDragStack, setDraggingMouseCurrentX, setDraggingMouseCurrentY, setDraggingMouseDownX, setDraggingMouseDownY, setDraggingStackRectangles, setDraggingGroupRectangle, setDraggingDefault, setDraggingHoverOverStackId, setDraggingHoverOverDirection, setDraggingHoverOverDroppableId, setDraggingFromDroppableId, setStatusText, setDraggingPrevStackId, setDragStep, setDraggingHoverOverAttachmentAllowed } from "../store/playerUiSlice";
 import { Table } from "./Table";
 import { useDoActionList } from "./hooks/useDoActionList";
 import { ArcherContainer } from 'react-archer';
@@ -73,8 +73,7 @@ export const DragContainer = React.memo(({}) => {
     const groupRectangle = store.getState()?.playerUi?.dragging?.groupRectangle;
     const hoverData = hoverStackIdAndDirection(centerX, centerY, draggableRect, stackRectangles, groupRectangle, hoverOverDroppableId);
 
-    if (hoverData.stackId && hoverOverRegion.disableDroppableAttachments !== true) {
-
+    if (hoverData.stackId) {
       const draggingTopCardId = store.getState()?.gameUi?.game?.stackById[draggingStackId]?.cardIds[0];
       const draggingTopCard = store.getState()?.gameUi?.game?.cardById[draggingTopCardId];
       const draggingTopFace = getVisibleFace(draggingTopCard, playerN);
@@ -88,24 +87,25 @@ export const DragContainer = React.memo(({}) => {
       const hoverOverTopCardType = hoverOverTopFace?.type;
       const canOnlyHaveAttachmentsOfTypes = gameDef?.cardTypes?.[hoverOverTopCardType]?.canOnlyHaveAttachmentsOfTypes;
       console.log("hoverData", hoverData, {canOnlyAttachToTypes, canOnlyHaveAttachmentsOfTypes, hoverOverTopCardType, draggingTopCardType})
-
-      if (canOnlyAttachToTypes && !canOnlyAttachToTypes.includes(hoverOverTopCardType)) {
-        dispatch(setDraggingHoverOverStackId(null));
-        dispatch(setDraggingHoverOverDirection(null));
-        return;
-      }
-      if (canOnlyHaveAttachmentsOfTypes && !canOnlyHaveAttachmentsOfTypes.includes(draggingTopCardType)) {
-        dispatch(setDraggingHoverOverStackId(null));
-        dispatch(setDraggingHoverOverDirection(null));
-        return;
-      }
-
       dispatch(setDraggingHoverOverStackId(hoverData.stackId));
       dispatch(setDraggingHoverOverDirection(hoverData.direction));
+
+      if (canOnlyAttachToTypes && !canOnlyAttachToTypes.includes(hoverOverTopCardType)) {
+        dispatch(setDraggingHoverOverAttachmentAllowed(false));
+      } else if (canOnlyHaveAttachmentsOfTypes && !canOnlyHaveAttachmentsOfTypes.includes(draggingTopCardType)) {
+        dispatch(setDraggingHoverOverAttachmentAllowed(false));
+      } else {
+        dispatch(setDraggingHoverOverAttachmentAllowed(true));
+      }
     } else {
       dispatch(setDraggingHoverOverStackId(null));
       dispatch(setDraggingHoverOverDirection(null));
+      dispatch(setDraggingHoverOverAttachmentAllowed(true));
     }
+    if (hoverOverRegion.disableDroppableAttachments) {
+      dispatch(setDraggingHoverOverAttachmentAllowed(false));
+    }
+
     const {clientX, clientY} = getXY(e);
     dispatch(setDraggingMouseCurrentX(clientX));
     dispatch(setDraggingMouseCurrentY(clientY));

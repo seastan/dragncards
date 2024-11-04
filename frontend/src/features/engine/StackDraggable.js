@@ -14,7 +14,6 @@ import { useOffsetTotalsAndAmounts } from "./hooks/useOffsetTotalsAndAmounts";
 import { usePlayerN } from "./hooks/usePlayerN";
 import { setDraggingDefault, setDraggingEndDelay, setDraggingStarted, setDragStep, setStatusText, setTempDragStack } from "../store/playerUiSlice";
 import { useGetRegionFromId } from "./hooks/useGetRegionFromId";
-import zIndex from "@material-ui/core/styles/zIndex";
 
 const StackContainerFree = styled.div`
   position: absolute;
@@ -89,7 +88,11 @@ export const StackDraggable = React.memo(({
     const dragStep = useSelector(state => ( state?.playerUi?.dragging?.stackId === stackId) ? state?.playerUi?.dragging?.dragStep : null);
     const regionCardSizeFactor = region.cardSizeFactor || 1;
     const zoomFactor = useSelector(state => state?.playerUi?.userSettings?.zoomPercent)/100 * regionCardSizeFactor;
-    const isCombined = useSelector(state => ((state?.playerUi?.dragging?.stackId === stackId) && (state?.playerUi?.dragging?.hoverOverStackId !== null)));
+    const isCombined = useSelector(state => (
+      (state?.playerUi?.dragging?.stackId === stackId) && 
+      (state?.playerUi?.dragging?.hoverOverStackId !== null) &&
+      (state?.playerUi?.dragging?.hoverOverAttachmentAllowed)
+    ));
     const playerN = usePlayerN();
     const getRegionFromId = useGetRegionFromId();
 
@@ -168,9 +171,10 @@ export const StackDraggable = React.memo(({
             const fromDroppableId = store.getState().playerUi?.dragging?.fromDroppableId;
             const hoverOverStackId = store.getState().playerUi?.dragging?.hoverOverStackId;
             const hoverOverDirection = store.getState().playerUi?.dragging?.hoverOverDirection;
+            const hoverOverAttachmentAllowed = store.getState().playerUi?.dragging?.hoverOverAttachmentAllowed;
             //const [toGroupId, toRegionType, toRegionDirection] = getGroupIdAndRegionType(hoverOverDroppableId);
             console.log('onDragEnd hoverOverStackId 2:',{hoverOverStackId, toRegionType});
-            if (hoverOverStackId) {
+            if (hoverOverStackId && hoverOverAttachmentAllowed) {
               const result = {
                 "draggableId": "6920565a-6485-4f5b-b0f7-66e36286efee",
                 "type": "DEFAULT",

@@ -66,9 +66,10 @@ export const Profile: React.FC<Props> = () => {
     }
   }
   const issueDowntimeNotice = async() => {
-    let text = window.prompt("Enter the message to send to all users. Leave blank to send default message.");
+    let defMessage = siteL10n("defaultMaintenenceMessage");
+    let text = window.prompt(`Enter the message to send to all users. Leave blank to send default message (${defMessage})`);
     if (text == null) return;
-    if (text == "") text = siteL10n("defaultMaintenenceMessage");
+    if (text == "") text = defMessage;
 
     const res = await axios.post("/be/api/rooms/send_alert", {level: "crash", text: text, autoClose: false}, authOptions);
   }

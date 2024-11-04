@@ -149,7 +149,7 @@ export const stringTo2DArray = (inputString) => {
 export const processArrayOfRows = (gameDef, arrayOfRows) => {
 
     const cardDb = {};
-    var multiSidedDbId = "";
+    var multiSidedDbId = undefined;
     var multiSidedFace = "A";
     const errors = [];
     for (var rows of arrayOfRows) {
@@ -179,6 +179,8 @@ export const processArrayOfRows = (gameDef, arrayOfRows) => {
           errors.push(`type ${face.type} for ${face.name} not found in gameDef.cardTypes`)
         }
         const dbId = face.databaseId;
+        console.log("Processing face: ", face)
+        console.log({dbId, multiSidedDbId})
         // Is this a multi-side of a previous card?
         if (dbId === multiSidedDbId) {
           // If database_id is not in db, raise an error
@@ -224,7 +226,7 @@ export const processArrayOfRows = (gameDef, arrayOfRows) => {
             multiSidedDbId = faceA.databaseId;
             multiSidedFace = "B";
           } else {
-            multiSidedDbId = "";
+            multiSidedDbId = undefined;
             multiSidedFace = "A";
           }
         }

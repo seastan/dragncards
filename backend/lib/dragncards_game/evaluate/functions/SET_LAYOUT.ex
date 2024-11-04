@@ -1,5 +1,5 @@
 defmodule DragnCardsGame.Evaluate.Functions.SET_LAYOUT do
-  alias DragnCardsGame.Evaluate
+  alias DragnCardsGame.{Evaluate, PluginCache}
   alias DragnCards.Plugins
   @moduledoc """
   *Arguments*:
@@ -28,7 +28,7 @@ defmodule DragnCardsGame.Evaluate.Functions.SET_LAYOUT do
   The result of the 'SET_LAYOUT' operation.
   """
   def get_layout_from_game_def(plugin_id, layout_id) do
-    game_def = Plugins.get_game_def(plugin_id)
+    game_def = PluginCache.get_game_def_cached(plugin_id)
     game_def["layouts"][layout_id]
   end
 

@@ -6,6 +6,7 @@ import { faArrowDown, faArrowUp, faChevronDown, faEye, faLink } from "@fortaweso
 import { useOffsetTotalsAndAmounts } from "./hooks/useOffsetTotalsAndAmounts";
 import { DEFAULT_CARD_Z_INDEX } from "./functions/common";
 import { useDoActionList } from "./hooks/useDoActionList";
+import { useLayout } from "./hooks/useLayout";
 
 const lookUnderActionList = (stackId) => {
   return ([
@@ -31,9 +32,11 @@ export const Stack = React.memo(({
   stackZoomFactor,
   hideArrows,
 }) => {
+  const layout = useLayout();
   const stack = useSelector(state => state?.gameUi?.game?.stackById[stackId]);
   const isHoveredOver = useSelector(state => state?.playerUi?.dragging.hoverOverStackId === stackId);
   const hoverOverDirection = useSelector(state => isHoveredOver ? state?.playerUi?.dragging.hoverOverDirection : null);
+  const hoverOverAttachmentAllowed = useSelector(state => isHoveredOver ? state?.playerUi?.dragging.hoverOverAttachmentAllowed : null);
   const [showingUnder, setShowingUnder] = useState(stack?.lookingUnder);
   const doActionList = useDoActionList();
   const cardIds = stack?.cardIds;
@@ -41,7 +44,7 @@ export const Stack = React.memo(({
   const {offsetTotals, offsetAmounts, stackEdges} = useOffsetTotalsAndAmounts(stackId);
   if (!stack) return null;
 
-  console.log('Rendering StackId ', isHoveredOver, hoverOverDirection)
+  console.log('Rendering StackId hover ', isHoveredOver, hoverOverDirection, layout)
   console.log('Rendering StackId offsets', offsetTotals, offsetAmounts)
 
   const numBehind = offsetTotals.behind;
@@ -61,13 +64,22 @@ export const Stack = React.memo(({
     <div 
       className="h-full w-full"
       style={{
-        transform: `scale(${stackZoomFactor})`,
+        transform: `scale(${stackZoomFactor})`
       }}
     >
-      {isHoveredOver && hoverOverDirection == "top" && <LinkIcon top="0" left="0" width="100%" height="6dvh"  transform="translate(0%, -50%)"/>}
-      {isHoveredOver && hoverOverDirection == "left" && <LinkIcon top="0" left="0" width="6dvh"  height="100%" transform="translate(-50%, 0%)"/>}
-      {isHoveredOver && hoverOverDirection == "right" && <LinkIcon top="0" left="100%" width="6dvh"  height="100%" transform="translate(-50%, 0%)"/>}
-      {isHoveredOver && hoverOverDirection == "bottom" && <LinkIcon top="100%" left="0" width="100%" height="6dvh"  transform="translate(0%, -50%)"/>}
+      {(layout?.stackStyleWhenHoveredOver && isHoveredOver) &&
+        <div 
+          className="absolute h-full w-full"
+          style={{...layout.stackStyleWhenHoveredOver, zIndex: DEFAULT_CARD_Z_INDEX+1}}
+        />
+      }
+
+      
+      {isHoveredOver && hoverOverAttachmentAllowed && hoverOverDirection == "center" && <LinkIcon top="0" left="0" width="100%" height="6dvh"  transform="translate(0%, 0%)"/>}
+      {isHoveredOver && hoverOverAttachmentAllowed && hoverOverDirection == "top" && <LinkIcon top="0" left="0" width="100%" height="6dvh"  transform="translate(0%, -50%)"/>}
+      {isHoveredOver && hoverOverAttachmentAllowed && hoverOverDirection == "left" && <LinkIcon top="0" left="0" width="6dvh"  height="100%" transform="translate(-50%, 0%)"/>}
+      {isHoveredOver && hoverOverAttachmentAllowed && hoverOverDirection == "right" && <LinkIcon top="0" left="100%" width="6dvh"  height="100%" transform="translate(-50%, 0%)"/>}
+      {isHoveredOver && hoverOverAttachmentAllowed && hoverOverDirection == "bottom" && <LinkIcon top="100%" left="0" width="100%" height="6dvh"  transform="translate(0%, -50%)"/>}
       {cardIds.map((cardId, cardIndex) => {
         return(
           <Card
