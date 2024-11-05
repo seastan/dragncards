@@ -68,8 +68,10 @@ export const useKeyDown = () => {
         const unix_sec = Math.floor(Date.now() / 1000);
         console.log("Keydown detected: ", k)
 
-        if (k === " ") dispatch(setKeypressSpace(unix_sec));
-        if (k === "Tab") {
+        if (k === " ") {
+            dispatch(setKeypressSpace(unix_sec));
+            return;
+        } else if (k === "Tab") {
             if (event.shiftKey) {
                 dispatch(setShowModal("settings"));
                 return;
