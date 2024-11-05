@@ -29,12 +29,35 @@ export const DeckbuilderCurrent = React.memo(({
   const playerN = useSelector(state => state?.playerUi?.playerN)
   const authOptions = useAuthOptions();
   const deckbuilder = gameDef.deckbuilder;
-  const spawnGroups = deckbuilder.spawnGroups;
+  const commonSpawnGroups = deckbuilder.spawnGroups;
   const importLoadList = useImportLoadList();
   const gameL10n = useGameL10n();
   const cardDb = usePlugin()?.card_db || {};
   const sendLocalMessage = useSendLocalMessage();
   const siteL10n = useSiteL10n();
+  const [showAllGroups, setShowAllGroups] = useState(false);
+  
+  const allSpawnGroups = () => {
+    const allGroups = [];
+    const allKeys = [];
+    for (var [groupId, _value] of Object.entries(gameDef.groups)) {
+      allKeys.push(groupId);
+      allGroups.push({"loadGroupId": groupId, "label": groupId})
+      // If the groupId begins with player1, add a playerN version
+      if (groupId.includes("player1")) {
+        const playerNversion = groupId.replace("player1", "playerN");
+        if (!allKeys.includes(playerNversion)) {
+          allKeys.push(playerNversion);
+          allGroups.push({"loadGroupId": playerNversion, "label": groupId.replace("player1", "my")})
+        }
+      }
+    }
+    // Sort the groups by label
+    allGroups.sort((a, b) => (a.label > b.label) ? 1 : -1)
+    return allGroups;
+  }
+
+  const spawnGroups = showAllGroups ? allSpawnGroups() : commonSpawnGroups;
 
   useEffect(() => {
     if (numChanges > 10) {
@@ -180,7 +203,6 @@ export const DeckbuilderCurrent = React.memo(({
               </div>
               {currentDeck?.load_list?.map((loadListItem, index) => {
                 const databaseId = loadListItem.databaseId;
-                console.log("DeckbuilderCurrent 2", loadListItem, databaseId, cardDb[databaseId])
                 if (loadListItem.loadGroupId === groupId)
                 return(
                   <div className="relative p-1 bg-gray-700 text-white"
@@ -214,6 +236,12 @@ export const DeckbuilderCurrent = React.memo(({
             </div>
           )
         })}
+
+        <div className="flex justify-center m-2 text-white">
+          <div onClick={() => setShowAllGroups(!showAllGroups)} className="py-1 px-2 bg-gray-900 cursor-pointer">
+            {showAllGroups ? "Show Common Groups" : "Show All Groups"}
+          </div>
+        </div>
       </div>
     )
 })
