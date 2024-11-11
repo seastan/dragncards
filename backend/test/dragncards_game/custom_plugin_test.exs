@@ -773,6 +773,60 @@ defmodule DragnCardsGame.CustomPluginTest do
 
   end
 
+  # nurn
+  @tag :nurn
+  test "Nurn", %{user: _user, game: game, game_def: _game_def} do
+    # Select 1 player
+    prompt_id = Enum.at(Map.keys(game["playerData"]["player1"]["prompts"]), 0)
+    prompt = game["playerData"]["player1"]["prompts"][prompt_id]
+    option1 = Enum.at(prompt["options"], 0)
+    game = Evaluate.evaluate(game, option1["code"])
+
+    # Load deck
+    game = Evaluate.evaluate(game, ["LOAD_CARDS", "starterElves"])
+
+    # Load Nurn
+    game = Evaluate.evaluate(game, ["LOAD_CARDS", "Q09.9"])
+    prompt_id = Enum.at(Map.keys(game["playerData"]["player1"]["prompts"]), 0)
+    prompt = game["playerData"]["player1"]["prompts"][prompt_id]
+    option1 = Enum.at(prompt["options"], 0)
+    game = Evaluate.evaluate(game, option1["code"])
+
+
+    # Print all messages
+    Enum.each(game["messages"], fn message ->
+      IO.puts(message)
+    end)
+
+  end
+
+  # nurn
+  @tag :erebor
+  test "Erebor", %{user: _user, game: game, game_def: _game_def} do
+    # Select 1 player
+    prompt_id = Enum.at(Map.keys(game["playerData"]["player1"]["prompts"]), 0)
+    prompt = game["playerData"]["player1"]["prompts"][prompt_id]
+    option1 = Enum.at(prompt["options"], 0)
+    game = Evaluate.evaluate(game, option1["code"])
+
+    # Load deck
+    game = Evaluate.evaluate(game, ["LOAD_CARDS", "starterElves"])
+
+    # Load Nurn
+    game = Evaluate.evaluate(game, ["LOAD_CARDS", "Q99.18"])
+    prompt_id = Enum.at(Map.keys(game["playerData"]["player1"]["prompts"]), 0)
+    prompt = game["playerData"]["player1"]["prompts"][prompt_id]
+    option1 = Enum.at(prompt["options"], 0)
+    game = Evaluate.evaluate(game, option1["code"])
+
+
+    # Print all messages
+    Enum.each(game["messages"], fn message ->
+      IO.puts(message)
+    end)
+
+  end
+
   # Gandalf
   @tag :gandalf
   test "Gandalf", %{user: _user, game: game, game_def: _game_def} do

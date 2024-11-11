@@ -100,7 +100,7 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
     new_prompt = orig_prompt
     |> Map.put("uuid", prompt_uuid)
     |> Map.put("message", new_message)
-    |> Map.put("timestamp", DateTime.utc_now() |> DateTime.to_unix(:second) |> round())
+    |> Map.put("timestamp", DateTime.utc_now() |> DateTime.to_unix(:microsecond))
 
     game = Enum.reduce(target_player_list, game, fn(target_player_n, acc) ->
       # Prepend the "VAR" statements to each option's code so that when it gets evaluated, it will have the variables defined

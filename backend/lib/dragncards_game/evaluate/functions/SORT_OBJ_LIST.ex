@@ -24,7 +24,7 @@ defmodule DragnCardsGame.Evaluate.Functions.SORT_OBJ_LIST do
   Sort the cards in player1Deck such that all Event type cards are at the end. We have the lambda function return 1 if the card is an Event, and 0 otherwise:
   ```
   ["SORT_OBJ_LIST",
-    $GAME.groupById.player1Deck.parentCards,
+    "$GAME.groupById.player1Deck.parentCards",
     "$CARD",
     ["COND",
       ["EQUAL", "$CARD.sides.A.type", "Event"],

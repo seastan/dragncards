@@ -291,7 +291,7 @@ defmodule DragnCardsGame.GameUI do
   end
 
   # Move a card
-  def move_card(game, card_id, dest_group_id, dest_stack_index, dest_card_index, options \\ nil) do
+  def move_card(game, card_id, dest_group_id, dest_stack_index, dest_card_index, move_options \\ nil) do
     # Check if dest_group_id is a key in game["groupById"]
     if dest_group_id not in Map.keys(game["groupById"]) do
       raise "Group not found: #{dest_group_id}"
@@ -300,7 +300,7 @@ defmodule DragnCardsGame.GameUI do
     {orig_group_id, _orig_stack_index, _orig_card_index} = gsc(game, card_id)
     orig_stack_id = get_stack_by_card_id(game, card_id)["id"]
     # Pepare destination stack
-    game = if get_in(options, ["combine"]) do
+    game = if get_in(move_options, ["combine"]) do
       dest_stack = get_stack_by_index(game, dest_group_id, dest_stack_index)
       add_to_stack(game, dest_stack["id"], card_id, dest_card_index)
     else
@@ -310,7 +310,7 @@ defmodule DragnCardsGame.GameUI do
 
     game = game
     |> remove_from_stack(card_id, orig_stack_id)
-    |> update_card_state(card_id, orig_group_id, options)
+    |> update_card_state(card_id, orig_group_id, move_options)
   end
 
   # Update a card state
@@ -326,6 +326,16 @@ defmodule DragnCardsGame.GameUI do
           {new_game, new_paths}
         end
       end)
+    else
+      {game, []}
+    end
+  end
+
+  def ucs_apply_attachment_dir(game, card_id, move_options) do
+    if move_options != nil and move_options["combine"] != nil do
+      new_game = put_in(game, ["cardById", card_id, "attachmentDirection"], move_options["combine"])
+      new_paths = ["/cardById/#{card_id}/attachmentDirection"]
+      {new_game, new_paths}
     else
       {game, []}
     end
@@ -430,6 +440,8 @@ defmodule DragnCardsGame.GameUI do
     {game, peeking_pathstrings} = ucs_set_peeking(game, card_id, orig_group_id, dest_group_id, dest_group, old_card, allow_flip)
 
     {game, cardenter_pathstrings} = ucs_apply_dict(game, card_id, dest_group["onCardEnter"], allow_flip)
+
+    {game, attachment_dir_pathstrings} = ucs_apply_attachment_dir(game, card_id, move_options)
 
     {game, token_pathstrings} = ucs_remove_tokens(game, card_id, old_card, orig_group, dest_group)
 

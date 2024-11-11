@@ -160,7 +160,7 @@ defmodule DragnCardsGame.Evaluate do
     #   #IO.inspect(game)
     #   IO.puts("evaluate 3")
     # end
-    #try do
+    try do
       # Increase scope index
       current_scope_index = game["currentScopeIndex"] + 1
       game = put_in(game, ["currentScopeIndex"], current_scope_index)
@@ -186,22 +186,22 @@ defmodule DragnCardsGame.Evaluate do
         result
       end
 
-    # rescue
-    #   e in RecursiveEvaluationError ->
-    #     raise RecursiveEvaluationError, message: e.message
-    #   e ->
-    #     # Check if e has a message
-    #     message = if is_map(e) and Map.has_key?(e, :message) do
-    #       e.message
-    #     else
-    #       inspect(e)
-    #     end
-    #     if String.starts_with?(message, "ABORT") do
-    #       raise RecursiveEvaluationError, message: message
-    #     else
-    #       raise RecursiveEvaluationError, message: ": #{message} Trace: #{inspect(trace)}"
-    #     end
-    # end
+    rescue
+      e in RecursiveEvaluationError ->
+        raise RecursiveEvaluationError, message: e.message
+      e ->
+        # Check if e has a message
+        message = if is_map(e) and Map.has_key?(e, :message) do
+          e.message
+        else
+          inspect(e)
+        end
+        if String.starts_with?(message, "ABORT") do
+          raise RecursiveEvaluationError, message: message
+        else
+          raise RecursiveEvaluationError, message: ": #{message} Trace: #{inspect(trace)}"
+        end
+    end
   end
 
 

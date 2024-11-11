@@ -12,8 +12,8 @@ defmodule DragnCardsGame.Evaluate.Functions.MOVE_CARD do
 
   If `destCardIndex` is provided, the card is inserted at that index within the stack. To attach the card to the back of a stack, set `destCardIndex` to -1. Not that if you are setting this to a value other than 0, you must also provide {"combine": true} in the `options` object, as you are combining this card with an existing stack.
 
-  The `options` object can contain the following properties:
-  - `combine` (boolean): If true, the card will be combined with the stack at `destStackIndex` instead of inserting a new stack.
+  The `options` object can contain the following optional properties:
+  - `combine` (boolean): `"left"|"right"|"top"|"bottom"|"behind"` The card will be combined with the stack at `destStackIndex` instead of inserting a new stack, in the direction specified.
   - `allowFlip` (boolean): If false, the card will ignore the `onCardEnter.currentSide` setting of whatever group it is moving to.
 
   *Returns*:
