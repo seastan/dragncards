@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Make sure hex is installed
-mix local.hex --force
+mix local.hex --force && mix local.rebar --force
 
 # Get deps
 mix deps.get

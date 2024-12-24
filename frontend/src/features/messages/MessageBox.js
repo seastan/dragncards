@@ -5,10 +5,13 @@ import { LogDiv } from "./LogDiv";
 import { faComment, faRectangleList } from "@fortawesome/free-regular-svg-icons";
 import { MessageBoxButton } from "./MessageBoxButton";
 import { LogButtons } from "./LogButtons";
+import { useSendLocalMessage } from "../engine/hooks/useSendLocalMessage";
 
 export const MessageBox = ({ hover }) => {
   const newMessageObjects = useMessages();
+  const sendLocalMessage = useSendLocalMessage();
   const [showingLog, setShowingLog] = useState(true);
+  const [newChatMessageNotification, setNewChatMessageNotification] = useState(false);
 
   const [allLogMessageObjects, setAllLogMessageObjects] = useState([]);
   const [allChatMessageObjects, setAllChatMessageObjects] = useState([]);
@@ -19,6 +22,7 @@ export const MessageBox = ({ hover }) => {
 
   const handleShowChatClick = () => {
     setShowingLog(false);
+    setNewChatMessageNotification(false);
   } 
   const handleShowLogClick = () => {
     setShowingLog(true);
@@ -30,7 +34,13 @@ export const MessageBox = ({ hover }) => {
     const filteredNewLogMessageObjects = newMessageObjects?.filter(obj2 => obj2.sent_by === -1 && !allLogMessageObjects.find(obj1 => obj1.shortcode === obj2.shortcode));
     console.log("MessageBox useEffect", {newMessageObjects, filteredNewLogMessageObjects, allLogMessageObjects})
 
-    if (newMessageObjects) setAllChatMessageObjects([...allChatMessageObjects, ...filteredNewChatMessageObjects])
+    if (newMessageObjects) {
+      setAllChatMessageObjects([...allChatMessageObjects, ...filteredNewChatMessageObjects])
+      if (showingLog) {
+        setNewChatMessageNotification(filteredNewChatMessageObjects.length > 0)
+        sendLocalMessage("New chat message recieved")
+      }
+    }
     if (newMessageObjects) setAllLogMessageObjects([...allLogMessageObjects, ...filteredNewLogMessageObjects])
   }, [newMessageObjects]);
 
@@ -46,7 +56,7 @@ export const MessageBox = ({ hover }) => {
       >
         <div className="flex px-2">
           <MessageBoxButton selected={showingLog} clickCallback={handleShowLogClick} icon={faRectangleList}/>
-          <MessageBoxButton selected={!showingLog} clickCallback={handleShowChatClick} icon={faComment}/>
+          <MessageBoxButton selected={!showingLog} clickCallback={handleShowChatClick} icon={faComment} blink={newChatMessageNotification}/>
         </div>
         <div
           className={"h-full w-full px-2"}

@@ -129,6 +129,7 @@
   "devDependencies": {
     "find-unused-exports": "^5.0.0",
     "jest": "^24.9.0",
+    "react-error-overlay": "^6.0.9",
     "webpack-bundle-analyzer": "^4.10.2"
   }
 }

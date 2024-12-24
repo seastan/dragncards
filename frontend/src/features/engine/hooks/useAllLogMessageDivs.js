@@ -8,6 +8,7 @@ export const useAllLogMessageDivs = () => {
   const allLogMessageDivs = deltas.map((delta, deltaIndex) => {
       return(<LogMessageDiv key={deltaIndex} delta={delta} deltaIndex={deltaIndex}/>)
   })
+  console.log("useAllLogMessageDivs", allLogMessageDivs)
 
   return allLogMessageDivs;
 }

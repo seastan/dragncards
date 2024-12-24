@@ -49,6 +49,15 @@ defmodule DragnCardsGame.Evaluate.Functions.ACTION_LIST do
       true ->
         get_action_list_from_game_def(game["options"]["pluginId"], action_list_or_id)
     end
+
+    trace = cond do
+      is_list(action_list_or_id) ->
+        trace ++ ["list"]
+      String.starts_with?(action_list_or_id, "$") ->
+        trace ++ [action_list_or_id]
+      true ->
+        trace ++ [action_list_or_id]
+      end
     Evaluate.evaluate(game, action_list, trace)
   end
 

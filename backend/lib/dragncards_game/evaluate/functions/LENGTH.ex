@@ -22,7 +22,11 @@ defmodule DragnCardsGame.Evaluate.Functions.LENGTH do
   """
   def execute(game, code, trace) do
     value = Evaluate.evaluate(game, Enum.at(code, 1), trace)
-    if is_binary(value) do String.length(value) else Enum.count(value) end
+    cond do
+      is_binary(value) -> String.length(value)
+      is_list(value) -> Enum.count(value)
+      true -> raise("LENGTH: Expected a string or list, got #{inspect(value)}.")
+    end
   end
 
 

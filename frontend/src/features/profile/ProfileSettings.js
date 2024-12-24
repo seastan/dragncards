@@ -134,7 +134,7 @@ export const ProfileSettings = () => {
         )}
 
         <h1 className="font-semibold mb-2 text-black">Patreon</h1>
-        <div>
+          <div>
             <span className="font-semibold">
               <div>Current supporter level: {user.supporter_level ? user.supporter_level : 0}</div> 
             </span>
@@ -153,6 +153,7 @@ export const ProfileSettings = () => {
                 <option value="English">English</option>
                 <option value="French">French</option>
                 <option value="Spanish">Spanish</option>
+                <option value="Portuguese">Portuguese</option>
                 <option value="Italian">Italian</option>
                 <option value="German">German</option>
                 <option value="Chinese">Chinese</option>

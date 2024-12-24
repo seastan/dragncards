@@ -275,7 +275,11 @@ export const loadArkhamDb = (importLoadList, doActionList, playerN, arkhamDbType
           metaActionList.push(["SET", "/playerData/" + playerN + "/arkham/deckAttachments/" + key.substring(12), attachments]);
         }
       }
-    }    
+    }
+    const taboo_id = jsonData?.taboo_id;
+    if(taboo_id) {
+      metaActionList.push(["SET", "/playerData/" + playerN + "/arkham/tabooId", taboo_id]);
+    }
     doActionList(metaActionList);
     importLoadList(loadList);
   })

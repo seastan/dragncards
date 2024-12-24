@@ -3,9 +3,9 @@ defmodule DragnCardsGame.Evaluate.Functions.APPEND do
   @moduledoc """
   *Arguments*:
   1. `list1` (list)
-  2. `list2` (list)
+  2. `val` (any)
 
-  Appends `list2` to `list1`. If the first list is null, it is treated as an empty list.
+  Appends `val` to `list1`. If the first list is null, it is treated as an empty list.
 
   *Returns*:
   (list) The result of the append operation.

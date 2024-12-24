@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+  backend:
+    image: elixir:1.14.4
+    depends_on: 
+      - postgres
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./backend:/app
+    entrypoint: /app/scripts/local-dev.sh
+    working_dir: /app
+    environment:
+      - DB_HOSTNAME=postgres
+  frontend:
+    image: node:20
+    depends_on: 
+      - backend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+    entrypoint: /app/scripts/local-dev.sh
+    working_dir: /app
+    environment:
+      - REACT_APP_BE_HOSTNAME=backend
+#uncomment apache if you're running pure offline mode. Other steps required
+#   apache:
+#     image: httpd:latest
+#     container_name: my-apache-app
+#     ports:
+#     - '8080:80'
+#     volumes:
+#     - ./images:/usr/local/apache2/htdocs
+volumes:
+  pgdata:
+# images:

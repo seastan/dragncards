@@ -17,8 +17,8 @@ defmodule DragnCardsGame.Evaluate.Functions.FILTER_CARDS do
       ["FILTER_CARDS",
         "$CARD",
         ["AND",
-          ["EQUAL", ["VAR", "$CARD.type"], "Hero"],
-          ["EQUAL", ["VAR", "$CARD.controller"], "player1"]
+          ["EQUAL", "$CARD.type", "Hero"],
+          ["EQUAL", "$CARD.controller", "player1"]
         ]
       ]
     ],
