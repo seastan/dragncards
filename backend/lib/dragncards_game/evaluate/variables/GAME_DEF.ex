@@ -5,7 +5,7 @@ defmodule DragnCardsGame.Evaluate.Variables.GAME_DEF do
   *Examples*:
 
   ```
-  ["$GAME_DEF.gameProperties.hitPoints.default"] # Returns the default value for the hitPoints game property from the game definition.
+  "$GAME_DEF.gameProperties.hitPoints.default" # Returns the default value for the hitPoints game property from the game definition.
   ```
   """
 

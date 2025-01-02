@@ -5,7 +5,7 @@ defmodule DragnCardsGame.Evaluate.Variables.CARD_DB do
   *Examples*:
 
   ```
-  ["$CARD_DB.51223bd0.A.hitPoints"] # Returns the hitPoints value of side A for the card from the database with databaseId 51223bd0.
+  "$CARD_DB.51223bd0.A.hitPoints" # Returns the hitPoints value of side A for the card from the database with databaseId 51223bd0.
   ```
   """
   alias DragnCardsGame.{PluginCache}

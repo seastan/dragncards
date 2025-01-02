@@ -132,7 +132,7 @@ export const Profile: React.FC<Props> = () => {
             {user.email_confirmed_at != null && "Yes."}
           </div>
           {user.email_confirmed_at == null && <RecaptchaForm/>}
-          {true && 
+          {user.admin && 
             <>
               <div>
                 <span className="font-semibold">Admin</span>

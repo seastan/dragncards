@@ -1231,6 +1231,10 @@ export const getGameDefSchema = (gameDef) => {
                 "_description_": "The height of the button",
                 "_type_": "any",
                 "_required_": true,
+              },
+              "visible": {
+                "_description_": "Whether the button is visible",
+                "_type_": "boolean",
               }
             }
           },
