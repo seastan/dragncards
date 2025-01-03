@@ -14,6 +14,7 @@ import { DeckbuilderTable } from "./DeckbuilderTable";
 import { DeckbuilderCurrent } from "./DeckbuilderCurrent";
 import { DeckbuilderMyDecks } from "./DeckbuilderMyDecks";
 import useDataApi from "../../hooks/useDataApi";
+import { Z_INDEX } from "./functions/common";
 
 const CardImage = ({url, top, height, leftSide}) => {
   const gameDef = useGameDefinition();
@@ -33,7 +34,7 @@ const CardImage = ({url, top, height, leftSide}) => {
     MozBoxShadow: '0 0 50px 20px black',
     WebkitBoxShadow: '0 0 50px 20px black',
     boxShadow: '0 0 50px 20px black',
-    zIndex: 1e6,
+    zIndex: Z_INDEX.CardImage,
     position: 'fixed'
   };
   if (leftSide) {
@@ -109,9 +110,12 @@ export const DeckbuilderModal = React.memo(({}) => {
         dispatch(setTyping(false));
       }}
       contentLabel="Build a deck"
-      overlayClassName="fixed inset-0 bg-black-50 z-10000"
+      overlayClassName="fixed inset-0 bg-black-50"
       className="relative flex insert-auto overflow-auto p-5 bg-gray-800 border mx-auto my-12 rounded-lg outline-none"
       style={{
+        overlay: {
+          zIndex: Z_INDEX.Modal
+        },
         content: {
           width: "92vw",
           height: "85dvh",

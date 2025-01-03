@@ -9,7 +9,7 @@ import { setDropdownMenu, setTyping } from "../store/playerUiSlice";
 import { useGameL10n } from "./hooks/useGameL10n";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { useDoActionList } from "./hooks/useDoActionList";
-import { DEFAULT_CARD_Z_INDEX, getParentCardsInGroup } from "./functions/common";
+import { getParentCardsInGroup, Z_INDEX } from "./functions/common";
 import Draggable from "react-draggable";
 import { useCardScaleFactor } from "./hooks/useCardScaleFactor";
 import { usePlayerN } from "./hooks/usePlayerN";
@@ -190,7 +190,7 @@ export const Browse = React.memo(({}) => {
         width: browseWidth,
         top: region.top,
         height: region.height,
-        zIndex: 2*DEFAULT_CARD_Z_INDEX+2,
+        zIndex: 2*Z_INDEX.Card+2,
         boxShadow: "0 0 10px 5px rgba(0,0,0,0.6)"
       }}>
       <strong className="bg-gray-600 w-full text-gray-300 flex justify-center items-center" style={{height: "3dvh", borderTopLeftRadius: "1dvh", borderTopRightRadius: "1dvh"}}>

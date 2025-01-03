@@ -6,6 +6,26 @@ export const keyStyleL = {width: "7dvh", height: "3dvh", borderRadius: "0.5dvh"}
 export const keyStyleXL = {width: "12dvh", height: "3dvh", borderRadius: "0.5dvh"}
 export const ATTACHMENT_OFFSET = 3.5;
 export const COMBINE_REGION_WIDTH_FACTOR = 0.45;
+
+export const Z_INDEX = {
+  "TableButton": 1e1,
+  "TextBox": 1e1,
+  "Card": 1e2,
+  "Arrows": 2e3,
+  "DeveloperModal": 1e4,
+  "Hotkeys": 2e4,
+  "Modal": 1e5,
+  "CardImage": 1e6,
+  "ChatHover": 1e6,
+  "Alert": 3e6,
+  "Status": 3e6,
+  "Prompts": 3e7,
+  "DropdownMenu": 1e7,
+  "GiantCard": 4e7,
+  "TempDragStack": 1e9,
+  "AttachmentIcon": 1e9,
+
+}
 export const DEFAULT_CARD_Z_INDEX = 100;
 
 export const playerColorMap = {

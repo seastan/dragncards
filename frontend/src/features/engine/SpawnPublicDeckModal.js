@@ -11,6 +11,7 @@ import { RotatingLines } from "react-loader-spinner";
 import Axios from "axios";
 import { useAuthOptions } from "../../hooks/useAuthOptions";
 import { useImportLoadList } from "./hooks/useImportLoadList";
+import { Z_INDEX } from "./functions/common";
 
 
 const RESULTS_LIMIT = 100;
@@ -30,9 +31,12 @@ export const SpawnPublicDeckModal = React.memo(({}) => {
           dispatch(setTyping(false));
         }}
         contentLabel={"Load quest"}
-        overlayClassName="fixed inset-0 bg-black-50 z-10000"
+        overlayClassName="fixed inset-0 bg-black-50"
         className="insert-auto p-5 bg-gray-700 border max-h-lg mx-auto my-2 rounded-lg outline-none"
         style={{
+          overlay: {
+            zIndex: Z_INDEX.Modal
+          },
           content: {
             width: "80dvh",
             maxHeight: "95dvh",

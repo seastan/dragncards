@@ -2,6 +2,7 @@ import React from "react";
 import { useSelector } from "react-redux";
 import { useFormatLabelsInText } from "../messages/MessageLine";
 import DOMPurify from "dompurify";
+import { Z_INDEX } from "./functions/common";
 
 const promptStyle = {
   boxShadow: '0 0 50px 20px black',
@@ -24,7 +25,7 @@ export const Status = React.memo(({
         left: "35%", 
         top: "2%", 
         width: "30%",
-        zIndex: 3e6,
+        zIndex: Z_INDEX.Status,
         textAlign: "center",
         opacity: 0.9,
       }}>

@@ -8,6 +8,7 @@ import { useGameDefinition } from "./hooks/useGameDefinition";
 import { useTouchAction } from "./hooks/useTouchAction";
 import { setActiveCardId } from "../store/playerUiSlice";
 import { useActiveCard } from "./hooks/useActiveCard";
+import { Z_INDEX } from "./functions/common";
 
 
 export const GiantCard = React.memo(() => {
@@ -54,7 +55,7 @@ export const GiantCard = React.memo(() => {
         top: "0%",
         borderRadius: "5%",
         boxShadow: "0 0 50px 20px black",
-        zIndex: 1e6,
+        zIndex: Z_INDEX.GiantCard,
         height: height,
       }}
     />

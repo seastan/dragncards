@@ -4,7 +4,7 @@ import { Card } from "./Card";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowDown, faArrowUp, faChevronDown, faEye, faLink } from "@fortawesome/free-solid-svg-icons";
 import { useOffsetTotalsAndAmounts } from "./hooks/useOffsetTotalsAndAmounts";
-import { DEFAULT_CARD_Z_INDEX } from "./functions/common";
+import { DEFAULT_CARD_Z_INDEX, Z_INDEX } from "./functions/common";
 import { useDoActionList } from "./hooks/useDoActionList";
 import { useLayout } from "./hooks/useLayout";
 
@@ -140,7 +140,7 @@ const LinkIcon = React.memo(({
         height: height,
         top: top,
         left: left,
-        zIndex: 1e9,
+        zIndex: Z_INDEX.AttachmentIcon,
         opacity: 0.7,
         transform: transform,
       }}

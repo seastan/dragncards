@@ -7,7 +7,7 @@ import { useBrowseTopN } from "./hooks/useBrowseTopN";
 import { setDropdownMenu } from "../store/playerUiSlice";
 import { useGameL10n } from "./hooks/useGameL10n";
 import { Stack } from "./Stack";
-import { DEFAULT_CARD_Z_INDEX } from "./functions/common";
+import { DEFAULT_CARD_Z_INDEX, Z_INDEX } from "./functions/common";
 
 export const Group = React.memo(({
   groupId,
@@ -101,7 +101,7 @@ export const Group = React.memo(({
             left: `${tempDragStack.left}`, 
             top: `${tempDragStack.top}`, 
             position: "absolute", 
-            zIndex: 1e9, 
+            zIndex: Z_INDEX.TempDragStack, 
             marginLeft: "1.7dvh",
           }}>
             <Stack

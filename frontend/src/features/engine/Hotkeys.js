@@ -6,14 +6,14 @@ import { useDispatch, useSelector } from "react-redux";
 import { setShowHotkeys } from "../store/playerUiSlice";
 import { useGameL10n } from "./hooks/useGameL10n";
 import { useGameDefinition } from "./hooks/useGameDefinition";
-import { keyDiv, keysDiv } from "./functions/common";
+import { keyDiv, keysDiv, Z_INDEX } from "./functions/common";
 import { useSiteL10n } from "../../hooks/useSiteL10n";
 import { dragnHotkeys } from "./hooks/useDragnHotkeys";
 
 const windowClass = "insert-auto overflow-auto bg-gray-700 border max-w-lg rounded-lg outline-none text-white";
 const windowStyle = {
   position:"absolute", 
-  zIndex: 2e4, 
+  zIndex: Z_INDEX.Hotkeys, 
   right: "30px", 
   top: "200px", 
   width:"500px", 
@@ -22,7 +22,7 @@ const windowStyle = {
 const windowClassL = "insert-auto overflow-auto bg-gray-700 border rounded-lg outline-none text-white";
 const windowStyleL = {
   position:"absolute", 
-  zIndex: 2e4, 
+  zIndex: Z_INDEX.Hotkeys, 
   left: "3vw", 
   top: "3dvh", 
   width:"94vw", 

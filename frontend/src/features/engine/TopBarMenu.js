@@ -108,8 +108,6 @@ export const TopBarMenu = React.memo(({}) => {
       }
     } else if (data.action === "spawn_existing") {
       dispatch(setShowModal("card"));
-    } else if (data.action === "spawn_custom") {
-      dispatch(setShowModal("custom"));
     } else if (data.action === "developer_tools") {
       dispatch(setShowModal("developer"));
     } else if (data.action === "spawn_deck") {
@@ -336,14 +334,19 @@ export const TopBarMenu = React.memo(({}) => {
             <li key={"unload_shared_cards"} onClick={() => handleMenuClick({action:"unload_shared_cards"})}>{siteL10n("unloadSharedCards")}</li>
           </ul>
         </li>
-        <li key={"spawn"}>
+        <li key={"spawn"}
+          onClick={() => handleMenuClick({action:"spawn_existing"})}>
+          {siteL10n("spawnCard")}
+        </li>   
+
+        {/* <li key={"spawn"}>
             {siteL10n("spawnCard")}
             <span className="float-right mr-1"><FontAwesomeIcon icon={faChevronRight}/></span>
           <ul className="third-level-menu">
             <li key={"spawn_existing"} onClick={() => handleMenuClick({action:"spawn_existing"})}>{siteL10n("fromTheCardPool")}</li>
             <li key={"spawn_custom"} onClick={() => handleMenuClick({action:"spawn_custom"})}>{siteL10n("createYourOwnCard")}</li>
           </ul>
-        </li> 
+        </li>  */}
         <li key={"random"}>
             {siteL10n("random")}
             <span className="float-right mr-1"><FontAwesomeIcon icon={faChevronRight}/></span>

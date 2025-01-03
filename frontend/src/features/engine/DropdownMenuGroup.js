@@ -11,6 +11,7 @@ import { dragnActionLists } from "./functions/dragnActionLists";
 import { setDropdownMenu } from "../store/playerUiSlice";
 import { useSiteL10n } from "../../hooks/useSiteL10n";
 import { useGameL10n } from "./hooks/useGameL10n";
+import { Z_INDEX } from "./functions/common";
 
 export const DropdownMenuGroup = React.memo(({
   mouseX,
@@ -78,7 +79,7 @@ export const DropdownMenuGroup = React.memo(({
   return (
     <div 
       className="dropdown" 
-      style={{ height: menuHeight, zIndex: 1e7, top: top, left: left }}>
+      style={{ height: menuHeight, zIndex: Z_INDEX.DropdownMenu, top: top, left: left }}>
         <div className="menu-title">{dropdownMenu.title}</div>
         {activeMenu === "main" &&
         <div className="menu">

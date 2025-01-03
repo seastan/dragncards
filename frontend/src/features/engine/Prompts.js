@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { usePlayerN } from "./hooks/usePlayerN";
-import { keysDiv } from "./functions/common";
+import { keysDiv, Z_INDEX } from "./functions/common";
 import { useDoActionList } from "./hooks/useDoActionList";
 import { useGameL10n } from "./hooks/useGameL10n";
 import Draggable from "react-draggable";
@@ -68,7 +68,7 @@ export const Prompts = React.memo(({
           left: "2%", 
           top: "2%", 
           width: "19%",
-          zIndex: 3e7
+          zIndex: Z_INDEX.Prompts,
         }}>
           {/* Add a drag handle here */}
           <div className="drag-handle p-1 cursor-move bg-gray-800 flex justify-center align-center">

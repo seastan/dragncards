@@ -68,16 +68,16 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT_ADD_OPTION do
       prompt_uuid = acc["playerData"][target_player_n]["mostRecentPromptId"]
       options = acc["playerData"][target_player_n]["prompts"][prompt_uuid]["options"]
       unset_command = ["UNSET", "/playerData/#{target_player_n}/prompts/#{prompt_uuid}"]
-      prompt_code = prompt_code ++ [unset_command]
+      prompt_code = if prompt_code != nil do
+        prompt_code ++ [unset_command]
+      else
+        [unset_command]
+      end
       new_option = %{
         "label" => label,
-        "hotkey" => hotkey
+        "hotkey" => hotkey,
+        "code" => prompt_code
       }
-      new_option = if prompt_code != nil do
-        put_in(new_option, ["code"], prompt_code)
-      else
-        new_option
-      end
       new_options = options ++ [new_option]
       put_in(acc, ["playerData", target_player_n, "prompts", prompt_uuid, "options"], new_options)
     end)

@@ -10,6 +10,7 @@ import { useGameDefinition } from "./hooks/useGameDefinition";
 import { usePlugin } from "./hooks/usePlugin";
 import { useGameL10n } from "./hooks/useGameL10n";
 import { useImportLoadList } from "./hooks/useImportLoadList";
+import { Z_INDEX } from "./functions/common";
 
 export const SpawnCustomCardModal = React.memo(({}) => {
   const dispatch = useDispatch();
@@ -114,9 +115,12 @@ export const SpawnCustomCardModal = React.memo(({}) => {
           dispatch(setTyping(false));
         }}
         contentLabel="Spawn a custom card"
-        overlayClassName="fixed inset-0 bg-black-50 z-10000"
+        overlayClassName="fixed inset-0 bg-black-50"
         className="insert-auto overflow-auto p-5 bg-gray-700 border mx-auto my-12 rounded-lg outline-none"
         style={{
+          overlay: {
+            zIndex: Z_INDEX.Modal
+          },
           content: {
             width: "50vw",
             maxHeight: "85dvh",

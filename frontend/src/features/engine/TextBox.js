@@ -1,5 +1,5 @@
 import React from "react";
-import { convertToPercentage } from "./functions/common";
+import { convertToPercentage, Z_INDEX } from "./functions/common";
 import { useSelector } from "react-redux";
 
 export const TextBox = React.memo(({
@@ -16,7 +16,7 @@ export const TextBox = React.memo(({
         top: convertToPercentage(textBoxLayoutInfo.top), 
         width: convertToPercentage(textBoxLayoutInfo.width), 
         height: convertToPercentage(textBoxLayoutInfo.height),
-        zIndex: 1e1,
+        zIndex: Z_INDEX.TextBox,
       }}>
       {textBox?.content}
     </div>

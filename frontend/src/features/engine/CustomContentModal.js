@@ -14,6 +14,7 @@ import { useAuthOptions } from "../../hooks/useAuthOptions";
 import Axios from "axios";
 import { StatusMessageBlock } from "./StatusMessageBlock";
 import { RotatingLines } from "react-loader-spinner";
+import { Z_INDEX } from "./functions/common";
 
 const RESULTS_LIMIT = 3;
 
@@ -241,9 +242,12 @@ export const CustomContentModal = React.memo(({}) => {
         dispatch(setTyping(false));
       }}
       contentLabel="Build a deck"
-      overlayClassName="fixed inset-0 bg-black-50 z-10000"
+      overlayClassName="fixed inset-0 bg-black-50"
       className="relative insert-auto overflow-auto p-5 bg-gray-800 border mx-auto my-12 rounded-lg outline-none text-white"
       style={{
+        overlay: {
+          zIndex: Z_INDEX.Modal
+        },
         content: {
           width: "700px",
           height: "85dvh",

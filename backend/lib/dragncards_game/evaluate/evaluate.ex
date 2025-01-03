@@ -234,59 +234,60 @@ defmodule DragnCardsGame.Evaluate do
         end
         trace = trace ++ [function_name]
 
-        function_module = try do
-          String.to_existing_atom("Elixir.DragnCardsGame.Evaluate.Functions." <> String.upcase(function_name))
-        rescue
-          _->
-            nil
-        end
+        # Check if function_name is in game["functions"]
+        if Map.has_key?(game["functions"], function_name) do
+          # Get the function
+          func = game["functions"][function_name]
+          func_args = func["args"]
+          func_code = func["code"]
+          # get input args
+          input_args = Enum.slice(code, 1, Enum.count(code))
 
-        if function_module != nil do
-          apply(function_module, String.to_atom("execute"), [game, code, trace])
-        else
-          # Check if function_name is in game["functions"]
-          if Map.has_key?(game["functions"], function_name) do
-            # Get the function
-            func = game["functions"][function_name]
-            func_args = func["args"]
-            func_code = func["code"]
-            # get input args
-            input_args = Enum.slice(code, 1, Enum.count(code))
-
-            # Make sure the number of input args is not greater than the number of function args
-            if Enum.count(input_args) > Enum.count(func_args) do
-              raise "Function #{function_name} expects #{Enum.count(func_args)} arguments, but got #{Enum.count(input_args)}."
+          # Make sure the number of input args is not greater than the number of function args
+          if Enum.count(input_args) > Enum.count(func_args) do
+            raise "Function #{function_name} expects #{Enum.count(func_args)} arguments, but got #{Enum.count(input_args)}."
+          end
+          # Call VAR on each of the function args
+          multi_var_command = Enum.reduce(Enum.with_index(func_args), ["MULTI_VAR"], fn({func_arg, index}, acc) ->
+            [{func_arg_name, input_arg}] = cond do
+              index >= Enum.count(input_args) -> # If we are beyond the range of input arguments, look for default arguments
+                if is_map(func_arg) do
+                  Map.to_list(func_arg)
+                else
+                  raise "Function #{function_name} expects #{Enum.count(func_args)} arguments, but got #{Enum.count(input_args)}."
+                end
+              true -> # We are within the range of input arguments, so use the input argument
+                input_arg = Enum.at(input_args, index)
+                if is_map(func_arg) do
+                  func_arg_name = Enum.at(Map.keys(func_arg), 0)
+                  [{func_arg_name, input_arg}]
+                else
+                  func_arg_name = func_arg
+                  [{func_arg_name, input_arg}]
+                end
             end
-            # Call VAR on each of the function args
-            multi_var_command = Enum.reduce(Enum.with_index(func_args), ["MULTI_VAR"], fn({func_arg, index}, acc) ->
-              [{func_arg_name, input_arg}] = cond do
-                index >= Enum.count(input_args) -> # If we are beyond the range of input arguments, look for default arguments
-                  if is_map(func_arg) do
-                    Map.to_list(func_arg)
-                  else
-                    raise "Function #{function_name} expects #{Enum.count(func_args)} arguments, but got #{Enum.count(input_args)}."
-                  end
-                true -> # We are within the range of input arguments, so use the input argument
-                  input_arg = Enum.at(input_args, index)
-                  if is_map(func_arg) do
-                    func_arg_name = Enum.at(Map.keys(func_arg), 0)
-                    [{func_arg_name, input_arg}]
-                  else
-                    func_arg_name = func_arg
-                    [{func_arg_name, input_arg}]
-                  end
-              end
-              acc ++ [func_arg_name, input_arg]
-              #evaluate(acc, ["VAR", func_arg_name, input_arg], trace ++ ["function arg #{func_arg_name}"])
-            end)
-            game = evaluate(game, multi_var_command, trace ++ ["define function args"])
-            # Evaluate the function
-            evaluate(game, func_code, trace)
+            acc ++ [func_arg_name, input_arg]
+            #evaluate(acc, ["VAR", func_arg_name, input_arg], trace ++ ["function arg #{func_arg_name}"])
+          end)
+          game = evaluate(game, multi_var_command, trace ++ ["define function args"])
+          # Evaluate the function
+          evaluate(game, func_code, trace)
 
+        else # function_name is not in game["functions"], check if it's a built-in function
+          function_module = try do
+            String.to_existing_atom("Elixir.DragnCardsGame.Evaluate.Functions." <> String.upcase(function_name))
+          rescue
+            _->
+              nil
+          end
+
+          if function_module != nil do
+            apply(function_module, String.to_atom("execute"), [game, code, trace])
           else
             raise "Function #{inspect(function_name)} not recognized in #{inspect(code)}"
           end
         end
+
       end
     else # not a list
       trace = trace ++ [code]

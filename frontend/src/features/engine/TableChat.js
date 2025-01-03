@@ -1,5 +1,5 @@
 import React, { useContext, useState } from "react";
-import { convertToPercentage } from "./functions/common";
+import { convertToPercentage, Z_INDEX } from "./functions/common";
 import BroadcastContext from "../../contexts/BroadcastContext";
 import MessageBox from "../messages/MessageBox";
 
@@ -32,7 +32,7 @@ export const TableChat = React.memo(({
       }}>
     <div 
       className="absolute bottom-0 left-0" 
-      style={{height: chatHover ? "100dvh" : "100%", width:'100%', zIndex: chatHover ? 1e6 : 0}}
+      style={{height: chatHover ? "100dvh" : "100%", width:'100%', zIndex: chatHover ? Z_INDEX.ChatHover : 0}}
       onMouseEnter={() => handleStartChatHover()}
       onMouseLeave={() => handleStopChatHover()}>
       <MessageBox hover={chatHover}/>

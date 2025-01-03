@@ -9,6 +9,7 @@ import { usePlugin } from "./hooks/usePlugin";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { useDoActionList } from "./hooks/useDoActionList";
 import { useImportLoadList } from "./hooks/useImportLoadList";
+import { Z_INDEX } from "./functions/common";
 
 const RESULTS_LIMIT = 150;
 
@@ -62,8 +63,13 @@ export const SpawnExistingCardModal = React.memo(({}) => {
           dispatch(setTyping(false));
         }}
         contentLabel="Spawn a card"
-        overlayClassName="fixed inset-0 bg-black-50 z-10000"
-        className="insert-auto overflow-auto p-5 bg-gray-700 border max-w-lg mx-auto my-12 rounded-lg outline-none max-h-3/4">
+        overlayClassName="fixed inset-0 bg-black-50"
+        className="insert-auto overflow-auto p-5 bg-gray-700 border max-w-lg mx-auto my-12 rounded-lg outline-none max-h-3/4"
+        style={{
+          overlay: {
+            zIndex: Z_INDEX.Modal
+          }
+        }}>
         <h1 className="mb-2">{gameL10n("Spawn card")}</h1>
         <div><span className="text-white">Load group: </span>
           <select className="form-control mb-1" style={{width:"35%"}} id={"loadGroupId"} name={"loadGroupId"} onChange={(event) => handleGroupIdChange(event)}>

@@ -20,6 +20,7 @@ import { setActiveCardId, setDropdownMenu, setShowModal } from "../store/playerU
 import { usePlayerIList } from "./hooks/usePlayerIList";
 import { evaluate } from "./hooks/evaluate";
 import store from "../../store";
+import { Z_INDEX } from "./functions/common";
 
 export const DropdownMenuCard = React.memo(({
   mouseX,
@@ -136,7 +137,7 @@ export const DropdownMenuCard = React.memo(({
   return (
     <div 
       className="dropdown" 
-      style={{ height: menuHeight, zIndex: 1e7, top: top, left: left }}>
+      style={{ height: menuHeight, zIndex: Z_INDEX.DropdownMenu, top: top, left: left }}>
         <div className="menu-title">{dropdownMenu.title}</div>
 
         {activeMenu === "main" &&

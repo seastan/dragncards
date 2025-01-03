@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { CSSTransition } from 'react-transition-group';
 import { DropdownItem } from "./DropdownMenuHelpers";
 import "../../css/custom-dropdown.css";
+import { Z_INDEX } from "./functions/common";
 
 export const DropdownMenuFirstPlayer = React.memo(({
   mouseX,
@@ -22,7 +23,7 @@ export const DropdownMenuFirstPlayer = React.memo(({
   return (
     <div 
       className="dropdown" 
-      style={{ height: menuHeight, zIndex: 1e7, top: top, left: left }}
+      style={{ height: menuHeight, zIndex: Z_INDEX.DropdownMenu, top: top, left: left }}
       >
       <div className="menu-title">{dropdownMenu.title}</div>
 

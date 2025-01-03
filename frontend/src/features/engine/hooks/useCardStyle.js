@@ -1,8 +1,7 @@
 import { useSelector } from 'react-redux';
 import { useCardScaleFactor } from './useCardScaleFactor';
-import { ATTACHMENT_OFFSET, DEFAULT_CARD_Z_INDEX } from '../functions/common';
+import { Z_INDEX } from '../functions/common';
 import { useCardProp } from './useCardProp';
-import { useCardZIndex } from './useCardZIndex';
 import { useGameDefinition } from './useGameDefinition';
 import { useVisibleFace } from './useVisibleFace';
 
@@ -12,7 +11,7 @@ export const useCardStyle = (cardId, cardIndexFromGui, isDragging, offset) => {
     const cardIndex = cardIndexFromGui || 0;
     const cardScaleFactor = useCardScaleFactor();
     const cardVisibleFace = useVisibleFace(cardId);
-    const zIndex = DEFAULT_CARD_Z_INDEX - cardIndex;
+    const zIndex = Z_INDEX.Card - cardIndex;
     const isActive = useSelector(state => {return state?.playerUi?.activeCardId === cardId});
     const cardBorderColor = useSelector(state => state?.gameUi?.game?.cardById[cardId]?.borderColor);
 

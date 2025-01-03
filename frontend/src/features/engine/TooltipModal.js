@@ -7,6 +7,7 @@ import useAuth from "../../hooks/useAuth";
 import { useDispatch, useSelector } from "react-redux";
 import { setTooltipIds } from "../store/playerUiSlice";
 import { useGameDefinition } from "./hooks/useGameDefinition";
+import { Z_INDEX } from "./functions/common";
 
 export const TooltipModal = React.memo(({
     tooltipId,
@@ -58,9 +59,13 @@ export const TooltipModal = React.memo(({
         closeTimeoutMS={200}
         isOpen={true}
         contentLabel="Spawn a card"
-        overlayClassName="fixed inset-0 bg-black-50 z-10000"
+        overlayClassName="fixed inset-0 bg-black-50"
         className="insert-auto overflow-auto p-5 bg-gray-800 max-w-xs mx-auto my-24 rounded-lg outline-none max-h-3/4"
-      >
+        style={{
+          overlay: {
+            zIndex: Z_INDEX.Modal
+          }
+        }}>
         <div className="text-white mb-2">{useGameDefinition.tooltips[tooltipId]}</div>    
         <span>
           <Button onClick={handleHideClick} className="inline mt-2">

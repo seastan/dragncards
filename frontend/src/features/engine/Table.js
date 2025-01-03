@@ -7,7 +7,6 @@ import { SpawnCustomCardModal } from "./SpawnCustomCardModal";
 import { SpawnPrebuiltModal } from "./SpawnPrebuiltModal";
 import { SideBar } from "./SideBar";
 import { Hotkeys } from "./Hotkeys";
-import { PlayersInRoom } from "./PlayersInRoom";
 import { DropdownMenu } from "./DropdownMenu";
 import { TouchBarBottom } from "./TouchBarBottom";
 
@@ -105,8 +104,6 @@ export const Table = React.memo(({onDragEnd}) => {
           </div>}
         </div>
       </div>
-      {/* Replay panel */}
-      {/* <ReplayPanel/> */}
       {/* Card hover view */}
       <GiantCard/>
       {showModal === "card" ? <SpawnExistingCardModal/> : null}

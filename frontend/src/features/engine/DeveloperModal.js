@@ -10,6 +10,7 @@ import { useDoActionList } from "./hooks/useDoActionList";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faWindowClose, faX } from "@fortawesome/free-solid-svg-icons";
 import { faXmark } from "@fortawesome/free-regular-svg-icons";
+import { Z_INDEX } from "./functions/common";
 
 const DeveloperModal = () => {
   const dispatch = useDispatch();
@@ -30,7 +31,7 @@ const DeveloperModal = () => {
 
   return (
     <Draggable handle=".handle">
-      <div style={{ position: "absolute", zIndex: 10000, cursor: "move", width: "40vw" }}>
+      <div style={{ position: "absolute", zIndex: Z_INDEX.DeveloperModal, cursor: "move", width: "40vw" }}>
         <div className="handle flex justify-between items-center bg-gray-500" style={{ width: '100%', cursor: 'move', height: '40px' }}>
           <div> {/* Title or draggable area content */} </div>
           <div className="p-2 hover:bg-red-600" onClick={() => dispatch(setShowModal(null))}>

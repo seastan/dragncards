@@ -9,7 +9,7 @@ import { setDraggingEnd, setDraggingEndDelay, setDraggingStackId, setTempDragSta
 import { Table } from "./Table";
 import { useDoActionList } from "./hooks/useDoActionList";
 import { ArcherContainer } from 'react-archer';
-import { getVisibleFace } from "./functions/common";
+import { getVisibleFace, Z_INDEX } from "./functions/common";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { usePlayerN } from "./hooks/usePlayerN";
 import { useHoverStackIdAndDirection } from "./hooks/useHoverStackIdAndDirection";
@@ -269,6 +269,9 @@ export const DragContainer = React.memo(({}) => {
       ])
       dispatch(setGroupById(newGroupById));
     }
+    if (gameDef?.automation?.postDragAndDropActionList) {
+      doActionList(gameDef.automation.postDragAndDropActionList);
+    }
 
   }
 
@@ -279,7 +282,7 @@ export const DragContainer = React.memo(({}) => {
         strokeColor="rgba(255,0,0,0.6)" 
         strokeWidth="15"
         svgContainerStyle={{ 
-          zIndex: 2e3,
+          zIndex: Z_INDEX.Arrows,
         }} 
         endShape={{
           arrow: {

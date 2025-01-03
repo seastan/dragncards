@@ -1,5 +1,5 @@
 import React from "react";
-import { convertToPercentage } from "./functions/common";
+import { convertToPercentage, Z_INDEX } from "./functions/common";
 import { useDoActionList } from "./hooks/useDoActionList";
 import { useGameL10n } from "./hooks/useGameL10n";
 import { usePlayerN } from "./hooks/usePlayerN";
@@ -28,7 +28,7 @@ export const TableButton = React.memo(({
         top: convertToPercentage(tableButton.top), 
         width: convertToPercentage(tableButton.width), 
         height: convertToPercentage(tableButton.height),
-        zIndex: 1e1,
+        zIndex: Z_INDEX.TableButton,
       }}
       onClick={() => handleButtonClick()}>
       {gameL10n(tableButton.label)}

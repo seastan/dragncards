@@ -15,6 +15,7 @@ import { useDoActionList } from "./hooks/useDoActionList";
 import { usePlayerN } from "./hooks/usePlayerN";
 import store from "../../store";
 import { useIsHost } from "./hooks/useIsHost";
+import { Z_INDEX } from "./functions/common";
 
 // Move to another file, use this to set the default falues in playerUiSlice
 export const uiSettings = {
@@ -51,9 +52,12 @@ export const SettingsModal = React.memo(({}) => {
           dispatch(setTyping(false));
         }}
         contentLabel={"Load quest"}
-        overlayClassName="fixed inset-0 bg-black-50 z-10000"
+        overlayClassName="fixed inset-0 bg-black-50"
         className="insert-auto p-5 bg-gray-700 border max-h-lg mx-auto my-2 rounded-lg outline-none"
         style={{
+          overlay: {
+            zIndex: Z_INDEX.Modal
+          },
           content: {
             width: "800px",
             maxHeight: "95dvh",

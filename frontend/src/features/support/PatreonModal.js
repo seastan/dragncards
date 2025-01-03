@@ -3,6 +3,7 @@ import ReactModal from "react-modal";
 import Button from "../../components/basic/Button";
 import { PleaseLogIn } from "../lobby/PleaseLogIn";
 import PatreonButton from "./PatreonButton";
+import { Z_INDEX } from "../engine/functions/common";
 
 ReactModal.setAppElement("#root");
 
@@ -35,10 +36,11 @@ export const PatreonModal = ({
       isOpen={isOpen}
       onRequestClose={closeModal}
       contentLabel="Support on Patreon"
-      overlayClassName="fixed inset-0 bg-black-50  z-10000"
+      overlayClassName="fixed inset-0 bg-black-50"
       className="insert-auto p-5 bg-gray-700 border mx-auto rounded-lg my-12 outline-none"
       style={{
         overlay: {
+          zIndex: Z_INDEX.Modal
         },
         content: {
           width: '400px',

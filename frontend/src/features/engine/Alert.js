@@ -5,6 +5,7 @@ import { useFormatLabelsInText } from "../messages/MessageLine";
 import DOMPurify from "dompurify";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes } from "@fortawesome/free-solid-svg-icons";
+import { Z_INDEX } from "./functions/common";
 
 const promptStyle = {
   MozBoxShadow: '0 0 50px 20px black',
@@ -70,7 +71,7 @@ export const Alert = React.memo(({
         left: "65%", 
         top: "2%", 
         width: "30%",
-        zIndex: 3e6,
+        zIndex: Z_INDEX.Alert,
         textAlign: "center",
         opacity: 0.9,
       }}>

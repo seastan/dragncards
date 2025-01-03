@@ -33,10 +33,11 @@ export const FavoriteGroupModal = ({}) => {
       isOpen={true}
       onRequestClose={() => dispatch(setShowModal(null))}
       contentLabel="Select favorite group"
-      overlayClassName="fixed inset-0 bg-black-50 z-10000"
+      overlayClassName="fixed inset-0 bg-black-50"
       className="insert-auto p-5 bg-gray-700 border mx-auto my-12 rounded-lg outline-none"
       style={{
         overlay: {
+          zIndex: Z_INDEX.Modal
         },
         content: {
           width: '300px',

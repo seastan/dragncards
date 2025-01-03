@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { TopBarViewItem } from "./TopBarViewItem";
 import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { setShowHotkeys, setShowModal, setShowPlayersInRoom } from "../store/playerUiSlice";
+import { setShowHotkeys, setShowModal } from "../store/playerUiSlice";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { usePlayerIList } from "./hooks/usePlayerIList";
 import { useSiteL10n } from "../../hooks/useSiteL10n";
@@ -22,9 +22,6 @@ export const TopBarView = React.memo(({}) => {
           </li>
           <li key={"preferences"} onClick={() => dispatch(setShowModal("settings"))}>
             {siteL10n("preferences")} {keysDiv("Shift", "ml-2")}{keysDiv("Tab")}
-          </li>
-          <li key={"playersInRoom"} onClick={() => dispatch(setShowPlayersInRoom(true))}>
-            {siteL10n("spectators")}
           </li>
 
           <li key={"shared"}>

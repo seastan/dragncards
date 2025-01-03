@@ -49,7 +49,6 @@ const initialState = {
   dropdownMenu: null,
   showModal: null,
   showDeveloper: null,
-  showPlayersInRoom: false,
   tooltipIds: [],
   mouseXY: null,
   cardClicked: false,
@@ -147,9 +146,6 @@ const playerUiSlice = createSlice({
     },
     setLoaded: (state, { payload }) => {
       state.loaded = payload;
-    },
-    setShowPlayersInRoom: (state, { payload }) => {
-      state.showPlayersInRoom = payload;
     },
     setTooltipIds: (state, { payload }) => {
       state.tooltipIds = payload;
@@ -281,7 +277,6 @@ export const {
   setShowModal,
   setShowDeveloper,
   setLoaded,
-  setShowPlayersInRoom,
   setTooltipIds,
   setMouseXY,
   setMouseTopBottom,
