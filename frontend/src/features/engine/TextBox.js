@@ -10,7 +10,7 @@ export const TextBox = React.memo(({
   console.log("Rendering TextBox", textBoxLayoutInfo, textBox);
   return (
     <div 
-      className="absolute flex border border-gray-500 justify-center items-center text-gray-400 bg-gray-700" 
+      className="absolute flex border border-gray-500 justify-center items-center text-gray-400 bg-gray-700 text-nowrap overflow-hidden"
       style={{
         left: convertToPercentage(textBoxLayoutInfo.left), 
         top: convertToPercentage(textBoxLayoutInfo.top), 

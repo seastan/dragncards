@@ -49,7 +49,7 @@ defmodule DragnCardsWeb.API.V1.ProfileController do
     u = Ecto.Changeset.change(u, updates)
     case Repo.update(u) do
       {:ok, _struct}       -> # Updated with success
-        Pow.Plug.update_user(conn, %{}) # Refresh the session
+        #Pow.Plug.update_user(conn, %{}) # Refresh the session
         conn
         |> json(%{success: %{message: "Updated settings"}})
       {:error, _changeset} -> # Something went wrong

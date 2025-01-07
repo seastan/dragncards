@@ -31,10 +31,41 @@ defmodule DragnCardsGame.AutomationRules do
     put_in(game, ["ruleMap"], new_rule_map)
   end
 
+  def merge_rule_maps(rule_map1, rule_map2) do
+    Map.merge(rule_map1, rule_map2)
+    |> Map.delete("abstract")
+    |> Map.delete("inheritFrom")
+  end
+
+  def get_game_rule(game_rules, rule_id) do
+    this_rule = game_rules[rule_id] || %{}
+    parent_rule = if Map.has_key?(this_rule, "inheritFrom") do
+      get_game_rule(game_rules, this_rule["inheritFrom"])
+    else
+      %{}
+    end
+    merge_rule_maps(parent_rule, this_rule)
+  end
+
+  def validate_rule(rule, rule_id) do
+    if rule["type"] == nil do
+      raise "Rule #{rule_id} does not have a type."
+    end
+    if rule["listenTo"] == nil do
+      raise "Rule #{rule_id} does not have a listenTo."
+    end
+  end
+
   def implement_game_rules(game, rules) do
     Enum.reduce(rules, game, fn ({rule_id, rule}, acc) ->
-      # Generate a unique ID for the rule
-      add_rule_to_game(acc, rule, rule_id)
+      # Apply inheritance
+      if rule["abstract"] == true do
+        acc
+      else
+        this_rule = get_game_rule(rules, rule_id)
+        validate_rule(this_rule, rule_id)
+        add_rule_to_game(acc, this_rule, rule_id)
+      end
     end)
   end
 
@@ -96,6 +127,7 @@ defmodule DragnCardsGame.AutomationRules do
   end
 
   def preprocess_card_automation_rule(rule_id, rule, card_id) do
+    validate_rule(rule, rule_id)
     rule_type = rule["type"]
     # then = [["MULTI_VAR", "$THIS_ID", card_id, "$THIS", "$GAME.cardById.#{card_id}"]] ++ rule["then"]
     # rule = Map.put(rule, "then", then)
@@ -129,13 +161,22 @@ defmodule DragnCardsGame.AutomationRules do
     end)
   end
 
+  def get_card_automation(game_def, card_db_id) do
+    this_automation = game_def["automation"]["cards"][card_db_id] || %{}
+    parent_automation = if Map.has_key?(this_automation, "inheritFrom") do
+      get_card_automation(game_def, this_automation["inheritFrom"])
+    else
+      %{}
+    end
+    merge_rule_maps(parent_automation, this_automation)
+  end
+
   def implement_card_rules(game, game_def, card) do
-    card_automation = game_def["automation"]["cards"][card["databaseId"]]
+    card_automation = get_card_automation(game_def, card["databaseId"])
     card_rules = get_in(card_automation, ["rules"])
     if is_map(card_rules) do
       preprocess_card_automation_rules(card_rules, card["id"])
       |> Enum.reduce(game, fn ({rule_id, rule}, acc) ->
-
         acc
         |> add_rule_to_game(rule, rule_id)
         |> add_rule_id_to_card(card, rule_id)

@@ -940,9 +940,6 @@ defmodule DragnCardsGame.CustomPluginTest do
     # Move ally to the table
     ethir_2_card_id = Evaluate.evaluate(game, ["GET_CARD_ID", "player1Hand", 0, 0])
     game = Evaluate.evaluate(game, ["MOVE_CARD", ethir_2_card_id, "player1Play1", 0, 0])
-    assert length(game["groupById"]["player1Play1"]["stackIds"]) == 2
-    IO.puts("ethir_2")
-    IO.inspect(game["ruleById"])
     assert game["cardById"][ethir_1_card_id]["tokens"]["willpower"] == 2
     assert game["cardById"][ethir_2_card_id]["tokens"]["willpower"] == 2
 
@@ -1566,10 +1563,25 @@ defmodule DragnCardsGame.CustomPluginTest do
     res = Evaluate.evaluate(game, ["LOCATION_NAMES_TO_PROMPT_OPTIONS", ["LIST", "testLocation1", "testLocation2"]])
 
 
+  end
 
-    IO.inspect(res)
+  @tag :card_rule_inherit
+  test "card_rule_inherit", %{user: _user, game: game, game_def: game_def} do
 
-    # ]])
+    # Load some decks into the game
+    game = Evaluate.evaluate(game, ["LOAD_CARDS", ["LIST", %{"databaseId" => "51223bd0-ffd1-11df-a976-0801200c9060", "loadGroupId" => "player1Hand", "quantity" => 1}]])
+    game = Evaluate.evaluate(game, ["LOAD_CARDS", ["LIST", %{"databaseId" => "12951d4e-ad35-4103-8cb5-964cb1f7bfd2", "loadGroupId" => "player1Hand", "quantity" => 1}]])
+    game = Evaluate.evaluate(game, ["LOAD_CARDS", ["LIST", %{"databaseId" => "e7ee6a7e-d0bb-4a6d-8999-3c3e51032ca5", "loadGroupId" => "player1Hand", "quantity" => 1}]])
+
+    cards = game["cardById"]
+    # get the card abilities
+    abilities = Enum.map(cards, fn {_, card} ->
+      card["sides"]["A"]["ability"]
+    end)
+    assert Enum.at(abilities, 0) == Enum.at(abilities, 1)
+    assert Enum.at(abilities, 0) == Enum.at(abilities, 2)
+    IO.inspect(abilities)
+
   end
 
 

@@ -1,6 +1,7 @@
 
 defmodule DragnCardsGame.CardFace do
   alias DragnCardsUtil.{ConvertType}
+  alias DragnCardsGame.{AutomationRules}
   @moduledoc """
   Represents a playing card.
   """
@@ -43,7 +44,8 @@ defmodule DragnCardsGame.CardFace do
     type = card_face_details["type"]
     name = card_face_details["name"]
     triggers = trigger_steps_from_face_details(card_face_details, game_def["stepReminderRegex"])
-    ability = get_in(game_def, ["automation", "cards", card_db_id, "ability", side])
+    card_automation = AutomationRules.get_card_automation(game_def, card_db_id)
+    ability = get_in(card_automation, ["ability", side])
     width = game_def["cardTypes"][type]["width"] || game_def["cardBacks"][name]["width"] || 1
     height = game_def["cardTypes"][type]["height"] || game_def["cardBacks"][name]["height"] || 1
     # Loop over keys in card_face_details and convert to correct type

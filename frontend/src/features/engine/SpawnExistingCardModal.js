@@ -30,6 +30,9 @@ export const SpawnExistingCardModal = React.memo(({}) => {
     const [spawnFilteredIDs, setSpawnFilteredIDs] = useState(Object.keys(cardDb));
     if (Object.keys(cardDb).length === 0) return;
 
+    const numCols = gameDef.spawnExistingCardModal?.columnProperties?.length || 2;
+    const vwPerCol = 6;
+
     const handleGroupIdChange = (event) => {
       setLoadGroupId(event.target.value);
     }
@@ -64,10 +67,17 @@ export const SpawnExistingCardModal = React.memo(({}) => {
         }}
         contentLabel="Spawn a card"
         overlayClassName="fixed inset-0 bg-black-50"
-        className="insert-auto overflow-auto p-5 bg-gray-700 border max-w-lg mx-auto my-12 rounded-lg outline-none max-h-3/4"
+        className="insert-auto overflow-auto p-5 bg-gray-700 border mx-auto my-12 rounded-lg outline-none max-h-3/4"
         style={{
           overlay: {
             zIndex: Z_INDEX.Modal
+          },
+          content: {
+            width: vwPerCol*numCols+2+"vw",
+            maxWidth: "62vw",
+            minWidth: "22vw",
+            maxHeight: "85dvh",
+            overflowY: "scroll",
           }
         }}>
         <h1 className="mb-2">{gameL10n("Spawn card")}</h1>
@@ -92,12 +102,17 @@ export const SpawnExistingCardModal = React.memo(({}) => {
         {(spawnFilteredIDs.length) ? 
           (spawnFilteredIDs.length>RESULTS_LIMIT) ?
             <div className="text-white">Too many results</div> :
-            <table className="table-fixed rounded-lg w-full overflow-h-scroll">
+            <table 
+              className="table-fixed rounded-lg w-full overflow-h-scroll"
+              style={
+                {width: vwPerCol*numCols+"vw"}
+              }>
               <thead>
                 <tr className="text-white bg-gray-800">
                   {gameDef.spawnExistingCardModal?.columnProperties?.map((prop, colindex) => {
+                    const propLabel = gameDef.faceProperties[prop]?.label ? gameL10n(gameDef.faceProperties[prop].label) : prop;
                     return(
-                      <th key={colindex} className="p-1">{prop}</th>
+                      <th key={colindex} className="p-1">{propLabel}</th>
                     )
                   })}
                 </tr>
@@ -109,7 +124,7 @@ export const SpawnExistingCardModal = React.memo(({}) => {
                   <tr key={rowindex} className="bg-gray-600 text-white cursor-pointer hover:bg-gray-500 hover:text-black" onClick={() => handleSpawnClick(cardId)}>
                     {gameDef.spawnExistingCardModal.columnProperties?.map((prop, colindex) => {
                       return(
-                        <td key={colindex} className="p-1">{sideA[prop]}</td>
+                        <td key={colindex} className="p-1 break-words">{sideA[prop]}</td>
                       )
                     })}
                   </tr>

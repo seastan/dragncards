@@ -148,10 +148,17 @@ export const getGameDefSchema = (gameDef) => {
           "_itemSchema_": {
             "_description_": "A rule that is triggered automatically",
             "_type_": "object",
+            "abstract": {
+              "_description_": "If set to true, it represents an abstract rule is meant to be inherited and expanded upon by other rules",
+              "_type_": "boolean",
+            },
+            "inheritFrom": {
+              "_description_": "The id of the rule to inherit rules from",
+              "_type_": "string",
+            },
             "type": {
               "_description_": "The type of rule",
               "_type_": "string",
-              "_required_": true,
               "_memberOf_": ["trigger", "passive"],
               "_memberOfPath_": `["trigger", "passive"]`,
             },
@@ -159,7 +166,6 @@ export const getGameDefSchema = (gameDef) => {
             "listenTo": {
               "_description_": "The paths in the game state to listen to for changes",
               "_type_": "array",
-              "_required_": true,
               "_itemSchema_": {
                 "_description_": "A path in the game state",
                 "_type_": "any",
@@ -193,6 +199,14 @@ export const getGameDefSchema = (gameDef) => {
           "_itemSchema_": {
             "_description_": "Rules for a specific card",
             "_type_": "object",
+            "abstract": {
+              "_description_": "If set to true, it represents an abstract card is meant to be inherited and expanded upon by other cards. You can choose arbitrary databaseIds for abstract cards, then use the `inheritFrom` property to inherit the rules of the abstract cards.",
+              "_type_": "boolean",
+            },
+            "inheritFrom": {
+              "_description_": "The databaseId of the card to inherit rules from",
+              "_type_": "string",
+            },
             "ability": {
               "_description_": "The abilities of the card, which can be triggered manually by the player. The key is the side of the card corresponding to the ability, such as 'A' or 'B'.",
               "_type_": "object",
@@ -210,7 +224,6 @@ export const getGameDefSchema = (gameDef) => {
                 "type": {
                   "_description_": "The type of rule",
                   "_type_": "string",
-                  "_required_": true,
                   "_memberOf_": ["trigger", "passive", "entersPlay", "whileInPlay"],
                   "_memberOfPath_": `["trigger", "passive", "entersPlay", "whileInPlay"]`,
                 },
@@ -361,6 +374,10 @@ export const getGameDefSchema = (gameDef) => {
           "_description_": "A card property",
           "_type_": "object",
           "_strictKeys_": true,
+          "label": {
+            "_description_": "The label of the property",
+            "_type_": "label",
+          },
           "type": {
             "_description_": "The data type of the property",
             "_type_": "string",
@@ -666,6 +683,10 @@ export const getGameDefSchema = (gameDef) => {
           "_description_": "A card face property. The key is the face property name.",
           "_type_": "object",
           "_strictKeys_": true,
+          "label": {
+            "_description_": "The label of the property",
+            "_type_": "label",
+          },
           "type": {
             "_description_": "The data type of the property",
             "_type_": "string",
