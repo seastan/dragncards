@@ -31,7 +31,7 @@ export const SpawnExistingCardModal = React.memo(({}) => {
     if (Object.keys(cardDb).length === 0) return;
 
     const numCols = gameDef.spawnExistingCardModal?.columnProperties?.length || 2;
-    const vwPerCol = 6;
+    const vwPerCol = 8;
 
     const handleGroupIdChange = (event) => {
       setLoadGroupId(event.target.value);
@@ -75,7 +75,7 @@ export const SpawnExistingCardModal = React.memo(({}) => {
           content: {
             width: vwPerCol*numCols+2+"vw",
             maxWidth: "62vw",
-            minWidth: "22vw",
+            minWidth: "43vw",
             maxHeight: "85dvh",
             overflowY: "scroll",
           }
@@ -104,8 +104,10 @@ export const SpawnExistingCardModal = React.memo(({}) => {
             <div className="text-white">Too many results</div> :
             <table 
               className="table-fixed rounded-lg w-full overflow-h-scroll"
-              style={
-                {width: vwPerCol*numCols+"vw"}
+              style={{
+                width: vwPerCol*numCols+"vw",
+                minWidth: "40vw",
+              }
               }>
               <thead>
                 <tr className="text-white bg-gray-800">
