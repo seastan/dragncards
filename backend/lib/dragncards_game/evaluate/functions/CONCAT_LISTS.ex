@@ -3,7 +3,7 @@ defmodule DragnCardsGame.Evaluate.Functions.CONCAT_LISTS do
   @moduledoc """
   *Arguments*:
   1. `list1` (list)
-  2. `list2` (any)
+  2. `list2` (list)
 
   Concatenates `list1` and `list2`. If a list is null, it is treated as an empty list.
 

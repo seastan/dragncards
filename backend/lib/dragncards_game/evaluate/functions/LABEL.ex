@@ -1,72 +1,101 @@
 defmodule DragnCardsGame.Evaluate.Functions.LABEL do
   alias DragnCardsGame.Evaluate
+  alias DragnCardsGame.{PluginCache}
   @moduledoc """
   *Arguments*:
-  1. `input` (anything)
+  1. `labelId` (string)
+  2. `languageString` (string, optional)
+  3. `pluralIndex` (integer, optional)
 
-  Returns best-effort string representation of `input`.
+  Returns the contents of a label for given `labelId`, `languageString`, and `pluralIndex`. If such label cannot be found returns its "technical" key as placeholder.
 
-  Recognizes the same types as `TYPE_OF` operation.
-
-  For faces returns their `name`. For cards/cardIds returns the `name` of their `currentFace` (or side A `name`, if `currentFace` is not set). For groups/groupIds returns their `label`. For players/playerIds returns their alias obtained using `GET_ALIAS`. For the game returns its `pluginName` alongside `pluginId` and `pluginVersion`. Lists are enclosed in `()`, their individual elements are also converted using this method and separated using `, `.
-
-  Uses the following labels for default/missing values: `id:null`, `id:true`, `id:false`, `id:face`, `id:card`, `id:group`, `id:player`, `id:plugin`, `id:object`, `id:unknown`.
+  This operation handles `labelId` with or without the `"id:"` prefix. It is also able to fall back from a `pluralIndex` version to one without it, in case the first is missing. In addition, it is able to fall back from any language version to English, in case the first is missing. Since plural indices are not compatible between languages the order of fall back is `labelId.languageString-pluralIndex` to `labelId.languageString` to `labelId.English`.
 
   *Returns*:
   (string) The result of the operation.
   """
 
   @doc """
-  Executes the 'LABEL' operation with the given argument.
+  Executes the 'LABEL' operation with the given arguments.
 
   ## Parameters
 
-    - `args`: The argument required for the 'LABEL' operation.
+    - `args`: The arguments required for the 'LABEL' operation.
 
   ## Returns
 
   The result of the 'LABEL' operation.
   """
-  def to_string(game, input, trace) do
-    v = Evaluate.evaluate(game, input, trace ++ ["to_string"])
-    cond do
-      is_nil(v) -> "id:null"
-      is_boolean(v) -> if v === true do "id:true" else "id:false" end
-      is_integer(v) -> Integer.to_string(v)
-      is_float(v) -> Float.to_string(v)
-      is_binary(v) ->
-        cardById = Map.get(game, "cardById")
-        groupById = Map.get(game, "groupById")
-        playerData = Map.get(game, "playerData")
-        cond do
-          Map.has_key?(cardById, v) -> to_string(game, Map.get(cardById, v), trace ++ ["cardById"])
-          Map.has_key?(groupById, v) -> to_string(game, Map.get(groupById, v), trace ++ ["groupById"])
-          Map.has_key?(playerData, v) -> to_string(game, Map.get(playerData, v), trace ++ ["playerData"])
-          true -> v
+  def get_label_l(game, labelId, l, pluralIndex, _trace) do
+    labels = PluginCache.get_game_def_cached(game["options"]["pluginId"])["labels"]
+    if is_nil(pluralIndex) do
+      try do
+        lc = labels[labelId][l]
+        if is_nil(lc) or lc == "" do
+          lcf = labels[labelId]["English"]
+          if is_nil(lcf) or lcf == "" do
+            "#{labelId}.#{l}"
+          else
+            lcf
+          end
+        else
+          lc
         end
-      is_list(v) -> "(" <> Enum.join(Enum.map(v, fn vv -> to_string(game, vv, trace ++ ["vv"]) end), ", ") <> ")"
-      is_map(v) ->
-        cond do
-          Map.has_key?(v, "imageUrl") -> Map.get(v, "name", "id:face")
-          Map.has_key?(v, "sides") -> 
-            sides = Map.get(v, "sides")
-            currentSide = Map.get(v, "currentSide")
-            cond do
-              is_map(sides) and is_binary(currentSide) and Map.has_key?(sides, currentSide) -> Map.get(Map.get(sides, currentSide), "name", "id:card")
-              is_map(sides) and Map.has_key?(sides, "A") -> Map.get(Map.get(sides, "A"), "name", "id:card")
-              true -> "id:card"
+      rescue
+        _ -> "#{labelId}.#{l}"
+      end
+    else
+      try do
+        lc = labels[labelId]["#{l}-#{pluralIndex}"]
+        if is_nil(lc) or lc == "" do
+          lcf1 = labels[labelId][l]
+          if is_nil(lcf1) or lcf1 == "" do
+            lcf2 = labels[labelId]["English"]
+            if is_nil(lcf2) or lcf2 == "" do
+              "#{labelId}.#{l}-#{pluralIndex}"
+            else
+              lcf2
             end
-          Map.has_key?(v, "stackIds") -> Map.get(v, "label", "id:group")
-          Map.has_key?(v, "user_id") -> (Evaluate.evaluate(game, ["GET_ALIAS", Map.get(v, "id")], trace ++ ["GET_ALIAS"]) || "id:player")
-          Map.has_key?(v, "cardById") -> Map.get(v, "pluginName", "id:plugin") <> " (" <> Integer.to_string(Map.get(v, "pluginId", "0")) <> "." <> Integer.to_string(Map.get(v, "pluginVersion", "0")) <> ")"
-          true -> "id:object"
+          else
+            lcf1
+          end
+        else
+          lc
         end
-      true -> "id:unknown"
+      rescue
+        _ -> "#{labelId}.#{l}-#{pluralIndex}"
+      end
     end
   end
 
+  def get_label(game, labelId, languageString, pluralIndex, trace) do
+    language = DragnCardsGame.Evaluate.Functions.LANGUAGE.to_language(game, languageString, trace ++ ["to_language"])
+    get_label_l(game, labelId, language, pluralIndex, trace ++ ["get_label_l"])
+  end
+
   def execute(game, code, trace) do
-    to_string(game, Enum.at(code, 1), trace ++ ["input"])
+    argc = Evaluate.argc(code, 1, 3)
+    labelId = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["labelId"])
+    if !is_binary(labelId) do
+      raise "LABEL: labelId must be a string"
+    end
+    languageString = if argc > 1 do
+      Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["languageString"])
+    else
+      nil
+    end
+    if !is_nil(languageString) and !is_binary(languageString) do
+      raise "LABEL: languageString must be a string"
+    end
+    pluralIndex = if argc > 2 do
+      Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["pluralIndex"])
+    else
+      nil
+    end
+    if !is_nil(pluralIndex) and !is_integer(pluralIndex) do
+      raise "LABEL: pluralIndex must be an integer"
+    end
+    get_label(game, String.replace_leading(labelId, "id:", ""), languageString, pluralIndex, trace ++ ["get_label"])
   end
 
 

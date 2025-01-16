@@ -54,6 +54,7 @@ defmodule DragnCardsGame.AutomationRules do
     if rule["listenTo"] == nil do
       raise "Rule #{rule_id} does not have a listenTo."
     end
+    rule
   end
 
   def implement_game_rules(game, rules) do
@@ -127,7 +128,6 @@ defmodule DragnCardsGame.AutomationRules do
   end
 
   def preprocess_card_automation_rule(rule_id, rule, card_id) do
-    validate_rule(rule, rule_id)
     rule_type = rule["type"]
     # then = [["MULTI_VAR", "$THIS_ID", card_id, "$THIS", "$GAME.cardById.#{card_id}"]] ++ rule["then"]
     # rule = Map.put(rule, "then", then)
@@ -152,6 +152,7 @@ defmodule DragnCardsGame.AutomationRules do
     |> Map.put("this_id", card_id)
     |> Map.put("id", rule_id)
     |> replace_this_id_with_card_id(card_id)
+    |> validate_rule(rule_id)
   end
 
   def preprocess_card_automation_rules(card_rules, card_id) do
@@ -328,13 +329,13 @@ defmodule DragnCardsGame.AutomationRules do
         #game = Evaluate.evaluate(game, ["TARGET_PLAYER_I", "$TARGET_ID", promptPlayerI, true])
         always_code = ["POINTER", [
           #["TARGET_PLAYER_I", "$THIS_ID", promptPlayerI, false],
-          ["LOG", "{{$ALIAS_N}} picked always."],
+          #["LOG", "{{$ALIAS_N}} picked always."],
           ["SET", "/ruleById/#{rule["id"]}/autoRun/status", "always"],
           var_statements ++ rule_code
         ]]
         yes_code = ["POINTER", [
           #["TARGET_PLAYER_I", "$THIS_ID", promptPlayerI, false],
-          ["LOG", "{{$ALIAS_N}} picked yes."],
+          #["LOG", "{{$ALIAS_N}} picked yes."],
           var_statements ++ rule_code
         ]]
         no_code = nil
@@ -343,11 +344,11 @@ defmodule DragnCardsGame.AutomationRules do
           ["SET", "/ruleById/#{rule["id"]}/autoRun/status", "never"]
         ]]
         prompt_id = if status == "promptYN" do
-          "confirmAutomationYN"
+          Evaluate.evaluate(game, ["PROMPT", promptPlayerI, "confirmAutomationYN", promptMessage, yes_code, no_code])
         else
-          "confirmAutomationAYNN"
+          Evaluate.evaluate(game, ["PROMPT", promptPlayerI, "confirmAutomationAYNN", promptMessage, always_code, yes_code, no_code, never_code])
         end
-        Evaluate.evaluate(game, ["PROMPT", promptPlayerI, prompt_id, promptMessage, always_code, yes_code, no_code, never_code])
+
       status == "never" ->
         game
       true ->

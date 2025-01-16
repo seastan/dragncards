@@ -182,7 +182,7 @@ export const dragnActionLists = {
       ])
     } else if (val === "None") {
       return ([
-        ["LOG", `{{$ALIAS_N}}" set ${group.label} to be hidden from all players.`],
+        ["LOG", `{{$ALIAS_N}} set ${group.label} to be hidden from all players.`],
         ["FOR_EACH_KEY_VAL", "$CARD_ID", "$CARD", "$GAME.cardById", [
           ["COND",
             ["EQUAL", "$CARD.groupId", group.id],
