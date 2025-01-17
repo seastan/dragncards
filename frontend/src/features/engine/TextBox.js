@@ -1,13 +1,12 @@
 import React from "react";
 import { convertToPercentage, Z_INDEX } from "./functions/common";
-import { useSelector } from "react-redux";
+import { useGameL10n } from "./hooks/useGameL10n";
 
 export const TextBox = React.memo(({
-  textBoxId,
   textBoxLayoutInfo
 }) => {
-  const textBox = useSelector(state => state?.gameUi?.game?.textBoxById?.[textBoxId]);
-  console.log("Rendering TextBox", textBoxLayoutInfo, textBox);
+  const gameL10n = useGameL10n();
+  console.log("Rendering TextBox", textBoxLayoutInfo);
   return (
     <div 
       className="absolute flex border border-gray-500 justify-center items-center text-gray-400 bg-gray-700 text-nowrap overflow-hidden"
@@ -18,7 +17,7 @@ export const TextBox = React.memo(({
         height: convertToPercentage(textBoxLayoutInfo.height),
         zIndex: Z_INDEX.TextBox,
       }}>
-      {textBox?.content}
+      {gameL10n(textBoxLayoutInfo.label)}
     </div>
   )
 })

@@ -1620,7 +1620,7 @@ defmodule DragnCardsGame.CustomPluginTest do
     # Setup
     assert game["playerData"]["player1"]["threat"] == 29
     assert game["roundAdvancementFunction"] == "goToFirstPlanning"
-    assert game["textBoxById"]["roundAdvancement"]["content"] == "Press W to advance to first planning phase."
+    assert game["layout"]["textBoxes"]["roundAdvancement"]["label"] == "Press W to advance to first planning phase."
 
     # Only 1 quest card
     # game = Evaluate.evaluate(game, ["DO_ADVANCE_BUTTON"])

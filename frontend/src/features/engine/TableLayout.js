@@ -59,7 +59,6 @@ export const TableLayout = React.memo(({onDragEnd}) => {
           return(
             <TextBox 
               key={textBoxId}
-              textBoxId={textBoxId}
               textBoxLayoutInfo={textBoxLayoutInfo}
             />
           )

@@ -1266,6 +1266,11 @@ export const getGameDefSchema = (gameDef) => {
               "_description_": "A text box to display on the table",
               "_type_": "object",
               "_strictKeys_": true,
+              "label": {
+                "_description_": "The label of the text box",
+                "_type_": "any",
+                "_required_": true,
+              },
               "left": {
                 "_description_": "The left position of the text box",
                 "_type_": "any",
@@ -1610,20 +1615,6 @@ export const getGameDefSchema = (gameDef) => {
           "_description_": "The stepId",
           "_type_": "string",
           "_memberOf_": mytypeof(gameDef?.steps) === "object" ? Object.keys(gameDef.steps) : [],
-        }
-      },
-      "textBoxes": {
-        "_description_": "Definitions for text boxes that can be appliet to layouts. The [key] is the textBoxId.",
-        "_type_": "object",
-        "_itemSchema_": {
-          "_description_": "A text box definition",
-          "_type_": "object",
-          "_strictKeys_": true,
-          "content": {
-            "_description_": "The content of the text box",
-            "_type_": "any",
-            "_required_": true,
-          },
         }
       },
       "tokens": {

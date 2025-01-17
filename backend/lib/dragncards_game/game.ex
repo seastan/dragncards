@@ -100,7 +100,6 @@
       "phases" => Map.get(game_def, "phases", %{}),
       "phaseOrder" => Map.get(game_def, "phaseOrder", []),
       "tokenById" => Map.get(game_def, "tokens", %{}),
-      "textBoxById" => game_def["textBoxes"],
       "groupById" => groups,
       "stackById" => %{},
       "cardById"  => %{},
