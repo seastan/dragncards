@@ -7,7 +7,7 @@
   require Logger
   import Ecto.Query
   alias ElixirSense.Log
-  alias DragnCardsGame.{Groups, Game, PlayerData, GameVariables, Evaluate, AutomationRules}
+  alias DragnCardsGame.{Groups, Game, PlayerData, GameVariables, Evaluate, AutomationRules, TempTokens}
   alias DragnCards.{Repo, Replay, Users, Plugins}
 
   @type t :: Map.t()
@@ -95,14 +95,10 @@
       "layout" => game_def["layouts"][layout_id],
       "firstPlayer" => "player1",
       "stepId" => step_id,
-      "steps" => Map.get(game_def, "steps", %{}),
-      "stepOrder" => Map.get(game_def, "stepOrder", []),
-      "phases" => Map.get(game_def, "phases", %{}),
-      "phaseOrder" => Map.get(game_def, "phaseOrder", []),
-      "tokenById" => Map.get(game_def, "tokens", %{}),
       "groupById" => groups,
       "stackById" => %{},
       "cardById"  => %{},
+      "tempTokens" => TempTokens.new(),
       "automationActionLists" => automation_action_lists(game_def),
       "automationEnabled" => true,
       "currentScopeIndex" => 0,

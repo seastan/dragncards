@@ -24,15 +24,15 @@ defmodule DragnCardsGame.Evaluate.Functions.PREV_STEP do
   def execute(game, code, trace) do
     prev_step_action_list = [
       ["VAR", "$STEP_ID", "$GAME.stepId"],
-      ["VAR", "$OLD_STEP_INDEX", ["GET_INDEX", "$GAME.stepOrder", "$GAME.stepId"]],
+      ["VAR", "$OLD_STEP_INDEX", ["GET_INDEX", "$GAME_DEF.stepOrder", "$GAME.stepId"]],
       ["COND",
         ["EQUAL", "$OLD_STEP_INDEX", 0],
-        ["DEFINE", "$NEW_STEP_INDEX", ["SUBTRACT", ["LENGTH", "$GAME.stepOrder"], 1]],
+        ["DEFINE", "$NEW_STEP_INDEX", ["SUBTRACT", ["LENGTH", "$GAME_DEF.stepOrder"], 1]],
         ["TRUE"],
         ["DEFINE", "$NEW_STEP_INDEX", ["SUBTRACT", "$OLD_STEP_INDEX", 1]]
       ],
-      ["VAR", "$STEP_ID", "$GAME.stepOrder.[$NEW_STEP_INDEX]"],
-      ["LOG", "$ALIAS_N", " reverted the round step to ", "$GAME.steps.$STEP_ID.label", "."],
+      ["VAR", "$STEP_ID", "$GAME_DEF.stepOrder.[$NEW_STEP_INDEX]"],
+      ["LOG", "$ALIAS_N", " reverted the round step to ", "$GAME_DEF.steps.$STEP_ID.label", "."],
       ["SET", "/stepId", "$STEP_ID"]
     ]
     Evaluate.evaluate(game, prev_step_action_list, trace ++ ["prev_step_action_list"])

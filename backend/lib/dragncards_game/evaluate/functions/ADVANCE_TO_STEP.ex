@@ -1,5 +1,5 @@
 defmodule DragnCardsGame.Evaluate.Functions.ADVANCE_TO_STEP do
-  alias DragnCardsGame.Evaluate
+  alias DragnCardsGame.{Evaluate, PluginCache}
   @moduledoc """
   *Arguments*:
   1. `stepId` (string)
@@ -23,7 +23,8 @@ defmodule DragnCardsGame.Evaluate.Functions.ADVANCE_TO_STEP do
   """
   def execute(game, code, trace) do
     step_id = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["stepId"])
-    step_order = game["stepOrder"]
+    game_def = PluginCache.get_game_def_cached(game["options"]["pluginId"])
+    step_order = game_def["stepOrder"]
     # If the stepId is not in the list of steps, return the game state as is
     if not Enum.member?(step_order, step_id) do
       raise "Tried to advance the game to a unknown step: #{inspect(step_id)}"

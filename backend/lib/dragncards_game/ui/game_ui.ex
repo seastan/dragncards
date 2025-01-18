@@ -1162,7 +1162,8 @@ defmodule DragnCardsGame.GameUI do
 
   def do_automation_action_list(game, action_list_id, trace) do
     # Run postLoadActionList if it exists
-    automation_action_list = game["automationActionLists"][action_list_id]
+    game_def = PluginCache.get_game_def_cached(game["options"]["pluginId"])
+    automation_action_list = game_def["automation"][action_list_id]
     game = if automation_action_list do
       if game["automationEnabled"] == true do
         Evaluate.evaluate(game, automation_action_list, trace ++ ["action_list_id"])

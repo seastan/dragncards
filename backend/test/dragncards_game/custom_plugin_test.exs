@@ -637,7 +637,7 @@ defmodule DragnCardsGame.CustomPluginTest do
     assert game["cardById"][lookout_card_id]["tokens"]["defense"] == 0
 
     # New Round
-    game = Evaluate.evaluate(game, ["ACTION_LIST", "skipToNextPlanningPhase"])
+    game = Evaluate.evaluate(game, ["ADVANCE_TO_STEP", "0.0"])
     assert game["cardById"][naith_card_id]["tokens"]["willpower"] == 0
     assert game["cardById"][naith_card_id]["tokens"]["attack"] == 0
     assert game["cardById"][naith_card_id]["tokens"]["defense"] == 0
