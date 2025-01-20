@@ -142,7 +142,8 @@ export const TopBarMenu = React.memo(({}) => {
     } else if (data.action === "set_num_players") {
       var actionList = [
         ["LOG", "$ALIAS_N", " changed the number of players to "+data.value+"."],
-        ["SET", "/numPlayers", data.value]
+        ["SET_LAYOUT", "shared", data.value.layoutId],
+        ["SET", "/numPlayers", data.value.numPlayers]
       ];
       doActionList(actionList);
     } 
@@ -242,9 +243,10 @@ export const TopBarMenu = React.memo(({}) => {
 
   const generatePlayerListItems = () => {
     const items = [];
-    for (let i = gameDef.minPlayers; i <= gameDef.maxPlayers; i++) {
+    for (let i = 0; i < gameDef.playerCountMenu?.length; i++) {
+      const menuOption = gameDef.playerCountMenu[i];
       items.push(
-        <li key={i} onClick={() => handleMenuClick({action:"set_num_players", value: i})}>{i}</li>
+        <li key={i} onClick={() => handleMenuClick({action:"set_num_players", value: menuOption})}>{gameL10n(menuOption.label)}</li>
       );
     }
     return items;
@@ -301,7 +303,7 @@ export const TopBarMenu = React.memo(({}) => {
             </li>
           </ul>
         </li> 
-        <li key={"layout"}>
+        {/* <li key={"layout"}>
             {siteL10n("layout")}
             <span className="float-right mr-1"><FontAwesomeIcon icon={faChevronRight}/></span>
           <ul className="third-level-menu">
@@ -316,7 +318,7 @@ export const TopBarMenu = React.memo(({}) => {
               )
             })}
             </ul>
-        </li>
+        </li> */}
         {isHost &&
           <li key={"num_players"}>
             {siteL10n("numberOfPlayers")}

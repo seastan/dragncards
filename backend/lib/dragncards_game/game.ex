@@ -71,9 +71,17 @@
   """
   @spec new(String.t(), integer(), Map.t(), Map.t()) :: Game.t()
   def new(room_slug, user_id, game_def, options) do
-    Logger.debug("Making new Game")
-    default_layout_info = Enum.at(game_def["layoutMenu"],0)
-    layout_id = default_layout_info["layoutId"]
+    IO.puts("Making new Game")
+    player_count_menu = game_def["playerCountMenu"]
+    default_player_count_info = Enum.at(player_count_menu, 0)
+    max_num_players =
+      player_count_menu
+      |> Enum.max_by(& &1["numPlayers"])
+      |> Map.get("numPlayers")
+
+    IO.inspect(default_player_count_info)
+    layout_id = default_player_count_info["layoutId"]
+    #IO.inspect(layout)
     groups = Groups.new(game_def)
     step_id =
       game_def
@@ -89,7 +97,7 @@
       "pluginId" => plugin_id,
       "pluginVersion" => plugin_version,
       "pluginName" => plugin_name,
-      "numPlayers" => default_layout_info["numPlayers"] || 1,
+      "numPlayers" => default_player_count_info["numPlayers"] || 1,
       "roundNumber" => 0,
       "layoutId" => layout_id,
       "layout" => game_def["layouts"][layout_id],
@@ -123,7 +131,7 @@
 
     # Add player data
     player_data = %{}
-    player_data = Enum.reduce(1..game_def["maxPlayers"], player_data, fn(i, acc) ->
+    player_data = Enum.reduce(1..max_num_players, player_data, fn(i, acc) ->
       player_i = "player#{i}"
       put_in(acc[player_i], PlayerData.new(game_def, player_i))
     end)
