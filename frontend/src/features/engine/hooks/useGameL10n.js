@@ -6,9 +6,10 @@ export const useGameL10n = () => {
     const gameDef = useGameDefinition();
     const language = user?.language || "English";
     return (label) => {
-        if (!label) return "";
-        else if (typeof label !== "string") return "";
-        else if (label.startsWith("id:")) {
+        if (typeof label !== "string") {
+            // Stringify the label if it's not a string
+            return JSON.stringify(label);
+        } else if (label.startsWith("id:")) {
             const labelId = label.substring(3);
             return gameDef?.labels?.[labelId]?.[language] || gameDef?.labels?.[labelId]?.English;
         }

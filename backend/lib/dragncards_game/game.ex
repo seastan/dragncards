@@ -7,7 +7,7 @@
   require Logger
   import Ecto.Query
   alias ElixirSense.Log
-  alias DragnCardsGame.{Groups, Game, PlayerData, GameVariables, Evaluate, AutomationRules}
+  alias DragnCardsGame.{Groups, Game, PlayerData, GameVariables, Evaluate, AutomationRules, TempTokens}
   alias DragnCards.{Repo, Replay, Users, Plugins}
 
   @type t :: Map.t()
@@ -71,9 +71,17 @@
   """
   @spec new(String.t(), integer(), Map.t(), Map.t()) :: Game.t()
   def new(room_slug, user_id, game_def, options) do
-    Logger.debug("Making new Game")
-    default_layout_info = Enum.at(game_def["layoutMenu"],0)
-    layout_id = default_layout_info["layoutId"]
+    IO.puts("Making new Game")
+    player_count_menu = game_def["playerCountMenu"]
+    default_player_count_info = Enum.at(player_count_menu, 0)
+    max_num_players =
+      player_count_menu
+      |> Enum.max_by(& &1["numPlayers"])
+      |> Map.get("numPlayers")
+
+    IO.inspect(default_player_count_info)
+    layout_id = default_player_count_info["layoutId"]
+    #IO.inspect(layout)
     groups = Groups.new(game_def)
     step_id =
       game_def
@@ -89,21 +97,16 @@
       "pluginId" => plugin_id,
       "pluginVersion" => plugin_version,
       "pluginName" => plugin_name,
-      "numPlayers" => default_layout_info["numPlayers"] || 1,
+      "numPlayers" => default_player_count_info["numPlayers"] || 1,
       "roundNumber" => 0,
       "layoutId" => layout_id,
       "layout" => game_def["layouts"][layout_id],
       "firstPlayer" => "player1",
       "stepId" => step_id,
-      "steps" => Map.get(game_def, "steps", %{}),
-      "stepOrder" => Map.get(game_def, "stepOrder", []),
-      "phases" => Map.get(game_def, "phases", %{}),
-      "phaseOrder" => Map.get(game_def, "phaseOrder", []),
-      "tokenById" => Map.get(game_def, "tokens", %{}),
-      "textBoxById" => game_def["textBoxes"],
       "groupById" => groups,
       "stackById" => %{},
       "cardById"  => %{},
+      "tempTokens" => TempTokens.new(),
       "automationActionLists" => automation_action_lists(game_def),
       "automationEnabled" => true,
       "currentScopeIndex" => 0,
@@ -124,15 +127,23 @@
       _ ->
         IO.puts("Error detected")
     end
-    Logger.debug("Made new Game")
+    IO.puts("Made new Game")
+    IO.inspect(max_num_players)
 
     # Add player data
     player_data = %{}
-    player_data = Enum.reduce(1..game_def["maxPlayers"], player_data, fn(i, acc) ->
+    player_data = Enum.reduce(1..max_num_players, player_data, fn(i, acc) ->
+      IO.puts("Adding player data")
+      IO.inspect(i)
       player_i = "player#{i}"
-      put_in(acc[player_i], PlayerData.new(game_def, player_i))
+      IO.inspect(player_i)
+      acc = put_in(acc[player_i], PlayerData.new(game_def, player_i))
+      IO.puts("acc 1")
+      IO.inspect(acc)
+      IO.puts("acc 2")
+      acc
     end)
-    Logger.debug("Made player data")
+    IO.puts("Made player data")
     base = put_in(base["playerData"], player_data)
 
     # Add custom properties

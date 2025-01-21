@@ -240,8 +240,8 @@ export const siteL10n = {
     "Chinese": "卸载"
   },
   "unloadMyDeck": {
-    "English": "Unload my deck",
-    "Chinese": "卸载我的牌组"
+    "English": "Unload my cards",
+    "Chinese": "卸载我的卡牌"
   },
   "unloadSharedCards": {
     "English": "Unload shared cards",

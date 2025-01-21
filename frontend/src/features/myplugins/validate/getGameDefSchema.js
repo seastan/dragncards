@@ -80,15 +80,31 @@ export const getGameDefSchema = (gameDef) => {
         "_description_": "The URL of the tutorial",
         "_type_": "string",
       },
-      "minPlayers": {
-        "_description_": "The minimum number of players",
-        "_type_": "integer",
-        "_required_": true
-      },
-      "maxPlayers": {
-        "_description_": "The maximum number of players",
-        "_type_": "integer",
-        "_required_": true
+      "playerCountMenu": {
+        "_description_": "The player count menu settings",
+        "_type_": "array",
+        "_itemSchema_": {
+          "_description_": "A player count menu setting",
+          "_type_": "object",
+          "_strictKeys_": true,
+          "label": {
+            "_description_": "The label of the player count menu setting",
+            "_type_": "label",
+            "_required_": true
+          },
+          "numPlayers": {
+            "_description_": "The number of players for this setting",
+            "_type_": "integer",
+            "_required_": true
+          },
+          "layoutId": {
+            "_description_": "The layout ID for this setting",
+            "_type_": "string",
+            "_required_": true,
+            "_memberOf_": mytypeof(gameDef?.layouts) === "object" ? Object.keys(gameDef.layouts) : [],
+            "_memberOfPath_": "gameDef.layouts",
+          }
+        }
       },
       "backgroundUrl": {
         "_description_": "The URL of the background image",
@@ -1051,33 +1067,6 @@ export const getGameDefSchema = (gameDef) => {
           }
         }
       },
-      "layoutMenu": {
-        "_description_": "Layout menu options",
-        "_type_": "array",
-        "_required_": true,
-        "_itemSchema_": {
-          "_description_": "A layout menu option",
-          "_type_": "object",
-          "_strictKeys_": true,
-          "label": {
-            "_description_": "The label to display in the layout menu",
-            "_type_": "label",
-            "_required_": true,
-          },
-          "layoutId": {
-            "_description_": "The ID of the layout",
-            "_type_": "string",
-            "_required_": true,
-            "_memberOf_": mytypeof(gameDef?.layouts) === "object" ? Object.keys(gameDef.layouts) : [],
-            "_memberOfPath_": "gameDef.layouts",
-          },
-          "numPlayers": {
-            "_description_": "The number of players the layout supports",
-            "_type_": "any",
-            "_required_": true,
-          },
-        }
-      },
       "layouts": {
         "_description_": "Layout definitions",
         "_type_": "object",
@@ -1266,6 +1255,11 @@ export const getGameDefSchema = (gameDef) => {
               "_description_": "A text box to display on the table",
               "_type_": "object",
               "_strictKeys_": true,
+              "label": {
+                "_description_": "The label of the text box",
+                "_type_": "any",
+                "_required_": true,
+              },
               "left": {
                 "_description_": "The left position of the text box",
                 "_type_": "any",
@@ -1610,20 +1604,6 @@ export const getGameDefSchema = (gameDef) => {
           "_description_": "The stepId",
           "_type_": "string",
           "_memberOf_": mytypeof(gameDef?.steps) === "object" ? Object.keys(gameDef.steps) : [],
-        }
-      },
-      "textBoxes": {
-        "_description_": "Definitions for text boxes that can be appliet to layouts. The [key] is the textBoxId.",
-        "_type_": "object",
-        "_itemSchema_": {
-          "_description_": "A text box definition",
-          "_type_": "object",
-          "_strictKeys_": true,
-          "content": {
-            "_description_": "The content of the text box",
-            "_type_": "any",
-            "_required_": true,
-          },
         }
       },
       "tokens": {

@@ -146,12 +146,6 @@ export const useKeyDown = () => {
             sendLocalMessage(`The selected hotkey attempted to add a token that is not valid for this card type.`);
             return;
         }
-        for (var keyObj of gameDefGameHotkeys) {
-            if (keyMatch(keyObj.key, dictKey)) {
-                doActionList(keyObj.actionList)
-                return;
-            }
-        }
         for (var keyObj of gameDefCardHotkeys) {
             if (keyMatch(keyObj.key, dictKey)) {
                 if (!activeCardId) {
@@ -160,6 +154,12 @@ export const useKeyDown = () => {
                 }
                 doActionList(keyObj.actionList)
                 dispatch(setPreHotkeyActiveCardGroupId(activeCardGroupId));
+                return;
+            }
+        }
+        for (var keyObj of gameDefGameHotkeys) {
+            if (keyMatch(keyObj.key, dictKey)) {
+                doActionList(keyObj.actionList)
                 return;
             }
         }

@@ -11,8 +11,8 @@ export const SideBarPhase = React.memo(({
   const gameL10n = useGameL10n();
   const gameDef = useGameDefinition();
   const currentStepId = useSelector(state => state?.gameUi?.game?.stepId);
-  const currentPhaseId = useSelector(state => state?.gameUi?.game?.steps?.[currentStepId]?.phaseId);
-  const phaseInfo = useSelector(state => state?.gameUi?.game?.phases?.[phaseId]);
+  const currentPhaseId = gameDef?.steps?.[currentStepId]?.phaseId;
+  const phaseInfo = gameDef?.phases?.[phaseId];
   console.log("Rendering SideBarPhase", {currentStepId, currentPhaseId, phaseId, phaseInfo});
   const isPhase = phaseId === currentPhaseId;
   if (!phaseInfo) return null;

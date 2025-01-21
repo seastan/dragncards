@@ -637,7 +637,7 @@ defmodule DragnCardsGame.CustomPluginTest do
     assert game["cardById"][lookout_card_id]["tokens"]["defense"] == 0
 
     # New Round
-    game = Evaluate.evaluate(game, ["ACTION_LIST", "skipToNextPlanningPhase"])
+    game = Evaluate.evaluate(game, ["ADVANCE_TO_STEP", "0.0"])
     assert game["cardById"][naith_card_id]["tokens"]["willpower"] == 0
     assert game["cardById"][naith_card_id]["tokens"]["attack"] == 0
     assert game["cardById"][naith_card_id]["tokens"]["defense"] == 0
@@ -1507,11 +1507,7 @@ defmodule DragnCardsGame.CustomPluginTest do
     code = option["code"]
     game = Evaluate.evaluate(game, code)
 
-    assert Enum.count(game["groupById"]["sharedExtra1"]["stackIds"]) == 5
-    assert Enum.count(game["groupById"]["sharedExtra2"]["stackIds"]) == 5
-    assert Enum.count(game["groupById"]["sharedExtra3"]["stackIds"]) == 5
-    assert Evaluate.evaluate(game, "$GAME.groupById.sharedExtra1.parentCards.[0].currentSide") == "A"
-    assert Evaluate.evaluate(game, "$GAME.groupById.sharedExtra1.parentCards.[1].currentSide") == "B"
+    assert Enum.count(game["groupById"]["sharedMap"]["stackIds"]) == 15
 
   end
 
@@ -1620,7 +1616,6 @@ defmodule DragnCardsGame.CustomPluginTest do
     # Setup
     assert game["playerData"]["player1"]["threat"] == 29
     assert game["roundAdvancementFunction"] == "goToFirstPlanning"
-    assert game["textBoxById"]["roundAdvancement"]["content"] == "Press W to advance to first planning phase."
 
     # Only 1 quest card
     # game = Evaluate.evaluate(game, ["DO_ADVANCE_BUTTON"])
