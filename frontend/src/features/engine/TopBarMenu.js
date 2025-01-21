@@ -142,8 +142,8 @@ export const TopBarMenu = React.memo(({}) => {
     } else if (data.action === "set_num_players") {
       var actionList = [
         ["LOG", "$ALIAS_N", " changed the number of players to "+data.value+"."],
-        ["SET_LAYOUT", "shared", data.value.layoutId],
-        ["SET", "/numPlayers", data.value.numPlayers]
+        ["SET", "/numPlayers", data.value.numPlayers],
+        ["SET_LAYOUT", "shared", data.value.layoutId]
       ];
       doActionList(actionList);
     } 
@@ -319,6 +319,14 @@ export const TopBarMenu = React.memo(({}) => {
             })}
             </ul>
         </li> */}
+        <li key={"unload"}>
+            {siteL10n("unload")}
+            <span className="float-right mr-1"><FontAwesomeIcon icon={faChevronRight}/></span>
+          <ul className="third-level-menu">        
+            <li key={"unload_my_deck"} onClick={() => handleMenuClick({action:"unload_my_deck"})}>{siteL10n("unloadMyCards")}</li>
+            <li key={"unload_shared_cards"} onClick={() => handleMenuClick({action:"unload_shared_cards"})}>{siteL10n("unloadSharedCards")}</li>
+          </ul>
+        </li>
         {isHost &&
           <li key={"num_players"}>
             {siteL10n("numberOfPlayers")}
@@ -328,14 +336,6 @@ export const TopBarMenu = React.memo(({}) => {
             </ul>
           </li>
         }
-        <li key={"unload"}>
-            {siteL10n("unload")}
-            <span className="float-right mr-1"><FontAwesomeIcon icon={faChevronRight}/></span>
-          <ul className="third-level-menu">        
-            <li key={"unload_my_deck"} onClick={() => handleMenuClick({action:"unload_my_deck"})}>{siteL10n("unloadMyDeck")}</li>
-            <li key={"unload_shared_cards"} onClick={() => handleMenuClick({action:"unload_shared_cards"})}>{siteL10n("unloadSharedCards")}</li>
-          </ul>
-        </li>
         <li key={"spawn"}
           onClick={() => handleMenuClick({action:"spawn_existing"})}>
           {siteL10n("spawnCard")}

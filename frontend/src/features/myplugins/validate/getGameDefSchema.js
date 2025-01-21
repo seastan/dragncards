@@ -1067,33 +1067,6 @@ export const getGameDefSchema = (gameDef) => {
           }
         }
       },
-      "layoutMenu": {
-        "_description_": "Layout menu options",
-        "_type_": "array",
-        "_required_": true,
-        "_itemSchema_": {
-          "_description_": "A layout menu option",
-          "_type_": "object",
-          "_strictKeys_": true,
-          "label": {
-            "_description_": "The label to display in the layout menu",
-            "_type_": "label",
-            "_required_": true,
-          },
-          "layoutId": {
-            "_description_": "The ID of the layout",
-            "_type_": "string",
-            "_required_": true,
-            "_memberOf_": mytypeof(gameDef?.layouts) === "object" ? Object.keys(gameDef.layouts) : [],
-            "_memberOfPath_": "gameDef.layouts",
-          },
-          "numPlayers": {
-            "_description_": "The number of players the layout supports",
-            "_type_": "any",
-            "_required_": true,
-          },
-        }
-      },
       "layouts": {
         "_description_": "Layout definitions",
         "_type_": "object",

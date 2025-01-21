@@ -12,8 +12,8 @@ defmodule DragnCardsGame.PlayerData do
   """
   @spec new(Map.t(), String.t()) :: PlayerData.t()
   def new(game_def, player_i) do
-    default_layout_info = Enum.at(game_def["layoutMenu"],0)
-    layout_id = default_layout_info["layoutId"]
+    player_count_info = Enum.at(game_def["playerCountMenu"],0)
+    layout_id = player_count_info["layoutId"]
 
     base = %{
       "id" => player_i,
