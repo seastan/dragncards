@@ -45,7 +45,11 @@ defmodule DragnCardsGame.Evaluate.Functions.REPLACE_STRING_IN_LIST do
     if !is_binary(replacement_string) do
       raise "REPLACE_STRING_IN_LIST: replacementString must be a string"
     end
-    replace_string_in_list(input_string, string_to_replace, replacement_string)
+    res = replace_string_in_list(input_string, string_to_replace, replacement_string)
+    IO.puts("REPLACE_STRING_IN_LIST 1")
+    IO.inspect(res)
+    IO.puts("REPLACE_STRING_IN_LIST 2")
+    res
   end
 
 end
