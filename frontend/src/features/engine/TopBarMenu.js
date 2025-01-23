@@ -141,7 +141,7 @@ export const TopBarMenu = React.memo(({}) => {
       doActionList(actionList);
     } else if (data.action === "set_num_players") {
       var actionList = [
-        ["LOG", "$ALIAS_N", " changed the number of players to "+data.value+"."],
+        ["LOG", "$ALIAS_N", " changed the number of players to "+data.value.numPlayers+"."],
         ["SET", "/numPlayers", data.value.numPlayers],
         ["SET_LAYOUT", "shared", data.value.layoutId]
       ];
