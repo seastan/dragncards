@@ -133,15 +133,8 @@
     # Add player data
     player_data = %{}
     player_data = Enum.reduce(1..max_num_players, player_data, fn(i, acc) ->
-      IO.puts("Adding player data")
-      IO.inspect(i)
       player_i = "player#{i}"
-      IO.inspect(player_i)
-      acc = put_in(acc[player_i], PlayerData.new(game_def, player_i))
-      IO.puts("acc 1")
-      IO.inspect(acc)
-      IO.puts("acc 2")
-      acc
+      put_in(acc[player_i], PlayerData.new(game_def, player_i))
     end)
     IO.puts("Made player data")
     base = put_in(base["playerData"], player_data)

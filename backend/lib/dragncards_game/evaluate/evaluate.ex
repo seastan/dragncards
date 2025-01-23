@@ -72,6 +72,22 @@ defmodule DragnCardsGame.Evaluate do
     argc
   end
 
+  def argt(func_name, argi, arg_type, val) do
+    match = cond do
+      arg_type == "variable" and is_binary(val) and String.starts_with?(val, "$") -> true
+      arg_type == "string" and is_binary(val) -> true
+      arg_type == "number" and is_number(val) -> true
+      arg_type == "boolean" and is_boolean(val) -> true
+      arg_type == "list" and is_list(val) -> true
+      arg_type == "map" and is_map(val) -> true
+      arg_type == "code" and is_list(val) -> true
+      true -> false
+    end
+    if !match do
+      raise "#{func_name}: Expected arg #{argi} to be of type #{arg_type} but got #{inspect(val)}."
+    end
+  end
+
   def card_match?(game, var_name, card, condition, trace) do
     game = evaluate(game, ["VAR", var_name, card], trace ++ ["VAR var_name"])
     evaluate(game, condition, trace ++ ["card_match?"])

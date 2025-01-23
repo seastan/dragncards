@@ -43,10 +43,15 @@ defmodule DragnCardsGame.Evaluate.Functions.FOR_EACH_START_STOP_STEP do
   The result of the 'FOR_EACH_START_STOP_STEP' operation.
   """
   def execute(game, code, trace) do
+    Evaluate.argc(code, 5)
     var_name = Enum.at(code, 1)
+    Evaluate.argt("FOR_EACH_START_STOP_STEP", 0, "variable", var_name)
     start = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["start"])
+    Evaluate.argt("FOR_EACH_START_STOP_STEP", 1, "number", start)
     stop = Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["stop"])
+    Evaluate.argt("FOR_EACH_START_STOP_STEP", 2, "number", stop)
     step = Evaluate.evaluate(game, Enum.at(code, 4), trace ++ ["step"])
+    Evaluate.argt("FOR_EACH_START_STOP_STEP", 3, "number", step)
     function = Enum.at(code, 5)
     Enum.reduce(start..stop-1//step, game, fn(i, acc) ->
       acc = Evaluate.evaluate(acc, ["VAR", var_name, i], trace ++ ["index #{i}"])
