@@ -11,7 +11,7 @@ export const siteL10n = {
     "English": "Load prebuilt deck",
     "Chinese": "加载预组牌库"
   },
-  "defaultMaintenenceMessage": {
+  "defaultMaintenanceMessage": {
     "English": "The server is going down for scheduled maintenance in the next 60 seconds. Please save your game. The server should be back up in less than 5 minutes, and you can resume your game from your profile.",
     "Chinese": "服务器将在接下来的 60 秒内进行计划维护。请保存您的游戏。服务器将在 5 分钟内恢复，您可以从您的个人资料中恢复游戏。"
   },
@@ -239,7 +239,7 @@ export const siteL10n = {
     "English": "Unload",
     "Chinese": "卸载"
   },
-  "unloadMyDeck": {
+  "unloadMyCards": {
     "English": "Unload my cards",
     "Chinese": "卸载我的卡牌"
   },
