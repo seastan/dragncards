@@ -29,7 +29,7 @@ export const useImportViaUrl = () => {
 const importViaUrlRingsDb = async (importLoadList, doActionList, playerN) => {
   const ringsDbUrl = prompt("Paste full RingsDB URL","");
   if (!ringsDbUrl.includes("ringsdb.com")) {
-    alert("Only importing from MarvelCDB is supported at this time.");
+    alert("Only importing from RingsDB is supported at this time.");
     return;
   }
   if (ringsDbUrl.includes("/fellowship/")) {

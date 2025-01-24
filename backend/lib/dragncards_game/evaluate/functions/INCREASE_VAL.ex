@@ -14,7 +14,7 @@ defmodule DragnCardsGame.Evaluate.Functions.INCREASE_VAL do
 
   *Examples*:
 
-  Increase the nummber of damage tokens on the active card by 5:
+  Increase the number of damage tokens on the active card by 5:
   ```
   ["DECREASE_VAL", "/cardById/$ACTIVE_CARD_ID/tokens/damage", 5]
   ```
