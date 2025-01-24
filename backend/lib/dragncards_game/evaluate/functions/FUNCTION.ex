@@ -5,7 +5,7 @@ defmodule DragnCardsGame.Evaluate.Functions.FUNCTION do
   Next N arguments: the names of the new function arguments (string starting with $)
   Last argument: code (actionList)
 
-  Defines a new function with the given name, arguments, and code. The function name must be all caps. The new function will persist across backend proccesses and can be called from any actionList or scope.
+  Defines a new function with the given name, arguments, and code. The function name must be all caps. The new function will persist across backend processes and can be called from any actionList or scope.
 
   It is recommended that you define all functions in advance in gameDef.functions rather than using this built-in function.
 

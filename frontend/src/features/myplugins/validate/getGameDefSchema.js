@@ -48,7 +48,7 @@ const autoRunSchema = {
   "_type_": "object",
   "_strictKeys_": true,
   "status": {
-    "_description_": "The status of the rule. If set to 'always', the rule will automatically run when the condition is met. If set to 'never', the rule will not automatically run. If set to 'propmt', the user will be prompted to run the rule.",
+    "_description_": "The status of the rule. If set to 'always', the rule will automatically run when the condition is met. If set to 'never', the rule will not automatically run. If set to 'prompt', the user will be prompted to run the rule.",
     "_type_": "string",
     "_required_": true,
     "_memberOf_": ["always", "never", "prompt", "promptYN"],
@@ -1770,7 +1770,7 @@ export const getGameDefSchema = (gameDef) => {
         }
       },
       "imageUrlPrefix": {
-        "_description_": "Object describing the prefix to add to image URLs. The [key] is the language. This can be used to reduce character count in the TSV if many URLs contain a similar prefix. It can be used for localization if your images are hosted in such a way that the the URLs for the same card in different languages have the save suffix but different prefix. Example: {'Default': 'https://hostingsite.com/English/', 'English': 'https://hostingsite.com/English/', 'French': 'https://hostingsite.com/French/'}",
+        "_description_": "Object describing the prefix to add to image URLs. The [key] is the language. This can be used to reduce character count in the TSV if many URLs contain a similar prefix. It can be used for localization if your images are hosted in such a way that the the URLs for the same card in different languages have the same suffix but different prefix. Example: {'Default': 'https://hostingsite.com/English/', 'English': 'https://hostingsite.com/English/', 'French': 'https://hostingsite.com/French/'}",
         "_type_": "object",
         "_itemSchema_": {
           "_description_": "The image URL prefix",
