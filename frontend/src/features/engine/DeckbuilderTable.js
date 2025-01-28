@@ -43,13 +43,30 @@ export const DeckbuilderTable = React.memo(({currentGroupId, modifyDeckList, set
 
   console.log("Rendering DeckbuilderTable", columnInfo, filters);
 
+  const addAuthorToCustomDb = (customDb) => {
+    Object.keys(customDb).forEach(cardId => {
+      const cardDetails = customDb[cardId];
+      const authorAlias = cardDetails.author_alias;
+      const authorAliasString = authorAlias ? authorAlias : "Unknown";
+      const sideA = cardDetails.A;
+      sideA["author_alias"] = authorAliasString;
+    });
+  }
+
   const changeSelectedDb = (dbString) => {
     const fetchCustomContent = async () => {
       const res = await Axios.get(`/be/api/all_custom_content/${user?.id}/${plugin.id}`, authOptions);
       if (res?.data?.success) {
-        console.log("fetchCustomContent x", res?.data);
-        if (res?.data?.public_card_db) setPublicDb(res?.data?.public_card_db);
-        if (res?.data?.private_card_db) setPrivateDb(res?.data?.private_card_db);
+        if (res?.data?.public_card_db) {
+          const publicDb = res?.data?.public_card_db;
+          addAuthorToCustomDb(publicDb);
+          setPublicDb(publicDb);
+        }
+        if (res?.data?.private_card_db) {
+          const privateDb = res?.data?.private_card_db;
+          addAuthorToCustomDb(privateDb);
+          setPrivateDb(privateDb);
+        }
       }
       setLoadedCustomContent(true);
     }
@@ -113,20 +130,22 @@ export const DeckbuilderTable = React.memo(({currentGroupId, modifyDeckList, set
     const filteredCardIds = sortedCardIds.filter(cardId => {
       return Object.entries(filters).every(([propName, filterVal]) => {
         if (selectedDbString === "official" && propName === "author_alias") return true;
-        const sideA = selectedDb[cardId]["A"];
-        const sideB = selectedDb[cardId]["B"];
+        var propA = selectedDb?.[cardId]?.A?.[propName];
+        const propB = selectedDb?.[cardId]?.B?.[propName];
         const matchSideA = (
-          sideA[propName] !== null &&
-          sideA[propName] !== "" &&
-          String(sideA[propName]).toLowerCase().includes(String(filterVal).toLowerCase())
+          propA !== null &&
+          propA !== undefined &&
+          propA !== "" &&
+          String(propA).toLowerCase().includes(String(filterVal).toLowerCase())
         );
         const matchSideB = (
-          sideB[propName] !== null &&
-          sideB[propName] !== "" &&
-          String(sideB[propName]).toLowerCase().includes(String(filterVal).toLowerCase())
+          propB !== null &&
+          propB !== undefined &&
+          propB !== "" &&
+          String(propB).toLowerCase().includes(String(filterVal).toLowerCase())
         );
 
-        console.log("filteredCardIds filtering", cardId, propName, filterVal, sideA, sideB, sideA[propName], sideB[propName], matchSideA, matchSideB)
+        console.log("filteredCardIds filtering", cardId, propName, filterVal, matchSideA, matchSideB)
         return matchSideA || matchSideB;
       });
     });
@@ -202,7 +221,6 @@ export const DeckbuilderTable = React.memo(({currentGroupId, modifyDeckList, set
               const cardDetails = selectedDb?.[cardId];
               if (!cardDetails) return null;
               const sideA = selectedDb?.[cardId]?.["A"];
-              if (selectedDbString !== "official") sideA["author_alias"] = cardDetails.author_alias;
 
               if (cardDetails) return(
                 <tr 
