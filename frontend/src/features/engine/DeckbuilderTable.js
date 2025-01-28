@@ -200,7 +200,6 @@ export const DeckbuilderTable = React.memo(({currentGroupId, modifyDeckList, set
                         </div>
                         <div>
                           <input 
-                            autoFocus
                             style={{width:"95%"}} 
                             type="text"
                             id="name" 
