@@ -126,7 +126,7 @@ export const DeckbuilderTable = React.memo(({currentGroupId, modifyDeckList, set
           String(sideB[propName]).toLowerCase().includes(String(filterVal).toLowerCase())
         );
 
-        console.log("filteredCardIds filtering", cardId, propName, filterVal, sideA[propName], sideB[propName], matchSideA, matchSideB)
+        console.log("filteredCardIds filtering", cardId, propName, filterVal, sideA, sideB, sideA[propName], sideB[propName], matchSideA, matchSideB)
         return matchSideA || matchSideB;
       });
     });
