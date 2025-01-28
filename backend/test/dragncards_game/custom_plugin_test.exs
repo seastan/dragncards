@@ -1602,18 +1602,26 @@ defmodule DragnCardsGame.CustomPluginTest do
     # Select 1 player
     prompt_id = Enum.at(Map.keys(game["playerData"]["player1"]["prompts"]), 0)
     prompt = game["playerData"]["player1"]["prompts"][prompt_id]
-    option1 = Enum.at(prompt["options"], 0)
-    game = Evaluate.evaluate(game, option1["code"])
+    option2 = Enum.at(prompt["options"], 1)
+    game = Evaluate.evaluate(game, option2["code"])
 
 
-    # Load some decks into the game
+    assert game["roundAdvancementFunction"] == "loadPlayerDecks"
+
+    game = Evaluate.evaluate(game, ["LOAD_CARDS", "coreLeadership"])
+
+    assert game["roundAdvancementFunction"] == "loadPlayerDecks"
+
+    game = Evaluate.evaluate(game, [["DEFINE", "$PLAYER_N", "player2"], ["LOAD_CARDS", "coreLore"]])
+
+    assert game["roundAdvancementFunction"] == "loadEncounterDeck"
+
     game = Evaluate.evaluate(game, ["LOAD_CARDS", "Q01.1"]) # Passage through Mirkwood
-    assert game["questProgress"] == -3
-    game = Evaluate.evaluate(game, ["LOAD_CARDS", "coreLeadership"]) # Leadership core set deck
 
-    game = Evaluate.evaluate(game, ["SET", "/gameStepAutomation", true])
+    assert game["roundAdvancementFunction"] == "goToFirstPlanning"
 
     # Setup
+    assert game["questProgress"] == -3
     assert game["playerData"]["player1"]["threat"] == 29
     assert game["roundAdvancementFunction"] == "goToFirstPlanning"
 
@@ -1645,7 +1653,8 @@ defmodule DragnCardsGame.CustomPluginTest do
     ])
 
     # Reveal no cards, resolve the quest
-    game = Evaluate.evaluate(game, ["DO_ADVANCE_BUTTON"])
+    game = Evaluate.evaluate(game, ["RESOLVE_QUEST"])
+
     # Failed by 1
     assert game["playerData"]["player1"]["threat"] == 30
 
@@ -1662,7 +1671,7 @@ defmodule DragnCardsGame.CustomPluginTest do
     assert game["stagingThreat"] == 3
 
     # Resolve engagement checks
-    game = Evaluate.evaluate(game, ["DO_ADVANCE_BUTTON"])
+    game = Evaluate.evaluate(game, ["RESOLVE_ENGAGEMENT_CHECKS"])
     assert game["stagingThreat"] == 1
 
     # 1 engaged enemy
@@ -1723,7 +1732,7 @@ defmodule DragnCardsGame.CustomPluginTest do
     # Resolve the quest, put 2 progress on the side quest
     assert game["currentQuestCardId"] != nil
     assert game["roundAdvancementFunction"] == "revealOrResolve"
-    game = Evaluate.evaluate(game, ["DO_ADVANCE_BUTTON"])
+    game = Evaluate.evaluate(game, ["RESOLVE_QUEST"])
 
 
         # Print all messages

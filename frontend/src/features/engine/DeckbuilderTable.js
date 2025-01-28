@@ -128,6 +128,7 @@ export const DeckbuilderTable = React.memo(({currentGroupId, modifyDeckList, set
         return matchSideA || matchSideB;
       });
     });
+    console.log("Setting filteredCardIds", filteredCardIds)
     setFilteredCardIds(filteredCardIds);
   }, [filters, sortedCardIds]);
 
