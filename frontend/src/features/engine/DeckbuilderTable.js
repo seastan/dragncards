@@ -9,6 +9,7 @@ import { faSortUp, faSortDown, faSort } from '@fortawesome/free-solid-svg-icons'
 import { useAuthOptions } from "../../hooks/useAuthOptions";
 import useProfile from "../../hooks/useProfile";
 import Axios from "axios";
+import { RotatingLines } from "react-loader-spinner";
 
 
 const RESULTS_LIMIT = 250;
@@ -179,86 +180,93 @@ export const DeckbuilderTable = React.memo(({currentGroupId, modifyDeckList, set
               </div>
             </div>
           </div>
-          <table className="table-fixed rounded-lg w-full">
-            <thead>
-              <tr className="bg-gray-800">
-                <th key={-1} className="text-white p-1" style={{width:"12dvh"}}></th>
-                  {columnInfo?.map((colDetails, colindex) => {
-                    const isSorted = sortConfig.column === colDetails.propName;
-                    return (
-                      <th key={colindex} style={{width:"15dvh"}}>
-                        <div className="text-white whitespace-nowrap p-1 flex justify-between items-center">
-                          {gameL10n(colDetails.label)}
-                          <div 
-                            className="px-1 rounded border hover:bg-red-700"
-                            onClick={() => handleSort(colDetails.propName)}>
-                          <FontAwesomeIcon
-                            icon={isSorted ? (sortConfig.direction === 'asc' ? faSortUp : faSortDown) : faSort}
-                            className="cursor-pointer"
-                          />
+          {(selectedDbString === "public" || selectedDbString === "private") && !loadedCustomContent ? 
+            <div className="flex h-full w-full items-center justify-center">
+              <RotatingLines
+                height={100}
+                width={100}
+                strokeColor="white"/>
+            </div>
+          : 
+            <table className="table-fixed rounded-lg w-full">
+              <thead>
+                <tr className="bg-gray-800">
+                  <th key={-1} className="text-white p-1" style={{width:"12dvh"}}></th>
+                    {columnInfo?.map((colDetails, colindex) => {
+                      const isSorted = sortConfig.column === colDetails.propName;
+                      return (
+                        <th key={colindex} style={{width:"15dvh"}}>
+                          <div className="text-white whitespace-nowrap p-1 flex justify-between items-center">
+                            {gameL10n(colDetails.label)}
+                            <div 
+                              className="px-1 rounded border hover:bg-red-700"
+                              onClick={() => handleSort(colDetails.propName)}>
+                            <FontAwesomeIcon
+                              icon={isSorted ? (sortConfig.direction === 'asc' ? faSortUp : faSortDown) : faSort}
+                              className="cursor-pointer"
+                            />
+                            </div>
                           </div>
-                        </div>
-                        <div>
-                          <input 
-                            autoFocus
-                            style={{width:"95%"}} 
-                            type="text"
-                            id="name" 
-                            name="name" 
-                            className="m-2 rounded" 
-                            placeholder={"Filter "+gameL10n(colDetails.label)} 
-                            value={filters[colDetails.propName] || ""}
-                            onChange={(event) => {handleFilterTyping(event, colDetails.propName)}}/>
-                        </div>
-                      </th>
-                    )
-                  })}
-
-              </tr>
-            </thead>
-            {filteredCardIds.length <= RESULTS_LIMIT && filteredCardIds.map((cardId, rowindex) => {
-              console.log("deckbuilder cardId", cardId, selectedDb)
-              const cardDetails = selectedDb?.[cardId];
-              if (!cardDetails) return null;
-              const sideA = selectedDb?.[cardId]?.["A"];
-
-              if (cardDetails) return(
-                <tr 
-                  key={rowindex} 
-                  className="text-white hover:bg-gray-600" 
-                  style={{color: deckbuilder.colorKey ? deckbuilder.colorValues[sideA[deckbuilder.colorKey]] : null}}
-                  onClick={() => {}}
-                  onMouseEnter={() => {setHoverCardDetails(null); setHoverCardDetails({...cardDetails, leftSide: true})}}
-                  onMouseLeave={() => setHoverCardDetails(null)}>
-                  <td key={-1} className="p-1">
-                    {addButtonsReversed.map((addButtonVal, _index) => {
-                      const loadListItem = makeLoadListItem(cardId, addButtonVal, currentGroupId, sideA.name, cardDetails.author_id)
-                      return(
-                        <div 
-                          className={keyClass + " float-right text-white hover:bg-gray-400 cursor-pointer"} 
-                          style={keyStyle}
-                          onClick={()=>modifyDeckList(loadListItem)}>
-                            +{addButtonVal}
-                        </div>
+                          <div>
+                            <input 
+                              style={{width:"95%"}} 
+                              type="text"
+                              id="name" 
+                              name="name" 
+                              className="m-2 rounded" 
+                              placeholder={"Filter "+gameL10n(colDetails.label)} 
+                              value={filters[colDetails.propName] || ""}
+                              onChange={(event) => {handleFilterTyping(event, colDetails.propName)}}/>
+                          </div>
+                        </th>
                       )
                     })}
-                  </td>
-                  {columnInfo?.map((colDetails, colindex) => {
-                    console.log("deckbuilder colDetails", colDetails)
-                    const content = sideA[colDetails.propName];
-                    // Determine if the content should be centered
-                    const isCenteredContent = (typeof content === 'string' && content.length === 1) || !isNaN(+content);
-                    // Combine the classes based on the condition
-                    const cellClass = `p-1 whitespace-nowrap text-ellipsis overflow-hidden ${isCenteredContent ? 'text-center' : ''}`;
-                    return (
-                      <td key={colindex} className={cellClass}>{content}</td>
-                    );
-                  })}
+
                 </tr>
-              );
-            })}
-          </table>
-      
+              </thead>
+              {filteredCardIds.length <= RESULTS_LIMIT && filteredCardIds.map((cardId, rowindex) => {
+                console.log("deckbuilder cardId", cardId, selectedDb)
+                const cardDetails = selectedDb?.[cardId];
+                if (!cardDetails) return null;
+                const sideA = selectedDb?.[cardId]?.["A"];
+
+                if (cardDetails) return(
+                  <tr 
+                    key={rowindex} 
+                    className="text-white hover:bg-gray-600" 
+                    style={{color: deckbuilder.colorKey ? deckbuilder.colorValues[sideA[deckbuilder.colorKey]] : null}}
+                    onClick={() => {}}
+                    onMouseEnter={() => {setHoverCardDetails(null); setHoverCardDetails({...cardDetails, leftSide: true})}}
+                    onMouseLeave={() => setHoverCardDetails(null)}>
+                    <td key={-1} className="p-1">
+                      {addButtonsReversed.map((addButtonVal, _index) => {
+                        const loadListItem = makeLoadListItem(cardId, addButtonVal, currentGroupId, sideA.name, cardDetails.author_id)
+                        return(
+                          <div 
+                            className={keyClass + " float-right text-white hover:bg-gray-400 cursor-pointer"} 
+                            style={keyStyle}
+                            onClick={()=>modifyDeckList(loadListItem)}>
+                              +{addButtonVal}
+                          </div>
+                        )
+                      })}
+                    </td>
+                    {columnInfo?.map((colDetails, colindex) => {
+                      console.log("deckbuilder colDetails", colDetails)
+                      const content = sideA[colDetails.propName];
+                      // Determine if the content should be centered
+                      const isCenteredContent = (typeof content === 'string' && content.length === 1) || !isNaN(+content);
+                      // Combine the classes based on the condition
+                      const cellClass = `p-1 whitespace-nowrap text-ellipsis overflow-hidden ${isCenteredContent ? 'text-center' : ''}`;
+                      return (
+                        <td key={colindex} className={cellClass}>{content}</td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </table>
+          }
         {filteredCardIds.length > RESULTS_LIMIT && <div className="p-1 text-white">Too many results</div>} 
       </div>
     )
