@@ -1,0 +1,57 @@
+[
+  {
+    "uuid": "75c3ac9e-b4e2-4c26-95a3-df99e6f22c6d",
+    "quantity": 1,
+    "loadGroupId": "sharedSetAside"
+  },
+  {
+    "uuiid": "5642b7b9-b194-46e3-bf69-7aa7ec9efc62",
+    "quantity": 1,
+    "loadGroupId": "sharedSetAside"
+  },
+  {
+    "uuiid": "7aff02d0-0b2d-4927-b685-03ccc5c7cb15",
+    "quantity": 1,
+    "loadGroupId": "sharedSetAside"
+  },
+  {
+    "uuiid": "2b724cca-d2f1-4012-8567-4223d3842aa5",
+    "quantity": 1,
+    "loadGroupId": "sharedSetAside"
+  },
+  {
+    "uuiid": "a4b3de91-8df7-4cb6-81e9-8d0205f48e05",
+    "quantity": 1,
+    "loadGroupId": "sharedSetAside"
+  },
+  {
+    "uuiid": "d25ffeeb-134f-42aa-8eba-665b68302c6b",
+    "quantity": 1,
+    "loadGroupId": "sharedSetAside"
+  },
+  {
+    "uuiid": "6d78c2c3-7683-499f-baaa-f018d822178a",
+    "quantity": 4,
+    "loadGroupId": "sharedSetAside"
+  },
+  {
+    "uuiid": "5f27b9a9-7cb4-47ca-8397-e86b18b6b0de",
+    "quantity": 4,
+    "loadGroupId": "sharedSetAside"
+  },
+  {
+    "uuiid": "f3c1abe3-48dc-4f61-8a4e-830c94bde22e",
+    "quantity": 1,
+    "loadGroupId": "sharedSetAside"
+  },
+  {
+    "uuiid": "a34422e3-4cac-448d-a23f-15ce17f852b5",
+    "quantity": 1,
+    "loadGroupId": "sharedSetAside"
+  },
+  {
+    "uuiid": "10ce5d5e-27ad-4220-a2b9-8811c1b0fc53",
+    "quantity": 1,
+    "loadGroupId": "sharedSetAside"
+  }
+]

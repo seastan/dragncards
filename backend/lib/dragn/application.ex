@@ -1,6 +1,4 @@
 defmodule DragnCards.Application do
-  # See https://hexdocs.pm/elixir/Application.html
-  # for more information on OTP Applications
   @moduledoc false
 
   use Application
@@ -24,10 +22,16 @@ defmodule DragnCards.Application do
       {Periodic,
        run: &DragnCardsGame.GameRegistry.cleanup/0,
        initial_delay: :timer.seconds(1),
-       every: :timer.minutes(5)}
+       every: :timer.minutes(5)},
+      # Phoenix PubSub
+      {Phoenix.PubSub, [name: DragnCards.PubSub, adapter: Phoenix.PubSub.PG2]},
+      # Start the CardCache as a GenServer
+      {DragnCardsGame.PluginCache, []},
       # Starts a worker by calling: DragnCards.Worker.start_link(arg)
       # {DragnCards.Worker, arg},
     ]
+
+    # Create any other ETS tables (if needed)
     :ets.new(:game_uis, [:public, :named_table])
 
     # See https://hexdocs.pm/elixir/Supervisor.html

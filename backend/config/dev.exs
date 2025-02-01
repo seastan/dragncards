@@ -1,11 +1,11 @@
-use Mix.Config
+import Config
 
 # Configure your database
 config :dragncards, DragnCards.Repo,
   username: "postgres",
   password: "postgres",
   database: "dragncards_dev",
-  hostname: "localhost",
+  hostname: System.get_env("DB_HOSTNAME", "localhost"),
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
 
@@ -70,6 +70,8 @@ config :dragncards, DragnCardsWeb.Endpoint,
 # Do not include metadata nor timestamps in development logs
 config :logger, :console, format: "[$level] $message\n"
 
+config :dragncards, :env_mode, :dev
+
 # Set a higher stacktrace during development. Avoid configuring such
 # in production as building large stacktraces may be expensive.
 config :phoenix, :stacktrace_depth, 20
@@ -80,3 +82,9 @@ config :phoenix, :plug_init_mode, :runtime
 if File.exists?("config/dev.secret.exs") do
   import_config "dev.secret.exs"
 end
+
+# Config the patreon redirect uri
+config :dragncards, :patreon_client_id, System.get_env("PATREON_CLIENT_ID")
+config :dragncards, :patreon_client_secret, System.get_env("PATREON_CLIENT_SECRET")
+config :dragncards, :patreon_redirect_uri, System.get_env("PATREON_REDIRECT_URI")
+config :dragncards, :patreon_creator_token, System.get_env("PATREON_CREATOR_TOKEN")

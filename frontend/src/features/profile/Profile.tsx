@@ -8,18 +8,14 @@ import useDataApi from "../../hooks/useDataApi";
 import Button from "../../components/basic/Button";
 import ShareGameModal from "./ShareGameModal";
 import { parseISO, format, formatDistanceToNow } from "date-fns";
-import useForm from "../../hooks/useForm";
 import axios from "axios";
+import RecaptchaForm from "./RecaptchaForm";
+import { useAuthOptions } from "../../hooks/useAuthOptions";
+import { useSiteL10n } from "../../hooks/useSiteL10n";
 
 const columns = [
   {name: "uuid", label: "UUID", options: { filter: false, display: false }},
-  {name: "encounter", label: "Encounter", options: { filter: false, sort: true }},
-  {name: "rounds", label: "Rounds", options: { filter: false, sort: false }},
-  {name: "num_players", label: "Players", options: { filter: true, sort: false }},
-  {name: "player1_heroes", label: "Player 1", options: { filter: false, sort: false }},
-  {name: "player2_heroes", label: "Player 2", options: { filter: false, sort: false }},
-  {name: "player3_heroes", label: "Player 3", options: { filter: false, sort: false }},
-  {name: "player4_heroes", label: "Player 4", options: { filter: false, sort: false }},
+  {name: "metadata", label: "Metadata", options: { filter: false, sort: true }},
   {name: "updated_at", label: "Date", options: { filter: false, sort: true }},
   {name: "options", label: "Options", options: { filter: false, sort: true }},
  ]; //, sortDirection: "asc" as const
@@ -28,18 +24,20 @@ interface Props {}
 
 export const Profile: React.FC<Props> = () => {
   const user = useProfile();
+  const authOptions = useAuthOptions();
+  const siteL10n = useSiteL10n();
   const history = useHistory();
   const [showModal, setShowModal] = useState(false);
-  const [shareReplayId, setShareReplayId] = useState("");
+  const [shareReplayUrl, setShareReplayUrl] = useState("");
   const [deletedIndices, setDeletedIndices] = useState<Array<number>>([]); 
-  console.log('Rendering Profile');
-  console.log(user);
   const { data, isLoading, isError, doFetchUrl, doFetchHash, setData } = useDataApi<any>(
-    "/be/api/replays/"+user?.id,
+    user?.id ? "/be/api/replays/"+user.id : "",
     null
   );
-  console.log(data);
+  console.log('Rendering Profile', data);
   useEffect(() => {
+    if (user?.id == null) return;
+    if (user?.id == undefined) return;
     doFetchUrl("/be/api/replays/"+user?.id);
   }, [user]);
   if (user == null) {
@@ -50,22 +48,31 @@ export const Profile: React.FC<Props> = () => {
   const insertedRelative = formatDistanceToNow(insertedDate, {
     addSuffix: true,
   });
-  const openReplay = (uuid: any) => {
-    history.push("/newroom/replay/"+uuid);
+  const openReplay = (pluginId: number, uuid: any) => {
+    history.push("/plugin/"+pluginId+"/load/"+uuid);
   }
-  const shareReplay = (uuid: any) => {
-    setShareReplayId(uuid);
+  const shareReplay = (pluginId: number, uuid: any) => {
+    setShareReplayUrl("/plugin/"+pluginId+"/load/"+uuid);
     setShowModal(true);
   }
-  const deleteReplay = async(uuid: any, index: number, numPlayers: number) => {
-    if (numPlayers > 1) {
-      alert("Multiplayer games can not be deleted currently.")
-      return;
-    } else if (window.confirm("Are you sure you want to delete this replay?")) {
-      const res = await axios.post("/be/api/replays/delete/"+uuid);
+  const deleteReplay = async(replay: any, index: number, numPlayers: number) => {
+    if (window.confirm("Are you sure you want to delete this saved game?")) {
+      const data = {
+        user: user,
+        replay: replay,
+      }
+      const res = await axios.post("/be/api/replays/delete",data);
       setDeletedIndices([...deletedIndices, index]);
     }
-  }      
+  }
+  const issueDowntimeNotice = async() => {
+    let defMessage = siteL10n("defaultMaintenenceMessage");
+    let text = window.prompt(`Enter the message to send to all users. Leave blank to send default message (${defMessage})`);
+    if (text == null) return;
+    if (text == "") text = defMessage;
+
+    const res = await axios.post("/be/api/rooms/send_alert", {level: "crash", text: text, autoClose: false}, authOptions);
+  }
 
   const options: MUIDataTableOptions = {
     filterType: "checkbox",
@@ -76,20 +83,31 @@ export const Profile: React.FC<Props> = () => {
   if (data) {
     var replayData = data.data;
     var nonDeletedData: Array<any> = [];
-    for (var i=0; i<replayData.length; i++) {
+    var numReplays = replayData ? replayData.length : 0;
+    for (var i=0; i<numReplays; i++) {
     //for (var replay of replayData) {
-      var replay = replayData[i];
+      const replay = replayData[i];
+      if (replay.deleted_by && replay.deleted_by.includes(user.id)) continue;
       const numPlayers = replay.num_players;
       const uuid = replay.uuid;
+      const pluginId = replay.plugin_id;
+      const replayId = replay.id;
       const index = i;
-      replay = {...replay, 
+      const replayRow = {...replay, 
         options: <div>
-          <Button onClick={() => openReplay(uuid)} isPrimary className="mx-2 mt-2">Load</Button>
-          <Button onClick={() => shareReplay(uuid)} isPrimary className="mx-2 mt-2">Share</Button>
-          <Button onClick={() => deleteReplay(uuid, index, numPlayers)} className="mx-2 mt-2">Delete</Button>
+          <Button onClick={() => openReplay(pluginId, uuid)} isPrimary className="mx-2 mt-2">Load</Button>
+          <Button onClick={() => shareReplay(pluginId, uuid)} isPrimary className="mx-2 mt-2">Share</Button>
+          <Button onClick={() => deleteReplay(replay, index, numPlayers)} className="mx-2 mt-2">Delete</Button>
+        </div>,
+        metadata: <div>
+          {Object.keys(replay?.metadata ? replay.metadata : {}).map((key, index) => {
+            return(
+              <div key={index}><b>{key}:</b> {replay?.metadata?.[key]}</div>
+            )
+        })}
         </div>
       }
-      if (!deletedIndices.includes(i)) nonDeletedData.push(replay);
+      if (!deletedIndices.includes(i)) nonDeletedData.push(replayRow);
     }
     if (user.supporter_level < 3) 
       filteredData = nonDeletedData.slice(0,3);
@@ -97,7 +115,7 @@ export const Profile: React.FC<Props> = () => {
       filteredData = nonDeletedData;
   }
   return (
-    <>
+    <div className="w-full h-full overflow-y-scroll">
       <Container>
         <div className="bg-gray-100 p-4 rounded max-w-xl shadow">
           <h1 className="font-semibold mb-4 text-black">{user.alias}</h1>
@@ -113,13 +131,17 @@ export const Profile: React.FC<Props> = () => {
             {user.email_confirmed_at == null && "No."}
             {user.email_confirmed_at != null && "Yes."}
           </div>
-          <div>
-            <span className="font-semibold">Patreon supporter level</span>: {user.supporter_level ? user.supporter_level : 0}
-          </div>
-          {user.playtester && 
-            <div>
-              <span className="font-semibold">Playtester</span>
-            </div>
+          {user.email_confirmed_at == null && <RecaptchaForm/>}
+          {user.admin && 
+            <>
+              <div>
+                <span className="font-semibold">Admin</span>
+              </div>
+
+              <Button onClick={() => issueDowntimeNotice()}>
+                Issue downtime notice
+              </Button>
+            </>
           }
         </div>
       </Container>
@@ -127,7 +149,7 @@ export const Profile: React.FC<Props> = () => {
       <ProfileSettings/>
       <Container>
         <div className="bg-gray-100 p-4 rounded max-w-xl shadow">
-          <h1 className="font-semibold mb-4 text-black">Saved game settings</h1>
+          <h1 className="font-semibold mb-2 text-black">Saved game settings</h1>
           Currently displaying {user.supporter_level < 3 ? "your 3 most recent games." : "all your saved games."} 
           {user.supporter_level < 3 &&             
             <Button isSubmit isPrimary className="mx-2 mt-2">
@@ -158,9 +180,9 @@ export const Profile: React.FC<Props> = () => {
       <ShareGameModal
         isOpen={showModal}
         closeModal={() => setShowModal(false)}
-        shareReplayId={shareReplayId}
+        shareReplayUrl={shareReplayUrl}
       />
-    </>
+    </div>
   );
 };
 export default Profile;

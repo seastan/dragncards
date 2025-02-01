@@ -5,7 +5,9 @@
 # is restricted to this project.
 
 # General application configuration
-use Mix.Config
+import Config
+
+config :dragncards, :env_mode, :default
 
 config :dragncards,
   ecto_repos: [DragnCards.Repo]
@@ -24,12 +26,13 @@ config :dragncards, DragnCardsWeb.Endpoint,
   #url: [host: "localhost"],
   secret_key_base: "8fqaEQYF++61y9MByi3t+TE2+VGFuEQFfhrlBkzliKpM+1Vi5roQ3arQHNk7uRwi",
   render_errors: [view: DragnCardsWeb.ErrorView, accepts: ~w(html json)],
-  pubsub: [name: DragnCards.PubSub, adapter: Phoenix.PubSub.PG2]
+  pubsub_server: DragnCards.PubSub
 
 # Configures Elixir's Logger
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
+  #level: :warning
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason

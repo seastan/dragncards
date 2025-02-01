@@ -22,7 +22,6 @@ defmodule DragnCardsWeb do
       use Phoenix.Controller, namespace: DragnCardsWeb
 
       import Plug.Conn
-      import DragnCardsWeb.Gettext
       alias DragnCardsWeb.Router.Helpers, as: Routes
     end
   end
@@ -39,8 +38,6 @@ defmodule DragnCardsWeb do
       # Use all HTML functionality (forms, tags, etc)
       use Phoenix.HTML
 
-      import DragnCardsWeb.ErrorHelpers
-      import DragnCardsWeb.Gettext
       alias DragnCardsWeb.Router.Helpers, as: Routes
     end
   end
@@ -56,7 +53,6 @@ defmodule DragnCardsWeb do
   def channel do
     quote do
       use Phoenix.Channel
-      import DragnCardsWeb.Gettext
     end
   end
 

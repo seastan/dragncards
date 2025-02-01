@@ -28,3 +28,7 @@ src/css/tailwind.compiled.css
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# cards git
+public/images/cards/English/.git
+public/images/cards/French/.git

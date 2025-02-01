@@ -45,7 +45,7 @@ const App: React.FC = () => {
   }, [tokens.authToken]);
 
   useHtmlClass(["antialiased"]);
-  useBodyClass(["h-screen", "bg-gray-900", "flex", "flex-col", "max-w-screen"]);
+  useBodyClass(["h-screen", "bg-gray-900", "flex", "flex-col", "w-screen", "overflow-hidden"]);
 
   const authValue = useMemo(
     () => ({
@@ -84,8 +84,7 @@ const App: React.FC = () => {
       <AuthContext.Provider value={authValue}>
         <SocketProvider
           wsUrl={process.env.REACT_APP_WS_URL || "/be/socket"}
-          options={socketParams}
-        >
+          options={socketParams}>
           <ProfileProvider>
             <Router>
               <AppRouter />

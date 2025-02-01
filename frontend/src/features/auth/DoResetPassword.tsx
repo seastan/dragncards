@@ -37,7 +37,7 @@ export const DoResetPassword: React.FC<Props> = ({ match }) => {
       if (res.status === 200) {
         setIsSuccess(true);
       }
-    } catch (e) {
+    } catch (e: any) {
       setIsLoading(false);
       setIsError(true);
 

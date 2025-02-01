@@ -11,7 +11,9 @@ defmodule DragnCardsWeb.ReplayController do
 
   def index(conn, params) do
     user_id = params["user_id"]
-    query = from(r in Replay, order_by: [desc: :updated_at], where: r.user == ^user_id)
+    # Faster to gather all columns except game_json
+    query = from Replay, order_by: [desc: :updated_at], where: [user_id: ^user_id], select: [:deleted_by, :uuid, :updated_at, :inserted_at, :user_id, :metadata, :plugin_id]
+    #query = from(r in Replay, order_by: [desc: :updated_at], where: r.user == ^user_id)
     replays = Repo.all(query)
     #replays = Repo.all(Replay, user: params["user_id"])
     render(conn, "index.json", replays: replays)
@@ -19,17 +21,38 @@ defmodule DragnCardsWeb.ReplayController do
 
 
   # Update: Update profile settings.
-  @spec delete(Conn.t(), String.t()) :: Conn.t()
-  def delete(conn, %{"uuid" => uuid}) do
-    query = from(r in Replay, where: r.uuid == ^uuid)
-    case Repo.delete_all(query) do
-      {1, nil}       -> # Updated with success
-        conn
-        |> json(%{success: %{message: "Deleted replay."}})
-      _ -> # Something went wrong
-        conn
-        |> json(%{success: %{message: "Failed to delete replay."}})
+  @spec delete(Conn.t(), Map.t()) :: Conn.t()
+  def delete(conn, params) do
+    user_id = params["user"]["id"]
+    replay = params["replay"]
+    new_deleted_by = if replay["deleted_by"] do
+      replay["deleted_by"] ++ [user_id]
+    else
+      [user_id]
     end
+    updates = %{
+      deleted_by: new_deleted_by
+    }
+    # Get reply from database where uuid matches
+    r = Repo.get_by!(Replay, uuid: replay["uuid"])
+    c = Ecto.Changeset.change(r, updates)
+    case Repo.update(c) do
+      {:ok, _struct}       -> # Updated with success
+        conn
+        |> json(%{success: %{message: "Deleted replay"}})
+      {:error, _changeset} -> # Something went wrong
+        conn
+        |> json(%{success: %{message: "Failed to delete replay"}})
+    end
+    # query = from(r in Replay, where: r.uuid == ^uuid)
+    # case Repo.delete_all(query) do
+    #   {1, nil}       -> # Updated with success
+    #     conn
+    #     |> json(%{success: %{message: "Deleted replay."}})
+    #   _ -> # Something went wrong
+    #     conn
+    #     |> json(%{success: %{message: "Failed to delete replay."}})
+    # end
     # user_id = user["id"]
     # updates = %{
     #   background_url: user["background_url"],

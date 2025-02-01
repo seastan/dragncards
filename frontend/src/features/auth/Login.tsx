@@ -51,7 +51,7 @@ export const Login: React.FC<Props> = () => {
       } else {
         throw new Error("Invalid response from Login API");
       }
-    } catch (e) {
+    } catch (e: any) {
       setIsLoading(false);
       setIsError(true);
       const res = e.response;

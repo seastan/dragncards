@@ -8,6 +8,8 @@ declare module "elixir-backend" {
     public privacy_type: string;
     public last_update: null | number;
     public quest: string;
+    public encounter_name: null | string;
+    public num_players: null | number;
   }
 
 
@@ -73,7 +75,7 @@ declare module "elixir-backend" {
     game: Game;
     game_name: string;
     options: any;
-    playerIds: { [id: string] : number; };
+    playerInfo: { [id: string] : number; [alias: string] : string; };
     playersInRoom: { [id: string] : number; };
   }
 
@@ -105,8 +107,9 @@ declare module "elixir-backend" {
     public background_url: null | string;
     public player_back_url: null | string;
     public encounter_back_url: null | string;
-    public playtester: null | integer;
+    public admin: null | integer;
     public language: null | string;
+    public hidden_tooltips: null | Array<string>;
   }
 
   // User: Public information about other users.

@@ -8,6 +8,8 @@ const apiGet = async (url: string, authCtx: AuthContextType) => {
       Authorization: authToken,
     },
   };
+  console.log("getUser 1b",authOptions)
+
   const result = await axios(url, authOptions);
   return result;
 };

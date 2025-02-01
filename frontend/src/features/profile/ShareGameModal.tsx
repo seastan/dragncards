@@ -17,15 +17,16 @@ const options = [
 interface Props {
   isOpen: boolean;
   closeModal: () => void;
-  shareReplayId: string;
+  shareReplayUrl: string;
 }
 
 ReactModal.setAppElement("#root");
 
-export const ShareGameModal: React.FC<Props> = ({ isOpen, closeModal, shareReplayId}) => {
-  const [checked, setChecked] = useState(false);
+export const ShareGameModal: React.FC<Props> = ({ isOpen, closeModal, shareReplayUrl}) => {
+  //const [checked, setChecked] = useState(false);
+  const [copyText, setCopyText] = useState("Copy");
 
-  const url = "https://www.dragncards.com/newroom/replay/" + shareReplayId + (checked ? "/shuffle" : "");
+  const url = "https://www.dragncards.com" + shareReplayUrl;
   
   return (
     <ReactModal
@@ -39,7 +40,7 @@ export const ShareGameModal: React.FC<Props> = ({ isOpen, closeModal, shareRepla
         overlay: {
         },
         content: {
-          width: '300px',
+          width: '600px',
         }
       }}
     >
@@ -49,8 +50,8 @@ export const ShareGameModal: React.FC<Props> = ({ isOpen, closeModal, shareRepla
         className="form-control w-full bg-gray-900 text-white"
         value={url}
       />
-      <input onClick={() => setChecked(!checked)} checked={checked} type="checkbox" name="shuffle" id="shuffle"/><label className="text-white ml-2" htmlFor="shuffle">Shuffle decks after loading</label>
-      <Button onClick={() => {navigator.clipboard.writeText(url)}} isPrimary className="mx-2 mt-2">Copy</Button>
+      {/*   <input onClick={() => setChecked(!checked)} checked={checked} type="checkbox" name="shuffle" id="shuffle"/><label className="text-white ml-2" htmlFor="shuffle">Shuffle decks after loading</label> */}
+      <Button onClick={() => {navigator.clipboard.writeText(url); setCopyText("Copied!")}} isPrimary className="mt-2">{copyText}</Button>
 
     </ReactModal>
   );

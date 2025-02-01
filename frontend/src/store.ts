@@ -6,9 +6,10 @@ import rootReducer, { RootState } from "./rootReducer";
 const store = configureStore({
   reducer: rootReducer,
   middleware: (getDefaultMiddleware) =>
-  getDefaultMiddleware({
-    immutableCheck: false
-  }),
+    getDefaultMiddleware({
+      immutableCheck: false,
+      serializableCheck: false
+    }),
 });
 
 if (process.env.NODE_ENV === "development" && module.hot) {

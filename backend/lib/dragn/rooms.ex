@@ -6,7 +6,7 @@ defmodule DragnCards.Rooms do
   import Ecto.Query, warn: false
   alias DragnCards.Repo
 
-  alias DragnCards.Rooms.Room
+  alias DragnCards.Rooms.{Room, RoomLog}
   alias DragnCardsWeb.Endpoint
 
   @doc """
@@ -55,11 +55,32 @@ defmodule DragnCards.Rooms do
 
   """
   def create_room(attrs \\ %{}) do
+    IO.puts("Creating room")
+    IO.inspect(attrs)
+    room_log_changeset = %{
+      creator_id: attrs[:created_by],
+      plugin_id: attrs[:plugin_id]
+    }
+    IO.puts("Room log changeset")
+    IO.inspect(room_log_changeset)
+
+    new_room_log = %RoomLog{}
+    |> RoomLog.changeset(room_log_changeset)
+
+    try do
+      Repo.insert!(new_room_log)
+    rescue
+      e ->
+        IO.puts("Error creating room log")
+        IO.inspect(e)
+    end
+
     %Room{}
     |> Room.changeset(attrs)
     |> Repo.insert()
     |> notify_lobby()
   end
+
 
   @doc """
   Updates a room.
@@ -78,6 +99,12 @@ defmodule DragnCards.Rooms do
     |> Room.changeset(attrs)
     |> Repo.update()
     |> notify_lobby()
+  end
+
+  def update_room_name_by_slug(slug, name) do
+    Room
+    |> where([r], r.slug == ^slug)
+    |> Repo.update_all(set: [name: name])
   end
 
   @doc """

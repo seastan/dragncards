@@ -14,6 +14,7 @@ export const ProfileLink: React.FC<Props> = ({ className }) => {
   if (user == null) {
     return null;
   }
+  console.log("userTrace ProfileLink", user)
   const { alias } = user;
   return (
     <Link to="/profile" className={cx(className)}>

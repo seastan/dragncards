@@ -4,7 +4,7 @@ defmodule DragnCardsGame.GameUIView do
   Considers which user id we're sending info to
   and shows certain things if appropriate.
   """
-  alias DragnCardsGame.{GameUI, GameUIView, Deck}
+  alias DragnCardsGame.{GameUI, GameUIView}
 
   @derive Jason.Encoder
   defstruct [

@@ -39,13 +39,16 @@ export const fetchUser = (
   userId: number,
   authCtx: AuthContextType
 ): AppThunk => async (dispatch, getState) => {
+
   try {
     const { users } = getState();
     if (isUserExist(users, userId)) {
       // Already have info for this user, not fetching
       return;
     }
+    console.log("userTrace fetchUser 1", userId)
     const user = await getUser(userId, authCtx);
+    console.log("userTrace fetchUser 2", user)
     dispatch(setUser({ userId, user }));
   } catch (err) {
     console.log("Error loading user: ", err);

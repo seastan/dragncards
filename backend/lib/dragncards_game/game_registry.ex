@@ -3,7 +3,7 @@ defmodule DragnCardsGame.GameRegistry do
   Keeps track of games.
   """
   require Logger
-  alias DragnCardsGame.{GameUI, GameUIServer}
+  alias DragnCardsGame.{GameUIServer}
   alias DragnCards.Rooms
   alias DragnCards.Rooms.Room
 
@@ -51,10 +51,13 @@ defmodule DragnCardsGame.GameRegistry do
   # inserting or updating a Room.
   defp to_room_param(%{} = gameui) do
     %{
-      name: gameui["gameName"],
-      created_by: gameui["created_by"],
+      slug: gameui["roomSlug"],
+      name: gameui["roomSlug"],
+      created_by: gameui["createdBy"],
       privacy_type: gameui["privacyType"],
-      last_update: gameui["lastUpdate"],
+      last_update: System.system_time(:second),
+      num_players: gameui["game"]["numPlayers"],
+      plugin_id: gameui["options"]["pluginId"]
     }
   end
 

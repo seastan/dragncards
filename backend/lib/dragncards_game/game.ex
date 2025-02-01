@@ -1,202 +1,179 @@
-defmodule DragnCardsGame.Game do
+  defmodule DragnCardsGame.Game do
   @moduledoc """
   Represents a game of dragncards.
   In early stages of the app, it only represents a
   some toy game used to test everything around it.
   """
+  require Logger
   import Ecto.Query
-  alias DragnCardsGame.{Groups, Game, PlayerData}
-  alias DragnCards.{Repo, Replay}
+  alias ElixirSense.Log
+  alias DragnCardsGame.{Groups, Game, PlayerData, GameVariables, Evaluate, AutomationRules, TempTokens}
+  alias DragnCards.{Repo, Replay, Users, Plugins}
 
   @type t :: Map.t()
 
   @doc """
-  load/1:  Create a game with specified options.
+  Creates a game with specified options.
   """
-  @spec load(Map.t()) :: Game.t()
-  def load(%{} = options) do
-    game = if options["replayId"] != "" do
-      gameid = options["replayId"]
-      query = Ecto.Query.from(e in Replay,
-        where: e.uuid == ^gameid,
-        order_by: [desc: e.inserted_at],
-        limit: 1)
-      replay = Repo.one(query)
-      if replay.game_json do replay.game_json else Game.new() end
-    else
-      Game.new(options)
-    end
-    # Refresh id so that replay does not get overwritten
-    put_in(game["id"], Ecto.UUID.generate)
+  @spec load(String.t(), integer(), map(), map()) :: map()
+  def load(room_slug, user_id, game_def, options) do
+    Logger.debug("Loading Game")
+
+    #game_data =
+      case options["replayUuid"] do
+        nil -> new_game(room_slug, user_id, game_def, options)
+        replay_uuid -> load_replay_game(replay_uuid, room_slug, user_id, game_def, options)
+      end
+
+    # Refresh id if we don't want replay to be overwritten
+    # put_in(game_data.game["id"], Ecto.UUID.generate())
   end
 
-  @doc """
-  new/1:  Create a game with specified options.
-  """
-  @spec new(Map.t()) :: Game.t()
-  def new(%{} = options) do
+  defp new_game(room_slug, user_id, game_def, options) do
     %{
-      "id" => Ecto.UUID.generate,
-      "version" => 0.1,
-      "numPlayers" => 1,
-      #"questModeAndId" => nil,
-      "layout" => "standard",
-      "firstPlayer" => "player1",
-      "roundNumber" => 0,
-      "phase" => "Beginning",
-      "roundStep" => "0.0",
-      "groupById" => Groups.new(),
-      "stackById" => %{},
-      "cardById"  => %{},
-      "triggerMap" => %{},
-      "playerData" => %{
-        "player1" => PlayerData.new(),
-        "player2" => PlayerData.new(),
-        "player3" => PlayerData.new(),
-        "player4" => PlayerData.new(),
-      },
-      "deltas" => [],
-      "replayStep" => 0,
-      "replayLength" => 0, # Length of deltas. We need this because the delta array is not broadcast.
-      "victoryState" => nil,
-      "questMode" => "Normal",
-      "options" => options,
+      game: Game.new(room_slug, user_id, game_def, options),
+      deltas: []
     }
   end
 
-  def add_delta(game, prev_game) do
-    d = get_delta(prev_game, game)
-    if d do
-      # add timestamp to delta
-      timestamp = System.system_time(:millisecond)
-      d = put_in(d["unix_ms"], "#{timestamp}")
-      ds = game["deltas"]
-      ds = Enum.slice(ds, Enum.count(ds)-game["replayStep"]..-1)
-      ds = [d | ds]
-      game = put_in(game["deltas"], ds)
-      put_in(game["replayStep"], game["replayStep"]+1)
+  defp load_replay_game(replay_uuid, room_slug, user_id, game_def, options) do
+
+    query =
+      from(e in Replay,
+        where: e.uuid == ^replay_uuid,
+        order_by: [desc: e.inserted_at],
+        limit: 1
+      )
+
+    replay = Repo.one(query)
+
+    if replay.game_json do
+      %{
+        game: replay.game_json,
+        deltas: replay.deltas
+      }
     else
-      game
+      new_game(room_slug, user_id, game_def, options)
     end
+
+    # TODO: Set room name
   end
 
-  def step(game, direction) do
-    case direction do
-      "undo" ->
-        undo(game)
-      "redo" ->
-        redo(game)
+  def automation_action_lists(game_def) do
+    # Delete the gameRules and cards keys from game_def["automation"]
+    game_def["automation"]
+    |> Map.delete("gameRules")
+    |> Map.delete("cards")
+  end
+
+  @doc """
+  new/2:  Create a game with specified options.
+  """
+  @spec new(String.t(), integer(), Map.t(), Map.t()) :: Game.t()
+  def new(room_slug, user_id, game_def, options) do
+    IO.puts("Making new Game")
+    player_count_menu = game_def["playerCountMenu"]
+    default_player_count_info = Enum.at(player_count_menu, 0)
+    max_num_players =
+      player_count_menu
+      |> Enum.max_by(& &1["numPlayers"])
+      |> Map.get("numPlayers")
+
+    IO.inspect(default_player_count_info)
+    layout_id = default_player_count_info["layoutId"]
+    #IO.inspect(layout)
+    groups = Groups.new(game_def)
+    step_id =
+      game_def
+      |> Map.get("stepOrder", [])
+      |> Enum.at(0, nil)
+    plugin_id = options["pluginId"]
+    plugin_version = Plugins.get_plugin_version(plugin_id)
+    plugin_name = Plugins.get_plugin_name(plugin_id)
+    base = try do
+    %{
+      "id" => Ecto.UUID.generate,
+      "roomSlug" => room_slug,
+      "pluginId" => plugin_id,
+      "pluginVersion" => plugin_version,
+      "pluginName" => plugin_name,
+      "numPlayers" => default_player_count_info["numPlayers"] || 1,
+      "roundNumber" => 0,
+      "layoutId" => layout_id,
+      "layout" => game_def["layouts"][layout_id],
+      "firstPlayer" => "player1",
+      "stepId" => step_id,
+      "groupById" => groups,
+      "stackById" => %{},
+      "cardById"  => %{},
+      "tempTokens" => TempTokens.new(),
+      "automationActionLists" => automation_action_lists(game_def),
+      "automationEnabled" => true,
+      "currentScopeIndex" => 0,
+      "imageUrlPrefix" => game_def["imageUrlPrefix"],
+      "options" => options,
+      "loadedADeck" => false,
+      "loadedCardIds" => [],
+      "variables" => GameVariables.default(),
+      "functions" => game_def["functions"] || %{},
+      "ruleById" => %{},
+      "ruleMap" => %{},
+      "messageByTimestamp" => %{},
+      "messages" => [] # These messages will be delivered to the GameUi parent, which will then relay them to chat
+    }
+    rescue
+      e in KeyError ->
+        IO.puts("Error: #{inspect(e)}")
       _ ->
-        game
+        IO.puts("Error detected")
     end
-  end
+    IO.puts("Made new Game")
+    IO.inspect(max_num_players)
 
-  def undo(game) do
-    replay_step = game["replayStep"]
-    if replay_step > 0 do
-      ds = game["deltas"]
-      d = Enum.at(ds,Enum.count(ds)-replay_step)
-      game = apply_delta(game, d, "undo")
-      game = put_in(game["replayStep"], replay_step-1)
+    # Add player data
+    player_data = %{}
+    player_data = Enum.reduce(1..max_num_players, player_data, fn(i, acc) ->
+      player_i = "player#{i}"
+      put_in(acc[player_i], PlayerData.new(game_def, player_i))
+    end)
+    IO.puts("Made player data")
+    base = put_in(base["playerData"], player_data)
+
+    # Add custom properties
+    game = Enum.reduce(Map.get(game_def, "gameProperties", %{}), base, fn({key,val}, acc) ->
+      put_in(acc[key], val["default"])
+    end)
+    Logger.debug("Made custom properties")
+
+    # Add rules
+    game = if is_map(game_def["automation"]["gameRules"]) do
+      AutomationRules.implement_game_rules(game, game_def["automation"]["gameRules"])
     else
       game
     end
-  end
 
-  def redo(game) do
-    replay_step = game["replayStep"]
-    ds = game["deltas"]
-    if replay_step < Enum.count(ds) do
-      d = Enum.at(ds,Enum.count(ds)-replay_step-1)
-      game = apply_delta(game, d, "redo")
-      game = put_in(game["replayStep"], replay_step+1)
+    # If the user has some default game settings, apply them
+    user = Users.get_user(user_id)
+    plugin_id = options["pluginId"]
+    user_game_settings = user.plugin_settings["#{plugin_id}"]["game"]
+    game = if user_game_settings != nil do
+      Enum.reduce(user_game_settings, game, fn({key, val}, acc) ->
+        put_in(acc, [key], val)
+      end)
     else
       game
     end
+
+    Logger.debug("Set game settings")
+    game
   end
 
-  def get_delta(game_old, game_new) do
-    game_old = Map.delete(game_old, "deltas")
-    game_old = Map.delete(game_old, "replayStep")
-    game_new = Map.delete(game_new, "deltas")
-    game_new = Map.delete(game_new, "replayStep")
-    diff_map = MapDiff.diff(game_old, game_new)
-    delta("game", diff_map)
-  end
-
-  def delta(key, diff_map) do
-    case diff_map[:changed] do
-      :equal ->
-        nil
-      :added ->
-        [":removed", diff_map[:value]]
-      # TODO: Check that removal behaves properly
-      :removed ->
-        [diff_map[:value], ":removed"]
-      :primitive_change ->
-        [diff_map[:removed],diff_map[:added]]
-      :map_change ->
-        diff_value = diff_map[:value]
-        Enum.reduce(diff_value, %{}, fn({k,v},acc) ->
-          d2 = delta(k, v)
-          if v[:changed] != :equal do
-            acc |> Map.put(k, d2)
-          else
-            acc
-          end
-        end)
-        _ ->
-          nil
+  def is_healthy(game) do
+    if get_in(game,["cardById"]) == nil do
+      IO.puts("Game is NOT healthy")
+    else
+      IO.puts("Game is healthy")
     end
-  end
-
-  def apply_delta(map, delta, direction) do
-    # Ignore timestamp
-    delta = Map.delete(delta, "unix_ms")
-    # Loop over keys in delta and apply the changes to the map
-    Enum.reduce(delta, map, fn({k, v}, acc) ->
-      if is_map(v) do
-        put_in(acc[k], apply_delta(map[k], v, direction))
-      else
-        new_val = if direction == "undo" do
-          Enum.at(v,0)
-        else
-          Enum.at(v,1)
-        end
-        if new_val == ":removed" do
-          Map.delete(acc, k)
-        else
-          put_in(acc[k], new_val)
-        end
-      end
-    end)
-  end
-
-  def apply_delta_list(game, delta_list, direction) do
-    Enum.reduce(delta_list, game, fn(delta, acc) ->
-      apply_delta(acc, delta, direction)
-    end)
-  end
-
-  def apply_deltas_until_round_change(game, direction) do
-    deltas = game["deltas"]
-    round_init = game["roundNumber"]
-    Enum.reduce_while(deltas, game, fn(delta, acc) ->
-      replay_step = acc["replayStep"]
-      # Check if we run into the beginning/end
-      cond do
-        direction == "undo" and replay_step == 0 ->
-          {:halt, acc}
-        direction == "redo" and replay_step == Enum.count(deltas) ->
-          {:halt, acc}
-      # Check if round has changed
-        acc["roundNumber"] != round_init ->
-          {:halt, acc}
-      # Otherwise continue
-        true ->
-          {:cont, step(acc, direction)}
-      end
-    end)
   end
 
 end

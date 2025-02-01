@@ -6,7 +6,6 @@ defmodule DragnCards.Alerts.Alert do
   use Ecto.Schema
   @timestamps_opts [type: :utc_datetime]
   use Pow.Ecto.Schema
-  alias DragnCards.Alerts.Alert
 
   schema "alerts" do
     field(:message, :string)

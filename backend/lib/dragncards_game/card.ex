@@ -2,6 +2,7 @@ defmodule DragnCardsGame.Card do
   @moduledoc """
   Represents a playing card.
   """
+  require Logger
   alias DragnCardsGame.{CardFace,Tokens}
 
   @type t :: Map.t()
@@ -15,50 +16,46 @@ defmodule DragnCardsGame.Card do
     end
   end
 
-  @spec card_from_cardrow(Map.t(), String.t()) :: Map.t()
-  def card_from_cardrow(card_row, controller) do
-    %{
-      "id" => String.slice(Ecto.UUID.generate,24..-1),
+  @spec card_from_card_details(Map.t(), Map.t(), String.t(), String.t()) :: Map.t()
+  def card_from_card_details(card_details, game_def, card_db_id, group_id) do
+    Logger.debug("card_from_card_details 1")
+    group = game_def["groups"][group_id]
+    controller = group["controller"]
+    base = %{
+      "id" => Ecto.UUID.generate,
+      "databaseId" => card_db_id,
+      "currentSide" => group["defaultSideUp"] || "A",
       "rotation" => 0,
-      "exhausted" => false,
-      "committed" => false,
-      "currentSide" => "A",
       "owner" => controller,
-      "controller" => controller,
-      "peeking" => %{
-        "player1" => false,
-        "player2" => false,
-        "player3" => false,
-        "player4" => false,
-      },
-      "targeting" => %{
-        "player1" => false,
-        "player2" => false,
-        "player3" => false,
-        "player4" => false,
-      },
-      "tokens" => Tokens.new(),
-      "tokensPerRound" => %{},
-      "roundEnteredPlay" => nil,
-      "phaseEnteerdPlay" => nil,
-      "locked" => false,
-
-      "cardBackOverride" => card_row["cardbackoverride"],
-      "cardEncounterSet" => card_row["cardencounterset"],
-      "cardDbId" => card_row["cardid"],
-      "cardNumber" => convert_to_integer(card_row["cardnumber"]),
-      "cardQuantity" => convert_to_integer(card_row["cardquantity"]),
-      "cardSetId" => card_row["cardsetid"],
-      "cardPackName" => card_row["cardpackname"],
-
-      "deckGroupId" => card_row["deckgroupid"],
-      "discardGroupId" => card_row["discardgroupid"],
-
-      "sides"=> %{
-        "A"=>CardFace.cardface_from_cardrowside(card_row["sides"]["A"]),
-        "B"=>CardFace.cardface_from_cardrowside(card_row["sides"]["B"]),
-      }
+      "peeking" => %{},
+      "targeting" => %{},
+      "arrows" => %{},
+      "tokens" => Tokens.new(game_def),
+      "ruleIds" => [],
     }
-  end
+    Logger.debug("card_from_card_details 2")
+    # loop over the sides in card_details
+    # and add them to the card
+    sides = Enum.reduce(["A", "B", "C", "D", "E", "F", "G", "H"], %{}, fn(side, acc) ->
+      Logger.debug("Adding side #{side} to card")
+      case Map.has_key?(card_details, side) do
+        true ->
+          val = card_details[side]
+          put_in(acc[side], CardFace.card_face_from_card_face_details(val, game_def, side, card_db_id))
+        false ->
+          acc
+      end
+    end)
+    Logger.debug("card_from_card_details 3")
 
+    # Add the sides to the card
+    card = put_in(base["sides"], sides)
+
+    # loop over the cardProperties in game_def
+    card = Enum.reduce(game_def["cardProperties"], card, fn({key,val}, acc) ->
+      put_in(acc[key], val["default"])
+    end)
+
+    card
+  end
 end

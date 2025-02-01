@@ -21,15 +21,15 @@ defmodule DragnCardsWeb.ChatChannel do
   def handle_in(
         "message",
         %{"message" => message_text},
-        %{assigns: %{room_slug: room_slug, user_id: user_id}} = socket
+        %{assigns: %{room_slug: _room_slug, user_id: user_id}} = socket
       ) do
     message = ChatMessage.new(message_text, user_id)
 
-    messages = ChatServer.add_message(room_slug, message)
+    #messages = ChatServer.add_message(room_slug, message)
 
     socket =
       socket
-      |> assign(:messages, messages)
+      |> assign(:new_message, message)
 
     notify(socket)
     # use noreply - Notify will send them a reply
@@ -43,7 +43,7 @@ defmodule DragnCardsWeb.ChatChannel do
       %{assigns: %{room_slug: room_slug, user_id: user_id}} = socket
     ) do
 
-    message = ChatMessage.new(message_text, user_id, 1)
+    message = ChatMessage.new(message_text, -1)
 
     messages = ChatServer.add_message(room_slug, message)
 

@@ -80,7 +80,7 @@ defmodule DragnCardsChat.ChatServer do
 
   def terminate({:shutdown, :timeout}, chat) do
     Logger.info("ChatServer: Terminate (Timeout) running for #{chat.chat_name}")
-    :ets.delete(:chats, chat.chat_name)
+    #:ets.delete(:chats, chat.chat_name)
     :ok
   end
 

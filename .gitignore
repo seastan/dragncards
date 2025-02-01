@@ -6,4 +6,9 @@ cards
 backend/config/releases.exs
 *~
 backend/config/prod.secret.exs
+<<<<<<< HEAD
 vagrant/.vagrant
+=======
+backend/MnesiaCore*
+frontend/src/cardDB/ALeP*
+>>>>>>> development

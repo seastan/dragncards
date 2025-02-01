@@ -174,27 +174,31 @@ padding: 0;
 {
     position: absolute;
     top: 0;
-    right: -250px;
-    width: 250px;
+    right: -30vw;
+    width: 30vw;
     list-style: none;
     padding: 0;
     margin: 0;
     display: none;
+    overflow-y: scroll;
+    max-height: 50dvh;
 }
 
 .third-level-menu > li
 {
-    height: 30px;
+    height: 4dvh;
     background: rgb(75, 85, 99);
+    padding-left: 10px;
+    padding-top: 5px;
 }
-.third-level-menu > li:hover { background: rgb(107, 114, 128); }
+.third-level-menu > li:hover { background-color: #9b2c2c; }
 
 .second-level-menu
 {
     position: absolute;
     top: 100%;
     left: 0;
-    width: 100%;
+    width: 20vw;
     list-style: none;
     padding: 0;
     margin: 0;
@@ -204,11 +208,13 @@ padding: 0;
 .second-level-menu > li
 {
     position: relative;
-    height: 30px;
+    height: 4dvh;
     background: rgb(75, 85, 99);
     z-index: 10000;
+    padding-left: 10px;
+    padding-top: 5px;
 }
-.second-level-menu > li:hover { background: rgb(107, 114, 128); }
+.second-level-menu > li:hover { background-color: #9b2c2c; }
 
 .top-level-menu
 {
@@ -225,10 +231,10 @@ padding: 0;
     position: relative;
     float: left;
     height: 100%;
-    width: 50%;
+    width: 33.3%;
     background: rgb(75, 85, 99);
 }
-.top-level-menu > li:hover { background: rgb(107, 114, 128); }
+.top-level-menu > li:hover { background-color: #9b2c2c; }
 
 .top-level-menu li:hover > ul
 {
@@ -243,8 +249,6 @@ padding: 0;
 {
     color: white;
     text-decoration: none;
-    padding: 0 0 0 10px;
-
     /* Make the link cover the entire list item-container */
     display: block;
     line-height: 30px;

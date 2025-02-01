@@ -14,23 +14,26 @@ defmodule DragnCards.Users.User do
   schema "users" do
     pow_user_fields()
     field(:alias, :string)
+    field(:admin, :boolean, default: false)
     field(:supporter_level, :integer)
-    field(:background_url, :string)
-    field(:player_back_url, :string)
-    field(:encounter_back_url, :string)
-    field(:playtester, :integer)
-    field(:language, :string)
-
+    field(:language, :string, default: "English")
+    field(:plugin_settings, :map, default: %{})
     timestamps()
   end
 
   def changeset(user_or_changeset, attrs) do
-    user_or_changeset
-    |> pow_changeset(attrs)
-    |> pow_extension_changeset(attrs)
-    |> Ecto.Changeset.cast(attrs, [:alias])
-    |> Ecto.Changeset.validate_required([:alias])
-    |> Ecto.Changeset.unique_constraint(:alias)
+    if attrs == %{} do
+      user_or_changeset
+      |> pow_user_id_field_changeset(attrs)
+      |> pow_password_changeset(attrs)
+    else
+      user_or_changeset
+      |> pow_changeset(attrs)
+      |> pow_extension_changeset(attrs)
+      |> Ecto.Changeset.cast(attrs, [:alias])
+      |> Ecto.Changeset.validate_required([:alias])
+      |> Ecto.Changeset.unique_constraint(:alias)
+    end
   end
 
   @doc """
@@ -44,15 +47,13 @@ defmodule DragnCards.Users.User do
     %{
       id: user.id,
       alias: user.alias,
+      admin: user.admin,
       email: user.email,
       inserted_at: user.inserted_at,
       email_confirmed_at: user.email_confirmed_at,
       supporter_level: user.supporter_level,
-      background_url: user.background_url,
-      player_back_url: user.player_back_url,
-      encounter_back_url: user.encounter_back_url,
-      playtester: user.playtester,
       language: user.language,
+      plugin_settings: user.plugin_settings
     }
   end
 
@@ -68,4 +69,11 @@ defmodule DragnCards.Users.User do
       alias: user.alias
     }
   end
+
+  def settings_update(user, nested_map) do
+    plugin_settings_old = user.plugin_settings || %{}
+    plugin_settings_new = Map.merge(plugin_settings_old, nested_map)
+    %{plugin_settings: plugin_settings_new}
+  end
+
 end

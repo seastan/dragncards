@@ -29,7 +29,7 @@ defmodule DragnCardsWeb.PowMailer do
   end
 
   defp log_warnings({:error, reason}) do
-    Logger.warn("Mailer backend failed with: #{inspect(reason)}")
+    Logger.warning("Mailer backend failed with: #{inspect(reason)}")
   end
 
   defp log_warnings({:ok, response}), do: {:ok, response}

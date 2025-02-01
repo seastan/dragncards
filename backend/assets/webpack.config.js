@@ -5,6 +5,7 @@ const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
+
 module.exports = (env, options) => ({
   optimization: {
     minimizer: [
@@ -37,5 +38,11 @@ module.exports = (env, options) => ({
   plugins: [
     new MiniCssExtractPlugin({ filename: '../css/app.css' }),
     new CopyWebpackPlugin([{ from: 'static/', to: '../' }])
-  ]
+  ],
+  resolve: {
+    alias: {
+      react: path.resolve('./node_modules/react'),
+      'react-dom': path.resolve('./node_modules/react-dom')
+    },
+  }
 });

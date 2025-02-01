@@ -3,58 +3,59 @@ defmodule DragnCardsWeb.RoomChannel do
   This channel will handle individual game rooms.
   """
   use DragnCardsWeb, :channel
-  alias DragnCardsGame.{Card, GameUIServer, GameUI}
+  alias DragnCardsGame.{GameUIServer, GameUI}
+  alias DragnCardsChat.{ChatMessage}
+  alias DragnCards.Users
+  intercept ["send_update", "send_state"]
 
   require Logger
 
-  def join("room:" <> room_slug, _payload, %{assigns: %{user_id: user_id}} = socket) do
-    # if authorized?(payload) do
-    state = GameUIServer.state(room_slug)
+
+  def join("room:" <> room_slug, _payload, %{assigns: %{user_id: _user_id}} = socket) do
 
     socket =
       socket
       |> assign(:room_slug, room_slug)
-      |> assign(:game_ui, state)
 
-    # {:ok, socket}
-    send(self, :after_join)
-    {:ok, client_state(socket), socket}
-    # else
-    #   {:error, %{reason: "unauthorized"}}
-    # end
+
+    send(self(), :after_join)
+    {:ok, socket}
   end
 
-  def handle_info(:after_join, %{assigns: %{room_slug: room_slug, user_id: user_id}} = socket) do
-    # state = GameUIServer.state(room_slug)
-    if GameUIServer.game_exists?(room_slug) do
-      state = GameUIServer.state(room_slug)
-
-      GameUIServer.add_player_to_room(room_slug, user_id)
-      state = GameUIServer.state(room_slug)
-      socket = socket |> assign(:game_ui, state)
-
-      notify(socket, user_id)
+  def handle_info(:after_join, %{assigns: %{room_slug: room_slug, user_id: user_id}, transport_pid: pid} = socket) do
+    GameUIServer.add_player_to_room(room_slug, user_id, pid)
+    state = GameUIServer.state(room_slug)
+    client_state = client_state(socket)
+    if state["sockets"] != nil do
+      broadcast!(socket, "users_changed", state["sockets"])
     end
+    if client_state != nil do
+      push(socket, "current_state", client_state(socket))
+    end
+
     {:noreply, socket}
   end
 
-  # Channels can be used in a request/response fashion
-  # by sending replies to requests from the client
-  def handle_in("ping", payload, socket) do
-    {:reply, {:ok, payload}, socket}
+  def handle_info({:plugin_repo_update, files}, socket) do
+
+    push(socket, "plugin_repo_update", %{"files" => files})
+    {:noreply, socket}
   end
 
-  # It is also common to receive messages from the client and
-  # broadcast to everyone in the current topic (room:lobby).
-  def handle_in("shout", payload, socket) do
-    broadcast(socket, "shout", payload)
+  def handle_info({:send_alert, payload}, socket) do
+    broadcast!(socket, "send_alert", payload)
+    {:noreply, socket}
+  end
+
+  def handle_info(msg, socket) do
+    Logger.warn("Unexpected message received in handle_info: #{inspect(msg)}")
     {:noreply, socket}
   end
 
   def handle_in("request_state", _payload, %{assigns: %{room_slug: room_slug}} = socket) do
-    state = GameUIServer.state(room_slug)
-    socket = socket |> assign(:game_ui, state)
-    {:reply, {:ok, client_state(socket)}, socket}
+    client_state = client_state(socket)
+    push(socket, "current_state", client_state)
+    {:reply, {:ok, "request_state"}, socket}
   end
 
   def handle_in(
@@ -62,55 +63,200 @@ defmodule DragnCardsWeb.RoomChannel do
     %{
       "action" => action,
       "options" => options,
+      "timestamp" => _timestamp,
     },
     %{assigns: %{room_slug: room_slug, user_id: user_id}} = socket
   ) do
+
+    old_state = GameUIServer.state(room_slug)
+    old_replay_step = old_state["replayStep"]
     GameUIServer.game_action(room_slug, user_id, action, options)
+
+    new_state = GameUIServer.state(room_slug)
+
+    # If round changed, save replay
+    if get_in(new_state, ["game", "roundNumber"]) != get_in(old_state, ["game", "roundNumber"]) do
+      IO.puts("Round changed, saving replay, user_id: #{user_id}")
+      save_replay(socket, room_slug, user_id, options)
+      # {alert_text, alert_level} = case GameUI.save_replay(new_state, user_id, options) do
+      #   {:ok, message} -> {message, "success"}
+      #   {:error, message} -> {message, "error"}
+      #   _ -> {"Failed to save game.", "error"}
+      # end
+
+      # notify_alert(socket, room_slug, user_id, %{
+      #   "level" => alert_level,
+      #   "text" => alert_text
+      # })
+    end
+
+    notify_update(socket, room_slug, user_id, old_state)
+
+    {:reply, {:ok, "game_action"}, socket}
+  end
+
+  def handle_in(
+    "save_replay",
+    %{
+      "options" => options,
+      "timestamp" => _timestamp,
+    },
+    %{assigns: %{room_slug: room_slug, user_id: user_id}} = socket
+  ) do
+    IO.puts("Save replay, user_id: #{user_id}")
+    save_replay(socket, room_slug, user_id, options)
+    {:reply, {:ok, "save_replay"}, socket}
+  end
+
+  def handle_in(
+    "step_through",
+    %{
+      "options" => options,
+    },
+    %{assigns: %{room_slug: room_slug, user_id: user_id}} = socket
+  ) do
+    old_state = GameUIServer.state(room_slug)
+    old_replay_step = old_state["replayStep"]
+    old_game = old_state["game"]
+    GameUIServer.step_through(room_slug, options)
+    new_state = GameUIServer.state(room_slug)
+    new_replay_step = new_state["replayStep"]
+    new_game = new_state["game"]
+    delta = GameUI.get_delta(old_game, new_game)
+
+    payload = %{
+      "oldReplayStep" => old_state["replayStep"],
+      "newReplayStep" => new_state["replayStep"],
+      "delta" => delta
+    }
+    broadcast!(socket, "go_to_replay_step", payload)
+
+    {:reply, {:ok, "game_action"}, socket}
+  end
+
+  def handle_in(
+    "set_seat",
+    %{
+      "player_i" => player_i,
+      "new_user_id" => new_user_id,
+      "timestamp" => _timestamp,
+    },
+    %{assigns: %{room_slug: room_slug, user_id: user_id}} = socket
+  ) do
+
+    old_state = GameUIServer.state(room_slug)
+    old_replay_step = old_state["replayStep"]
+    old_game = old_state["game"]
+    GameUIServer.set_seat(room_slug, user_id, player_i, new_user_id)
+    new_state = GameUIServer.state(room_slug)
+
+    if new_state["playerInfo"] != nil do
+      broadcast!(socket, "seats_changed", new_state["playerInfo"])
+    end
+
+    notify_update(socket, room_slug, user_id, old_state)
+
+    {:reply, :ok, socket}
+  end
+
+  def handle_in(
+    "set_spectator",
+    %{
+      "user_id" => spectator_user_id,
+      "value" => value,
+    },
+    %{assigns: %{room_slug: room_slug, user_id: user_id}} = socket
+  ) do
+
+    spectator_alias = Users.get_alias(spectator_user_id)
+    GameUIServer.set_spectator(room_slug, user_id, spectator_user_id, value)
     state = GameUIServer.state(room_slug)
 
-    socket = socket |> assign(:game_ui, state)
-    notify(socket, user_id)
+    broadcast!(socket, "spectators_changed", state["spectators"])
 
-    {:reply, {:ok, client_state(socket)}, socket}
+    message = if value do
+      "#{spectator_alias} is now an omniscient spectator and has the power to see facedown cards."
+    else
+      "#{spectator_alias} is no longer an omniscient spectator."
+    end
+
+    payload = %{
+      "level" => "info",
+      "text" => message
+    }
+    notify_alert(socket, room_slug, user_id, payload)
+
+    {:reply, :ok, socket}
+  end
+
+  def handle_in(
+    "send_alert",
+    %{
+      "message" => message,
+    },
+    %{assigns: %{room_slug: room_slug, user_id: user_id}} = socket
+  ) do
+
+    payload = %{
+      "level" => "info",
+      "text" => message
+    }
+    notify_alert(socket, room_slug, user_id, payload)
+
+    {:reply, :ok, socket}
+  end
+
+  def handle_in(
+    "reset_game",
+    %{
+      "options" => options,
+    },
+    %{assigns: %{room_slug: room_slug, user_id: user_id}} = socket
+  ) do
+    gameui = GameUIServer.state(room_slug)
+    if options["save"] == true or options["save"] == nil do
+      GameUI.save_replay(gameui, user_id, options)
+    end
+    GameUIServer.reset_game(room_slug, user_id)
+
+    notify_state(socket, room_slug, user_id)
+
+    {:reply, {:ok, "reset_game"}, socket}
+  end
+
+  def handle_in(
+    "set_replay",
+    %{
+      "replay" => replay,
+    },
+    %{assigns: %{room_slug: room_slug, user_id: user_id}} = socket
+  ) do
+
+    GameUIServer.set_replay(room_slug, user_id, replay)
+
+    notify_state(socket, room_slug, user_id)
+
+    {:reply, {:ok, "set_replay"}, socket}
   end
 
   def handle_in(
     "close_room",
-    %{},
+    %{
+      "options" => options,
+    },
     %{assigns: %{room_slug: room_slug, user_id: user_id}} = socket
   ) do
+    gameui = GameUIServer.state(room_slug)
+    GameUI.save_replay(gameui, user_id, options)
     GameUIServer.close_room(room_slug, user_id)
-    state = GameUIServer.state(room_slug)
 
-    socket = socket |> assign(:game_ui, state)
-    notify(socket, user_id)
+    notify_state(socket, room_slug, user_id)
 
-    {:reply, {:ok, client_state(socket)}, socket}
-  end
-
-  @doc """
-  notify_from_outside/1: Tell everyone in the channel to send a message
-  asking for a state update.
-  This used to broadcast game state to everyone, but game state can contain
-  private information.  So we tell everyone to ask for an update instead. Since
-  we're over a websocket, the extra cost shouldn't be that bad.
-  SERVER: "ask_for_update", %{}
-  CLIENT: "request_state", %{}
-  SERVER: "phx_reply", %{personalized state}
-
-  Note 1: After making this, I found a Phoenix Channel mechanism that lets
-  you intercept and change outgoing messages.  That might be better.
-  Note 2: "Outside" here means a caller from anywhere in the system can call
-  this, unlike "notify".
-  """
-  def notify_from_outside(room_slug) do
-    payload = %{user_id: 0}
-    DragnCardsWeb.Endpoint.broadcast!("room:" <> room_slug, "ask_for_update", payload)
+    {:reply, :ok, socket}
   end
 
   def terminate({:normal, _payload}, socket) do
-    # Closed normally. Do nothing.
-    {:ok}
+    on_terminate(socket)
   end
 
   def terminate({:shutdown, :left}, socket) do
@@ -125,43 +271,103 @@ defmodule DragnCardsWeb.RoomChannel do
     on_terminate(socket)
   end
 
-  defp on_terminate(%{assigns: %{room_slug: room_slug, user_id: user_id}} = socket) do
-    state = GameUIServer.leave(room_slug, user_id)
-    socket = socket |> assign(:game_ui, state)
-    notify(socket, user_id)
-  end
-
-  defp notify(socket, user_id) do
-    # # Fake a phx_reply event to everyone
-    payload = %{
-      response: %{user_id: user_id},
-      status: "ok"
-    }
-
-    # broadcast!(socket, "phx_reply", payload)
-    broadcast!(socket, "ask_for_update", payload)
-  end
-
-  # Remove deltas from a gameui, as it's not needed for rendering
-  def remove_deltas(gameui) do
-    if gameui do
-      put_in(gameui["game"]["deltas"], [])
-    else
-      gameui
+  defp on_terminate(%{assigns: %{room_slug: room_slug, user_id: user_id}, transport_pid: pid} = socket) do
+    GameUIServer.remove_player_from_room(room_slug, user_id, pid)
+    state = GameUIServer.state(room_slug)
+    if state["sockets"] != nil do
+      broadcast!(socket, "users_changed", state["sockets"])
     end
+  end
+
+  defp save_replay(socket, room_slug, user_id, options) do
+    new_state = GameUIServer.state(room_slug)
+    {alert_text, alert_level} = try do
+      case GameUI.save_replay(new_state, user_id, options) do
+        {:ok, message} -> {message, "success"}
+        {:error, message} -> {message, "error"}
+        _ -> {"Failed to save game.", "error"}
+      end
+    rescue
+      _ ->
+      {"Failed to save game.", "error"}
+    end
+
+    notify_alert(socket, room_slug, user_id, %{
+      "level" => alert_level,
+      "text" => alert_text
+    })
+  end
+
+  defp notify_update(socket, room_slug, user_id, old_gameui) do
+
+    GameUIServer.process_update(room_slug, user_id, old_gameui)
+    new_gameui = GameUIServer.state(room_slug)
+    delta = Enum.at(new_gameui["deltas"], -1)
+
+    payload = %{
+      "oldReplayStep" => old_gameui["replayStep"],
+      "newReplayStep" => new_gameui["replayStep"],
+      "delta" => delta
+    }
+    broadcast!(socket, "send_update", payload)
+
+    {:noreply, socket}
+  end
+
+  defp notify_state(socket, room_slug, user_id) do
+
+    triggered_by = user_id
+    broadcast!(socket, "send_state", triggered_by)
+
+    {:noreply, socket}
+  end
+
+  defp notify_alert(socket, room_slug, user_id, payload) do
+
+    broadcast!(socket, "send_alert", payload)
+
+    {:noreply, socket}
+  end
+
+  # Define the handle_out function for the intercepted event
+  def handle_out("send_state", triggered_by, socket) do
+    new_client_state = client_state(socket)
+    if new_client_state != nil do
+      push(socket, "current_state", new_client_state)
+    end
+    {:noreply, socket}
+  end
+
+  # Define the handle_out function for the intercepted event
+  def handle_out("send_update", payload, socket) do
+    new_client_update = client_update(payload, socket.assigns)
+    if new_client_update != nil do
+      push(socket, "state_update", new_client_update)
+    end
+    {:noreply, socket}
+  end
+
+  # Define the handle_out function for the intercepted event
+  def handle_out("go_to_replay_step", payload, socket) do
+    new_client_update = client_update(payload, socket.assigns)
+    if new_client_update != nil do
+      push(socket, "go_to_replay_step", new_client_update)
+    end
+    {:noreply, socket}
+  end
+
+  defp client_update(payload, assigns) do
+    gameui = GameUIServer.state(assigns[:room_slug])
+    player_n = GameUI.get_player_n_by_user_id(gameui, assigns[:user_id])
+
+    payload
+    |> Map.put("player_n", player_n)
+
   end
 
   # This is what part of the state gets sent to the client.
   # It can be used to transform or hide it before they get it.
   defp client_state(socket) do
-    if Map.has_key?(socket.assigns, :game_ui) do
-      socket.assigns
-      |> Map.put(
-        :game_ui,
-        remove_deltas(socket.assigns.game_ui)
-      )
-    else
-      socket.assigns
-    end
+    GameUIServer.state(socket.assigns[:room_slug])
   end
 end

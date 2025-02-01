@@ -4,6 +4,7 @@ defmodule DragnCards.Repo.Migrations.CreateAlerts do
   def change do
     create table(:alerts) do
       add(:message, :string)
+      add(:minutes_until, :integer)
 
       timestamps()
     end

@@ -1,0 +1,291 @@
+[
+    {
+        "type": "onChange", 
+        "path": "$THIS_CARD_PATH",
+        "before": ["NOT", "$THIS_CARD.inPlay"], 
+        "after": ["$THIS_CARD.inPlay"], 
+        "then": [
+            ["FOR_EACH_KEY_VAL", "$CARD_ID", "$CARD", "$CARD_BY_ID", 
+                ["COND", 
+                    ["EQUAL", "$CARD.sides.A.name", "Strider"], 
+                    [
+                        ["MOVE_CARD", "$CARD_ID", ["JOIN_STRING", "$CARD.controller", "Eliminated"], 0, 0],
+                        ["LOG", "Aragorn was removed from the game."]
+                    ]
+                ]
+            ]
+        ]
+    }
+]
+
+{
+    "51223bd0-ffd1-11df-a976-0801200c9026": {
+        "label": "Steward of Gondor",
+        "A" : [
+            {
+                "trigger": [["layoutType","play"],["exhausted",false]],
+                "results": [
+                    {
+                        "type": "card_action",
+                        "criteria": "self", 
+                        "action": "exhaust", 
+                        "options": {}
+                    },
+                    {
+                        "type": "card_action",
+                        "criteria": "parent", 
+                        "action": "increment_token", 
+                        "options": {"token_type": "resource", "increment": 2}
+                    }
+                ]
+            }
+        ]
+    },
+    "51223bd0-ffd1-11df-a976-0801200c9060": {
+        "label": "Henamarth Riversong",
+        "A" : [
+            {
+                "trigger": [["layoutType","play"],["exhausted",false]],
+                "results": [
+                    {
+                        "type": "card_action",
+                        "criteria": "self", 
+                        "action": "exhaust", 
+                        "options": {}
+                    },
+                    {
+                        "type": "card_action",
+                        "criteria": [["groupId","sharedEncounterDeck"],["stackIndex",0],["cardIndex",0]], 
+                        "action": "update_card_values", 
+                        "options": {"updates": [["currentSide","A"]]}
+                    }
+                ]
+            }
+        ]
+    },
+    "51223bd0-ffd1-11df-a976-0801200c9057": {
+        "label": "Unexpected Courage",
+        "A" : [
+            {
+                "trigger": [["layoutType","play"],["exhausted",false]],
+                "results": [
+                    {
+                        "type": "card_action",
+                        "criteria": "self", 
+                        "action": "exhaust", 
+                        "options": {}
+                    },
+                    {
+                        "type": "card_action",
+                        "criteria": "parent", 
+                        "action": "ready", 
+                        "options": {}
+                    }
+                ]
+            }
+        ]
+    },
+    "51223bd0-ffd1-11df-a976-0801205c9006": {
+        "label": "Fast Hitch",
+        "A" : [
+            {
+                "trigger": [["layoutType","play"],["exhausted",false]],
+                "results": [
+                    {
+                        "type": "card_action",
+                        "criteria": "self", 
+                        "action": "exhaust", 
+                        "options": {}
+                    },
+                    {
+                        "type": "card_action",
+                        "criteria": "parent", 
+                        "action": "ready", 
+                        "options": {}
+                    }
+                ]
+            }
+        ]
+    },
+    "51223bd0-ffd1-11df-a976-0801213c9027": {
+        "label": "Vilya",
+        "A" : [
+            {
+                "trigger": [["layoutType","play"],["exhausted",false]],
+                "results": [
+                    {
+                        "type": "card_action",
+                        "criteria": "self", 
+                        "action": "exhaust", 
+                        "options": {}
+                    },
+                    {
+                        "type": "card_action",
+                        "criteria": "parent", 
+                        "action": "exhaust", 
+                        "options": {}
+                    },
+                    {
+                        "type": "card_action",
+                        "criteria": [["groupId","controllerDeck"],["stackIndex",0]], 
+                        "action": "move_card", 
+                        "options": {
+                            "dest_group_id": "controllerPlay1", 
+                            "dest_stack_index": -1, 
+                            "dest_card_index": 0, 
+                            "combine": false, 
+                            "preserve_state": false
+                        }
+                    }
+                ]
+            }
+        ]
+    },
+    "51223bd0-ffd1-11df-a976-0801212c9010": {
+        "label": "Daeron's Runes",
+        "A" : [
+            {
+                "trigger": [["layoutType","hand"]],
+                "results": [
+                    {
+                        "type": "card_action",
+                        "criteria": "self", 
+                        "action": "move_card", 
+                        "options": {
+                            "dest_group_id": "controllerEvent", 
+                            "dest_stack_index": 0, 
+                            "dest_card_index": 0, 
+                            "combine": false, 
+                            "preserve_state": false
+                        }
+                    },
+                    {
+                        "type": "game_action",
+                        "action": "draw_card", 
+                        "options": {"for_player_n": "controller"}
+                    },
+                    {
+                        "type": "game_action",
+                        "action": "draw_card", 
+                        "options": {"for_player_n": "controller"}
+                    }
+                ]
+            }
+        ]
+    },
+    "51223bd0-ffd1-11df-a976-0801200c9045": {
+        "label": "Northern Tracker",
+        "A" : [
+            {
+                "trigger": [["layoutType","play"],["committed",true]],
+                "results": [
+                    {
+                        "type": "card_action",
+                        "criteria": [["groupId", "sharedStaging"],["sides","sideUp","type","Location"]], 
+                        "action": "increment_token", 
+                        "options": {"token_type": "progress", "increment": 1}
+                    }
+                ]
+            }
+        ]
+    },
+    "abebff49-8219-4ae0-bd26-266db57bdfc3": {
+        "label": "Elven-light",
+        "A" : [
+            {
+                "trigger": [["layoutType","discard"]],
+                "results": [
+                    {
+                        "type": "card_action",
+                        "criteria": "self", 
+                        "action": "move_card", 
+                        "options": {
+                            "dest_group_id": "controllerHand", 
+                            "dest_stack_index": -1, 
+                            "dest_card_index": 0, 
+                            "combine": false, 
+                            "preserve_state": false
+                        }
+                    },
+                    {
+                        "type": "game_action",
+                        "action": "draw_card", 
+                        "options": {"for_player_n": "controller"}
+                    }
+                ]
+            }
+        ]
+    },
+    "51223bd0-ffd1-11df-a976-0801200c9072": {
+        "label": "Self Preservation",
+        "A" : [
+            {
+                "trigger": [["layoutType","play"],["exhausted",false]],
+                "results": [
+                    {
+                        "type": "card_action",
+                        "criteria": "self", 
+                        "action": "exhaust", 
+                        "options": {}
+                    },
+                    {
+                        "type": "card_action",
+                        "criteria": "parent", 
+                        "action": "increment_token", 
+                        "options": {"token_type": "damage", "increment": -2}
+                    }
+                ]
+            }
+        ]
+    },
+    "51223bd0-ffd1-11df-a976-0801212c9019": {
+        "label": "Imladris Stargazer",
+        "A" : [
+            {
+                "trigger": [["layoutType","play"],["exhausted",false]],
+                "results": [
+                    {
+                        "type": "card_action",
+                        "criteria": "self", 
+                        "action": "exhaust", 
+                        "options": {}
+                    },
+                    {
+                        "type": "ui_action",
+                        "options": {"updates": [["browseGroup","id","playerNDeck"],["browseGroup","topN","5"]]}
+                    },
+                    {
+                        "type": "game_action",
+                        "action": "peek_at_by_indices", 
+                        "options": {"for_player_n": "controller", "group_id": "playerNDeck", "indices": [0,1,2,3,4], "value": true}
+                    }
+                ]
+            }
+        ]
+    },
+    "51223bd0-ffd1-11df-a976-0801213c9015": {
+        "label": "Master of the Forge",
+        "A" : [
+            {
+                "trigger": [["layoutType","play"],["exhausted",false]],
+                "results": [
+                    {
+                        "type": "card_action",
+                        "criteria": "self", 
+                        "action": "exhaust", 
+                        "options": {}
+                    },
+                    {
+                        "type": "ui_action",
+                        "options": {"updates": [["browseGroup","id","playerNDeck"],["browseGroup","topN","5"]]}
+                    },
+                    {
+                        "type": "game_action",
+                        "action": "peek_at_by_indices", 
+                        "options": {"for_player_n": "controller", "group_id": "playerNDeck", "indices": [0,1,2,3,4], "value": true}
+                    }
+                ]
+            }
+        ]
+    }
+}

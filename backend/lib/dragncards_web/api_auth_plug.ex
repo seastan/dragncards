@@ -59,7 +59,13 @@ defmodule DragnCardsWeb.APIAuthPlug do
   def renew(conn, config) do
     renew_token = fetch_auth_token(conn)
     store_config = store_config(config)
+    IO.puts("api_auth_plug renew")
+    IO.inspect(renew_token)
+    IO.inspect(store_config)
+
     res = PersistentSessionCache.get(store_config, renew_token)
+    IO.puts("api_auth_plug res")
+    IO.inspect(res)
 
     PersistentSessionCache.delete(store_config, renew_token)
 

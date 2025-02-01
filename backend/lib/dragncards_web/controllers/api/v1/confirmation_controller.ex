@@ -16,7 +16,7 @@ defmodule DragnCardsWeb.API.V1.ConfirmationController do
       {:ok, conn} ->
         user = conn.assigns.confirm_email_user
         confirm_time = DateTime.utc_now
-        output = from(p in User, where: p.id == ^user.id, update: [set: [email_confirmed_at: ^confirm_time]])
+        from(p in User, where: p.id == ^user.id, update: [set: [email_confirmed_at: ^confirm_time]])
         |> Repo.update_all([])
         |> case do
           {1, nil} ->
@@ -38,7 +38,6 @@ defmodule DragnCardsWeb.API.V1.ConfirmationController do
         #     conn
         #     |> json(%{success: %{message: "Email confirmed"}})
         #   {:error, changeset, conn} ->
-        #     errors = Changeset.traverse_errors(changeset, &ErrorHelpers.translate_error/1)
         #     conn
         #     |> put_status(500)
         #     |> json(%{error: %{status: 500, message: "Couldn't confirm email", errors: errors}})
