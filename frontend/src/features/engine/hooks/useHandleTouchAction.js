@@ -55,7 +55,9 @@ export const useHandleTouchAction = () => {
                     actionList.unshift(["DEFINE", "$ACTIVE_CARD_ID", touchedCard.id]);
                     doActionList(actionList);
                 } else {
-                    const actionList = [...gameDef?.actionLists?.[actionListId]];
+                    // Check if the action list is already a list or a string
+                    const isAlreadyList = Array.isArray(actionListId);
+                    const actionList = isAlreadyList ? [actionListId] : [...gameDef?.actionLists?.[actionListId]];
                     if (actionList === null || actionList === undefined) {
                         alert("Action list not found: " + actionListId);
                         return;
