@@ -66,7 +66,7 @@ export const Prompts = React.memo(({
         style={{
           ...promptStyle,
           left: "2%", 
-          top: "2%", 
+          top: "4%", 
           width: "19%",
           zIndex: Z_INDEX.Prompts,
         }}>

@@ -297,10 +297,10 @@ export const TopBarMenu = React.memo(({}) => {
               {siteL10n("loadGameOrReplayJson")}
               <input type='file' id='file' ref={inputFileGame} style={{display: 'none'}} onChange={uploadGameOrReplayJson} accept=".json"/>
             </li>
-            <li key={"load_custom"} onClick={() => handleMenuClick({action:"load_custom"})}>
+            {/* <li key={"load_custom"} onClick={() => handleMenuClick({action:"load_custom"})}>
               {siteL10n("loadCustomCardsTxt")}
               <input type='file' id='file' ref={inputFileCustom} style={{display: 'none'}} onChange={uploadCustomCards} accept=".txt"/>
-            </li>
+            </li> */}
           </ul>
         </li> 
         {/* <li key={"layout"}>
