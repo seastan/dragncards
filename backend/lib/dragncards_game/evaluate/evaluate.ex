@@ -348,7 +348,7 @@ defmodule DragnCardsGame.Evaluate do
             if variable_module != nil do
               apply(variable_module, String.to_atom("execute"), [game, trace])
             else
-              IO.puts("Variable #{var_name} not found in #{inspect(game["variables"])}")
+              #IO.puts("Variable #{var_name} not found in #{inspect(game["variables"])}")
               case var_name do
 
                 "$PLAYER_ORDER" ->
