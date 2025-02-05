@@ -26,7 +26,6 @@ export const TopBarMenu = React.memo(({}) => {
   const siteL10n = useSiteL10n();
   const gameDef = useGameDefinition();
   const doActionList = useDoActionList();
-  const loadList = useImportLoadList();
   const importViaUrl = useImportViaUrl();
   const importLoadList = useImportLoadList();
   const cardDb = useCardDb();
@@ -118,6 +117,8 @@ export const TopBarMenu = React.memo(({}) => {
       downloadGameAsJson();
     } else if (data.action === "downloadReplay") {
       downloadReplayAsJson();
+    } else if (data.action === "load_o8d") {
+      loadFileDeck();
     } else if (data.action === "load_game") {
       loadFileGame();
     } else if (data.action === "load_game_def") {
@@ -191,15 +192,48 @@ export const TopBarMenu = React.memo(({}) => {
     inputFileGame.current.value = "";
   }
 
-  const uploadCustomCards = async(event) => {
+  const sectionToLoadGroupId = (section) => {
+    const mapping = gameDef.o8dImport.o8dSectionToLoadGroupId;
+    const otherLoadGroupId = gameDef.o8dImport.otherGroupId;
+    if (mapping[section]) return mapping[section];
+    else return otherLoadGroupId;
+  }
+
+  const loadDeckFromXmlText = (xmlText) => {
+
+    if (!gameDef.o8dImport) {
+      alert("This game does not support o8d import.");
+      return
+    }
+
+    var parseString = require('xml2js').parseString;
+    parseString(xmlText, function (err, deckJSON) {
+      if (!deckJSON) return;
+      const sections = deckJSON.deck.section;
+      var loadList = [];
+      sections.forEach(section => {
+        const sectionName = section['$'].name;
+        const cards = section.card;
+        if (!cards) return;
+        cards.forEach(card => {
+          const cardDbId = card['$'].id;
+          const quantity = parseInt(card['$'].qty);
+          loadList.push({'databaseId': cardDbId, 'quantity': quantity, 'loadGroupId': sectionToLoadGroupId(sectionName)})
+        })
+      })
+      importLoadList(loadList);
+    })
+  }
+
+  const loadO8D = async(event) => {
     event.preventDefault();
     const reader = new FileReader();
-    reader.onload = async (event) => {
-      var list = JSON.parse(event.target.result);
-      loadList(list);
+    reader.onload = async (event) => { 
+      const xmlText = (event.target.result)
+      loadDeckFromXmlText(xmlText);
     }
     reader.readAsText(event.target.files[0]);
-    inputFileCustom.current.value = "";
+    inputFileDeck.current.value = "";
   }
 
   const downloadGameAsJson = () => {
@@ -293,6 +327,10 @@ export const TopBarMenu = React.memo(({}) => {
             <li key={"load_prebuilt_deck"} onClick={() => handleMenuClick({action:"spawn_deck"})}>{siteL10n("loadPrebuiltDeck")}</li>
             <li key={"load_public_custom_deck"} onClick={() => handleMenuClick({action:"spawn_public_deck"})}>{siteL10n("loadPublicCustomDeck")}</li>
             <li key={"load_url"} onClick={() => handleMenuClick({action:"load_url"})}>{siteL10n("Load via URL")}</li>
+            <li key={"load_o8d"} onClick={() => handleMenuClick({action:"load_o8d"})}>
+              {siteL10n("loadO8D")}
+              <input type='file' id='file' ref={inputFileDeck} style={{display: 'none'}} onChange={loadO8D} accept=".o8d"/>
+            </li>
             <li key={"load_game"} onClick={() => handleMenuClick({action:"load_game"})}>
               {siteL10n("loadGameOrReplayJson")}
               <input type='file' id='file' ref={inputFileGame} style={{display: 'none'}} onChange={uploadGameOrReplayJson} accept=".json"/>

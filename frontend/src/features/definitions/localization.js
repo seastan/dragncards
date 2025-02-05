@@ -1,5 +1,14 @@
 export const siteL10n = {
-"drawArrow": {
+  "loadO8D": {
+    "English": "Load deck (.o8d file)",
+    "French": "Charger le deck (.o8d)",
+    "Spanish": "Cargar mazo (.o8d)",
+    "Portuguese": "Carregar deck (.o8d)",
+    "Italian": "Carica mazzo (.o8d)",
+    "German": "Deck laden (.o8d-Datei)",
+    "Chinese": "加载牌组（.o8d 文件）"
+  },
+  "drawArrow": {
     "English": "Draw Arrow",
     "French": "Dessiner une flèche",
     "Spanish": "Dibujar flecha",

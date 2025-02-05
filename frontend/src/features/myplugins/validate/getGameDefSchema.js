@@ -1289,6 +1289,25 @@ export const getGameDefSchema = (gameDef) => {
           }
         }
       },
+      "o8dImport": {
+        "_description_": "Settings for importing .o8d files",
+        "_type_": "object",
+        "_strictKeys_": true,
+        "o8dSectionToLoadGroupId": {
+          "_description_": "Mapping of .o8d section names to groupIds to load the cards into",
+          "_type_": "object",
+          "_required_": true,
+          "_itemSchema_": {
+            "_description_": "The groupId to load the cards into",
+            "_type_": "groupId"
+          }
+        },
+        "otherSectionLoadGroupId": {
+          "_description_": "Load group to load a card into if the section is not found in o8dSectionToLoadGroupId",
+          "_required_": true,
+          "_type_": "groupId"
+        }
+      },
       "phases": {
         "_description_": "Phases of the game. The [key] is the phaseId.",
         "_type_": "object",
