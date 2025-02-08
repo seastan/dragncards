@@ -49,7 +49,7 @@ export const PatreonModal = ({
       <h1 className="mb-2">Support on Patreon</h1>
       {isLoggedIn ? (
         <>
-          <div className="text-white text-xs mb-2">Half of all funds collected are donated to GiveWell.com's Top Charities Fund</div>
+          <div className="text-white text-xs mb-2">For questions about the support tiers, join the <a href="https://discord.gg/7BQv5ethUm" target="_blank" rel="noreferrer">Discord</a>.</div>
             {tiers.map((tier, index) => (
                 <div key={index} className="mb-4 border rounded-lg p-2 border-gray-500">
                 <PatreonButton
