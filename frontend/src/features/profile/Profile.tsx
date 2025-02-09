@@ -96,14 +96,15 @@ export const Profile: React.FC<Props> = () => {
       const replayRow = {...replay, 
         options: <div>
           <Button onClick={() => openReplay(pluginId, uuid)} isPrimary className="mx-2 mt-2">Load</Button>
-          <Button onClick={() => shareReplay(pluginId, uuid)} isPrimary className="mx-2 mt-2">Share</Button>
+          {/* <Button onClick={() => shareReplay(pluginId, uuid)} isPrimary className="mx-2 mt-2">Share</Button> */}
           <Button onClick={() => deleteReplay(replay, index, numPlayers)} className="mx-2 mt-2">Delete</Button>
         </div>,
         metadata: <div>
           {Object.keys(replay?.metadata ? replay.metadata : {}).map((key, index) => {
-            return(
-              <div key={index}><b>{key}:</b> {replay?.metadata?.[key]}</div>
-            )
+            if (replay?.metadata?.[key] != null)
+              return(
+                <div key={index}><b>{key}:</b> {replay?.metadata?.[key]}</div>
+              )
         })}
         </div>
       }
@@ -177,11 +178,11 @@ export const Profile: React.FC<Props> = () => {
         </Container>
       }
 
-      <ShareGameModal
+      {/* <ShareGameModal
         isOpen={showModal}
         closeModal={() => setShowModal(false)}
         shareReplayUrl={shareReplayUrl}
-      />
+      /> */}
     </div>
   );
 };

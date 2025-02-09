@@ -252,8 +252,14 @@ defmodule DragnCardsGame.GameUIServer do
   end
 
   def handle_call({:reset_game, user_id}, _from, gameui) do
+    IO.puts("reset_game 1")
+    options = put_in(gameui["options"], ["replayUuid"], nil)
+    new_gameui = GameUI.new(gameui["roomSlug"], user_id, options)
 
-    GameUI.new(gameui["roomSlug"], user_id, gameui["options"])
+    IO.puts("reset_game 2")
+    IO.inspect(new_gameui["game"]["roundNumber"])
+
+    new_gameui
     |> save_and_reply()
 
   end
