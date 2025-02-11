@@ -1,0 +1,8 @@
+      INSERT INTO users (email , alias, inserted_at, updated_at, password_hash, email_confirmed_at, email_confirmation_token ) 
+      VALUES ('player1@dragncards.com', 'player1', 'now', 'now', '$pbkdf2-sha512$100000$lBo3zNe49wIoWrAvht6Mbg==$SDfV/L5fNapiox7OgAJNB5rwrUm9RRNPCUBLHKXnNoVHcu574up2Tquxaa6shenktv7sCOtUu6rh4q0CmtOR+w==', 'now', 'c236e80a-2c34-44b9-92ab-312df26365f9' );
+      INSERT INTO users (id , email , alias, inserted_at, updated_at, password_hash, email_confirmed_at, email_confirmation_token ) 
+      VALUES ('2', 'player2@dragncards.com', 'player2', 'now', 'now', '$pbkdf2-sha512$100000$Hiwfmqbz6R0/R/q3whjVnA==$BvGkKDB/YfRnU4aQcV6INNJ8gv25Quw7SgzG64H7By5EgRdlTXIsOVHcLk7+Lf+bPqLkejAbl4F8Aanl1tASPQ==', 'now', '6a35ba55-fd0d-47e5-aff1-d53edd5af1ec' );
+      INSERT INTO users (id , email , alias, inserted_at, updated_at, password_hash, email_confirmed_at, email_confirmation_token ) 
+      VALUES ('3', 'player3@dragncards.com', 'player3', 'now', 'now', '$pbkdf2-sha512$100000$Z0jyoOb1KfzCuTGh/xVrZA==$YAlsffctWUbxujs3woZGZO6KGW++LquQAmc9MRalCXqBhaJYiOxJFjkkRjMAtbwLziVxCFD/LiRGlHutGvSpzw==', 'now', '45eacb70-01c4-4194-a3b3-fe927bef0d0b' );
+      INSERT INTO users (id , email , alias, inserted_at, updated_at, password_hash, email_confirmed_at, email_confirmation_token ) 
+      VALUES ('4', 'player4@dragncards.com', 'player4', 'now', 'now', '$pbkdf2-sha512$100000$1pFAgFabRwWro2FoLewoXw==$z0RCI+KwM68hdCxX+z+pN0mKELAd8aqvuPy+XUxNNx/ebpxrxlrxZ1fvLZ7NJQKyZnoF89NoR3fIggAYOJmEGQ==', 'now', '9c05358a-5b4f-477a-a201-8565a842ec2f' );

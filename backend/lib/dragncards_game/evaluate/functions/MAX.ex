@@ -34,7 +34,7 @@ defmodule DragnCardsGame.Evaluate.Functions.MAX do
     if Enum.empty?(non_nums_removed) do
       raise "MAX: No numbers in list"
     end
-    Enum.min(non_nums_removed)
+    Enum.max(non_nums_removed)
   end
 
 

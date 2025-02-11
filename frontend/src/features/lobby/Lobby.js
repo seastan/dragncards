@@ -58,7 +58,7 @@ export const Lobby = () => {
   return (
     <LobbyContainer>
       <div className="w-full" style={{minHeight: "600px"}}>
-        {/* <div className="bg-red-600-30 p-4 rounded-lg mb-4 text-white text-sm">A recent DragnCards update has impacted the performance of some plugins</div> */}
+        <div className="bg-red-600-30 p-4 rounded-lg mb-4 text-white text-sm">DragnCards is down for maintenance for approximately 24 hrs. Thank you for your patience. Feel free to play on <a href="https://beta.dragncards.com" target="_blank" className="underline">beta site</a> for the time being (you will need a create a separate account).</div>
         <div className="text-center text-white text-2xl mb-2">
           {/* Adding the style and onClick event */}
           <span 
