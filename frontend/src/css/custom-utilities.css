@@ -169,6 +169,48 @@ padding: 0;
   display: block;
 }
 
+.enforce-white {
+  color: white !important;
+}
+.enforce-white * {
+  color: inherit !important;
+}
+
+.enforce-black {
+  color: black !important;
+}
+.enforce-black * {
+  color: inherit !important;
+}
+
+.enforce-bg-gray-600-30 {
+  background: rgba(75,85,99,0.3) !important;
+}
+.enforce-bg-gray-600-30 * {
+  background: inherit !important;
+}
+
+.enforce-bg-none {
+  background: none !important;
+}
+.enforce-bg-none * {
+  background: inherit !important;
+}
+
+.enforce-bg-blue {
+  background: rgb(75,85,199) !important;
+}
+.enforce-bg-blue * {
+  background: inherit !important;
+}
+
+.enforce-bg-red {
+  background: rgb(145, 53, 53) !important;
+}
+.enforce-bg-red * {
+  background: inherit !important;
+}
+
 /* Menu Style */
 .third-level-menu
 {

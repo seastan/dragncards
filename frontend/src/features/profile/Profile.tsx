@@ -6,7 +6,6 @@ import ProfileSettings from "./ProfileSettings";
 import useProfile from "../../hooks/useProfile";
 import useDataApi from "../../hooks/useDataApi";
 import Button from "../../components/basic/Button";
-import ShareGameModal from "./ShareGameModal";
 import { parseISO, format, formatDistanceToNow } from "date-fns";
 import axios from "axios";
 import RecaptchaForm from "./RecaptchaForm";
@@ -19,6 +18,8 @@ const columns = [
   {name: "updated_at", label: "Date", options: { filter: false, sort: true }},
   {name: "options", label: "Options", options: { filter: false, sort: true }},
  ]; //, sortDirection: "asc" as const
+
+
 
 interface Props {}
 
@@ -95,9 +96,9 @@ export const Profile: React.FC<Props> = () => {
       const index = i;
       const replayRow = {...replay, 
         options: <div>
-          <Button onClick={() => openReplay(pluginId, uuid)} isPrimary className="mx-2 mt-2">Load</Button>
+          <Button onClick={() => openReplay(pluginId, uuid)} isPrimary className="mx-2 mt-2 enforce-bg-blue">Load</Button>
           {/* <Button onClick={() => shareReplay(pluginId, uuid)} isPrimary className="mx-2 mt-2">Share</Button> */}
-          <Button onClick={() => deleteReplay(replay, index, numPlayers)} className="mx-2 mt-2">Delete</Button>
+          <Button onClick={() => deleteReplay(replay, index, numPlayers)} className="mx-2 mt-2 enforce-bg-red text-white">Delete</Button>
         </div>,
         metadata: <div>
           {Object.keys(replay?.metadata ? replay.metadata : {}).map((key, index) => {
@@ -116,9 +117,11 @@ export const Profile: React.FC<Props> = () => {
       filteredData = nonDeletedData;
   }
   return (
-    <div className="w-full h-full overflow-y-scroll">
+    <div className="mt-4 mx-auto w-full p-2 overflow-y-scroll" style={{maxWidth: "800px"}}>
+
+    {/* <div className="w-full h-full overflow-y-scroll"> */}
       <Container>
-        <div className="bg-gray-100 p-4 rounded max-w-xl shadow">
+        <div className="bg-gray-300 p-4 rounded max-w-xl shadow">
           <h1 className="font-semibold mb-4 text-black">{user.alias}</h1>
           <div>
             <span className="font-semibold">Account created</span>:{" "}
@@ -139,7 +142,7 @@ export const Profile: React.FC<Props> = () => {
                 <span className="font-semibold">Admin</span>
               </div>
 
-              <Button onClick={() => issueDowntimeNotice()}>
+              <Button className="bg-gray-400" onClick={() => issueDowntimeNotice()}>
                 Issue downtime notice
               </Button>
             </>
@@ -149,7 +152,7 @@ export const Profile: React.FC<Props> = () => {
 
       <ProfileSettings/>
       <Container>
-        <div className="bg-gray-100 p-4 rounded max-w-xl shadow">
+        <div className="bg-gray-300 p-4 rounded max-w-xl shadow">
           <h1 className="font-semibold mb-2 text-black">Saved game settings</h1>
           Currently displaying {user.supporter_level < 3 ? "your 3 most recent games." : "all your saved games."} 
           {user.supporter_level < 3 &&             
@@ -162,27 +165,25 @@ export const Profile: React.FC<Props> = () => {
       </Container>
       
       {filteredData ?
-        <div className="p-4 bg-gray-900">
-        <MUIDataTable
-          title={"Saved games"}
-          data={filteredData}
-          columns={columns}
-          options={options}
-        />
+      <Container>
+        <div className="bg-gray-300 rounded max-w-xl">
+          <div className="enforce-bg-none">          
+            <MUIDataTable
+              title={"Saved games"}
+              data={filteredData}
+              columns={columns}
+              options={options}
+            />
+          </div>
         </div>
+        </Container>
         :
         <Container>
-          <div className="bg-gray-100 p-4 rounded max-w-xl shadow">
+          <div className="bg-gray-300 p-4 rounded max-w-xl shadow">
             <h1 className="font-semibold mb-4 text-black">Loading saved games...</h1>
           </div>
         </Container>
       }
-
-      {/* <ShareGameModal
-        isOpen={showModal}
-        closeModal={() => setShowModal(false)}
-        shareReplayUrl={shareReplayUrl}
-      /> */}
     </div>
   );
 };

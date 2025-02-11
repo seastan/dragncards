@@ -124,7 +124,7 @@ export const ProfileSettings = () => {
 
   return (
     <Container>
-      <div className="bg-gray-100 p-4 rounded max-w-xl shadow">
+      <div className="bg-gray-300 p-4 rounded max-w-xl shadow">
           
         {errorMessage && (
           <div className="alert alert-danger mt-4">{errorMessage}</div>

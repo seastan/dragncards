@@ -5,6 +5,8 @@ import { Link } from "react-router-dom";
 import MUIDataTable, { MUIDataTableOptions } from "mui-datatables";
 import useDataApi from "../../hooks/useDataApi";
 import useChannel from "../../hooks/useChannel";
+import { ThemeProvider } from "@material-ui/core";
+import { getMuiTheme } from "../engine/functions/common";
 
 const columns = [
   {name: "name", label: "Label", options: { filter: false, sort: true }},
@@ -89,20 +91,23 @@ export const LobbyTable = ({ plugin }) => {
   filteredRooms.sort( compare );
 
   return (
-    <>
-      <div className="p-3 text-white rounded bg-gray-600-30 w-full">
-        <div>Active/Total Rooms: {activeRooms}/{totalRooms}</div>
-      </div>
+    <div className="bg-gray-600-30">
+      <div className="enforce-white enforce-bg-none">
+        <div className="p-3 text-white rounded w-full">
+          <div>Active/Total Rooms: {activeRooms}/{totalRooms}</div>
+        </div>
 
-      {isLoading && <div className="text-white text-center">Connecting to server...</div>}
-      {isError && <div className="text-white text-center">Error communicating with server...</div>}
-      <MUIDataTable
-        title={"Public Rooms"}
-        data={filteredRooms}
-        columns={columns}
-        options={options}
-      />
-    </>
+        {isLoading && <div className="text-white text-center">Connecting to server...</div>}
+        {isError && <div className="text-white text-center">Error communicating with server...</div>}
+        
+          <MUIDataTable
+            title={"Public Rooms"}
+            data={filteredRooms}
+            columns={columns}
+            options={options}
+          />
+      </div>
+    </div>
   );
 };
 export default LobbyTable;
