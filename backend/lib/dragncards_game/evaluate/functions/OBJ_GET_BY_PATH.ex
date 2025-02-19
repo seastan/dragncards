@@ -14,7 +14,7 @@ defmodule DragnCardsGame.Evaluate.Functions.OBJ_GET_BY_PATH do
 
   *Examples*:
 
-  Check if the number of damage tokesn on the active card equals or exceeeds its hitPoints
+  Check if the number of damage tokens on the active card equals or exceeds its hitPoints
   ```
   ["GREATER_EQUAL",
     ["OBJ_GET_BY_PATH",  "$ACTIVE_CARD", ["LIST", "tokens", "damage"]],

@@ -1,0 +1,111 @@
+Vagrant.configure("2") do |config|
+    config.vm.define "dragn" do |dragn|
+        dragn.vm.hostname = "dragncards"
+        dragn.vm.box = "ubuntu/focal64"
+      #forwarded ports for access from local machine
+        dragn.vm.network "forwarded_port", guest: 3000, host: 3000
+        dragn.vm.network "forwarded_port", guest: 4000, host: 4000
+        # Synced folders. ADding SQL stuff here manually from local repo for branch dev. Once Seastan accepts this can be just run inline without link
+        dragn.vm.synced_folder "./", "/home/vagrant/files"
+    
+    
+        # VM configuration.
+        dragn.vm.provider "virtualbox" do |dragn|
+          dragn.customize [ "modifyvm", :id, "--uartmode1", "file", File::NULL ]
+          dragn.memory = "8192"
+          dragn.cpus = 2
+        end
+    
+        # Provision demo dependencies.
+        # Only runs when the VM is created.
+        
+        dragn.vm.provision "deps", type: "shell", inline: <<-SHELL
+    
+          mkdir /tmp/downloads
+    
+          # Install dependencies.
+          
+          apt-get update
+          
+          apt-get install -y \
+            apt-transport-https \
+            ca-certificates \
+            curl \
+            gnupg-agent \
+            jq \
+            redis-server \
+            software-properties-common \
+            zip \
+            inotify-tools \
+            elixir \
+            erlang-dev \
+            postgresql \ 
+            postgresql-contrib \
+            postgresql-client
+          curl -sL https://deb.nodesource.com/setup_14.x | bash - 
+            sudo apt-get install -y nodejs
+          #Clone repos
+          git clone https://github.com/seastan/Lord-of-the-Rings
+          git clone https://github.com/seastan/dragncards -b development
+          
+          #filewatchers
+          echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p
+          cat /proc/sys/fs/inotify/max_user_watches
+          #db
+          echo -e "postgres\npostgres" | sudo passwd postgres
+          #fw
+          #not needed as ufw is off.
+          sudo ufw allow 3000/tcp
+          # Configure backend
+          sudo npm install -g npm-run-all
+          #pm2 allows background of npm jobs nicely
+          sudo npm install -g pm2
+          sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'postgres';"
+          #
+          #increase room expiration
+          cd dragncards/backend/lib/dragncards_game/ui
+          sed -i 's/minutes(60)/minutes(20800)/g' game_ui_server.ex
+          cd ../../../../../
+          #
+          cd dragncards
+          cd backend
+          yes | sudo mix deps.get
+          yes | sudo mix ecto.setup
+          mix ecto.setup
+          cd assets
+          npm install
+          cd ../..
+          cd  frontend/public/images/
+          mkdir cards
+          cd cards
+          git clone https://github.com/seastan/DragnCards-CardImages.git English
+          cd ../../..
+          #in frontend
+          npm install
+          npm run build:css
+          npx browserslist@latest --update-db
+          cd ../backend
+          MIX_ENV=prod PORT=4000 sudo elixir --erl -detached -S mix phx.server
+          cd ../frontend
+          pm2 --name dragnfrontend start npm -- start
+          
+          cd /home/vagrant/sql
+          #simplify this once vagrant folder is in base repo
+          sudo su postgres -c "psql -d dragncards_dev -f /home/vagrant/files/sql/users.sql"
+    
+    
+        
+        SHELL
+
+            # Runs everytime the VM starts.
+        dragn.vm.provision "app:setup", type: "shell", run: "always", inline: <<-SHELL
+        
+        cd dragncards/backend
+        MIX_ENV=prod PORT=4000 sudo elixir --erl -detached -S mix phx.server
+        cd ../frontend
+        pm2 --name dragnfrontend start npm -- start
+        
+        
+      SHELL
+      end
+end    
