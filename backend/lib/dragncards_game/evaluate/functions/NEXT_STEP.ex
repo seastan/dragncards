@@ -56,7 +56,11 @@ defmodule DragnCardsGame.Evaluate.Functions.NEXT_STEP do
     # Remove step tokens
     game = TempTokens.remove_all_for_timing(game, "step")
     # Remove phase tokens if the phase has changed
-    game = if game_def["steps"][game["stepId"]]["phaseId"] == game_def["steps"][game_old["stepId"]]["phaseId"] do
+    step_id_old = game_old["stepId"]
+    step_id = game["stepId"]
+    phase_id_old = game_def["steps"][step_id_old]["phaseId"]
+    phase_id = game_def["steps"][step_id]["phaseId"]
+    game = if phase_id != phase_id_old do
       TempTokens.remove_all_for_timing(game, "phase")
     else
       game
