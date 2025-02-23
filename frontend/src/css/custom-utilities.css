@@ -211,6 +211,23 @@ padding: 0;
   background: inherit !important;
 }
 
+@keyframes glow {
+  0% {
+      box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+  }
+  50% {
+      box-shadow: 10px 0 10px rgba(0, 123, 255, 0.5), -10px 0 10px rgba(0, 123, 255, 0.5);
+  }
+  100% {
+      box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+  }
+}
+
+.glowing-border {
+  animation: glow 0.5s infinite ease-in-out;
+  border-radius: 10px;
+}
+
 /* Menu Style */
 .third-level-menu
 {

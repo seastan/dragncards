@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useDispatch, useSelector } from 'react-redux';
 import { Tokens } from './Tokens';
 import { CardMouseRegion } from "./CardMouseRegion";
@@ -28,10 +28,22 @@ export const Card = React.memo(({
     const cardVisibleFace = useVisibleFace(cardId);
     const cardStyle = useCardStyle(cardId, cardIndexFromGui, isDragging, offset);
     const isActive = useSelector(state => {return state?.playerUi?.activeCardId === cardId});
+    const triggeredTimestamp = useSelector(state => state?.gameUi?.game?.cardById[cardId]?.triggeredTimestamp);
+    const shouldGlow = triggeredTimestamp !== undefined && triggeredTimestamp !== null;
+    const [isGlowing, setIsGlowing] = React.useState(false);
+
+    useEffect(() => {
+        if (shouldGlow) {
+            setIsGlowing(true);
+            setTimeout(() => {
+                setIsGlowing(false); 
+            }, 1000);
+        }
+    }, [triggeredTimestamp]);
 
     if (!cardCurrentSide) return;
 
-    console.log('Rendering Card ',currentFace.name);
+    console.log('Rendering Card ',currentFace.name, shouldGlow);
 
     const handleMouseLeave = (_event) => {
         if (!dropdownMenuVisible) dispatch(setActiveCardId(null))
@@ -45,38 +57,23 @@ export const Card = React.memo(({
     // FIXME: display error if height and width still not defined?
 
     return (
-            <div 
-                id={cardId}
-                className={isActive ? "shadow-yellow" : null}
-                key={cardId}
-                style={cardStyle}
-                onMouseLeave={event => handleMouseLeave(event)}
-            >
-                <CardImage cardId={cardId}/>
-
-                <DefaultActionLabel cardId={cardId}/>
-
-                <PeekingSymbol cardId={cardId}/>
-
-                <Target
-                    cardId={cardId}/>
-                <CardMouseRegion 
-                    topOrBottom={"top"}
-                    cardId={cardId}
-                    isActive={isActive}/>
-                <CardMouseRegion 
-                    topOrBottom={"bottom"}
-                    cardId={cardId}
-                    isActive={isActive}/>
-                <Tokens
-                    cardId={cardId}
-                    isActive={isActive}
-                    aspectRatio={width/height}/>
-
-                <CardArrows cardId={cardId} hideArrows={hideArrows}/>
-
-                <AbilityButton cardId={cardId}/>
-                
-            </div>
-    )
+        <div 
+            id={cardId}
+            className={`card-container ${isActive ? "shadow-yellow" : ""} ${isGlowing ? "glowing-border" : ""}`}
+            key={cardId}
+            style={cardStyle}
+            onMouseLeave={event => handleMouseLeave(event)}
+        >
+            <CardImage cardId={cardId}/>
+            <DefaultActionLabel cardId={cardId}/>
+            <PeekingSymbol cardId={cardId}/>
+            <Target cardId={cardId}/>
+            <CardMouseRegion topOrBottom={"top"} cardId={cardId} isActive={isActive}/>
+            <CardMouseRegion topOrBottom={"bottom"} cardId={cardId} isActive={isActive}/>
+            <Tokens cardId={cardId} isActive={isActive} aspectRatio={width/height}/>
+            <CardArrows cardId={cardId} hideArrows={hideArrows}/>
+            <AbilityButton cardId={cardId}/>
+        </div>
+    );
+   
 })

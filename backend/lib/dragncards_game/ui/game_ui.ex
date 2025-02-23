@@ -739,6 +739,15 @@ defmodule DragnCardsGame.GameUI do
     end
   end
 
+  def reset_card_trigger_status(game) do
+    card_by_id = game["cardById"]
+    card_by_id = Enum.reduce(card_by_id, %{}, fn({card_id, card}, acc) ->
+      card = put_in(card["triggeredTimeStamp"], nil)
+      acc |> put_in([card_id], card)
+    end)
+    put_in(game["cardById"], card_by_id)
+  end
+
   def assign_stack_and_card_indices(game) do
     group_ids = Map.keys(game["groupById"])
     card_by_id = game["cardById"]
