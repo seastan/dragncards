@@ -32,6 +32,7 @@ defmodule DragnCardsGame.Card do
       "arrows" => %{},
       "tokens" => Tokens.new(game_def),
       "ruleIds" => [],
+      "triggeredTimestamp" => nil,
     }
     Logger.debug("card_from_card_details 2")
     # loop over the sides in card_details

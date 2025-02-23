@@ -37,7 +37,7 @@ export const Card = React.memo(({
             setIsGlowing(true);
             setTimeout(() => {
                 setIsGlowing(false); 
-            }, 1000);
+            }, 750);
         }
     }, [triggeredTimestamp]);
 
@@ -59,7 +59,7 @@ export const Card = React.memo(({
     return (
         <div 
             id={cardId}
-            className={`card-container ${isActive ? "shadow-yellow" : ""} ${isGlowing ? "glowing-border" : ""}`}
+            className={`card-container ${isActive ? "shadow-yellow" : ""} ${isGlowing ? "glowing-vibrating" : ""}`}
             key={cardId}
             style={cardStyle}
             onMouseLeave={event => handleMouseLeave(event)}

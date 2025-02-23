@@ -211,20 +211,30 @@ padding: 0;
   background: inherit !important;
 }
 
-@keyframes glow {
+@keyframes glow-outward {
   0% {
-      box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+      box-shadow: 0 0 5px rgba(0, 123, 255, 0.8);
   }
   50% {
-      box-shadow: 10px 0 10px rgba(0, 123, 255, 0.5), -10px 0 10px rgba(0, 123, 255, 0.5);
+      box-shadow: 0 0 20px rgba(0, 123, 255, 0.9);
   }
   100% {
-      box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+      box-shadow: 0 0 30px rgba(0, 123, 255, 0);
   }
 }
 
-.glowing-border {
-  animation: glow 0.5s infinite ease-in-out;
+@keyframes vibrate {
+  0% { transform: rotate(0deg); }
+  8% { transform: rotate(3deg); }
+  24% { transform: rotate(-3deg); }
+  40% { transform: rotate(3deg); }
+  56% { transform: rotate(-3deg); }
+  72% { transform: rotate(3deg); }
+  88% { transform: rotate(-3deg); }
+}
+
+.glowing-vibrating {
+  animation: glow-outward 0.75s ease-out forwards, vibrate 0.75s infinite alternate;
   border-radius: 10px;
 }
 
