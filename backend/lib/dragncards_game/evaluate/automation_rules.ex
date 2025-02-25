@@ -96,7 +96,7 @@ defmodule DragnCardsGame.AutomationRules do
     end
   end
 
-  def add_liten_to(listeners, listen_to) do
+  def add_listen_to(listeners, listen_to) do
     if listen_to != nil do
       listeners ++ listen_to
     else
@@ -134,14 +134,14 @@ defmodule DragnCardsGame.AutomationRules do
     # rule = Map.put(rule, "then", then)
     case rule_type do
       "entersPlay" ->
-        listen_to = ["/cardById/$THIS_ID/inPlay"] |> add_listen_to_side(rule["side"]) |> add_liten_to(rule["listenTo"])
+        listen_to = ["/cardById/$THIS_ID/inPlay"] |> add_listen_to_side(rule["side"]) |> add_listen_to(rule["listenTo"])
         condition = get_enters_play_condition(rule["side"]) |> add_condition(rule["condition"])
         rule
         |> Map.put("type", "trigger")
         |> Map.put("listenTo", listen_to)
         |> Map.put("condition", condition)
       "whileInPlay" ->
-        listen_to = ["/cardById/$THIS_ID/inPlay"] |> add_listen_to_side(rule["side"]) |> add_liten_to(rule["listenTo"])
+        listen_to = ["/cardById/$THIS_ID/inPlay"] |> add_listen_to_side(rule["side"]) |> add_listen_to(rule["listenTo"])
         condition = get_in_play_condition(rule["side"]) |> add_condition(rule["condition"])
         rule
         |> Map.put("type", "passive")

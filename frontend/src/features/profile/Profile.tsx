@@ -67,7 +67,7 @@ export const Profile: React.FC<Props> = () => {
     }
   }
   const issueDowntimeNotice = async() => {
-    let defMessage = siteL10n("defaultMaintenenceMessage");
+    let defMessage = siteL10n("defaultMaintenanceMessage");
     let text = window.prompt(`Enter the message to send to all users. Leave blank to send default message (${defMessage})`);
     if (text == null) return;
     if (text == "") text = defMessage;
