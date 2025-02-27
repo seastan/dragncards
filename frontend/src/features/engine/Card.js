@@ -13,6 +13,34 @@ import { useCardStyle } from "./hooks/useCardStyle";
 import { PeekingSymbol } from "./PeekingSymbol";
 import { AbilityButton } from "./AbilityButton";
 
+import styled, { keyframes, css } from "styled-components";
+
+// Define the vibration keyframes that respect existing rotation
+const vibrate = (baseRotation = "0deg") => keyframes`
+  0% { transform: rotate(calc(${baseRotation} + 0deg)); box-shadow: 0 0 5px rgba(0, 123, 255, 0.8)}
+  8% { transform: rotate(calc(${baseRotation} + 3deg)); }
+  24% { transform: rotate(calc(${baseRotation} + -3deg)); }
+  40% { transform: rotate(calc(${baseRotation} + 3deg)); box-shadow: 0 0 20px rgba(0, 123, 255, 0.9)}
+  56% { transform: rotate(calc(${baseRotation} + -3deg)); }
+  72% { transform: rotate(calc(${baseRotation} + 3deg)); }
+  88% { transform: rotate(calc(${baseRotation} + -3deg)); box-shadow: 0 0 30px rgba(0, 123, 255, 0)}
+`;
+
+// Define the Styled Card Component
+const StyledCard = styled.div`
+  border-radius: 10px;
+  ${(props) =>
+    props.isGlowing &&
+    css`
+      animation: ${vibrate(props.baseRotation)} 0.75s infinite alternate;
+    `}
+`;
+
+const getRotationFromTransform = (transform) => {
+    const match = transform?.match(/rotate\(([^)]+)\)/);
+    return match ? match[1] : "0deg";
+  };
+
 export const Card = React.memo(({
     cardId,
     cardIndexFromGui,
@@ -27,6 +55,7 @@ export const Card = React.memo(({
     const dropdownMenuVisible = useSelector(state => state?.playerUi?.dropdownMenu?.visible);
     const cardVisibleFace = useVisibleFace(cardId);
     const cardStyle = useCardStyle(cardId, cardIndexFromGui, isDragging, offset);
+    const cardRotation = useSelector(state => state?.gameUi?.game?.cardById[cardId]?.rotation);
     const isActive = useSelector(state => {return state?.playerUi?.activeCardId === cardId});
     const triggeredTimestamp = useSelector(state => state?.gameUi?.game?.cardById[cardId]?.triggeredTimestamp);
     const shouldGlow = triggeredTimestamp !== undefined && triggeredTimestamp !== null;
@@ -57,12 +86,21 @@ export const Card = React.memo(({
     // FIXME: display error if height and width still not defined?
 
     return (
-        <div 
+        // <div 
+        //     id={cardId}
+        //     className={`card-container ${isActive ? "shadow-yellow" : ""} ${isGlowing ? "glowing-vibrating" : ""}`}
+        //     key={cardId}
+        //     style={cardStyle}
+        //     onMouseLeave={event => handleMouseLeave(event)}
+        // >
+        <StyledCard
             id={cardId}
-            className={`card-container ${isActive ? "shadow-yellow" : ""} ${isGlowing ? "glowing-vibrating" : ""}`}
+            className={`card-container ${isActive ? "shadow-yellow" : ""}`}
             key={cardId}
+            baseRotation={`${cardRotation}deg`}
+            isGlowing={isGlowing}
             style={cardStyle}
-            onMouseLeave={event => handleMouseLeave(event)}
+            onMouseLeave={handleMouseLeave}
         >
             <CardImage cardId={cardId}/>
             <DefaultActionLabel cardId={cardId}/>
@@ -73,7 +111,7 @@ export const Card = React.memo(({
             <Tokens cardId={cardId} isActive={isActive} aspectRatio={width/height}/>
             <CardArrows cardId={cardId} hideArrows={hideArrows}/>
             <AbilityButton cardId={cardId}/>
-        </div>
+        </StyledCard>
     );
    
 })
