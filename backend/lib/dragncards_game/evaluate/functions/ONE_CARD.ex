@@ -2,7 +2,7 @@ defmodule DragnCardsGame.Evaluate.Functions.ONE_CARD do
   alias DragnCardsGame.Evaluate
   @moduledoc """
   *Arguments*:
-  1. `varialeName` (string)
+  1. `variableName` (string)
   2. `condition` (DragnLang code)
 
   Searches through the cards in an arbitrary order and returns the first card it finds that matches the condition. As it loops through the cards, it will assign each card to the variable name given in the first argument. This variable can then be used to reference the card in the condition.

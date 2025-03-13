@@ -35,7 +35,7 @@ export const siteL10n = {
     "German": "Lade vorgefertigtes Deck",
     "Chinese": "加载预组牌库"
   },
-  "defaultMaintenenceMessage": {
+  "defaultMaintenanceMessage": {
     "English": "The server is going down for scheduled maintenance in the next 60 seconds. Please save your game. The server should be back up in less than 5 minutes, and you can resume your game from your profile.",
     "French": "Le serveur va être arrêté pour une maintenance programmée dans les 60 prochaines secondes. Veuillez sauvegarder votre partie. Le serveur devrait être de retour dans moins de 5 minutes et vous pourrez reprendre votre partie à partir de votre profil.",
     "Spanish": "El servidor se apagará para mantenimiento programado en los próximos 60 segundos. Por favor, guarda tu juego. El servidor debería volver en menos de 5 minutos y podrás continuar tu juego desde tu perfil.",
@@ -548,7 +548,7 @@ export const siteL10n = {
     "German": "Entladen",
     "Chinese": "卸载"
   },
-  "unloadMyDeck": {
+  "unloadMyCards": {
     "English": "Unload my cards",
     "French": "Décharger mes cartes",
     "Spanish": "Descargar mis cartas",
