@@ -38,7 +38,7 @@ export const Prompt = React.memo(({
             {options.map((option, index) => {
               return(
                 <div key={index} className="m-1 p-1 rounded-lg bg-gray-800 hover:bg-red-800 cursor-default" onClick={() => handleOptionClick(option)}>
-                  {promptIndex === 0 && <span>{keysDiv(option.hotkey, "hover:bg-gray-500")}</span>}
+                  {promptIndex === 0 && option.hotkey && <span>{keysDiv(option.hotkey, "hover:bg-gray-500")}</span>}
                   <span className="pl-2">{gameL10n(option.label)}</span>
                 </div>
               )

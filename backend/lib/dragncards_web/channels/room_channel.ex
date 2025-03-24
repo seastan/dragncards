@@ -59,41 +59,34 @@ defmodule DragnCardsWeb.RoomChannel do
   end
 
   def handle_in(
-    "game_action",
-    %{
-      "action" => action,
-      "options" => options,
-      "timestamp" => _timestamp,
-    },
-    %{assigns: %{room_slug: room_slug, user_id: user_id}} = socket
-  ) do
-
+        "game_action",
+        %{
+          "action" => action,
+          "options" => options,
+          "timestamp" => _timestamp
+        },
+        %{assigns: %{room_slug: room_slug, user_id: user_id}} = socket
+      ) do
     old_state = GameUIServer.state(room_slug)
     old_replay_step = old_state["replayStep"]
     GameUIServer.game_action(room_slug, user_id, action, options)
 
     new_state = GameUIServer.state(room_slug)
 
-    # If round changed, save replay
+    # If round changed, save replay asynchronously
     if get_in(new_state, ["game", "roundNumber"]) != get_in(old_state, ["game", "roundNumber"]) do
-      IO.puts("Round changed, saving replay, user_id: #{user_id}")
-      save_replay(socket, room_slug, user_id, options)
-      # {alert_text, alert_level} = case GameUI.save_replay(new_state, user_id, options) do
-      #   {:ok, message} -> {message, "success"}
-      #   {:error, message} -> {message, "error"}
-      #   _ -> {"Failed to save game.", "error"}
-      # end
+      IO.puts("Round changed, saving replay asynchronously, user_id: #{user_id}")
 
-      # notify_alert(socket, room_slug, user_id, %{
-      #   "level" => alert_level,
-      #   "text" => alert_text
-      # })
+      Task.start(fn ->
+        save_replay(socket, room_slug, user_id, options)
+      end)
     end
 
     notify_update(socket, room_slug, user_id, old_state)
 
     {:reply, {:ok, "game_action"}, socket}
   end
+
 
   def handle_in(
     "save_replay",
