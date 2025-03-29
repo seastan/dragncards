@@ -1528,6 +1528,10 @@ export const getGameDefSchema = (gameDef) => {
               "code": {
                 "_description_": "The DragnLang code to execute when the option is selected.",
                 "_type_": "code",
+              },
+              "dontShowAgain": {
+                "_description_": "Whether to show the option again in the future",
+                "_type_": "boolean",
               }
             }
           },

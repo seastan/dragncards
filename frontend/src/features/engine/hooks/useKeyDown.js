@@ -11,6 +11,7 @@ import { useSendLocalMessage } from './useSendLocalMessage';
 import { usePlayerN } from './usePlayerN';
 import { useVisibleFace } from './useVisibleFace';
 import { setPromptVisible } from '../../store/gameUiSlice';
+import { useVisiblePrompts } from './useVisiblePrompts';
 
 function isLetter(value) {
     return /^[a-z,A-Z]$/.test(value);
@@ -23,7 +24,7 @@ export const useKeyDown = () => {
     const keypress = useSelector(state => state?.playerUi?.keypress);
     const mouseTopBottom = useSelector(state => state?.playerUi?.mouseTopBottom);
     const playerN = usePlayerN();
-    const prompts = useSelector(state => state?.gameUi?.game?.playerData?.[playerN]?.prompts) || {};
+    const prompts = useVisiblePrompts();
     const sortedPromptIds = Object.keys(prompts).sort((a,b) => prompts[a].timestamp - prompts[b].timestamp);
     const activeCardId = useActiveCardId();
     const activeCardGroupId = useSelector(state => state?.gameUi?.game?.cardById?.[activeCardId]?.groupId);

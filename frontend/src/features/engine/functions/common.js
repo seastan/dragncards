@@ -1,3 +1,4 @@
+import { createMuiTheme } from "@material-ui/core";
 import React from "react";
 
 export const keyClass = "m-auto border bg-gray-500 text-center bottom inline-block text-white";

@@ -221,11 +221,18 @@ export const loadArkhamDb = (importLoadList, doActionList, playerN, arkhamDbType
 
     if (jsonData?.investigator_code) {
       var ic = jsonData?.investigator_code;
+      var ti = meta?.transform_into;
       var af = meta?.alternate_front;
       var ab = meta?.alternate_back;
+      var til = ti ? ti.length : 0;
       var afl = af ? af.length : 0;
       var abl = ab ? ab.length : 0;
-      if (afl > 0 && abl > 0 && af === ab) {
+      if (til > 0) {
+        if (ti === "11068b") {
+          ti = "11068a";
+        }
+        loadList.push({'databaseId': ti, 'quantity': 1, 'loadGroupId': "playerNInvestigator"});
+      } else if (afl > 0 && abl > 0 && af === ab) {
         loadList.push({'databaseId': af, 'quantity': 1, 'loadGroupId': "playerNInvestigator"});
       } else if (afl > 0 && abl > 0) {
         loadList.push({'databaseId': af + ab, 'quantity': 1, 'loadGroupId': "playerNInvestigator"});
@@ -311,14 +318,14 @@ export const loadMarvelCdb = (importLoadList, doActionList, playerN, dbDomain, d
   .then(response => response.json())
   .then((jsonData) => {
     console.log("card db import response", jsonData)
-    const itentityCode = jsonData.investigator_code;
+    const itentityCode = jsonData.hero_code;
     const slots = jsonData.slots;
     var loadList = [];
     if (itentityCode && marvelcdbIdTodatabaseId[itentityCode]) {
       const databaseId = marvelcdbIdTodatabaseId[itentityCode];
       loadList.push({'databaseId': databaseId, 'quantity': 1, 'loadGroupId': playerN+"Play1"});
     } else {
-      alert("Encountered missing or unknown card ID for identity")
+      alert("Encountered missing or unknown card ID q identity")
     }
     var fetches = [];
     Object.keys(slots).forEach((slot, slotIndex) => {
