@@ -7,6 +7,7 @@ defmodule DragnCards.Users.User do
   @timestamps_opts [type: :utc_datetime]
   use Pow.Ecto.Schema
   alias DragnCards.Users.User
+  alias DragnCardsUtil.Merger
 
   use Pow.Extension.Ecto.Schema,
     extensions: [PowResetPassword, PowEmailConfirmation]
@@ -72,7 +73,7 @@ defmodule DragnCards.Users.User do
 
   def settings_update(user, nested_map) do
     plugin_settings_old = user.plugin_settings || %{}
-    plugin_settings_new = Map.merge(plugin_settings_old, nested_map)
+    plugin_settings_new = Merger.deep_merge([plugin_settings_old, nested_map])
     %{plugin_settings: plugin_settings_new}
   end
 

@@ -8,6 +8,8 @@ import Draggable from "react-draggable";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGripLines } from "@fortawesome/free-solid-svg-icons";
 import { setPromptVisible } from "../store/gameUiSlice";
+import { useSetPluginSetting } from "./hooks/useSetPluginSetting";
+import { useVisiblePrompts } from "./hooks/useVisiblePrompts";
 
 const promptStyle = {
   MozBoxShadow: '0 0 50px 20px black',
@@ -17,6 +19,7 @@ const promptStyle = {
 
 export const Prompt = React.memo(({
   promptIndex,
+  promptId,
   message,
   options,
   uuid
@@ -25,10 +28,14 @@ export const Prompt = React.memo(({
   const dispatch = useDispatch();
   const doActionList = useDoActionList();
   const gameL10n = useGameL10n();
+  const setPluginSetting = useSetPluginSetting();
   console.log("Rendering Prompt", uuid);
   const handleOptionClick = (option) => {
     dispatch(setPromptVisible({playerI: playerN, promptUuid: uuid, visible: false}));
     doActionList(option.code);
+    if (option.dontShowAgain == true) {
+      setPluginSetting("game", {dontShowAgainPromptIds: {[promptId]: true}});
+    }
   }
   return (
     <div className="p-2 bg-gray-600-90" style={{borderBottom: "1px solid black"}}>
@@ -51,12 +58,9 @@ export const Prompt = React.memo(({
 
 export const Prompts = React.memo(({
 }) => {
-  const playerN = usePlayerN();
-  const prompts = useSelector(state => state?.gameUi?.game?.playerData?.[playerN]?.prompts) || {};
+  const prompts = useVisiblePrompts();
   const sortedPromptIds = Object.keys(prompts).sort((a,b) => prompts[a].timestamp - prompts[b].timestamp);
   // Check if all prompts have visible set to false
-  const allPromptsHidden = sortedPromptIds.every(promptId => prompts[promptId].visible === false);
-  if (allPromptsHidden) return null;
   if (Object.keys(prompts).length === 0) return null;
   console.log("Rendering Prompts", prompts);
 
@@ -77,7 +81,12 @@ export const Prompts = React.memo(({
           {sortedPromptIds.map((promptKey, promptIndex) => {
             if (prompts[promptKey].visible === false) return null;
             return(
-              <Prompt key={promptIndex} promptIndex={promptIndex} {...prompts[promptKey]} />
+              <Prompt 
+                key={promptIndex} 
+                promptIndex={promptIndex} 
+                promptId={promptKey}
+                {...prompts[promptKey]} 
+              />
             )
           })}
       </div>

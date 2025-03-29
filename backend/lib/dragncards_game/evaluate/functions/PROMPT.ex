@@ -98,6 +98,7 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
     prompt_uuid = Ecto.UUID.generate
 
     new_prompt = orig_prompt
+    |> Map.put("promptId", prompt_id)
     |> Map.put("uuid", prompt_uuid)
     |> Map.put("message", new_message)
     |> Map.put("timestamp", DateTime.utc_now() |> DateTime.to_unix(:microsecond))

@@ -62,8 +62,11 @@ defmodule DragnCardsWeb.API.V1.ProfileController do
     current_user = conn.assigns.current_user
     IO.puts "current_user: #{inspect(current_user)}"
     if current_user do
+      IO.puts("nested_obj: #{inspect(nested_obj)}")
       user = Repo.get!(User, current_user.id)
+      IO.puts("user: #{inspect(user.plugin_settings)}")
       updates = User.settings_update(user, nested_obj)
+      IO.puts("updates: #{inspect(updates)}")
       changeset = Ecto.Changeset.change(user, updates)
       IO.puts("changeset: #{inspect(changeset)}")
 
