@@ -221,11 +221,18 @@ export const loadArkhamDb = (importLoadList, doActionList, playerN, arkhamDbType
 
     if (jsonData?.investigator_code) {
       var ic = jsonData?.investigator_code;
+      var ti = meta?.transform_into;
       var af = meta?.alternate_front;
       var ab = meta?.alternate_back;
+      var til = ti ? ti.length : 0;
       var afl = af ? af.length : 0;
       var abl = ab ? ab.length : 0;
-      if (afl > 0 && abl > 0 && af === ab) {
+      if (til > 0) {
+        if (ti === "11068b") {
+          ti = "11068a";
+        }
+        loadList.push({'databaseId': ti, 'quantity': 1, 'loadGroupId': "playerNInvestigator"});
+      } else if (afl > 0 && abl > 0 && af === ab) {
         loadList.push({'databaseId': af, 'quantity': 1, 'loadGroupId': "playerNInvestigator"});
       } else if (afl > 0 && abl > 0) {
         loadList.push({'databaseId': af + ab, 'quantity': 1, 'loadGroupId': "playerNInvestigator"});
