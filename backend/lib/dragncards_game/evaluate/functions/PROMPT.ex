@@ -62,7 +62,7 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
         orig_prompt["options"]
 
       true ->
-        raise ArgumentError, message: "Prompt #{prompt_id} must contain an 'options' or 'optionsActionList' key"
+        raise ArgumentError, message: "Prompt #{prompt_id} must contain an 'options' key"
     end
 
     # Generate the variable definition statements that we to resolve the message and to prepended to the code

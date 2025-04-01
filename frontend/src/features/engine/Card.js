@@ -14,6 +14,7 @@ import { PeekingSymbol } from "./PeekingSymbol";
 import { AbilityButton } from "./AbilityButton";
 
 import styled, { keyframes, css } from "styled-components";
+import { MultiSelectOverlay } from "./MultiSelectOverlay";
 
 // Define the vibration keyframes that respect existing rotation
 const vibrate = (baseRotation = "0deg") => keyframes`
@@ -111,6 +112,7 @@ export const Card = React.memo(({
             <Tokens cardId={cardId} isActive={isActive} aspectRatio={width/height}/>
             <CardArrows cardId={cardId} hideArrows={hideArrows}/>
             <AbilityButton cardId={cardId}/>
+            <MultiSelectOverlay cardId={cardId} />
         </StyledCard>
     );
    
