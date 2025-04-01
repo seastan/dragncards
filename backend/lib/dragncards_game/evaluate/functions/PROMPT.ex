@@ -61,9 +61,6 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
       Map.has_key?(orig_prompt, "options") ->
         orig_prompt["options"]
 
-      Map.has_key?(orig_prompt, "optionsActionList") ->
-        Evaluate.evaluate(game, ["ACTION_LIST", orig_prompt["optionsActionList"]], trace ++ ["optionsActionList"])
-
       true ->
         raise ArgumentError, message: "Prompt #{prompt_id} must contain an 'options' or 'optionsActionList' key"
     end

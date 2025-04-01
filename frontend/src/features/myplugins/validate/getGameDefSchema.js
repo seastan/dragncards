@@ -1510,6 +1510,20 @@ export const getGameDefSchema = (gameDef) => {
             "_type_": "any",
             "_required_": true,
           },
+          "input": {
+            "_description_": "Details for an optional input box",
+            "_type_": "object",
+            "type": {
+              "_description_": "The type of input to expect from the user. Options: 'text', 'number'.",
+              "_type_": "string",
+              "_required_": true,
+              "_memberOf_": ["text", "number"],
+            },
+            "placeholder": {
+              "_description_": "The placeholder text to display in the input box",
+              "_type_": "any",
+            },
+          },
           "options": {
             "_description_": "The options to choose from in the prompt",
             "_type_": "array",
@@ -1534,9 +1548,6 @@ export const getGameDefSchema = (gameDef) => {
                 "_type_": "boolean",
               }
             }
-          },
-          "optionsActionList": {
-            "_type_": "actionList",
           }
         }
       },

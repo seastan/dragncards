@@ -10,6 +10,7 @@ import { faGripLines } from "@fortawesome/free-solid-svg-icons";
 import { setPromptVisible } from "../store/gameUiSlice";
 import { useSetPluginSetting } from "./hooks/useSetPluginSetting";
 import { useVisiblePrompts } from "./hooks/useVisiblePrompts";
+import { setTyping } from "../store/playerUiSlice";
 
 const promptStyle = {
   MozBoxShadow: '0 0 50px 20px black',
@@ -21,6 +22,7 @@ export const Prompt = React.memo(({
   promptIndex,
   promptId,
   message,
+  input,
   options,
   uuid
 }) => {
@@ -29,17 +31,38 @@ export const Prompt = React.memo(({
   const doActionList = useDoActionList();
   const gameL10n = useGameL10n();
   const setPluginSetting = useSetPluginSetting();
+  const [promptInput, setPromptInput] = useState(null);
   console.log("Rendering Prompt", uuid);
   const handleOptionClick = (option) => {
     dispatch(setPromptVisible({playerI: playerN, promptUuid: uuid, visible: false}));
-    doActionList(option.code);
+    const promptCode = option.code || [];
+    const defineInput = ["DEFINE", "$PROMPT_INPUT", promptInput];
+    const actionList = [defineInput, promptCode];
+    doActionList(actionList);
     if (option.dontShowAgain == true) {
       setPluginSetting("game", {dontShowAgainPromptIds: {[promptId]: true}});
     }
   }
+
+  const handleInputTyping = (event) => {
+    setPromptInput(event.target.value);
+  }
+
   return (
     <div className="p-2 bg-gray-600-90" style={{borderBottom: "1px solid black"}}>
       <div className="mb-2">{message}</div>
+        {input &&
+          <input
+            type={input.type || "text"}
+            name="promptInput"
+            id="promptInput"
+            placeholder={input?.placeholder}
+            className="form-control w-full bg-gray-900 text-white border-0 h-full px-2"
+            onFocus={event => dispatch(setTyping(true))}
+            onBlur={event => dispatch(setTyping(false))}
+            onChange={handleInputTyping}
+          />
+        }
         {options &&
           <div className="">
             {options.map((option, index) => {
@@ -79,7 +102,6 @@ export const Prompts = React.memo(({
             <FontAwesomeIcon icon={faGripLines} />
           </div>
           {sortedPromptIds.map((promptKey, promptIndex) => {
-            if (prompts[promptKey].visible === false) return null;
             return(
               <Prompt 
                 key={promptIndex} 
