@@ -1,7 +1,7 @@
 
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { setMouseTopBottom, setDropdownMenu, setActiveCardId, setScreenLeftRight, setCardClicked } from "../store/playerUiSlice";
+import { setMouseTopBottom, setDropdownMenu, setActiveCardId, setScreenLeftRight, setCardClicked, toggleMultiSelectCardId } from "../store/playerUiSlice";
 import { useHandleTouchAction } from "./hooks/useHandleTouchAction";
 import { useCardZIndex } from "./hooks/useCardZIndex";
 import { useVisibleFace } from "./hooks/useVisibleFace";
@@ -26,6 +26,7 @@ export const CardMouseRegion = React.memo(({
     const handleTouchAction = useHandleTouchAction();
     const doActionList = useDoActionList();
     const getDefaultAction = useGetDefaultAction(cardId);
+    const multiSelectEnabled = useSelector(state => state?.playerUi?.multiSelect?.enabled);
 
     const makeActive = (event) => {
         const screenLeftRight = event.clientX > (window.innerWidth/2) ? "right" : "left";
@@ -48,6 +49,11 @@ export const CardMouseRegion = React.memo(({
     const handleClick = (event) => {
         console.log("cardaction click", {card, touchMode, isActive, touchAction});
         event.stopPropagation(); 
+        if (multiSelectEnabled) {
+            // If multi-select is enabled, we don't want to make the card active
+            dispatch(toggleMultiSelectCardId(cardId));
+            return;
+        }
         if (touchMode) {
             if (isActive) {
                 doActionList(getDefaultAction()?.actionList)
@@ -66,7 +72,7 @@ export const CardMouseRegion = React.memo(({
     const handleMouseOver = (event) => {
         console.log("cardaction mouseover", card);
         event.stopPropagation();
-        if (!touchMode && !dropdownMenuVisible) makeActive(event);
+        if (!dropdownMenuVisible) makeActive(event);
         //setIsActive(true);
     }
 

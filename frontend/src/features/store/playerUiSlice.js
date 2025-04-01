@@ -73,7 +73,11 @@ const initialState = {
   userSettings: Object.keys(uiSettings).reduce((acc, settingId) => {
     acc[settingId] = uiSettings[settingId].default;
     return acc;
-  },{})
+  },{}),
+  multiSelect: {
+    enabled: false,
+    cardIds: [], // This is to keep track of selected card ids for multi-select
+  }
 };
 
 const playerUiSlice = createSlice({
@@ -250,6 +254,30 @@ const playerUiSlice = createSlice({
     },
     setStatusText: (state, { payload }) => {
       state.status.text = payload;
+    },
+    setMultiSelectEnabled: (state, { payload }) => {
+      state.multiSelect.enabled = payload;
+    },
+    setMultiSelectCardIds: (state, { payload }) => {
+      state.multiSelect.cardIds = payload;
+    },
+    addMultiSelectCardId: (state, { payload }) => {
+      if (!state.multiSelect.cardIds.includes(payload)) {
+        state.multiSelect.cardIds.push(payload);
+      }
+    },
+    removeMultiSelectCardId: (state, { payload }) => {
+      state.multiSelect.cardIds = state.multiSelect.cardIds.filter(id => id !== payload);
+    },
+    toggleMultiSelectCardId: (state, { payload }) => {
+      if (state.multiSelect.cardIds.includes(payload)) {
+        state.multiSelect.cardIds = state.multiSelect.cardIds.filter(id => id !== payload);
+      } else {
+        state.multiSelect.cardIds.push(payload);
+      }
+    },
+    clearMultiSelectCardIds: (state) => {
+      state.multiSelect.cardIds = [];
     }
   }
 });
@@ -311,6 +339,12 @@ export const {
   setSpectatorModePeekingAll,
   setPluginRepoUpdateGameDef,
   setPluginRepoUpdateAutoRefresh,
-  setStatusText
+  setStatusText,
+  setMultiSelectEnabled,
+  setMultiSelectCardIds,
+  addMultiSelectCardId,
+  toggleMultiSelectCardId,
+  removeMultiSelectCardId,
+  clearMultiSelectCardIds
  } = playerUiSlice.actions;
 export default playerUiSlice.reducer;

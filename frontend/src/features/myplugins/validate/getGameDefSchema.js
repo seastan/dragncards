@@ -1510,9 +1510,32 @@ export const getGameDefSchema = (gameDef) => {
             "_type_": "any",
             "_required_": true,
           },
+          "input": {
+            "_description_": "Details for an optional input box",
+            "_type_": "object",
+            "type": {
+              "_description_": "The type of input to expect from the user. Options: 'text', 'number', 'selectCards'.",
+              "_type_": "string",
+              "_required_": true,
+              "_memberOf_": ["text", "number", "selectCards"],
+            },
+            "placeholder": {
+              "_description_": "The placeholder text to display in the input box",
+              "_type_": "any",
+            },
+            "min": {
+              "_description_": "The minimum number of selected cards. If there is no minimum, this can be omitted.",
+              "_type_": "integer",
+            },
+            "max": {
+              "_description_": "The maximum number of selected cards. If there is no max, this can be omitted.",
+              "_type_": "integer",
+            },
+          },
           "options": {
             "_description_": "The options to choose from in the prompt",
             "_type_": "array",
+            "_required_": true,
             "_itemSchema_": {
               "_description_": "An option to choose from",
               "_type_": "object",
@@ -1534,9 +1557,6 @@ export const getGameDefSchema = (gameDef) => {
                 "_type_": "boolean",
               }
             }
-          },
-          "optionsActionList": {
-            "_type_": "actionList",
           }
         }
       },
