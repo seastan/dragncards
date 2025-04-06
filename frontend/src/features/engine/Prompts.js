@@ -69,11 +69,14 @@ export const Prompt = React.memo(({
   const doActionList = useDoActionList();
   const gameL10n = useGameL10n();
   const setPluginSetting = useSetPluginSetting();
+  const multiSelect = useSelector(state => state.playerUi.multiSelect);
   const [promptTextInput, setPromptTextInput] = useState(null);
   console.log("Rendering Prompt", uuid);
-  const handleOptionClick = (option) => {
+
+  const runCode = (code) => {
+
     dispatch(setPromptVisible({playerI: playerN, promptUuid: uuid, visible: false}));
-    
+
     // Define the input, if any
     var promptInput = null;
     if (input && (input.type === "text" || input.type === "number")) {
@@ -87,13 +90,24 @@ export const Prompt = React.memo(({
     dispatch(clearMultiSelectCardIds()); // Clear multi-select after the prompt is handled
 
     // Compile the action list
-    const promptCode = option.code || [];
+    const promptCode = code || [];
     const actionList = [defineInput, promptCode];
     doActionList(actionList);
+  }
+
+  const handleOptionClick = (option) => {
+    runCode(option.code);
     if (option.dontShowAgain == true) {
       setPluginSetting("game", {dontShowAgainPromptIds: {[promptId]: true}});
     }
   }
+
+  useEffect(() => {
+    // Reset the promptTextInput when the prompt is re-rendered
+    if (promptIndex === 0 && input.type == "selectCards" && input?.autoSubmit?.numCards == multiSelect?.cardIds?.length) {
+      runCode(input.autoSubmit.code); // Automatically run the code if the number of selected cards matches the auto-submit criteria
+    }
+  }, [multiSelect]);
 
   return (
     <div className="p-2 bg-gray-600-90" style={{borderBottom: "1px solid black"}}>

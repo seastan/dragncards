@@ -1514,28 +1514,30 @@ export const getGameDefSchema = (gameDef) => {
             "_description_": "Details for an optional input box",
             "_type_": "object",
             "type": {
-              "_description_": "The type of input to expect from the user. Options: 'text', 'number', 'selectCards'.",
+              "_description_": "The type of input to expect from the user. Must be one of: 'text', 'number', 'selectCards'. The code in the prompt options can use the `$PROMPT_INPUT` variable to access the input value, which will be a string, number, or a list of card ids depending on the input type.",
               "_type_": "string",
               "_required_": true,
               "_memberOf_": ["text", "number", "selectCards"],
             },
-            "placeholder": {
-              "_description_": "The placeholder text to display in the input box",
-              "_type_": "any",
-            },
-            "min": {
-              "_description_": "The minimum number of selected cards. If there is no minimum, this can be omitted.",
-              "_type_": "integer",
-            },
-            "max": {
-              "_description_": "The maximum number of selected cards. If there is no max, this can be omitted.",
-              "_type_": "integer",
+            "autoSubmit": {
+              "_description_": "Whether to automatically submit the prompt when the user secets a certain number of cards. Only applies if input type is `selectCards`.",
+              "_type_": "object",
+              "_required_": false,
+              "numCards": {
+                "_description_": "The number of cards to select before automatically submitting the prompt.",
+                "_type_": "integer",
+                "_required_": true
+              },
+              "code": {
+                "_description_": "The DragnLang code to execute when the user selects the specified number of cards.",
+                "_type_": "code",
+                "_required_": false,
+              }
             },
           },
           "options": {
             "_description_": "The options to choose from in the prompt",
             "_type_": "array",
-            "_required_": true,
             "_itemSchema_": {
               "_description_": "An option to choose from",
               "_type_": "object",
