@@ -62,7 +62,9 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
         orig_prompt["options"]
 
       true ->
-        raise ArgumentError, message: "Prompt #{prompt_id} must contain an 'options' key"
+        # Fallback to an empty list of options if none are defined in the prompt
+        # This allows for a simple message prompt without any options
+        []
     end
 
     # Generate the variable definition statements that we to resolve the message and to prepended to the code
@@ -103,21 +105,33 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
     game = Enum.reduce(target_player_list, game, fn(target_player_n, acc) ->
       # Prepend the "VAR" statements to each option's code so that when it gets evaluated, it will have the variables defined
       # Append a command to delete the prompt
+      unset_command = ["UNSET", "/playerData/#{target_player_n}/prompts/#{prompt_uuid}"]
       new_options = Enum.reduce(orig_options, [], fn(option, acc) ->
-        unset_command = ["UNSET", "/playerData/#{target_player_n}/prompts/#{prompt_uuid}"]
         new_option = if option["code"] != nil do
-          prompt_code = if is_list(Enum.at(option["code"], 0)) do
-            option["code"]
-          else
-            [option["code"]]
-          end
-          put_in(option, ["code"], [multi_var_command] ++ prompt_code ++ [unset_command])
+          put_in(option, ["code"], [multi_var_command, option["code"], unset_command])
         else
           put_in(option, ["code"], unset_command)
         end
         acc ++ [new_option]
       end)
       new_prompt = put_in(new_prompt, ["options"], new_options)
+
+      # Update the `autoSubmit` code if it exists in the prompt
+      IO.puts("a")
+      IO.inspect(new_prompt)
+      IO.puts("b")
+
+      new_prompt =
+        case get_in(new_prompt, ["input", "autoSubmit", "code"]) do
+          nil -> new_prompt
+          code ->
+            put_in(new_prompt, ["input", "autoSubmit", "code"],
+              [multi_var_command, code, unset_command]
+            )
+        end
+      IO.puts("c")
+      IO.inspect(new_prompt)
+      IO.puts("d")
 
       # Add the prompt to the player's prompts
       acc = put_in(acc, ["playerData", target_player_n, "prompts", prompt_uuid], new_prompt)
