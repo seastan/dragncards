@@ -104,7 +104,7 @@ export const Prompt = React.memo(({
 
   useEffect(() => {
     // Reset the promptTextInput when the prompt is re-rendered
-    if (promptIndex === 0 && input.type == "selectCards" && input?.autoSubmit?.numCards == multiSelect?.cardIds?.length) {
+    if (promptIndex === 0 && input && input?.type == "selectCards" && input?.autoSubmit?.numCards == multiSelect?.cardIds?.length) {
       runCode(input.autoSubmit.code); // Automatically run the code if the number of selected cards matches the auto-submit criteria
     }
   }, [multiSelect]);
