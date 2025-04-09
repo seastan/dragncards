@@ -117,10 +117,6 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
       new_prompt = put_in(new_prompt, ["options"], new_options)
 
       # Update the `autoSubmit` code if it exists in the prompt
-      IO.puts("a")
-      IO.inspect(new_prompt)
-      IO.puts("b")
-
       new_prompt =
         case get_in(new_prompt, ["input", "autoSubmit", "code"]) do
           nil -> new_prompt
@@ -129,9 +125,6 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
               [multi_var_command, code, unset_command]
             )
         end
-      IO.puts("c")
-      IO.inspect(new_prompt)
-      IO.puts("d")
 
       # Add the prompt to the player's prompts
       acc = put_in(acc, ["playerData", target_player_n, "prompts", prompt_uuid], new_prompt)

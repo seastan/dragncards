@@ -3,6 +3,7 @@ defmodule DragnCardsWeb.MyPluginsController do
   import Ecto.Query
 
   alias DragnCards.{Plugins, Plugins.Plugin, Repo}
+  alias DragnCardsGame.PluginCache
 
   action_fallback DragnCardsWeb.FallbackController
 
@@ -53,9 +54,11 @@ defmodule DragnCardsWeb.MyPluginsController do
   # Update: Update plugin
   @spec update(Conn.t(), map()) :: Conn.t()
   def update(conn, %{"plugin" => plugin_params}) do
-    plugin = Plugins.get_plugin!(plugin_params["id"])
+    plugin_id = plugin_params["id"]
+    plugin = Plugins.get_plugin!(plugin_id)
     case Plugins.update_plugin(plugin, plugin_params) do
       {:ok, plugin} ->
+        PluginCache.refresh_plugin(plugin_id)
         conn
         |> json(%{success: %{message: "Plugin updated successfully"}, plugin: plugin})
       {:error, _changeset} ->
