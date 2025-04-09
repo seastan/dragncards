@@ -143,11 +143,15 @@ export const Prompts = React.memo(({
       const topPrompt = prompts[sortedPromptIds[0]];
       if (topPrompt && topPrompt.input && topPrompt.input.type === "selectCards" && !multiSelect.enabled) {
         dispatch(setMultiSelectEnabled(true));
-      } 
-      // else if (multiSelect.enabled) {
-      //   // If the top prompt is not a selectCards type, we should disable multi-select
-      //   dispatch(setMultiSelectEnabled(false));
-      // }
+      } else if (multiSelect.enabled) {
+        // If the top prompt is not a selectCards type, we should disable multi-select
+        dispatch(setMultiSelectEnabled(false));
+        dispatch(clearMultiSelectCardIds());
+      }
+    } else if (multiSelect.enabled) {
+      // If there are no prompts, we should disable multi-select
+      dispatch(setMultiSelectEnabled(false));
+      dispatch(clearMultiSelectCardIds());
     }
   }, [sortedPromptIds]);
 
