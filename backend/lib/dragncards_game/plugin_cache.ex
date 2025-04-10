@@ -49,7 +49,7 @@ defmodule DragnCardsGame.PluginCache do
   end
 
   # Refresh the plugin and store it in the cache with a new timestamp
-  defp refresh_plugin(plugin_id) do
+  def refresh_plugin(plugin_id) do
     plugin = Plugins.get_plugin!(plugin_id)
     :ets.insert(@table_name, {plugin_id, {plugin, current_timestamp()}})
     plugin
