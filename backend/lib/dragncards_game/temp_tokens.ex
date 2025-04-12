@@ -30,9 +30,12 @@ defmodule DragnCardsGame.TempTokens do
   def remove_all_for_timing(game, timing) do
     remove_action_list = [
       ["FOR_EACH_KEY_VAL", "$CARD_ID", "$TOKEN_OBJ", "$GAME.tempTokens.#{timing}", [
-        ["FOR_EACH_KEY_VAL", "$TOKEN_ID", "$VAL", "$TOKEN_OBJ", [
-          ["DECREASE_VAL", "/cardById/$CARD_ID/tokens/$TOKEN_ID", "$VAL"],
-        ]]
+        ["COND",
+          "$GAME.cardById.$CARD_ID.inPlay",
+          ["FOR_EACH_KEY_VAL", "$TOKEN_ID", "$VAL", "$TOKEN_OBJ", [
+            ["DECREASE_VAL", "/cardById/$CARD_ID/tokens/$TOKEN_ID", "$VAL"],
+          ]]
+        ]
       ]],
       ["SET", "/tempTokens/#{timing}", %{}]
     ]
