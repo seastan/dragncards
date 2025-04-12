@@ -7,6 +7,9 @@ defmodule DragnCardsGame.PutByPath do
   alias DragnCards.{Rooms, Plugins}
 
   def put_by_path(game_old, path, val_new, trace) do
+    IO.puts("put_by_path #{inspect(path)} #{inspect(val_new)}")
+    # Get current time in ms
+    t0 = System.system_time(:millisecond)
     path_minus_key = try do
       Enum.slice(path, 0, Enum.count(path)-1)
     rescue
@@ -43,6 +46,9 @@ defmodule DragnCardsGame.PutByPath do
     else
       game_new
     end
+    t1 = System.system_time(:millisecond)
+    IO.puts("put_by_path time: #{t1 - t0} ms")
+    game_new
   end
 
 end
