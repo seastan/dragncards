@@ -27,15 +27,20 @@ defmodule DragnCardsGame.TempTokens do
     Map.put(game, "tempTokens", temp_tokens)
   end
 
+  def remove_card_from_temp_tokens(game, card_id) do
+    temp_tokens = game["tempTokens"]
+    temp_tokens = Map.new(temp_tokens, fn {timing, card_map} ->
+      {timing, Map.drop(card_map, [card_id])}
+    end)
+    Map.put(game, "tempTokens", temp_tokens)
+  end
+
   def remove_all_for_timing(game, timing) do
     remove_action_list = [
       ["FOR_EACH_KEY_VAL", "$CARD_ID", "$TOKEN_OBJ", "$GAME.tempTokens.#{timing}", [
-        ["COND",
-          "$GAME.cardById.$CARD_ID.inPlay",
-          ["FOR_EACH_KEY_VAL", "$TOKEN_ID", "$VAL", "$TOKEN_OBJ", [
-            ["DECREASE_VAL", "/cardById/$CARD_ID/tokens/$TOKEN_ID", "$VAL"],
-          ]]
-        ]
+        ["FOR_EACH_KEY_VAL", "$TOKEN_ID", "$VAL", "$TOKEN_OBJ", [
+          ["DECREASE_VAL", "/cardById/$CARD_ID/tokens/$TOKEN_ID", "$VAL"],
+        ]]
       ]],
       ["SET", "/tempTokens/#{timing}", %{}]
     ]
