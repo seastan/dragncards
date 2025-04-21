@@ -2,7 +2,7 @@ defmodule DragnCardsWeb.MyPluginsController do
   use DragnCardsWeb, :controller
   import Ecto.Query
 
-  alias DragnCards.{Plugins, Plugins.Plugin, Repo}
+  alias DragnCards.{Plugins, Plugins.Plugin, Repo, UserPluginPermission, Rooms.RoomLog, Decks.Deck, Plugins.CustomCardDb}
   alias DragnCardsGame.PluginCache
 
   action_fallback DragnCardsWeb.FallbackController
@@ -68,15 +68,39 @@ defmodule DragnCardsWeb.MyPluginsController do
   end
 
 
-  # Update: Update plugin
   @spec delete(Conn.t(), map()) :: Conn.t()
   def delete(conn, %{"id" => plugin_id}) do
     user = Pow.Plug.current_user(conn)
-    plugin = Repo.one(from p in Plugin, select: [:id], where: p.id == ^plugin_id)
-    plugin_id = plugin.id
     user_id = user.id
-    from(x in Plugin, where: x.id == ^plugin_id and x.author_id == ^user_id) |> Repo.delete_all
-    conn
-    |> json(%{success: %{message: "Updated settings"}})
+    res = Repo.get(Plugin, plugin_id)
+
+    # Fetch plugin and check it exists
+    case Repo.get(Plugin, plugin_id) do
+      nil ->
+        IO.puts("Plugin not found")
+        conn
+        |> put_status(:not_found)
+        |> json(%{error: "Plugin not found"})
+
+      %Plugin{id: plugin_id, author_id: user_id} ->
+
+        # Manually delete related permissions first
+        Repo.delete_all(from upp in UserPluginPermission, where: upp.private_access == ^plugin_id)
+        Repo.delete_all(from rl in RoomLog, where: rl.plugin_id == ^plugin_id)
+        Repo.delete_all(from d in Deck, where: d.plugin_id == ^plugin_id)
+        Repo.delete_all(from c in CustomCardDb, where: c.plugin_id == ^plugin_id)
+
+        # Now delete the plugin itself
+        Repo.delete_all(from p in Plugin, where: p.id == ^plugin_id and p.author_id == ^user_id)
+
+        conn
+        |> json(%{success: %{message: "Plugin deleted"}})
+
+      %Plugin{author_id: other_user_id} ->
+        conn
+        |> put_status(:forbidden)
+        |> json(%{error: "You are not authorized to delete this plugin"})
+    end
   end
+
 end

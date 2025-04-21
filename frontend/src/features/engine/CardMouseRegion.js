@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setMouseTopBottom, setDropdownMenu, setActiveCardId, setScreenLeftRight, setCardClicked, toggleMultiSelectCardId } from "../store/playerUiSlice";
 import { useHandleTouchAction } from "./hooks/useHandleTouchAction";
@@ -27,6 +27,10 @@ export const CardMouseRegion = React.memo(({
     const doActionList = useDoActionList();
     const getDefaultAction = useGetDefaultAction(cardId);
     const multiSelectEnabled = useSelector(state => state?.playerUi?.multiSelect?.enabled);
+
+    const lastTouchTime = useRef(0);
+
+    const isRecentTouch = () => Date.now() - lastTouchTime.current < 500;
 
     const makeActive = (event) => {
         const screenLeftRight = event.clientX > (window.innerWidth/2) ? "right" : "left";
@@ -68,25 +72,26 @@ export const CardMouseRegion = React.memo(({
             handleSetDropDownMenu();
         }
     }
+
+    const handleContextMenu = (event) => {
+        console.log("cardaction contextmenu", {card, touchMode, isActive, touchAction});
+        event.preventDefault();
+        event.stopPropagation(); 
+        makeActive(event); 
+        handleSetDropDownMenu();
+    }
+
+    const handleTouchStart = () => {
+        lastTouchTime.current = Date.now();
+    }
     
     const handleMouseOver = (event) => {
+        if (isRecentTouch()) return;
         console.log("cardaction mouseover", card);
         event.stopPropagation();
         if (!dropdownMenuVisible) makeActive(event);
-        //setIsActive(true);
     }
 
-    const onLongPress = (event) => {
-        event.preventDefault();
-        handleSetDropDownMenu();
-    };
-
-    // const defaultOptions = {
-    //     shouldPreventDefault: true,
-    //     delay: 800,
-    // };
-
-    //const longPress = useLongPress(onLongPress, handleClick, defaultOptions);
     const regionStyle = {
         position: 'absolute',
         top: topOrBottom === "top" ? "0%" : "50%",
@@ -95,45 +100,13 @@ export const CardMouseRegion = React.memo(({
         zIndex: zIndex,
     }
 
-    // if (touchMode) {
-    //     return(
-    //         <div 
-    //             {...longPress}
-    //             style={regionStyle}
-    //             onMouseOver={event => !isActive && !touchAction && makeActive(event)}
-    //         />
-    // )} else 
-    //   const handleEvent = (event) => {
-    //     console.log("clicklog", event.type, event);
-    //     if (event.type === "click") handleClick(event);
-    //     if (event.type === "mouseover") handleMouseOver(event);
-    //   };
-    
-    //   return (
-    //     <div
-    //       id="my-element"
-    //       style={regionStyle}
-    //       onTouchStart={handleEvent}
-    //       onTouchMove={handleEvent}
-    //       onTouchEnd={handleEvent}
-    //       onMouseDown={handleEvent}
-    //       onMouseOver={handleEvent}
-    //       onMouseUp={handleEvent}
-    //       onClick={handleEvent}
-    //       onDoubleClick={handleEvent}
-    //       onPointerDown={handleEvent}
-    //       onPointerUp={handleEvent}
-    //       onPointerCancel={handleEvent}
-    //       onKeyDown={handleEvent}
-    //       onKeyUp={handleEvent}
-    //     />
-    //   );
-
     return (
         <div 
             style={regionStyle}
-            onMouseOver={event =>  handleMouseOver(event)}
-            onClick={event => handleClick(event)}
+            onTouchStart={handleTouchStart}
+            onMouseOver={handleMouseOver}
+            onClick={handleClick}
+            onContextMenu={handleContextMenu}
         />  
     )
 })

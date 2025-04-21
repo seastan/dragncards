@@ -103,6 +103,8 @@
       "layout" => game_def["layouts"][layout_id],
       "firstPlayer" => "player1",
       "stepId" => step_id,
+      "stepIdByIndex" => Map.new(Enum.with_index(game_def["stepOrder"])),
+      "stepIndexById" => Map.new(Enum.with_index(game_def["stepOrder"]), fn {step_id, index} -> {step_id, index} end),
       "groupById" => groups,
       "stackById" => %{},
       "cardById"  => %{},

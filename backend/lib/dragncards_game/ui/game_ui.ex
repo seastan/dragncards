@@ -8,7 +8,7 @@ defmodule DragnCardsGame.GameUI do
   alias DragnCards.Plugins.CustomCardDb
   alias ElixirSense.Providers.Eval
   alias DragnCardsGame.GameVariables
-  alias DragnCardsGame.{Game, GameUI, Stack, Card, PlayerInfo, Evaluate, GameVariables, Evaluate.Variables.ALIAS_N, AutomationRules, RuleMap, PluginCache}
+  alias DragnCardsGame.{Game, GameUI, Stack, Card, PlayerInfo, Evaluate, GameVariables, Evaluate.Variables.ALIAS_N, AutomationRules, RuleMap, PluginCache, TempTokens}
 
   alias DragnCards.{Repo, Replay, Plugins, Plugins.CustomCardDb, Users}
   alias DragnCards.Rooms.Room
@@ -394,7 +394,10 @@ defmodule DragnCardsGame.GameUI do
 
   def ucs_remove_tokens(game, card_id, card, orig_group, dest_group) do
     if orig_group["canHaveTokens"] != false and dest_group["canHaveTokens"] == false do
-      Enum.reduce(card["tokens"], {game, []}, fn {key, _val}, {acc_game, acc_paths} ->
+      # Remove temp tokens
+      game = TempTokens.remove_card_from_temp_tokens(game, card_id)
+      # Remove tokens
+      game = Enum.reduce(card["tokens"], {game, []}, fn {key, _val}, {acc_game, acc_paths} ->
         new_game = put_in(acc_game, ["cardById", card_id, "tokens", key], 0)
         new_paths = acc_paths ++ ["/cardById/#{card_id}/tokens/#{key}"]
         {new_game, new_paths}
