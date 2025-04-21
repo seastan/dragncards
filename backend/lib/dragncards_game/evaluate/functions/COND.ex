@@ -81,7 +81,13 @@ defmodule DragnCardsGame.Evaluate.Functions.COND do
     end
     Enum.reduce_while(0..Enum.count(ifthens)-1//2, game, fn(i, _acc) ->
       if_statement = Enum.at(ifthens, i)
+      t0 = System.system_time(:millisecond)
       result = Evaluate.evaluate(game, if_statement, trace ++ ["index #{i} (if)"])
+      t1 = System.system_time(:millisecond)
+      dt = t1 - t0
+      if dt > 10 do
+        IO.puts("COND evaluate time: #{dt} ms for if_statement: #{inspect(if_statement)}")
+      end
       if is_boolean(result) or is_nil(result) or result == 1 or result == 0 do
         if result do
           then_statement = Enum.at(ifthens, i+1)
