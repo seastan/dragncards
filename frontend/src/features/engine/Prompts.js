@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { usePlayerN } from "./hooks/usePlayerN";
 import { keysDiv, Z_INDEX } from "./functions/common";
@@ -134,7 +134,9 @@ export const Prompts = React.memo(({
   const dispatch = useDispatch();
   const multiSelect = useSelector(state => state.playerUi.multiSelect);
   const prompts = useVisiblePrompts();
-  const sortedPromptIds = Object.keys(prompts).sort((a,b) => prompts[a].timestamp - prompts[b].timestamp);
+  const sortedPromptIds = useMemo(() => {
+    return Object.keys(prompts).sort((a,b) => prompts[a].timestamp - prompts[b].timestamp);
+  }, [prompts]);
   console.log("Rendering Prompts", prompts);
 
   // After rendering the prompts, if the top prompt has a selectCards input, we should set the UI status to multi-select mode
@@ -143,17 +145,16 @@ export const Prompts = React.memo(({
       const topPrompt = prompts[sortedPromptIds[0]];
       if (topPrompt && topPrompt.input && topPrompt.input.type === "selectCards" && !multiSelect.enabled) {
         dispatch(setMultiSelectEnabled(true));
-      } else if (multiSelect.enabled) {
-        // If the top prompt is not a selectCards type, we should disable multi-select
+      } else if (topPrompt && topPrompt.input && topPrompt.input.type !== "selectCards" && multiSelect.enabled) {
         dispatch(setMultiSelectEnabled(false));
         dispatch(clearMultiSelectCardIds());
       }
     } else if (multiSelect.enabled) {
-      // If there are no prompts, we should disable multi-select
       dispatch(setMultiSelectEnabled(false));
       dispatch(clearMultiSelectCardIds());
     }
-  }, [sortedPromptIds]);
+  }, [sortedPromptIds, prompts]);
+  
 
   // Check if all prompts have visible set to false
   if (Object.keys(prompts).length === 0) return null;
