@@ -29,7 +29,7 @@ export const DropdownMenuCommon = React.memo(({
       setActiveMenu(dropdownOptions.goToMenu);
       return;
     }
-    doActionList(dropdownOptions.action);
+    doActionList(dropdownOptions.action, `Dropdown menu action: ${dropdownOptions.description}`);
     setActiveMenu("main");
     dispatch(setDropdownMenu(null));
     dispatch(setActiveCardId(null));

@@ -114,7 +114,7 @@ export const useKeyDown = () => {
             for (var option of prompt.options) {
                 if (keyMatch(option.hotkey, dictKey)) {
                     dispatch(setPromptVisible({playerI: playerN, promptUuid: prompt.uuid, visible: false}));
-                    doActionList(option.code);
+                    doActionList(option.code, `Prompt response: ${option.label}`);
                     return;
                 }
             }
@@ -153,47 +153,27 @@ export const useKeyDown = () => {
                     sendLocalMessage(`You must hover over a card to use the "${dictKey}" hotkey.`);
                     return;
                 }
-                doActionList(keyObj.actionList)
+                doActionList(keyObj.actionList, `Pressed hotkey "${dictKey}" on card ${visibleFace?.name}`);
                 dispatch(setPreHotkeyActiveCardGroupId(activeCardGroupId));
                 return;
             }
         }
         for (var keyObj of gameDefGameHotkeys) {
             if (keyMatch(keyObj.key, dictKey)) {
-                doActionList(keyObj.actionList)
+                doActionList(keyObj.actionList, `Pressed game hotkey "${dictKey}"`);
                 return;
             }
         }
         for (var keyObj of dragnHotkeys) {
             if (keyMatch(keyObj.key, dictKey)) {
-                doDragnHotkey(keyObj.actionList)
+                doDragnHotkey(keyObj.actionList, `Pressed dragn hotkey "${dictKey}"`);
                 return;
             }
         }
 
         sendLocalMessage(`No hotkey found for "${dictKey}".`)
 
-        //if (Object.keys(defaultHotkeys["card"]).includes(dictKey)) doActionList("_custom",defaultActionLists[defaultHotkeys["card"][dictKey]]);
-        //else if (Object.keys(defaultHotkeys["ui"]).includes(dictKey)) doActionList("_custom",defaultActionLists[defaultHotkeys["ui"][dictKey]]);
-        //else if (Object.keys(defaultHotkeys["game"]).includes(dictKey)) doActionList("_custom",defaultActionLists[defaultHotkeys["game"][dictKey]]);
-        //else if (Object.keys(defaultHotkeys["token"]).includes(dictKey)) keyTokenAction(defaultHotkeys["token"][dictKey]);
     }
-
-/*     return (actionListName, actionList = null, _options = null) => {
-        const state = store.getState();
-        if (Object.keys(gameDef.actionLists).includes(actionListName)) {
-            actionList = gameDef.actionLists[actionListName]
-        } else if (actionListName === "flipCard") {
-            actionList = flipCard;
-        }
-        if (actionList != null) gameBroadcast("game_action", {
-            action: "game_action_list", 
-            options: {
-                action_list: actionList, 
-                player_ui: state.playerUi,
-            }
-        })
-    } */
 }
 
 const keyMatch = (key1, key2) => {

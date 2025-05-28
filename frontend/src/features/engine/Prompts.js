@@ -73,7 +73,7 @@ export const Prompt = React.memo(({
   const [promptTextInput, setPromptTextInput] = useState(null);
   console.log("Rendering Prompt", uuid);
 
-  const runCode = (code) => {
+  const runCode = (code, description = null) => {
 
     dispatch(setPromptVisible({playerI: playerN, promptUuid: uuid, visible: false}));
 
@@ -92,11 +92,11 @@ export const Prompt = React.memo(({
     // Compile the action list
     const promptCode = code || [];
     const actionList = [defineInput, promptCode];
-    doActionList(actionList);
+    doActionList(actionList, `Prompt response: ${description}`)
   }
 
   const handleOptionClick = (option) => {
-    runCode(option.code);
+    runCode(option.code, gameL10n(option.label));
     if (option.dontShowAgain == true) {
       setPluginSetting("game", {dontShowAgainPromptIds: {[promptId]: true}});
     }
@@ -105,7 +105,7 @@ export const Prompt = React.memo(({
   useEffect(() => {
     // Reset the promptTextInput when the prompt is re-rendered
     if (promptIndex === 0 && input && input?.type == "selectCards" && input?.autoSubmit?.numCards == multiSelect?.cardIds?.length) {
-      runCode(input.autoSubmit.code); // Automatically run the code if the number of selected cards matches the auto-submit criteria
+      runCode(input.autoSubmit.code, "Autosubmit"); // Automatically run the code if the number of selected cards matches the auto-submit criteria
     }
   }, [multiSelect]);
 

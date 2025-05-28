@@ -31,7 +31,7 @@ export const TouchButton = React.memo(({buttonObj, displayText}) => {
     console.log("buttonObjClick", buttonObj)
     if (buttonObj?.actionType === "game") {
 
-      buttonObj.isDragnButton ? doDragnHotkey(buttonObj?.actionList) : doActionList(buttonObj?.actionList)
+      buttonObj.isDragnButton ? doDragnHotkey(buttonObj?.actionList) : doActionList(buttonObj?.actionList, `Touch button action ${buttonObj.label}`);
     // If button is selected already, either change it from + to - or deselect it
     } else if (selected) {
       if (touchAction?.actionType === "token" && !touchAction.doubleClicked) {

@@ -52,10 +52,10 @@ export const Stack = React.memo(({
   const handleShowUnder = () => {
     if (showingUnder) {
       console.log("Hiding Under", hideUnderActionList(stackId));
-      doActionList(hideUnderActionList(stackId));
+      doActionList(hideUnderActionList(stackId), `Hide cards under stack`);
     } else {
       console.log("Looking Under", lookUnderActionList(stackId));
-      doActionList(lookUnderActionList(stackId));
+      doActionList(lookUnderActionList(stackId), `Look at cards under stack`);
     }
     setShowingUnder(!showingUnder);
   }

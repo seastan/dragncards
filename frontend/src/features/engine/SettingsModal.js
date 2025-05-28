@@ -231,7 +231,7 @@ const ModalContent = () => {
     }
 
     if (actionList.length > 0) {
-      doActionList(actionList);
+      doActionList(actionList, `Updated settings for user ${user.alias}`);
     }
 
     // Update the UI settings

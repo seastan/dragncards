@@ -237,7 +237,7 @@ export const DragContainer = React.memo(({}) => {
       doActionList([
         ["LOG", "$ALIAS_N", " attached ", afterDragName, " from ", "$GAME.groupById."+origGroupId+".label", " to ", ["FACEUP_NAME_FROM_STACK_ID", destStackId], "."],
         ["MOVE_STACK", origStackId, destGroupId, stackIndex, {"combine": result.combine.direction, "allowFlip": allowFlip}],
-      ])
+      ], `Combined ${afterDragName} with ${card0.sides.A.name}`);
     }
     
     // Dragged somewhere
@@ -266,11 +266,11 @@ export const DragContainer = React.memo(({}) => {
             ["SET", `/stackById/${origStackId}/top`, stackTop]
           ]
         ]
-      ])
+      ], `Moved ${afterDragName} from ${origGroup.label} to ${destGroup.label}`);
       dispatch(setGroupById(newGroupById));
     }
     if (gameDef?.automation?.postDragAndDropActionList) {
-      doActionList(gameDef.automation.postDragAndDropActionList);
+      doActionList(gameDef.automation.postDragAndDropActionList, `Post drag and drop action list after moving ${afterDragName} to ${destGroup.label}`);
     }
 
   }

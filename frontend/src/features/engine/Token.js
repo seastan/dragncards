@@ -62,7 +62,7 @@ export const Token = React.memo(({
                        Math.abs(totalDelta) > 1 ? "s" : "", totalDelta >= 0 ? " to " : " from ", `$GAME.cardById.${cardId}.currentFace.name`, "."],
                 ["SET", `/cardById/${cardId}/tokens/${tokenType}`, newAmount]
             ]
-            doActionList(listOfActions);
+            doActionList(listOfActions, `Used arrow button to change token ${tokenType} on card ${cardId} by ${totalDelta}`);
         }, 500);
     }
     // Prevent doubleclick from interfering with 2 clicks

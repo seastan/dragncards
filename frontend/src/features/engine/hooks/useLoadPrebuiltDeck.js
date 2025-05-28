@@ -14,7 +14,7 @@ export const useLoadPrebuiltDeck = () => {
             doActionList([
                 ["LOG", `{{$ALIAS_N}} loaded ${deck.label}.`],
                 ["LOAD_CARDS", deckId]
-            ])
+            ], `Loaded prebuilt deck ${deckId}`);
         } else {
             alert("Deck not found");
         }

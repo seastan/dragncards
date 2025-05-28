@@ -26,7 +26,7 @@ export const useAddToken = () => {
                 actionList.push(["INCREASE_VAL", "/cardById/" + cardId + "/tokens/" + tokenType, value])
             }
         }
-        doActionList(actionList);
+        doActionList(actionList, `Added tokens to card ${activeCardId}`);
     }
 
     return (tokenType, amount) => {

@@ -26,7 +26,7 @@ export const AbilityButton = React.memo(({
     const abilityHotkeyKey = abilityHotkey?.key;
 
     const handleAbilityClick = () => {
-        doActionList(dragnActionLists.triggerAutomationAbility(ability, cardId, currentSide))
+        doActionList(dragnActionLists.triggerAutomationAbility(ability, cardId, currentSide), `Trigger ability of ${cardCurrentFace.name}`);
     }
 
     if (!playerN) return null;
