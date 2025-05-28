@@ -98,30 +98,35 @@ export const DropdownMenuCard = React.memo(({
         <DropdownItem
           leftIcon={<FontAwesomeIcon icon={faArrowUp}/>}
           action={dragnActionLists.moveCardToTop(menuCardId, destGroupId, label)}
+          description={`Move ${visibleFace.name} to the top of ${label}`}
           clickCallback={handleDropdownClick}>
           {l10n("top")}
         </DropdownItem>
         <DropdownItem
           leftIcon={<FontAwesomeIcon icon={faRandom}/>}
           action={dragnActionLists.moveCardToShuffled(menuCardId, destGroupId, label)}
+          description={`Move ${visibleFace.name} to a random position in ${label}`}
           clickCallback={handleDropdownClick}>
           {l10n("shuffleIn")}
         </DropdownItem>
         <DropdownItem
           leftIcon={<FontAwesomeIcon icon={faRandom}/>}
           action={dragnActionLists.moveCardToTopX(menuCardId, destGroupId, label)}
+          description={`Move ${visibleFace.name} to a random position in the top X cards of ${label}`}
           clickCallback={handleDropdownClick}>
           {l10n("shuffleIntoTopX")}
         </DropdownItem>
         <DropdownItem
           leftIcon={<FontAwesomeIcon icon={faRandom}/>}
           action={dragnActionLists.moveCardToBottomX(menuCardId, destGroupId, label)}
+          description={`Move ${visibleFace.name} to a random position in the bottom X cards of ${label}`}
           clickCallback={handleDropdownClick}>
           {l10n("shuffleIntoBottomX")}
         </DropdownItem>
         <DropdownItem
           leftIcon={<FontAwesomeIcon icon={faArrowDown}/>}
           action={dragnActionLists.moveCardToBottom(menuCardId, destGroupId, label)}
+          description={`Move ${visibleFace.name} to the bottom of ${label}`}
           clickCallback={handleDropdownClick}>
           {l10n("bottom")}
         </DropdownItem>
@@ -145,6 +150,7 @@ export const DropdownMenuCard = React.memo(({
           {menuCard.cardIndex === 0 || gameDef?.cardMenu?.suppress?.includes("Detach") ? null : 
             <DropdownItem 
               action={dragnActionLists.detach(menuCard)} 
+              description={`Detach ${visibleFace.name} from its parent card`}
               clickCallback={handleDropdownClick}>
                 {l10n("detach")}
             </DropdownItem>
@@ -159,14 +165,16 @@ export const DropdownMenuCard = React.memo(({
           }
           {gameDef?.cardMenu?.suppress?.includes("Flip") ? null :
             <DropdownItem 
-              action= {dragnActionLists.flipCard(menuCard)} 
+              action={dragnActionLists.flipCard(menuCard)} 
+              description={`Flip ${visibleFace.name} to the other side`}
               clickCallback={handleDropdownClick}>
                 {l10n("flip")}
             </DropdownItem>
           }
           {gameDef?.cardMenu?.suppress?.includes("Delete") ? null :
             <DropdownItem 
-              action= {dragnActionLists.deleteCard(menuCard)} 
+              action={dragnActionLists.deleteCard(menuCard)} 
+              description={`Delete ${visibleFace.name} from the game`}
               clickCallback={handleDropdownClick}>
                 {l10n("delete")}
             </DropdownItem>
@@ -176,6 +184,7 @@ export const DropdownMenuCard = React.memo(({
             return ( 
               <DropdownItem 
                 action={menuItem.actionList} 
+                description={`Perform action: ${menuItem.label}`}
                 clickCallback={handleDropdownClick}>
                   {gameL10n(menuItem.label)}
               </DropdownItem> 
@@ -247,6 +256,7 @@ export const DropdownMenuCard = React.memo(({
           <GoBack goToMenu="main" clickCallback={handleDropdownClick}/>
           <DropdownItem
             action={dragnActionLists.togglePeeking(menuCard, "None", playerIList)}
+            description={`Toggle peeking for ${visibleFace.name} to None`}
             clickCallback={handleDropdownClick}>
             {l10n("None")}
           </DropdownItem>
@@ -256,6 +266,7 @@ export const DropdownMenuCard = React.memo(({
                 key={index}
                 rightIcon={menuCard?.peeking?.[playerI] ? <FontAwesomeIcon icon={faCheck}/> : null}
                 action={dragnActionLists.togglePeeking(menuCard, playerI, playerIList)}
+                description={`Toggle peeking for ${visibleFace.name} to ${playerI}`}
                 clickCallback={handleDropdownClick}>
                 {playerI}
               </DropdownItem>
@@ -263,6 +274,7 @@ export const DropdownMenuCard = React.memo(({
           })}
           <DropdownItem
             action={dragnActionLists.togglePeeking(menuCard, "All", playerIList)}
+            description={`Toggle peeking for ${visibleFace.name} to All players`}
             clickCallback={handleDropdownClick}>
             {l10n("All")}
           </DropdownItem>
@@ -301,6 +313,7 @@ export const DropdownMenuCard = React.memo(({
                 <DropdownItem
                   rightIcon={visibleFace?.triggers?.[stepId] ? <FontAwesomeIcon icon={faCheck}/> : null}
                   action={dragnActionLists.toggleTrigger(stepId)}
+                  description={`Toggle trigger for ${visibleFace.name} in ${gameL10n(stepInfo.label)}`}
                   clickCallback={handleDropdownClick}>
                   <div className="text-xs">{gameL10n(stepInfo.label)}</div>
                 </DropdownItem>
@@ -316,6 +329,7 @@ export const DropdownMenuCard = React.memo(({
             <DropdownItem
               rightIcon={menuCard.rotation===rot ? <FontAwesomeIcon icon={faCheck}/> : null}
               action={dragnActionLists.setRotation(rot)} // TODO: put actionId here that links to common actionid file
+              description={`Set rotation of ${visibleFace.name} to ${rot} degrees`}
               clickCallback={handleDropdownClick}>
               {rot}
             </DropdownItem>
@@ -329,6 +343,7 @@ export const DropdownMenuCard = React.memo(({
             <DropdownItem
               rightIcon={menuCard.rotation===dir ? <FontAwesomeIcon icon={faCheck}/> : null}
               action={dragnActionLists.setAttachmentDirection(dir)} // TODO: put actionId here that links to common actionid file
+              description={`Set attachment direction of ${visibleFace.name} to ${dir}`}
               clickCallback={handleDropdownClick}>
               {siteL10n(dir)}
             </DropdownItem>

@@ -18,7 +18,7 @@ export const TableButton = React.memo(({
       alert(siteL10n("pleaseSit"));
       return;
     }
-    doActionList(tableButton?.actionList);
+    doActionList(tableButton?.actionList, `Table button action ${tableButton.label}`);
   }
   return (
     <div 

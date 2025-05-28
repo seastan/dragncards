@@ -49,6 +49,6 @@ export const useBrowseTopN = () => {
         message,
         ["LOOK_AT", playerN, groupId, topNint, visibility]
       ];
-      doActionList(actionList);
+      doActionList(actionList, `Browsed top ${topNstr} of group ${groupId}`);
     }
 }

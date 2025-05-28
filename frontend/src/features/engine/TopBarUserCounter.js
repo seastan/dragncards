@@ -36,7 +36,7 @@ export const TopBarUserCounter = React.memo(({
         ["INCREASE_VAL", `/playerData/${playerI}/${playerProperty}`, totalDelta],
         ["LOG", "$ALIAS_N", totalDelta >= 0 ? " increased " : " decreased ", playerI, "'s ", gameL10n(label), " by ", Math.abs(totalDelta), "."]
       ]
-      doActionList(listOfActions);
+      doActionList(listOfActions, `Update ${playerProperty} counter for ${playerI} to ${newValue}`);
       if (!touchMode) setInputFocus();
     }, 400);
   }

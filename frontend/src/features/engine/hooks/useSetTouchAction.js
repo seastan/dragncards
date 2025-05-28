@@ -7,6 +7,6 @@ export const useSetTouchAction = () => {
     return (touchAction) => doActionList([
         ["LOG", `{{$ALIAS_N}} ${touchAction === null? "deselected" : "selected"} an action.`],
         ["SET", `/playerData/${playerN}/touchAction`, touchAction]
-      ])
+      ], `Toggled touch action ${touchAction?.id}`);
 
 }

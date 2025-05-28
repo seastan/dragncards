@@ -7,7 +7,8 @@ import { useDoActionList } from "./hooks/useDoActionList";
 import { dragnActionLists } from "./functions/dragnActionLists";
 
 export const ReminderButton = React.memo(({
-  triggerCardIds
+  triggerCardIds,
+  stepId
 }) => {
   const dispatch = useDispatch();
   const numTriggers = triggerCardIds ? triggerCardIds.length : 0;
@@ -23,8 +24,7 @@ export const ReminderButton = React.memo(({
       actionList = actionList.concat([["VAR", "$ACTIVE_CARD_ID", cardId]]);
       actionList = actionList.concat(dragnActionLists.targetCard(cardId));
     }
-    console.log("targetTriggers", actionList);
-    doActionList(actionList);
+    doActionList(actionList, `Target triggers for step ${stepId}`);
   }  
   const handleStartHover = () => {
     dispatch(setActiveCardId(triggerCard?.id));
@@ -60,7 +60,7 @@ export const SideBarRoundStep = React.memo(({
   console.log("Rendering SideBarRoundStep", stepId, triggerCardIds);
   const handleButtonClick = () => {
     if (!playerN) return;
-    doActionList(dragnActionLists.setStep(stepId, gameDef.steps?.[stepId]));
+    doActionList(dragnActionLists.setStep(stepId, gameDef.steps?.[stepId]), `Set step to ${stepId}`);
   }
 
   return (
@@ -80,7 +80,9 @@ export const SideBarRoundStep = React.memo(({
       </div>
       {triggerCardIds?.length > 0 &&
         <ReminderButton
-          triggerCardIds={triggerCardIds}/>
+          triggerCardIds={triggerCardIds}
+          stepId={stepId}
+        />
       }
       <div className={`flex flex-1 h-full items-center justify-center rounded-tr-lg rounded-br-lg ${isRoundStep ? "bg-red-800" : "bg-gray-500"} ${hovering ? "block" : "hidden"}`} >
         <div>{gameL10n(stepInfo.label)}</div>

@@ -34,7 +34,7 @@ export const useHandleTouchAction = () => {
                     ["LOG", "$ALIAS_N", increment > 0 ? " added " : " removed ", Math.abs(increment), " ", gameDef["tokens"]?.[tokenType]?.name," token to ", "$ACTIVE_FACE.name", "."],
                     ["INCREASE_VAL", "/cardById/$ACTIVE_CARD_ID/tokens/" + tokenType, increment]
                 ]
-                doActionList(actionList);
+                doActionList(actionList, `Touch action ${touchAction.id} on card ${touchedCard?.sides?.A?.name}`);
                 const tokensLeft = touchAction?.tokensLeft;
                 if (tokensLeft >= 0) {
                     if (tokensLeft === 0) setTouchAction(null);
@@ -53,7 +53,7 @@ export const useHandleTouchAction = () => {
                     }
                     // Prepend the actionList with the touched card id
                     actionList.unshift(["DEFINE", "$ACTIVE_CARD_ID", touchedCard.id]);
-                    doActionList(actionList);
+                    doActionList(actionList, `Touch action ${touchAction.id} on card ${touchedCard?.sides?.A?.name}`);
                 } else {
                     // Check if the action list is already a list or a string
                     const isAlreadyList = Array.isArray(actionListId);
@@ -64,7 +64,7 @@ export const useHandleTouchAction = () => {
                     }
                     // Prepend the actionList with the touched card id
                     actionList.unshift(["DEFINE", "$ACTIVE_CARD_ID", touchedCard.id]);
-                    doActionList(actionList);
+                    doActionList(actionList, `Touch action ${touchAction.id} on card ${touchedCard?.sides?.A?.name}`);
                     dispatch(setMouseXY(null));
                 }
             }

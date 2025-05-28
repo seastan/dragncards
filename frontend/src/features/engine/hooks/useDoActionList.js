@@ -10,7 +10,7 @@ export const useDoActionList = () => {
     const {gameBroadcast, chatBroadcast} = useContext(BroadcastContext);
     //const playerUi = null; //useSelector(state => state?.playerUi)
 
-    return (idOrList) => {
+    return (idOrList, description = null) => {
         // if (store.getState().playerUi.dragging.stackId) {
         //     sendLocalMessage("You must finish dragging before you can perform this action.");
         //     return;
@@ -53,7 +53,8 @@ export const useDoActionList = () => {
                 action: "evaluate", 
                 options: {
                     action_list: processedActionList, 
-                    player_ui: playerUi
+                    player_ui: playerUi,
+                    description: description || null
                 }
             })
         }

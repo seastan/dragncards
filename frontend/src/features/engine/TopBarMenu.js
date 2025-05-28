@@ -53,14 +53,14 @@ export const TopBarMenu = React.memo(({}) => {
     if (data.action === "clear_table") {
       // Reset game
       var playerUi = getBackEndPlayerUi(store.getState());
-      doActionList(data.actionList);
+      doActionList(data.actionList, `Cleared the table`);
       gameBroadcast("reset_game", {options: {player_ui: playerUi}});
       
     } else if (data.action === "close_room") {
       // Mark status
       var playerUi = getBackEndPlayerUi(store.getState());
       // Save replay
-      doActionList(data.actionList);
+      doActionList(data.actionList, `Closed the room`);
       // Close room
       history.push("/profile");
       //doActionList(["LOG", "$ALIAS_N", " closed the room."]);
@@ -79,7 +79,7 @@ export const TopBarMenu = React.memo(({}) => {
         ]],
         ["LOG", "$ALIAS_N", " deleted all their cards."]
       ]
-      doActionList(actionList);
+      doActionList(actionList, `Unloaded all cards for player ${playerN}`);
     } else if (data.action === "unload_shared_cards") {
       const actionList = [
         ["FOR_EACH_KEY_VAL", "$CARD_ID", "$CARD", "$CARD_BY_ID", [
@@ -93,17 +93,17 @@ export const TopBarMenu = React.memo(({}) => {
         ]],
         ["LOG", "$ALIAS_N", " deleted all shared cards."]
       ]
-      doActionList(actionList);
+      doActionList(actionList, `Unloaded all shared cards`);
     } else if (data.action === "random_coin") {
       const result = getRandomIntInclusive(0,1);
-      if (result) doActionList(["LOG", "$ALIAS_N", " flipped heads."]);
+      if (result) doActionList(["LOG", "$ALIAS_N", " flipped heads."], `Flipped a coin for player ${playerN}`);
       else doActionList(["LOG", "$ALIAS_N", " flipped tails."]);
     } else if (data.action === "random_number") {
       const max = parseInt(prompt("Random number between 1 and...",randomNumBetween));
       if (max>=1) {
         dispatch(setRandomNumBetween(max))
         const result = getRandomIntInclusive(1,max);
-        doActionList(["LOG", "$ALIAS_N", " chose a random number (1-"+max+"): "+result]);
+        doActionList(["LOG", "$ALIAS_N", " chose a random number (1-"+max+"): "+result], `Chose a random number for player ${playerN}`);
       }
     } else if (data.action === "spawn_existing") {
       dispatch(setShowModal("card"));
@@ -139,14 +139,14 @@ export const TopBarMenu = React.memo(({}) => {
           ["SET_LAYOUT", playerN, data.value.layoutId]
         ];
       }
-      doActionList(actionList);
+      doActionList(actionList, `Changed layout to ${data.value.layoutId} for player ${data.playerI}`);
     } else if (data.action === "set_num_players") {
       var actionList = [
         ["LOG", "$ALIAS_N", " changed the number of players to "+data.value.numPlayers+"."],
         ["SET", "/numPlayers", data.value.numPlayers],
         ["SET_LAYOUT", "shared", data.value.layoutId]
       ];
-      doActionList(actionList);
+      doActionList(actionList, `${playerN} set number of players to ${data.value.numPlayers}`);
     } 
   }
 
@@ -181,7 +181,7 @@ export const TopBarMenu = React.memo(({}) => {
           gameBroadcast("set_replay", {replay: replayObj})
           gameBroadcast("send_alert", {message: `${user.alias} uploaded a replay.`})
         } else if (replayObj.roomSlug) {
-          gameBroadcast("game_action", {action: "set_game", options: {game: replayObj}})
+          gameBroadcast("game_action", {action: "set_game", options: {game: replayObj, description: "Game loaded from JSON file."}})
           gameBroadcast("send_alert", {message: `${user.alias} uploaded a game.`})
         } else {
           alert("Uploaded JSON file does not look like a valid game or replay.");
@@ -303,7 +303,7 @@ export const TopBarMenu = React.memo(({}) => {
       const domain = externalData.domain;
       const type = externalData.type;
       const id = externalData.id;
-      doActionList(["SET", "/autoLoadedDecks", true])
+      doActionList(["SET", "/autoLoadedDecks", true], "Set autoLoadedDecks to true");
       dispatch(setAutoLoadedDecks(true));
       if (domain === "ringsdbtest") {
         loadRingsDb(importLoadList, doActionList, playerN, "test", type, id);
@@ -408,7 +408,7 @@ export const TopBarMenu = React.memo(({}) => {
           <ul className="third-level-menu">
             {gameDef.pluginMenu?.options?.map((menuFunction, index) => {
               return(
-                <li key={index} onClick={() => doActionList(menuFunction.actionList)}>{gameL10n(menuFunction.label)}</li>
+                <li key={index} onClick={() => doActionList(menuFunction.actionList, `Plugin Options ${menuFunction.label}`)}>{gameL10n(menuFunction.label)}</li>
               )
             })}
           </ul>

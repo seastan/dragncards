@@ -124,7 +124,7 @@ const importViaUrlRangersDb = async (importLoadList, doActionList, playerN, card
 
 
 export const loadRingsDb = (importLoadList, doActionList, playerN, ringsDbDomain, ringsDbType, ringsDbId) => {
-  doActionList(["LOG", "$ALIAS_N", " is importing a deck from RingsDB."]);
+  doActionList(["LOG", "$ALIAS_N", " is importing a deck from RingsDB."], `Logging import from RingsDB`);
   const urlBase = ringsDbDomain === "test" ? "https://test.ringsdb.com/api/" : "https://www.ringsdb.com/api/"
   const url = ringsDbType === "decklist" ? urlBase+"public/decklist/"+ringsDbId+".json" : urlBase+"oauth2/deck/load/"+ringsDbId;
   console.log("Fetching ", url);
@@ -195,7 +195,7 @@ export const loadRingsDb = (importLoadList, doActionList, playerN, ringsDbDomain
 
 export const loadArkhamDb = (importLoadList, doActionList, playerN, arkhamDbType, arkhamDbId) => {
   const arkhamBuild = arkhamDbType === "view" || arkhamDbType === "share";
-  doActionList(["LOG", "$ALIAS_N", " is importing a deck from " + (arkhamBuild ? "arkham.build" : "ArkhamDB") + "."]);
+  doActionList(["LOG", "$ALIAS_N", " is importing a deck from " + (arkhamBuild ? "arkham.build" : "ArkhamDB") + "."], `Logging import from ArkhamDB`);
   const urlBase = arkhamBuild ? "https://api.arkham.build/v1/public/share/" : "https://arkhamdb.com/api/public/";
   const url = urlBase + (arkhamBuild ? arkhamDbId : arkhamDbType + "/" + arkhamDbId);
   console.log("Fetching ", url);
@@ -287,7 +287,7 @@ export const loadArkhamDb = (importLoadList, doActionList, playerN, arkhamDbType
     if(taboo_id) {
       metaActionList.push(["SET", "/playerData/" + playerN + "/arkham/tabooId", taboo_id]);
     }
-    doActionList(metaActionList);
+    doActionList(metaActionList, `ArkhamDB meta action list for ${playerN}`);
     importLoadList(loadList);
   })
   .catch((error) => {
@@ -298,7 +298,7 @@ export const loadArkhamDb = (importLoadList, doActionList, playerN, arkhamDbType
 
 
 export const loadMarvelCdb = (importLoadList, doActionList, playerN, dbDomain, dbType, dbId, cardDb) => {
-  doActionList(["LOG", "$ALIAS_N", " is importing a deck from MarvelCDB."]);
+  doActionList(["LOG", "$ALIAS_N", " is importing a deck from MarvelCDB."], `Logging import from MarvelCDB`);
 
   // Generate a mapping from marcelcdbId to databaseId
   const marvelcdbIdTodatabaseId = {};
@@ -365,7 +365,7 @@ export const loadMarvelCdb = (importLoadList, doActionList, playerN, dbDomain, d
 
 
 export const loadRangersDb = (importLoadList, doActionList, playerN, dbDomain, dbType, dbId, cardDb) => {
-  doActionList(["LOG", "$ALIAS_N", " is importing a deck from RangersDB."]);
+  doActionList(["LOG", "$ALIAS_N", " is importing a deck from RangersDB."], `Logging import from RangersDB`);
   
   fetch('https://gapi.rangersdb.com/v1/graphql', {
       method: 'POST',

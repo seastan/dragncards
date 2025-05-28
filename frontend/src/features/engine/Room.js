@@ -95,6 +95,26 @@ export const Room = ({ slug }) => {
       dispatch(setPlayerInfo(payload));
     } else if (event === "users_changed" && payload !== null) {
       dispatch(setSockets(payload));
+    } else if (event === "unable_to_get_state_on_join") {
+      alert("Unable to get game state. Room was closed.");
+      //setRoomClosed(true);
+    } else if (event === "bad_game_state" && payload !== null) {
+      const errors = payload.errors;
+      console.error("Bad game state received:", errors);
+      dispatch(setAlert({
+        level: "error",
+        text: "Game state is out of sync. Resynchronizing...",
+        timestamp: Date.now()
+      }));
+      setOutOfSync(true);
+    } else if (event === "unable_to_get_state_on_request") {
+      dispatch(setAlert({
+        level: "crash",
+        text: "The room has crashed. Please go to the Menu and download the game state file. \
+          Then, create a new room and upload that file to continue where you left off.",
+        timestamp: Date.now()
+      }));
+      //setRoomClosed(true);
     } else if (event === "phx_error") {
       dispatch(setAlert({
         level: "crash",

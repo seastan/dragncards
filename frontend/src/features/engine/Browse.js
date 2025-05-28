@@ -111,7 +111,7 @@ export const Browse = React.memo(({}) => {
       ["LOG", "$ALIAS_N", " shuffled ", gameL10n(group.label)+"."],
       ["SHUFFLE_GROUP", groupId]
     ];
-    doActionList(actionList);
+    doActionList(actionList, "Closed and shuffled group "+group.label);
     if (group?.onCardEnter?.currentSide === "B") stopPeekingTopCard();
   }
 
@@ -120,7 +120,7 @@ export const Browse = React.memo(({}) => {
       ["LOG", "$ALIAS_N", " closed ", gameL10n(group.label)+"."],
       ["STOP_LOOKING", "$PLAYER_N"],
     ];
-    doActionList(actionList);
+    doActionList(actionList, "Closed and ordered group "+group.label);
     if (group?.onCardEnter?.currentSide === "B") stopPeekingTopCard();
   }
 
@@ -129,7 +129,7 @@ export const Browse = React.memo(({}) => {
       ["LOG", "$ALIAS_N", " is still peeking at ", gameL10n(group.label)+"."],
       ["STOP_LOOKING", "$PLAYER_N", "keepPeeking"]
     ];
-    doActionList(actionList);
+    doActionList(actionList, "Closed and kept peeking at group "+group.label);
   }
 
   const handleSelectClick = (event) => {

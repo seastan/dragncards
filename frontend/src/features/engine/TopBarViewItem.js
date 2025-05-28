@@ -21,7 +21,7 @@ export const TopBarViewItem = React.memo(({
         ["SET", `/playerData/${playerN}/browseGroup/id`, data.groupId],
         ["SET", `/playerData/${playerN}/browseGroup/topN`, "All"],
       ]
-      doActionList(actionList);
+      doActionList(actionList, `${playerN} looked at group ${groupId}`);
     } 
   }
 

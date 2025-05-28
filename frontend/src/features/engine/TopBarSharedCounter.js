@@ -39,7 +39,7 @@ export const TopBarSharedCounter = React.memo(({
         ["SET", "/" + gameProperty, newValue],
         ["LOG", "$ALIAS_N", totalDelta >= 0 ? " increased " : " decreased ", gameL10n(label), " by ", Math.abs(totalDelta), "."]
       ];
-      doActionList(listOfActions);
+      doActionList(listOfActions, `Update shared counter ${gameProperty} to ${newValue}`);
       if (!touchMode) setInputFocus();
     }, 400);
   }

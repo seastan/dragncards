@@ -23,7 +23,7 @@ const DeveloperModal = () => {
     try {
       const parsedCode = JSON.parse(input);
       setCode(parsedCode);
-      doActionList(parsedCode);
+      doActionList(parsedCode, "Custom Developer Code Execution");
     } catch (e) {
       alert("Invalid JSON");
     }

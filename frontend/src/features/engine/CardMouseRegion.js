@@ -62,7 +62,7 @@ export const CardMouseRegion = React.memo(({
             if (touchAction !== null) {
                 handleTouchAction(card);
             } else if (isActive) {
-                doActionList(getDefaultAction()?.actionList)
+                doActionList(getDefaultAction()?.actionList, "Default action for " + visibleFace?.name);
             } else {
                 makeActive(event); 
                 handleSetDropDownMenu();
