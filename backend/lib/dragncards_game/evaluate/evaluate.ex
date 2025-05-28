@@ -144,14 +144,34 @@ defmodule DragnCardsGame.Evaluate do
     end
   end
 
-  def evaluate_with_timeout(game, code, timeout_ms \\ 35_000) do
-    trace = [code]
+  def evaluate_with_timeout(game, code, description \\ nil, timeout_ms \\ 35_000) do
+    trace = [description, code]
     task = Task.async(fn ->
       try do
         evaluate(game, code, trace)
       rescue
         e ->
-          evaluate(game, ["ERROR", e.message], trace)
+          # Define error output directory
+          error_dir = "/tmp/plugin_errors"
+          File.mkdir_p!(error_dir)
+
+          if is_map(game) and Map.has_key?(game, "pluginName") do
+            plugin_name = game["pluginName"]
+            current_ms = :os.system_time(:millisecond)
+            base_name = "error_#{current_ms}_#{plugin_name}"
+            # Replace any non-alphanumeric characters in base_name with underscores
+            base_name = String.replace(base_name, ~r/[^\w]/, "_")
+            json_path = Path.join(error_dir, base_name <> ".json")
+            txt_path = Path.join(error_dir, base_name <> ".txt")
+
+            # Write game state to JSON
+            File.write!(json_path, Jason.encode!(game, pretty: true))
+
+            # Write error message and trace
+            File.write!(txt_path, "Error: #{Exception.message(e)}\nTrace: #{inspect(trace)}")
+          end
+
+          evaluate(game, ["ERROR", Exception.message(e)], trace)
       end
     end)
 
@@ -159,6 +179,7 @@ defmodule DragnCardsGame.Evaluate do
       nil ->
         Task.shutdown(task, :brutal_kill)
         evaluate(game, ["ERROR", "Action timed out. #{inspect(trace)}"], trace)
+
       {:ok, result} ->
         result
     end
@@ -212,7 +233,7 @@ defmodule DragnCardsGame.Evaluate do
         else
           inspect(e)
         end
-        if String.starts_with?(message, "ABORT") do
+        if String.starts_with?(message, " ") do
           raise RecursiveEvaluationError, message: message
         else
           raise RecursiveEvaluationError, message: ": #{message} Trace: #{inspect(trace)}"

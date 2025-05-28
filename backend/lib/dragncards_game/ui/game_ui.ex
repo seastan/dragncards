@@ -577,6 +577,7 @@ defmodule DragnCardsGame.GameUI do
   end
 
   def move_stack(game, stack_id, dest_group_id, dest_stack_index, options \\ nil) do
+    raise "unknown error"
     if dest_group_id not in Map.keys(game["groupById"]) do
       raise "Group not found: #{dest_group_id}"
     end
@@ -730,7 +731,7 @@ defmodule DragnCardsGame.GameUI do
   def resolve_action_type(game, type, options, user_id) do
     case type do
       "evaluate" ->
-        Evaluate.evaluate_with_timeout(game, options["action_list"])
+        Evaluate.evaluate_with_timeout(game, options["action_list"], options["description"])
       "set_game" ->
         options["game"]
       "reset_game" ->
