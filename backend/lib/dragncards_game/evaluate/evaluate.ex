@@ -157,8 +157,9 @@ defmodule DragnCardsGame.Evaluate do
 
           if is_map(game) and Map.has_key?(game, "pluginName") do
             plugin_name = game["pluginName"]
+            plugin_id = game["pluginId"]
             current_ms = :os.system_time(:millisecond)
-            base_name = "error_#{current_ms}_#{plugin_name}"
+            base_name = "error_#{current_ms}_#{plugin_id}_#{plugin_name}"
             # Replace any non-alphanumeric characters in base_name with underscores
             base_name = String.replace(base_name, ~r/[^\w]/, "_")
             json_path = Path.join(error_dir, base_name <> ".json")
