@@ -577,7 +577,6 @@ defmodule DragnCardsGame.GameUI do
   end
 
   def move_stack(game, stack_id, dest_group_id, dest_stack_index, options \\ nil) do
-    raise "unknown error"
     if dest_group_id not in Map.keys(game["groupById"]) do
       raise "Group not found: #{dest_group_id}"
     end
