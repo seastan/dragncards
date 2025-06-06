@@ -90,6 +90,7 @@
     plugin_id = options["pluginId"]
     plugin_version = Plugins.get_plugin_version(plugin_id)
     plugin_name = Plugins.get_plugin_name(plugin_id)
+    IO.puts("Building base game structure")
     base = try do
     %{
       "id" => Ecto.UUID.generate,

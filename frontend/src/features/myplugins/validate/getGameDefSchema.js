@@ -83,6 +83,7 @@ export const getGameDefSchema = (gameDef) => {
       "playerCountMenu": {
         "_description_": "The player count menu settings",
         "_type_": "array",
+        "_required_": true,
         "_itemSchema_": {
           "_description_": "A player count menu setting",
           "_type_": "object",
