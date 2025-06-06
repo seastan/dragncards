@@ -15,6 +15,7 @@ import DoResetPassword from "../features/auth/DoResetPassword";
 import ConfirmEmail from "../features/auth/ConfirmEmail";
 import { MyPlugins } from "../features/myplugins/MyPlugins";
 import PluginLobby from "../features/lobby/PluginLobby";
+import LayoutGenerator from "../features/myplugins/LayoutGenerator";
 
 const PrivatePage: React.FC = () => {
   return <div>this is a priv page</div>;
@@ -32,6 +33,7 @@ const AppRouter: React.FC = () => {
         <Route path="/auth/patreon" component={Profile} />
         <Route path="/newroom" component={Lobby} />
         <Route path="/plugin" component={PluginLobby} />
+        <Route path="/layout-generator" component={LayoutGenerator} />
         <Route
           path="/reset-password/:reset_token"
           component={DoResetPassword}
