@@ -114,7 +114,7 @@ export const useKeyDown = () => {
             for (var option of prompt.options) {
                 if (keyMatch(option.hotkey, dictKey)) {
                     dispatch(setPromptVisible({playerI: playerN, promptUuid: prompt.uuid, visible: false}));
-                    doActionList(option.code, `Prompt response: ${option.label}`);
+                    doActionList(option.code, `Prompt response: ${option.label} of prompt ${prompt.uuid}`);
                     return;
                 }
             }

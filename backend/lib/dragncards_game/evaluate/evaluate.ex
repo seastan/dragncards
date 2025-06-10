@@ -145,7 +145,7 @@ defmodule DragnCardsGame.Evaluate do
   end
 
   def evaluate_with_timeout(game, code, description \\ nil, timeout_ms \\ 35_000) do
-    trace = [description, code]
+    trace = [description]
     task = Task.async(fn ->
       try do
         evaluate(game, code, trace)
@@ -198,6 +198,7 @@ defmodule DragnCardsGame.Evaluate do
     #   #IO.inspect(game)
     #   IO.puts("evaluate 3")
     # end
+
     try do
       # Increase scope index
       current_scope_index = game["currentScopeIndex"] + 1
