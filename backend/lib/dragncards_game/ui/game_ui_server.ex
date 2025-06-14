@@ -385,17 +385,14 @@ defmodule DragnCardsGame.GameUIServer do
     @timeout
   end
 
-  def terminate({:shutdown, :timeout}, state) do
-    Logger.info("Terminate (Timeout) running for #{state["roomSlug"]}")
+  def terminate(reason, state) do
+    Logger.info("Terminate #{inspect reason} for #{state["roomSlug"]}")
     :ets.delete(:game_uis, state["roomSlug"])
-    GameRegistry.remove(state["roomSlug"])
-    :ok
-  end
-
-  # Do I need to trap exits here?
-  def terminate(_reason, state) do
-    Logger.info("Terminate (Non Timeout) running for #{state["roomSlug"]}")
-    GameRegistry.remove(state["roomSlug"])
+    try do
+      GameRegistry.remove(state["roomSlug"])
+    rescue
+      e -> Logger.error("Error cleaning up room #{state["roomSlug"]}: #{inspect e}")
+    end
     :ok
   end
 
