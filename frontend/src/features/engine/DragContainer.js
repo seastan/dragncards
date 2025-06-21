@@ -266,7 +266,7 @@ export const DragContainer = React.memo(({}) => {
             ["SET", `/stackById/${origStackId}/top`, stackTop]
           ]
         ]
-      ], `Moved ${afterDragName} from ${origGroup.label} to ${destGroup.label}`);
+      ], `Moved ${afterDragName} (stackId ${origStackId}) from ${origGroup.label} to ${destGroup.label}`);
       dispatch(setGroupById(newGroupById));
     }
     if (gameDef?.automation?.postDragAndDropActionList) {

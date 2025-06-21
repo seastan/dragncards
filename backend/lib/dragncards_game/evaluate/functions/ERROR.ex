@@ -33,6 +33,28 @@ defmodule DragnCardsGame.Evaluate.Functions.ERROR do
     backend_message = "in #{game["pluginName"]} triggered by #{alias_n}#{message}"
     Logger.error(backend_message)
     frontend_message = "Error " <> backend_message
+
+    # Define error output directory
+    error_dir = "/tmp/plugin_errors"
+    File.mkdir_p!(error_dir)
+
+    if is_map(game) and Map.has_key?(game, "pluginName") do
+      plugin_name = game["pluginName"]
+      plugin_id = game["pluginId"]
+      current_ms = :os.system_time(:millisecond)
+      base_name = "error_#{current_ms}_#{plugin_id}_#{plugin_name}"
+      # Replace any non-alphanumeric characters in base_name with underscores
+      base_name = String.replace(base_name, ~r/[^\w]/, "_")
+      json_path = Path.join(error_dir, base_name <> ".json")
+      txt_path = Path.join(error_dir, base_name <> ".txt")
+
+      # Write game state to JSON
+      File.write!(json_path, Jason.encode!(game, pretty: true))
+
+      # Write error message and trace
+      File.write!(txt_path, frontend_message)
+    end
+
     put_in(game["messages"], game["messages"] ++ [frontend_message])
   end
 
