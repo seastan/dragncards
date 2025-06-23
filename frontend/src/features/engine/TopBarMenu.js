@@ -56,6 +56,12 @@ export const TopBarMenu = React.memo(({}) => {
       doActionList(data.actionList, `Cleared the table`);
       gameBroadcast("reset_game", {options: {player_ui: playerUi}});
       
+    } else if (data.action === "reset_and_reload") {
+      // Reload cards
+      var playerUi = getBackEndPlayerUi(store.getState());
+      doActionList(data.actionList, `Cleared the table and reloaded cards`);
+      gameBroadcast("reset_and_reload", {options: {player_ui: playerUi}});
+      
     } else if (data.action === "close_room") {
       // Mark status
       var playerUi = getBackEndPlayerUi(store.getState());
@@ -70,30 +76,9 @@ export const TopBarMenu = React.memo(({}) => {
     } else if (data.action === "load_url") {
       importViaUrl();
     } else if (data.action === "unload_my_deck") {
-      const actionList = [
-        ["FOR_EACH_KEY_VAL", "$CARD_ID", "$CARD", "$CARD_BY_ID", [
-          ["COND",
-            ["EQUAL", "$CARD.controller", "$PLAYER_N"],
-            ["DELETE_CARD", "$CARD_ID"]
-          ]
-        ]],
-        ["LOG", "$ALIAS_N", " deleted all their cards."]
-      ]
-      doActionList(actionList, `Unloaded all cards for player ${playerN}`);
+      doActionList(["UNLOAD_CARDS", "$PLAYER_N"], `Unloaded all cards for player ${playerN}`);
     } else if (data.action === "unload_shared_cards") {
-      const actionList = [
-        ["FOR_EACH_KEY_VAL", "$CARD_ID", "$CARD", "$CARD_BY_ID", [
-          ["COND",
-            ["OR",
-              ["EQUAL", "$CARD.controller", null],
-              ["NOT_EQUAL", ["SUBSTRING", "$CARD.controller", 0, 6], "player"],
-            ],
-            ["DELETE_CARD", "$CARD_ID"]
-          ]
-        ]],
-        ["LOG", "$ALIAS_N", " deleted all shared cards."]
-      ]
-      doActionList(actionList, `Unloaded all shared cards`);
+      doActionList(["UNLOAD_CARDS", "shared"], `Unloaded all shared cards`);
     } else if (data.action === "random_coin") {
       const result = getRandomIntInclusive(0,1);
       if (result) doActionList(["LOG", "$ALIAS_N", " flipped heads."], `Flipped a coin for player ${playerN}`);
@@ -429,6 +414,19 @@ export const TopBarMenu = React.memo(({}) => {
               {gameDef["clearTableOptions"]?.map((option, index) => {
                 return(
                   <li key={index} onClick={() => handleMenuClick({action:"clear_table", actionList: option.actionList})}>{gameL10n(option.label)}</li>
+                )
+              })}
+            </ul>
+          </li> 
+        }     
+        {isHost &&
+          <li key={"reset_and_reload"}>
+            {siteL10n("resetDecks")}
+            <span className="float-right mr-1"><FontAwesomeIcon icon={faChevronRight}/></span>
+            <ul className="third-level-menu">
+              {gameDef["clearTableOptions"]?.map((option, index) => {
+                return(
+                  <li key={index} onClick={() => handleMenuClick({action:"reset_and_reload", actionList: option.actionList})}>{gameL10n(option.label)}</li>
                 )
               })}
             </ul>

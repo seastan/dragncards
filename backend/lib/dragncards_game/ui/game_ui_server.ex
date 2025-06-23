@@ -6,7 +6,7 @@ defmodule DragnCardsGame.GameUIServer do
   @timeout :timer.minutes(60)
 
   require Logger
-  alias DragnCardsGame.{GameUI, GameRegistry, User, PlayerInfo}
+  alias DragnCardsGame.{GameUI, GameRegistry, User, PlayerInfo, Evaluate}
   alias DragnCards.{Rooms.RoomLog, Users}
 
   def is_player(gameui, user_id) do
@@ -71,11 +71,19 @@ defmodule DragnCardsGame.GameUIServer do
   end
 
   @doc """
-  reset_game/2: Process an update to the state.
+  reset_game/2: Reset the game to its initial state.
   """
   @spec reset_game(String.t(), integer) :: GameUI.t()
   def reset_game(game_name, user_id) do
     game_exists?(game_name) && GenServer.call(via_tuple(game_name), {:reset_game, user_id})
+  end
+
+  @doc """
+  reset_and_reload/2: Reload the cards in the game.
+  """
+  @spec reset_and_reload(String.t(), integer) :: GameUI.t()
+  def reset_and_reload(game_name, user_id) do
+    game_exists?(game_name) && GenServer.call(via_tuple(game_name), {:reset_and_reload, user_id})
   end
 
   @doc """
@@ -252,12 +260,37 @@ defmodule DragnCardsGame.GameUIServer do
   end
 
   def handle_call({:reset_game, user_id}, _from, gameui) do
-    IO.puts("reset_game 1")
     options = put_in(gameui["options"], ["replayUuid"], nil)
     new_gameui = GameUI.new(gameui["roomSlug"], user_id, options)
 
-    IO.puts("reset_game 2")
-    IO.inspect(new_gameui["game"]["roundNumber"])
+    new_gameui
+    |> save_and_reply()
+
+  end
+
+  def handle_call({:reset_and_reload, user_id}, _from, gameui) do
+    options = put_in(gameui["options"], ["replayUuid"], nil)
+    layout_id = gameui["game"]["layoutId"]
+    load_list_history = gameui["game"]["loadCardsHistory"] || []
+    IO.puts("load_list_history 1")
+    IO.inspect(load_list_history)
+    IO.puts("load_list_history 2")
+
+    new_gameui = GameUI.new(gameui["roomSlug"], user_id, options)
+    new_game = new_gameui["game"]
+
+    new_game = Evaluate.evaluate(new_game, ["SET_LAYOUT", "shared", layout_id], ["reset_and_reload", "set_layout"])
+
+    # Loop over gameui["game"]["options"]["loadCardsHistory"]
+    new_game=
+      Enum.reduce(load_list_history, new_game, fn (load_list_history_item, acc) ->
+        load_code = load_list_history_item["loadCode"]
+        player_n = load_list_history_item["playerN"]
+        acc = put_in(acc["variables"]["$PLAYER_N"], player_n)
+        Evaluate.evaluate(acc, load_code, ["reset_and_reload", "loadCardsHistory"])
+      end)
+
+    new_gameui = put_in(new_gameui["game"], new_game)
 
     new_gameui
     |> save_and_reply()

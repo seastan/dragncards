@@ -235,6 +235,24 @@ defmodule DragnCardsWeb.RoomChannel do
   end
 
   def handle_in(
+    "reset_and_reload",
+    %{
+      "options" => options,
+    },
+    %{assigns: %{room_slug: room_slug, user_id: user_id}} = socket
+  ) do
+    gameui = GameUIServer.state(room_slug)
+    if options["save"] == true or options["save"] == nil do
+      GameUI.save_replay(gameui, user_id, options)
+    end
+    GameUIServer.reset_and_reload(room_slug, user_id)
+
+    notify_state(socket, room_slug, user_id)
+
+    {:reply, {:ok, "reset_and_reload"}, socket}
+  end
+
+  def handle_in(
     "set_replay",
     %{
       "replay" => replay,

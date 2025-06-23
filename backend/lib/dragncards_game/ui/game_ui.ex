@@ -737,10 +737,12 @@ defmodule DragnCardsGame.GameUI do
         Evaluate.evaluate_with_timeout(game, options["action_list"], options["description"])
       "set_game" ->
         options["game"]
-      "reset_game" ->
-        reset_game(game, user_id, options["action_list"])
-      "close_room" ->
-        close_room(game, user_id, options["action_list"])
+      # "reset_game" ->
+      #   reset_game(game, user_id, options["action_list"])
+      # "reset_and_reload" ->
+      #   reset_game(game, user_id, options["action_list"])
+      # "close_room" ->
+      #   close_room(game, user_id, options["action_list"])
       _ ->
         game
     end
@@ -1240,9 +1242,8 @@ defmodule DragnCardsGame.GameUI do
     update_stack_ids(gameui, group_id, shuffled_stack_ids)
   end
 
-  def load_cards(game, load_list) do
-    player_n = get_player_n(game)
-    user_id = get_user_id_from_player_n(game, player_n)
+
+  def load_cards(game, load_list, player_n, user_id, trace) do
 
     # If load_list is nil, raise an error
     if load_list == nil do
@@ -1273,7 +1274,6 @@ defmodule DragnCardsGame.GameUI do
             load_list_item["cardDetails"]
 
           Map.has_key?(load_list_item, "authorId") ->
-            IO.puts("'authorId' was found in load_list_item. Attempting to load card from custom database.")
             CustomCardDb.get_card_details_for_user(game["pluginId"], user_id, database_id)
 
           database_id != nil ->
