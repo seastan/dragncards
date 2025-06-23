@@ -154,18 +154,18 @@ defmodule DragnCardsGame.GameUI do
     get_group(game,group_id)["stackIds"]
   end
 
-  def get_stack(game, stack_id) do
-    if stack_id == nil do
-      raise "stack_id is nil"
-    end
-    case game["stackById"][stack_id] do
-      nil -> raise "Stack not found: #{stack_id}"
-      stack -> stack
+  def get_stack(game, stack_id, trace \\ []) do
+    trace = trace ++ ["get_stack"]
+    if stack_id == nil or game["stackById"][stack_id] == nil do
+      Evaluate.evaluate(game, ["ABORT", "Tried to move a card that no longer exists at its origin (did someone else just move it?)"], trace)
+    else
+      game["stackById"][stack_id]
     end
   end
 
-  def get_card_ids(game, stack_id) do
-    get_stack(game, stack_id)["cardIds"]
+  def get_card_ids(game, stack_id, trace \\ []) do
+    trace = trace ++ ["get_card_ids"]
+    get_stack(game, stack_id, trace)["cardIds"]
   end
 
   def get_card(game, card_id) do
@@ -213,11 +213,12 @@ defmodule DragnCardsGame.GameUI do
     game["stackById"][Enum.at(stack_ids, stack_index)]
   end
 
-  def get_parent_card_by_stack_id(game, stack_id) do
+  def get_parent_card_by_stack_id(game, stack_id, trace \\ []) do
+    trace = trace ++ ["get_parent_card_by_stack_id"]
     if stack_id == nil do
       nil
     else
-      stack = get_stack(game, stack_id)
+      stack = get_stack(game, stack_id, trace)
       parent_card_id = Enum.at(stack["cardIds"], 0)
       if parent_card_id != nil do
         get_card(game, parent_card_id)
@@ -241,7 +242,8 @@ defmodule DragnCardsGame.GameUI do
     {group_id, stack_index, card_index}
   end
 
-  def get_card_by_group_id_stack_index_card_index(game, gsc) do
+  def get_card_by_group_id_stack_index_card_index(game, gsc, trace \\ []) do
+    trace = trace ++ ["get_card_by_group_id_stack_index_card_index"]
     group_id = Enum.at(gsc,0)
     stack_index = Enum.at(gsc,1)
     card_index = Enum.at(gsc,2)
@@ -250,7 +252,7 @@ defmodule DragnCardsGame.GameUI do
     if Enum.count(stack_ids) <= stack_index do
       raise "Stack not found at stack_index:#{stack_index}"
     else
-      stack = get_stack(game, Enum.at(stack_ids, stack_index))
+      stack = get_stack(game, Enum.at(stack_ids, stack_index), trace)
       card_ids = stack["cardIds"]
       if Enum.count(card_ids) <= card_index do
         raise "Card not found at card_index:#{card_index}"
@@ -366,10 +368,11 @@ defmodule DragnCardsGame.GameUI do
     end
   end
 
-  def ucs_group_refresh(game, group_id, group) do
+  def ucs_group_refresh(game, group_id, group, trace \\ []) do
+    trace = trace ++ ["ucs_group_refresh"]
     if group_id != nil do
       Enum.reduce(Enum.with_index(group["stackIds"]), game, fn {stack_id, stack_index}, acc ->
-        stack = get_stack(game, stack_id)
+        stack = get_stack(game, stack_id, trace)
         Enum.reduce(Enum.with_index(stack["cardIds"]), acc, fn {card_id, card_index}, acc2 ->
           put_in(acc2["cardById"][card_id]["stackIndex"], stack_index)
           |> put_in(["cardById", card_id, "cardIndex"], card_index)
@@ -517,8 +520,9 @@ defmodule DragnCardsGame.GameUI do
   # Stack actions                                                 #
   #################################################################
 
-  def get_top_card_of_stack(game, stack_id) do
-    stack = get_stack(game, stack_id)
+  def get_top_card_of_stack(game, stack_id, trace \\ []) do
+    trace = trace ++ ["get_top_card_of_stack"]
+    stack = get_stack(game, stack_id, trace)
     card_id = Enum.at(stack["cardIds"],0)
     get_card(game, card_id)
   end
@@ -576,7 +580,7 @@ defmodule DragnCardsGame.GameUI do
     move_card(game, card_id, group_id, stack_index + 1, 0)
   end
 
-  def move_stack(game, stack_id, dest_group_id, dest_stack_index, options \\ nil) do
+  def move_stack(game, stack_id, dest_group_id, dest_stack_index, options \\ nil, trace \\ []) do
     if dest_group_id not in Map.keys(game["groupById"]) do
       raise "Group not found: #{dest_group_id}"
     end
@@ -733,10 +737,12 @@ defmodule DragnCardsGame.GameUI do
         Evaluate.evaluate_with_timeout(game, options["action_list"], options["description"])
       "set_game" ->
         options["game"]
-      "reset_game" ->
-        reset_game(game, user_id, options["action_list"])
-      "close_room" ->
-        close_room(game, user_id, options["action_list"])
+      # "reset_game" ->
+      #   reset_game(game, user_id, options["action_list"])
+      # "reset_and_reload" ->
+      #   reset_game(game, user_id, options["action_list"])
+      # "close_room" ->
+      #   close_room(game, user_id, options["action_list"])
       _ ->
         game
     end
@@ -1236,9 +1242,8 @@ defmodule DragnCardsGame.GameUI do
     update_stack_ids(gameui, group_id, shuffled_stack_ids)
   end
 
-  def load_cards(game, load_list) do
-    player_n = get_player_n(game)
-    user_id = get_user_id_from_player_n(game, player_n)
+
+  def load_cards(game, load_list, player_n, user_id, trace) do
 
     # If load_list is nil, raise an error
     if load_list == nil do
@@ -1269,7 +1274,6 @@ defmodule DragnCardsGame.GameUI do
             load_list_item["cardDetails"]
 
           Map.has_key?(load_list_item, "authorId") ->
-            IO.puts("'authorId' was found in load_list_item. Attempting to load card from custom database.")
             CustomCardDb.get_card_details_for_user(game["pluginId"], user_id, database_id)
 
           database_id != nil ->

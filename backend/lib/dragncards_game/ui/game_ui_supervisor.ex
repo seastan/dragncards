@@ -23,7 +23,7 @@ defmodule DragnCardsGame.GameUISupervisor do
   def start_game(game_name, user, %{} = options) do
     Logger.debug("gameuisup: start")
     child_spec = %{
-      id: GameUIServer,
+      id: {GameUIServer, game_name},
       start: {GameUIServer, :start_link, [game_name, user, options]},
       restart: :transient
     }

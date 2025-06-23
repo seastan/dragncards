@@ -57,9 +57,10 @@ defmodule DragnCardsGame.Evaluate.Functions.MOVE_STACK do
     end
   end
 
-  def get_parent_card(game, dest_stack_id) do
+  def get_parent_card(game, dest_stack_id, trace) do
+    trace = trace ++ ["get_parent_card"]
     if dest_stack_id do
-      GameUI.get_parent_card_by_stack_id(game, dest_stack_id)
+      GameUI.get_parent_card_by_stack_id(game, dest_stack_id, trace)
     else
       nil
     end
@@ -74,7 +75,7 @@ defmodule DragnCardsGame.Evaluate.Functions.MOVE_STACK do
 
     # Save variables for postMoveStackActionList
     orig_group_id = GameUI.get_group_by_stack_id(game, stack_id)["id"]
-    orig_parent_card_id = get_parent_card(game, stack_id)["id"]
+    orig_parent_card_id = get_parent_card(game, stack_id, trace)["id"]
 
     #try do
     game = GameUI.move_stack(game, stack_id, dest_group_id, dest_stack_index, options)
@@ -94,7 +95,7 @@ defmodule DragnCardsGame.Evaluate.Functions.MOVE_STACK do
             "$ORIG_PARENT_CARD", orig_parent_card,
             "$DEST_STACK_ID", dest_stack_id,
             "$DEST_GROUP_ID", dest_group_id,
-            "$DEST_PARENT_CARD", get_parent_card(game, dest_stack_id)
+            "$DEST_PARENT_CARD", get_parent_card(game, dest_stack_id, trace)
           ],
           post_move_stack_action_list
         ], trace ++ ["game postLoadActionList"])

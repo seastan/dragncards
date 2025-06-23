@@ -701,6 +701,15 @@ export const siteL10n = {
     "German": "Tisch löschen",
     "Chinese": "清空桌面"
   },
+  "resetDecks": {
+    "English": "Reset decks",
+    "French": "Réinitialiser les decks",
+    "Spanish": "Reiniciar mazos",
+    "Portuguese": "Redefinir decks",
+    "Italian": "Reimposta i mazzi",
+    "German": "Decks zurücksetzen",
+    "Chinese": "重置牌组"
+  },
   "markAsVictory": {
     "English": "Mark as victory",
     "French": "Marquer comme victoire",

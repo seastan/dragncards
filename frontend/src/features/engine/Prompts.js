@@ -92,7 +92,7 @@ export const Prompt = React.memo(({
     // Compile the action list
     const promptCode = code || [];
     const actionList = [defineInput, promptCode];
-    doActionList(actionList, `Prompt response: ${description}`)
+    doActionList(actionList, `Prompt response: ${description} of prompt ${promptId}`)
   }
 
   const handleOptionClick = (option) => {

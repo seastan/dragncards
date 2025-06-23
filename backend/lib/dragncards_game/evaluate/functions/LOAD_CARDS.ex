@@ -28,6 +28,21 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
   ```
   """
 
+  def add_load_code_to_history(game, load_code, player_n, trace) do
+
+    new_entry = %{
+      "loadCode" => load_code,
+      "playerN" => player_n
+    }
+
+    old_load_list_history = get_in(game, ["loadCardsHistory"]) || []
+    new_load_list_history = old_load_list_history ++ [new_entry]
+
+    game
+    |> put_in(["loadCardsHistory"], new_load_list_history)
+  end
+
+
   @doc """
   Executes the 'LOAD_CARDS' operation with the given arguments.
 
@@ -76,7 +91,9 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
 
     prev_loaded_card_ids = game["loadedCardIds"]
 
-    game = GameUI.load_cards(game, load_list)
+    player_n = GameUI.get_player_n(game)
+    user_id = GameUI.get_user_id_from_player_n(game, player_n)
+    game = GameUI.load_cards(game, load_list, player_n, user_id, trace ++ ["load_cards"])
 
     # Run deck's postLoadActionList if it exists
     game = if load_list_id && game_def["preBuiltDecks"][load_list_id]["postLoadActionList"] do
@@ -94,6 +111,9 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
 
     # Restore prev_loaded_card_ids
     game = put_in(game, ["loadedCardIds"], prev_loaded_card_ids)
+
+    # Add the load code to the history
+    game = add_load_code_to_history(game, code, player_n, trace ++ ["add_load_code_to_history"])
 
     # Set loadedADeck to true
     put_in(game, ["loadedADeck"], true)

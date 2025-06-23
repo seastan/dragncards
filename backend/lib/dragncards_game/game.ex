@@ -114,7 +114,7 @@
       "imageUrlPrefix" => game_def["imageUrlPrefix"],
       "options" => options,
       "loadedADeck" => false,
-      "loadedDecks" => [],
+      "loadCardsHistory" => [],
       "loadedCardIds" => [],
       "variables" => GameVariables.default(),
       "functions" => game_def["functions"] || %{},
