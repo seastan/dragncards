@@ -106,12 +106,20 @@ export const MyPlugins = () => {
   const handleLayoutGeneratorClick = () => {
     history.push("/layout-generator");
   }
+  const handlePluginBuilderClick = () => {
+    history.push("/plugin-builder");
+  }
 
   return (
     <div className="mt-4 mx-auto w-full p-2 overflow-y-scroll" style={{maxWidth: "600px"}}>
       <div className="w-full p-2" style={{height: "80px"}}>
         <LobbyButton className="p-2 my-2" onClick={() => handleNewClick()}>
           New Plugin
+        </LobbyButton>
+      </div>
+      <div className="w-full p-2" style={{height: "50px"}}>
+        <LobbyButton  className="p-1" onClick={() => handlePluginBuilderClick()}>
+          Plugin Builder Tool
         </LobbyButton>
       </div>
       <div className="w-full p-2" style={{height: "50px"}}>

@@ -272,9 +272,6 @@ defmodule DragnCardsGame.GameUIServer do
     options = put_in(gameui["options"], ["replayUuid"], nil)
     layout_id = gameui["game"]["layoutId"]
     load_list_history = gameui["game"]["loadCardsHistory"] || []
-    IO.puts("load_list_history 1")
-    IO.inspect(load_list_history)
-    IO.puts("load_list_history 2")
 
     new_gameui = GameUI.new(gameui["roomSlug"], user_id, options)
     new_game = new_gameui["game"]
