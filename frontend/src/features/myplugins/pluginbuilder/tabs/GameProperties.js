@@ -12,6 +12,7 @@ export const GameProperties = ({ inputs, setInputs }) => {
       properties={inputs.gameProperties || []}
       setProperties={(props) => setInputs((prev) => ({ ...prev, gameProperties: props }))}
       siteL10n={siteL10n}
+      showTopBarOption={true}
     />
   );
 };

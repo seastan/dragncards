@@ -13,6 +13,7 @@ export const PlayerProperties = ({ inputs, setInputs }) => {
       setProperties={(props) => setInputs((prev) => ({ ...prev, playerProperties: props }))}
       defaultProperty={{ propertyId: "score", label: "Score", type: "integer", default: 0 }}
       siteL10n={siteL10n}
+      showTopBarOption={true}
     />
   );
 };

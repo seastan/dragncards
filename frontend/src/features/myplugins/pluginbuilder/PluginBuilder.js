@@ -11,6 +11,9 @@ import { PlayerProperties } from './tabs/PlayerProperties';
 import { GameProperties } from './tabs/GameProperties';
 import Layout from './tabs/Layout';
 import { Deckbuilder } from './tabs/Deckbuilder';
+import { Phases } from './tabs/Phases';
+import { Tokens } from './tabs/Tokens';
+import { ExportGameDefinition } from './tabs/ExportGameDefinition';
 
 const tabs = [
   { 
@@ -66,19 +69,11 @@ const tabs = [
     fields: [] 
   },
   { 
-    label: 'Steps', 
-    fields: [] 
-  },
-  { 
     label: 'Tokens', 
     fields: [] 
   },
   { 
-    label: 'Top Bar Counters', 
-    fields: [] 
-  },
-  { 
-    label: 'Export', 
+    label: 'Export Game Definition', 
     fields: [] 
   }
 ];
@@ -134,6 +129,12 @@ export default function PluginBuilder() {
         return <Layout inputs={inputs} setInputs={setInputs} />;
       case 'Deckbuilder':
         return <Deckbuilder inputs={inputs} setInputs={setInputs} />;
+      case 'Phases':
+        return <Phases inputs={inputs} setInputs={setInputs} />;
+      case 'Tokens':
+        return <Tokens inputs={inputs} setInputs={setInputs} />;
+      case 'Export Game Definition':
+        return <ExportGameDefinition inputs={inputs} />;
     }
     // Add other cases for different tabs as needed
     return null;

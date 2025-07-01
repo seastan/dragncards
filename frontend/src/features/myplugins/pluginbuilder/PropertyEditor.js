@@ -11,6 +11,7 @@ export const PropertyEditor = ({
   allowCustomId = true,
   defaultProperty = null,
   siteL10n,
+  showTopBarOption = false,  // NEW
 }) => {
   React.useEffect(() => {
     if ((!properties || properties.length === 0) && defaultProperty) {
@@ -26,6 +27,7 @@ export const PropertyEditor = ({
         label: "",
         type: "string",
         default: "",
+        ...(showTopBarOption ? { showInTopBar: false } : {})
       },
     ]);
   };
@@ -76,32 +78,57 @@ export const PropertyEditor = ({
         <p className="m-0">{description}</p>
       </div>
 
-      <div className="grid grid-cols-[32px_10rem_12rem_10rem_1fr] gap-4 text-sm text-gray-400 mb-2 px-1">
+      <div className={`grid gap-4 text-sm text-gray-400 mb-2 px-1 ${
+        showTopBarOption ? 'grid-cols-[32px_10rem_12rem_10rem_1fr_10rem]' : 'grid-cols-[32px_10rem_12rem_10rem_1fr]'
+      }`}>
         <span></span>
         <span>{siteL10n("Property ID")}</span>
         <span>{siteL10n("Label")}</span>
         <span>{siteL10n("Type")}</span>
         <span>{siteL10n("Default Value")}</span>
+        {showTopBarOption && <span>{siteL10n("Show in Top Bar")}</span>}
       </div>
 
       <div className="space-y-2">
         {properties.map((prop, index) => (
-          <div key={index} className="grid grid-cols-[32px_10rem_12rem_10rem_1fr] gap-4 items-center">
+          <div key={index} className={`grid gap-4 items-center ${
+            showTopBarOption ? 'grid-cols-[32px_10rem_12rem_10rem_1fr_10rem]' : 'grid-cols-[32px_10rem_12rem_10rem_1fr]'
+          }`}>
             <button onClick={() => removeProperty(index)} className="text-red-400 hover:text-red-600" title={siteL10n("Remove property")}>
               <FontAwesomeIcon icon={faTrash} />
             </button>
 
-            <input type="text" placeholder={siteL10n("Property ID")} value={prop.propertyId} onChange={(e) => updateField(index, "propertyId", e.target.value)} className="px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm" disabled={!allowCustomId} />
+            <input type="text" placeholder={siteL10n("Property ID")} value={prop.propertyId}
+              onChange={(e) => updateField(index, "propertyId", e.target.value)}
+              className="px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+              disabled={!allowCustomId}
+            />
 
-            <input type="text" placeholder={siteL10n("Label")} value={prop.label} onChange={(e) => updateField(index, "label", e.target.value)} className="px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm" />
+            <input type="text" placeholder={siteL10n("Label")} value={prop.label}
+              onChange={(e) => updateField(index, "label", e.target.value)}
+              className="px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            />
 
-            <select value={prop.type} onChange={(e) => updateField(index, "type", e.target.value)} className="px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm">
+            <select value={prop.type} onChange={(e) => updateField(index, "type", e.target.value)}
+              className="px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            >
               {typeOptions.map((type) => (
                 <option key={type} value={type}>{siteL10n(type)}</option>
               ))}
             </select>
 
             {renderDefaultInput(prop, index)}
+
+            {showTopBarOption && (
+              <label className="flex items-center gap-2 text-sm text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={!!prop.showInTopBar}
+                  onChange={(e) => updateField(index, "showInTopBar", e.target.checked)}
+                  className="form-checkbox"
+                />
+              </label>
+            )}
           </div>
         ))}
       </div>

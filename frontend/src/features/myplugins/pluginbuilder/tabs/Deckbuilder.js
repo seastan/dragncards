@@ -9,15 +9,15 @@ export const Deckbuilder = ({ inputs, setInputs }) => {
   const faceProperties = inputs.faceProperties || [];
   const deckbuilder = inputs.deckbuilder || {};
   const maxCardQuantity = deckbuilder.maxCardQuantity ?? 3;
-  const searchableColumns = new Set(deckbuilder.searchableColumns?.map((col) => col.propertyId) || []);
+  const searchableColumns = new Set(deckbuilder.searchableColumns?.map((col) => col.propName) || []);
 
-  const handleToggle = (propertyId, label) => {
-    const currentlySelected = new Set(deckbuilder.searchableColumns?.map((col) => col.propertyId) || []);
+  const handleToggle = (propName, label) => {
+    const currentlySelected = new Set(deckbuilder.searchableColumns?.map((col) => col.propName) || []);
     const updated = [...deckbuilder.searchableColumns || []];
 
-    if (currentlySelected.has(propertyId)) {
+    if (currentlySelected.has(propName)) {
       // remove
-      const filtered = updated.filter((entry) => entry.propertyId !== propertyId);
+      const filtered = updated.filter((entry) => entry.propName !== propName);
       setInputs((prev) => ({
         ...prev,
         deckbuilder: {
@@ -27,7 +27,7 @@ export const Deckbuilder = ({ inputs, setInputs }) => {
       }));
     } else {
       // add
-      updated.push({ propertyId, label });
+      updated.push({ propName, label });
       setInputs((prev) => ({
         ...prev,
         deckbuilder: {
@@ -51,24 +51,28 @@ export const Deckbuilder = ({ inputs, setInputs }) => {
     }
   };
 
-  // 🧱 Set defaults for searchableColumns
+  // Set defaults for searchableColumns
   useEffect(() => {
     if (!deckbuilder.searchableColumns || deckbuilder.searchableColumns.length === 0) {
       const defaultProps = faceProperties.filter((p) =>
-        ["name", "type"].includes(p.propertyId)
+        ["name", "type"].includes(p.propName)
       ).map((p) => ({
-        propertyId: p.propertyId,
+        propName: p.propName,
         label: p.label
       }));
+      
+      if (defaultProps.length > 0) {
+          // Set searchableColumns to default properties
+          setInputs((prev) => ({
+          ...prev,
+          deckbuilder: {
+            ...prev.deckbuilder,
+            searchableColumns: defaultProps,
+            maxCardQuantity: maxCardQuantity ?? 3
+          }
+        }));
+      }
 
-      setInputs((prev) => ({
-        ...prev,
-        deckbuilder: {
-          ...prev.deckbuilder,
-          searchableColumns: defaultProps,
-          maxCardQuantity: maxCardQuantity ?? 3
-        }
-      }));
     }
   }, [deckbuilder.searchableColumns, faceProperties, maxCardQuantity, setInputs]);
 
@@ -92,11 +96,11 @@ export const Deckbuilder = ({ inputs, setInputs }) => {
       <div className="mb-2 text-sm text-gray-300">{siteL10n("Searchable Columns")}</div>
       <div className="flex flex-wrap gap-2">
         {faceProperties.map((prop) => {
-          const isActive = searchableColumns.has(prop.propertyId);
+          const isActive = searchableColumns.has(prop.propName);
           return (
             <button
-              key={prop.propertyId}
-              onClick={() => handleToggle(prop.propertyId, prop.label)}
+              key={prop.propName}
+              onClick={() => handleToggle(prop.propName, prop.label)}
               className={`flex items-center gap-1 px-3 py-1 rounded text-sm border transition ${
                 isActive
                   ? "bg-blue-600 border-blue-500 text-white"
