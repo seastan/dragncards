@@ -3,6 +3,7 @@ import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import { useSiteL10n } from "../../../../hooks/useSiteL10n";
 import { GameProperties } from "./GameProperties";
+import { PlayerProperties } from "./PlayerProperties";
 
 
 const defaultAutomation = {
@@ -104,6 +105,101 @@ const defaultFunctions = {
       ]
     ]
   },
+};
+
+const defaultGroupTypes = {
+    groupTypes: {
+        deck: {
+            canHaveAttachments: false,
+            canHaveTokens: false,
+            shuffleOnLoad: true,
+            onCardEnter: {
+                currentSide: "B",
+                inPlay: false,
+                rotation: 0
+            }
+        },
+        discard: {
+            canHaveAttachments: false,
+            canHaveTokens: false,
+            shuffleOnLoad: false,
+            onCardEnter: {
+                currentSide: "A",
+                inPlay: false,
+                rotation: 0
+            }
+        },
+        aside: {
+            canHaveAttachments: false,
+            canHaveTokens: false,
+            shuffleOnLoad: false,
+            onCardEnter: {
+                currentSide: "A",
+                inPlay: false,
+                rotation: 0
+            }
+        },
+        hand: {
+            canHaveAttachments: false,
+            canHaveTokens: false,
+            shuffleOnLoad: false,
+            onCardEnter: {
+                currentSide: "A",
+                inPlay: false,
+                rotation: 0
+            }
+        },
+        inPlay: {
+            canHaveAttachments: true,
+            canHaveTokens: true,
+            shuffleOnLoad: false,
+            onCardEnter: {
+                currentSide: "A",
+                inPlay: true
+            }
+        }
+    }
+};
+
+const defaultGameHotkeys = [
+  {"key": "D", "actionList": ["DRAW_CARD"], "label": "Draw a card"}
+];
+const defaultCardHotkeys = [
+  {"key": "A", "actionList": ["TOGGLE_ROTATE", "$ACTIVE_CARD_ID"], "label": "Toggle Rotate"},
+  {"key": "F", "actionList": ["FLIP_CARD", "$ACTIVE_CARD_ID"], "label": "Flip Card"},
+  {"key": "C", "actionList": ["DETACH", "$ACTIVE_CARD_ID"], "label": "Detach"},
+  {"key": "H", "actionList": ["SHUFFLE_INTO_DECK", "$ACTIVE_CARD_ID"], "label": "Shuffle Into Owner's Deck"},
+  {"key": "X", "actionList": ["DISCARD_CARD", "$ACTIVE_CARD"], "label": "id:discardOrAdvance"}
+];
+
+const defaultTopBarCounters = {
+  shared: [
+    {
+      label: "Round",
+      imageUrl: "",
+      gameProperty: "roundNumber"
+    }
+  ]
+};
+
+const processHotkeys = (inputs) => {
+  const gameHotkeys = inputs?.gameHotkeys || defaultGameHotkeys;
+  const cardHotkeys = inputs?.cardHotkeys || defaultCardHotkeys;
+  const tokenHotkeys = {};
+
+  Object.entries(inputs?.tokens || {}).forEach(([tokenIndex, token]) => {
+    tokenHotkeys[token.id] = {
+      key: `${tokenIndex + 1}`,
+      tokenType: token.id,
+      label: `icon(${token.imageUrl})`,
+    };
+  });
+
+  return {
+    gameHotkeys,
+    cardHotkeys,
+    tokenHotkeys
+  };
 };
 
 const processBrowse = (inputs) => {
@@ -262,6 +358,175 @@ const processGroups = (inputs) => {
   return newGroups;
 };
 
+
+
+const processLayout = (inputs) => {
+  const layout = inputs.layout;
+  if (!layout) {
+    return {};
+  }
+  const numRows = layout.numRows;
+  const rectangles = layout.rectangles;
+
+  const width = layout.offsetWidth;
+  const height = layout.offsetHeight;
+
+  const newLayout = {
+    cardSize: Math.ceil((1 / numRows) * 100 - 4),
+    rowSpacing: 3,
+    chat: inputs.chatBox
+  };
+
+  const regions = {};
+  rectangles.forEach(({ x, y, width: w, height: h, text: groupId, type, direction }) => {
+    regions[groupId] = {
+      groupId: groupId,
+      type: type,
+      direction: direction,
+      left: `${((x / width) * 100).toFixed(1)}%`,
+      top: `${((y / height) * 100).toFixed(1)}%`,
+      width: `${((w / width) * 100).toFixed(1)}%`,
+      height: `${((h / height) * 100).toFixed(1)}%`
+    };
+  });
+
+  newLayout.regions = regions;
+
+  return {
+    default: newLayout,
+  };
+};
+
+const processPlayerCountMenu = (inputs) => {
+  const minPlayers = inputs.minPlayers;
+  const maxPlayers = inputs.maxPlayers;
+
+  const options = [];
+  for (let i = minPlayers; i <= maxPlayers; i++) {
+    options.push({
+      label: `${i}`,
+      numPlayers: i,
+      layout: "default"
+    });
+  }
+
+  return options;
+};
+
+const processPrebuiltDecks = (inputs) => {
+  // Select 10 random ids from the inputs.cardDb
+  const cardDb = inputs.cardDb || {};
+  const cardIds = Object.keys(cardDb);
+  const shuffledIds1 = cardIds.sort(() => 0.5 - Math.random()).slice(0, 10);
+  const shuffledIds2 = cardIds.sort(() => 0.5 - Math.random()).slice(0, 10);
+
+  // Pick a groupId for the sample deck
+  const groupId = inputs.groups[0]?.groupId;
+
+  const sampleDeck1 = {
+    label: "Sample Deck 1",
+    cards: shuffledIds1.map(id => ({
+      databaseId: id,
+      quantity: 1,
+      groupId: groupId
+    }))
+  };
+  const sampleDeck2 = {
+    label: "Sample Deck 2",
+    cards: shuffledIds2.map(id => ({
+      databaseId: id,
+      quantity: 1,
+      groupId: groupId
+    }))
+  };
+
+  return { sampleDeck1, sampleDeck2 };
+};
+
+const processSpawnExistingCardModal = (inputs) => {
+  const groupIds = [];
+  const groups = inputs.groups || {};
+  Object.entries(groups).forEach(([_groupIndex, group]) => {
+    const groupId = group.groupId;
+    if (processGroupType(group.groupType) === "deck" || processGroupType(group.groupType) === "inPlay") {
+      groupIds.push(groupId);
+    }
+  });
+  return {
+    spawnExistingCardModal: {
+      "columnProperties": ["name", "type"],
+      "loadGroupIds": groupIds
+    }
+  };
+};
+
+const processPhases = (inputs) => {
+  const phases = inputs.phases || [];
+  const processedSteps = processSteps(inputs);
+  const numSteps = Object.keys(processedSteps.steps).length;
+  const stepHeight = numSteps > 0 ? (100 / numSteps) : 0;
+  const newPhases = {};
+  const phaseOrder = [];
+
+  phases.forEach((phase) => {
+    const phaseId = phase.phaseId;
+    const steps = phase.steps || [];
+    const numStepsInPhase = steps.length;
+    newPhases[phaseId] = {
+      label: phase.label || "",
+      height: `${(numStepsInPhase > 0 ? (stepHeight * numStepsInPhase) : 0).toFixed(1)}%`,
+    };
+    phaseOrder.push(phaseId);
+  });
+
+  return {
+    phases: newPhases,
+    phaseOrder
+  };
+};
+
+const processSteps = (inputs) => {
+  const steps = {};
+  const stepOrder = [];
+  // Loop over phases
+  const phases = inputs.phases || [];
+  phases.forEach((phase) => {
+    const phaseId = phase.phaseId;
+    const phaseSteps = phase.steps || [];
+    // Loop over steps in each phase
+    phaseSteps.forEach((step) => {
+      const stepId = step.stepId;
+      steps[stepId] = {
+        phaseId: phaseId,
+        label: step.label || "",
+      };
+      stepOrder.push(stepId);
+    });
+  });
+  return {
+    steps,
+    stepOrder
+  };
+};
+
+const processTokens = (inputs) => {
+  const tokens = inputs.tokens || {};
+  const newTokens = {};
+  Object.entries(tokens).forEach(([tokenIndex, token]) => {
+    newTokens[token.id] = {
+      label: token.label,
+      left: `${token.left}%`,
+      top: `${token.top}%`,
+      width: `${token.width}vh`,
+      height: `${token.height}vh`,
+      imageUrl: token.imageUrl,
+      canBeNegative: true
+    };
+  });
+  return newTokens;
+};
+
+
 const processInputsIntoGameDefinition = (inputs) => {
   // Current date in YYYY-MM-DD format
   const currentDate = new Date().toISOString().split("T")[0];
@@ -284,6 +549,24 @@ const processInputsIntoGameDefinition = (inputs) => {
     gameProperties: inputs.GameProperties || {},
     groupMenu: processGroupMenu(inputs),
     groups: processGroups(inputs),
+    groupTypes: defaultGroupTypes,
+    hotkeys: processHotkeys(inputs),
+    imageUrlPrefix: {},
+    labels: {},
+    layouts: processLayout(inputs),
+    phases: processPhases(inputs),
+    playerCountMenu: processPlayerCountMenu(inputs),
+    PlayerProperties: inputs.PlayerProperties || {},
+    pluginMenu: {},
+    prebuiltDecks: processPrebuiltDecks(inputs),
+    preferences: {},
+    prompts: {},
+    spawnExistingCardModal: processSpawnExistingCardModal(inputs),
+    stepReminderRegex: [],
+    steps: processSteps(inputs),
+    tokens: processTokens(inputs),
+    topBarCounters: defaultTopBarCounters,
+    touchBar: [],
     pluginName: inputs.pluginName || "My Game",
     minPlayers: inputs.minPlayers || 2,
     maxPlayers: inputs.maxPlayers || 2,
@@ -297,6 +580,7 @@ const processInputsIntoGameDefinition = (inputs) => {
 
 export const ExportGameDefinition = ({ inputs }) => {
   const siteL10n = useSiteL10n();
+  console.log("inputs in ExportGameDefinition:", inputs);
 
   const exportGameDefinition = async () => {
     const zip = new JSZip();

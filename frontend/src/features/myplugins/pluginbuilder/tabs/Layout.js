@@ -171,17 +171,20 @@ export const LayoutRectangle = ({
   );
 };
 
+const defaultChatBox = {
+  left: "75%",
+  top: "80%",
+  width: "25%",
+  height: "20%"
+};
+
+const defaultNumRows = 5;
 
 export default function Layout({ inputs, setInputs }) {
   const layout = inputs.layout || {};
   const rectangles = layout.rectangles || [];
-  const chatBox = layout.chatBox || {
-    left: "75%",
-    top: "80%",
-    width: "25%",
-    height: "20%"
-  };
-  const numRows = layout.numRows || 5;
+  const chatBox = layout.chatBox || defaultChatBox;
+  const numRows = layout.numRows || defaultNumRows;
 
   const setLayoutField = (field, value) => {
     setInputs((prev) => ({
@@ -201,6 +204,21 @@ export default function Layout({ inputs, setInputs }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
+    if (!inputs.layout) {
+      setInputs((prev) => ({
+        ...prev,
+        layout: {
+          rectangles: [],
+          chatBox: defaultChatBox,
+          numRows: defaultNumRows,
+          canvasWidth: canvasRef.current ? canvasRef.current.offsetWidth : window.innerWidth,
+          canvasHeight: canvasRef.current ? canvasRef.current.offsetHeight : window.innerHeight
+        }
+      }));
+    }
+  }, [inputs.layout, setInputs]);
+
+  useEffect(() => {
     const updateGridSnap = () => {
       const canvas = canvasRef.current;
       if (canvas) {
@@ -208,6 +226,14 @@ export default function Layout({ inputs, setInputs }) {
         const height = canvas.offsetHeight;
         const rowHeight = height / numRows;
         setGridSnap([width * 0.01, rowHeight * 0.10]);
+        setInputs((prev) => ({
+          ...prev,
+          layout: {
+            ...prev.layout,
+            canvasWidth: width,
+            canvasHeight: height
+          }
+        }));
       }
     };
 
