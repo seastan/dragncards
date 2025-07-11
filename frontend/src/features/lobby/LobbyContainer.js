@@ -7,7 +7,7 @@ import useProfile from "../../hooks/useProfile";
 import useIsLoggedIn from "../../hooks/useIsLoggedIn";
 import { Announcements } from "./Announcements";
 import { PluginsTable } from "./PluginsTable";
-import { PatreonModal } from "../support/PatreonModal";
+import { PatreonModal } from "../store/support/PatreonModal";
 import { LobbyButton } from "../../components/basic/LobbyButton";
 import { TermsOfServiceModal } from "./TermsOfServiceModal";
 import { PluginLobby } from "./PluginLobby";

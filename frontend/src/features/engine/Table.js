@@ -17,7 +17,7 @@ import { useDispatch, useSelector } from "react-redux";
 import useProfile from "../../hooks/useProfile";
 import BroadcastContext from "../../contexts/BroadcastContext";
 import { DeckbuilderModal } from "./DeckbuilderModal";
-import { PatreonModal } from "../support/PatreonModal";
+import { PatreonModal } from "../store/support/PatreonModal";
 import DeveloperModal from "./DeveloperModal";
 import { usePlayerN } from "./hooks/usePlayerN";
 import { pl } from "date-fns/locale";
