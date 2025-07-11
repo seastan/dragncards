@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useSiteL10n } from "../../../../hooks/useSiteL10n";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck } from "@fortawesome/free-solid-svg-icons";
@@ -9,33 +9,35 @@ export const Deckbuilder = ({ inputs, setInputs }) => {
   const faceProperties = inputs.faceProperties || [];
   const deckbuilder = inputs.deckbuilder || {};
   const maxCardQuantity = deckbuilder.maxCardQuantity ?? 3;
-  const searchableColumns = new Set(deckbuilder.searchableColumns?.map((col) => col.propName) || []);
 
-  const handleToggle = (propName, label) => {
-    const currentlySelected = new Set(deckbuilder.searchableColumns?.map((col) => col.propName) || []);
-    const updated = [...deckbuilder.searchableColumns || []];
+  const searchableColumns = useMemo(() => {
+    return new Set(deckbuilder.searchableColumns?.map((col) => col.propertyId) || []);
+  }, [deckbuilder.searchableColumns]);
 
-    if (currentlySelected.has(propName)) {
-      // remove
-      const filtered = updated.filter((entry) => entry.propName !== propName);
-      setInputs((prev) => ({
+
+  console.log("Deckbuilder searchableColumns", searchableColumns);
+
+  const handleToggle = (propertyId, label) => {
+    setInputs((prev) => {
+      const prevCols = prev.deckbuilder?.searchableColumns || [];
+      const isSelected = prevCols.some((col) => col.propertyId === propertyId);
+
+      const newCols = isSelected
+        ? prevCols.filter((col) => col.propertyId !== propertyId)
+        : [...prevCols, { propertyId, label }];
+
+      console.log("Toggling column:", propertyId, "Selected:", !isSelected);
+      console.log("Previous searchable columns:", prevCols);
+      console.log("New searchable columns:", newCols);
+
+      return {
         ...prev,
         deckbuilder: {
           ...prev.deckbuilder,
-          searchableColumns: filtered
-        }
-      }));
-    } else {
-      // add
-      updated.push({ propName, label });
-      setInputs((prev) => ({
-        ...prev,
-        deckbuilder: {
-          ...prev.deckbuilder,
-          searchableColumns: updated
-        }
-      }));
-    }
+          searchableColumns: newCols,
+        },
+      };
+    });
   };
 
   const handleQuantityChange = (e) => {
@@ -45,36 +47,33 @@ export const Deckbuilder = ({ inputs, setInputs }) => {
         ...prev,
         deckbuilder: {
           ...prev.deckbuilder,
-          maxCardQuantity: value
-        }
+          maxCardQuantity: value,
+        },
       }));
     }
   };
 
-  // Set defaults for searchableColumns
   useEffect(() => {
     if (!deckbuilder.searchableColumns || deckbuilder.searchableColumns.length === 0) {
-      const defaultProps = faceProperties.filter((p) =>
-        ["name", "type"].includes(p.propName)
-      ).map((p) => ({
-        propName: p.propName,
-        label: p.label
-      }));
-      
+      const defaultProps = faceProperties
+        .filter((p) => ["name", "type"].includes(p.propertyId))
+        .map((p) => ({
+          propertyId: p.propertyId,
+          label: p.label,
+        }));
+
       if (defaultProps.length > 0) {
-          // Set searchableColumns to default properties
-          setInputs((prev) => ({
+        setInputs((prev) => ({
           ...prev,
           deckbuilder: {
             ...prev.deckbuilder,
             searchableColumns: defaultProps,
-            maxCardQuantity: maxCardQuantity ?? 3
-          }
+            maxCardQuantity: prev.deckbuilder?.maxCardQuantity ?? 3,
+          },
         }));
       }
-
     }
-  }, [deckbuilder.searchableColumns, faceProperties, maxCardQuantity, setInputs]);
+  }, [faceProperties, deckbuilder.searchableColumns?.length]);
 
   return (
     <div className="w-full max-w-3xl p-6 m-4 bg-gray-800 rounded-lg text-white">
@@ -96,11 +95,11 @@ export const Deckbuilder = ({ inputs, setInputs }) => {
       <div className="mb-2 text-sm text-gray-300">{siteL10n("Searchable Columns")}</div>
       <div className="flex flex-wrap gap-2">
         {faceProperties.map((prop) => {
-          const isActive = searchableColumns.has(prop.propName);
+          const isActive = searchableColumns.has(prop.propertyId);
           return (
             <button
-              key={prop.propName}
-              onClick={() => handleToggle(prop.propName, prop.label)}
+              key={prop.propertyId}
+              onClick={() => handleToggle(prop.propertyId, prop.label)}
               className={`flex items-center gap-1 px-3 py-1 rounded text-sm border transition ${
                 isActive
                   ? "bg-blue-600 border-blue-500 text-white"

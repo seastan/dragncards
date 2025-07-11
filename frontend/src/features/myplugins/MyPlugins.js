@@ -13,6 +13,7 @@ import { useSiteL10n } from "../../hooks/useSiteL10n";
 import useAuth from "../../hooks/useAuth";
 import { LobbyButton } from "../../components/basic/LobbyButton";
 import SharePluginModal from "./editplugin/SharePluginModal";
+import { faUpload, faWrench, faThLarge } from "@fortawesome/free-solid-svg-icons"
 
 //const lobbyButtonClass = 
 const iconButtonClass = "cursor-pointer hover:bg-white hover:text-black h-full w-full m-2 rounded flex items-center justify-center text-white no-underline select-none"
@@ -99,7 +100,7 @@ export const MyPlugins = () => {
   const insertedRelative = formatDistanceToNow(insertedDate, {
     addSuffix: true,
   });
-  const handleNewClick = () => {
+  const handleUploadClick = () => {
     setSelectedPlugin(null);
     setShowEditModal(true);
   }
@@ -111,57 +112,56 @@ export const MyPlugins = () => {
   }
 
   return (
-    <div className="mt-4 mx-auto w-full p-2 overflow-y-scroll" style={{maxWidth: "600px"}}>
-      <div className="w-full p-2" style={{height: "80px"}}>
-        <LobbyButton className="p-2 my-2" onClick={() => handleNewClick()}>
-          New Plugin
+    <div className="mt-4 mx-auto w-full max-w-[600px] p-2 overflow-y-scroll">
+      <div className="flex justify-between gap-2 mb-4">
+        <LobbyButton className="flex-1 aspect-square p-4 flex flex-col items-center justify-center" onClick={handlePluginBuilderClick}>
+          <FontAwesomeIcon icon={faWrench} className="text-xl mb-1" />
+          <span className="text-xs text-center">Builder</span>
+        </LobbyButton>
+        <LobbyButton className="flex-1 aspect-square p-4 flex flex-col items-center justify-center" onClick={handleUploadClick}>
+          <FontAwesomeIcon icon={faUpload} className="text-xl mb-1" />
+          <span className="text-xs text-center">Upload</span>
+        </LobbyButton>
+        <LobbyButton className="flex-1 aspect-square p-4 flex flex-col items-center justify-center" onClick={handleLayoutGeneratorClick}>
+          <FontAwesomeIcon icon={faThLarge} className="text-xl mb-1" />
+          <span className="text-xs text-center">Layout</span>
         </LobbyButton>
       </div>
-      <div className="w-full p-2" style={{height: "50px"}}>
-        <LobbyButton  className="p-1" onClick={() => handlePluginBuilderClick()}>
-          Plugin Builder Tool
-        </LobbyButton>
-      </div>
-      <div className="w-full p-2" style={{height: "50px"}}>
-        <LobbyButton  className="p-1" onClick={() => handleLayoutGeneratorClick()}>
-          Layout Generator Tool
-        </LobbyButton>
-      </div>
-      {data?.my_plugins.map((plugin, index) => {
-        return(
-          <MyPluginEntry 
-            key={index}
-            plugin={plugin}
-            setSelectedPlugin={setSelectedPlugin}
-            setShowEditModal={setShowEditModal}
-            setShowShareModal={setShowShareModal}
-            doFetchHash={doFetchHash}
-            index={index}
-          />)
-      })}
-      {showEditModal ? 
-        selectedPlugin ?
-          <EditPluginModal
-            plugin={selectedPlugin}
-            closeModal={() => {setShowEditModal(false); setSelectedPlugin(null)}}
-            doFetchHash={doFetchHash}
-          />
-          :
-          <EditPluginModal
-            plugin={null}
-            closeModal={() => {setShowEditModal(false); setSelectedPlugin(null)}}
-            doFetchHash={doFetchHash}
-          />
-        : null
-      }
-      {showShareModal ?
-          <SharePluginModal
-            plugin={selectedPlugin}
-            closeModal={() => {setShowShareModal(false); setSelectedPlugin(null)}}
-          />
-        : null
-      }
+
+      {data?.my_plugins.map((plugin, index) => (
+        <MyPluginEntry
+          key={index}
+          plugin={plugin}
+          setSelectedPlugin={setSelectedPlugin}
+          setShowEditModal={setShowEditModal}
+          setShowShareModal={setShowShareModal}
+          doFetchHash={doFetchHash}
+          index={index}
+        />
+      ))}
+
+      {showEditModal && (
+        <EditPluginModal
+          plugin={selectedPlugin}
+          closeModal={() => {
+            setShowEditModal(false);
+            setSelectedPlugin(null);
+          }}
+          doFetchHash={doFetchHash}
+        />
+      )}
+
+      {showShareModal && (
+        <SharePluginModal
+          plugin={selectedPlugin}
+          closeModal={() => {
+            setShowShareModal(false);
+            setSelectedPlugin(null);
+          }}
+        />
+      )}
     </div>
+
   );
 };
 export default MyPlugins;

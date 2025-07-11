@@ -33,7 +33,7 @@ const defaultFunctions = {
         ["LOG", "{{ALIAS_N}} failed to discard {{CARD.currentFace.name}} because it is not associated with a discard pile. Please drag the card instead."],
         ["TRUE"],
         [
-          ["LOG", "{{ALIAS_N}} discarded {{CARD.sides.A.name}}."],
+          ["LOG", "{{$ALIAS_N}} discarded {{$CARD.sides.A.name}}."],
           ["MOVE_CARD", "$CARD.id", "$CARD.discardGroupId", 0],
         ]
       ]
@@ -46,12 +46,12 @@ const defaultFunctions = {
       ["COND",
         ["AND", ["EQUAL", "$CARD.rotation", 90], "$CARD.inPlay"],
         [
-          ["LOG", "{{ALIAS_N}} rotated {{CARD.currentFace.name}}."],
+          ["LOG", "{{$ALIAS_N}} rotated {{$CARD.currentFace.name}}."],
           ["SET", "/cardById/$CARD.id/rotation", 0]
         ],
         ["AND", ["EQUAL", "$CARD.rotation", 0], "$CARD.inPlay"],
         [
-          ["LOG", "{{ALIAS_N}} straightened {{CARD.currentFace.name}}."],
+          ["LOG", "{{$ALIAS_N}} straightened {{$CARD.currentFace.name}}."],
           ["SET", "/cardById/$CARD.id/rotation", 90]
         ]
       ]
@@ -64,13 +64,13 @@ const defaultFunctions = {
       ["COND",
         ["EQUAL", "$CARD.currentSide", "A"],
         [
-          ["LOG", "{{ALIAS_N}} flipped {{CARD.currentFace.name}} facedown."],
+          ["LOG", "{{$ALIAS_N}} flipped {{$CARD.currentFace.name}} facedown."],
           ["SET", "/cardById/$CARD.id/currentSide", "B"]
         ],
         ["TRUE"],
         [
           ["SET", "/cardById/$CARD.id/currentSide", "A"],
-          ["LOG", "{{ALIAS_N}} flipped {{CARD.currentFace.name}} faceup."]
+          ["LOG", "{{$ALIAS_N}} flipped {{$CARD.currentFace.name}} faceup."]
         ]
       ]
     ]
@@ -83,7 +83,7 @@ const defaultFunctions = {
         ["GREATER_THAN", "$CARD.cardIndex", 0],
         [
           ["MOVE_CARD", "$CARD.id", "$CARD.groupId", ["ADD", "$CARD.stackIndex", 1]],
-          ["LOG", "{{ALIAS_N}} detached {{CARD.currentFace.name}}."],
+          ["LOG", "{{$ALIAS_N}} detached {{$CARD.currentFace.name}}."],
         ]
       ]
     ]
@@ -95,12 +95,12 @@ const defaultFunctions = {
       ["VAR", "$GROUP_ID", "$CARD.deckGroupId"],
       ["COND",
         ["EQUAL", "$GROUP_ID", null],
-        ["LOG", "{{ALIAS_N}} failed to shuffle {{CARD.currentFace.name}} into a deck because it is not associated with a deck."],
+        ["LOG", "{{$ALIAS_N}} failed to shuffle {{$CARD.currentFace.name}} into a deck because it is not associated with a deck."],
         ["TRUE"],
         [
           ["MOVE_CARD", "$CARD.id", "$CARD.deckGroupId", 0],
           ["SHUFFLE_GROUP", "$GROUP_ID"],
-          ["LOG", "{{ALIAS_N}} shuffled {{CARD.currentFace.name}} into {{GAME.groupById.$GROUP_ID.label}}."]
+          ["LOG", "{{$ALIAS_N}} shuffled {{$CARD.currentFace.name}} into {{$GAME.groupById.$GROUP_ID.label}}."]
         ]
       ]
     ]
@@ -108,57 +108,55 @@ const defaultFunctions = {
 };
 
 const defaultGroupTypes = {
-    groupTypes: {
-        deck: {
-            canHaveAttachments: false,
-            canHaveTokens: false,
-            shuffleOnLoad: true,
-            onCardEnter: {
-                currentSide: "B",
-                inPlay: false,
-                rotation: 0
-            }
-        },
-        discard: {
-            canHaveAttachments: false,
-            canHaveTokens: false,
-            shuffleOnLoad: false,
-            onCardEnter: {
-                currentSide: "A",
-                inPlay: false,
-                rotation: 0
-            }
-        },
-        aside: {
-            canHaveAttachments: false,
-            canHaveTokens: false,
-            shuffleOnLoad: false,
-            onCardEnter: {
-                currentSide: "A",
-                inPlay: false,
-                rotation: 0
-            }
-        },
-        hand: {
-            canHaveAttachments: false,
-            canHaveTokens: false,
-            shuffleOnLoad: false,
-            onCardEnter: {
-                currentSide: "A",
-                inPlay: false,
-                rotation: 0
-            }
-        },
-        inPlay: {
-            canHaveAttachments: true,
-            canHaveTokens: true,
-            shuffleOnLoad: false,
-            onCardEnter: {
-                currentSide: "A",
-                inPlay: true
-            }
-        }
+  deck: {
+    canHaveAttachments: false,
+    canHaveTokens: false,
+    shuffleOnLoad: true,
+    onCardEnter: {
+      currentSide: "B",
+      inPlay: false,
+      rotation: 0
     }
+  },
+  discard: {
+    canHaveAttachments: false,
+    canHaveTokens: false,
+    shuffleOnLoad: false,
+    onCardEnter: {
+      currentSide: "A",
+      inPlay: false,
+      rotation: 0
+    }
+  },
+  aside: {
+    canHaveAttachments: false,
+    canHaveTokens: false,
+    shuffleOnLoad: false,
+    onCardEnter: {
+      currentSide: "A",
+      inPlay: false,
+      rotation: 0
+    }
+  },
+  hand: {
+    canHaveAttachments: false,
+    canHaveTokens: false,
+    shuffleOnLoad: false,
+    onCardEnter: {
+      currentSide: "A",
+      inPlay: false,
+      rotation: 0
+    }
+  },
+  inPlay: {
+    canHaveAttachments: true,
+    canHaveTokens: true,
+    shuffleOnLoad: false,
+    onCardEnter: {
+      currentSide: "A",
+      inPlay: true
+    }
+  }
 };
 
 const defaultGameHotkeys = [
@@ -169,7 +167,7 @@ const defaultCardHotkeys = [
   {"key": "F", "actionList": ["FLIP_CARD", "$ACTIVE_CARD_ID"], "label": "Flip Card"},
   {"key": "C", "actionList": ["DETACH", "$ACTIVE_CARD_ID"], "label": "Detach"},
   {"key": "H", "actionList": ["SHUFFLE_INTO_DECK", "$ACTIVE_CARD_ID"], "label": "Shuffle Into Owner's Deck"},
-  {"key": "X", "actionList": ["DISCARD_CARD", "$ACTIVE_CARD"], "label": "id:discardOrAdvance"}
+  {"key": "X", "actionList": ["DISCARD_CARD", "$ACTIVE_CARD"], "label": "Discard"}
 ];
 
 const defaultTopBarCounters = {
@@ -185,20 +183,20 @@ const defaultTopBarCounters = {
 const processHotkeys = (inputs) => {
   const gameHotkeys = inputs?.gameHotkeys || defaultGameHotkeys;
   const cardHotkeys = inputs?.cardHotkeys || defaultCardHotkeys;
-  const tokenHotkeys = {};
+  const tokenHotkeys = [];
 
   Object.entries(inputs?.tokens || {}).forEach(([tokenIndex, token]) => {
-    tokenHotkeys[token.id] = {
+    tokenHotkeys.push({
       key: `${tokenIndex + 1}`,
       tokenType: token.id,
       label: `icon(${token.imageUrl})`,
-    };
+    });
   });
 
   return {
-    gameHotkeys,
-    cardHotkeys,
-    tokenHotkeys
+    game: gameHotkeys,
+    card: cardHotkeys,
+    token: tokenHotkeys
   };
 };
 
@@ -211,8 +209,8 @@ const processBrowse = (inputs) => {
 };
 
 const processCardTypes = (inputs) => {
-  const tokens = inputs.tokens || {};
-  const tokenIds = Object.keys(tokens);
+  const tokens = inputs.tokens || [];
+  const tokenIds = tokens.map(token => token.id);
   const cardTypes = inputs.cardTypes || {};
   Object.entries(cardTypes).forEach(([type, properties]) => {
     cardTypes[type] = {
@@ -226,7 +224,7 @@ const processCardTypes = (inputs) => {
 
 const processCardMenu = (inputs) => {
   return {
-    moveToGroupIds: inputs?.groups ? Object.keys(inputs.groups) : [],
+    moveToGroupIds: inputs?.groups ? inputs.groups.map(group => group.groupId) : [],
     options: []
   };
 };
@@ -265,11 +263,19 @@ function processSpawnGroups(inputs) {
   }, []);
 }
 
+const processDeckbuilderColumns = (inputs) => {
+  const searchableColumns = inputs.deckbuilder?.searchableColumns || [];
+  return searchableColumns.map(col => ({
+    propName: col.propertyId,
+    label: col.label
+  }));
+};
+
 const processDeckbuilder = (inputs) => {
   return {
     // addButtons: [1, 2, ..., inputs.deckbuilder.maxCardQuantity]
     addButtons: Array.from({ length: inputs.deckbuilder?.maxCardQuantity || 3 }, (_, i) => i + 1),
-    columns: inputs.deckbuilder?.searchableColumns || [],
+    columns: processDeckbuilderColumns(inputs),
     spawnGroups: processSpawnGroups(inputs),
   };
 };
@@ -280,7 +286,7 @@ const processDeckMenu = () => {
       {
         label: "Sample Decks",
         deckLists: [
-          {label: "Sample Deck 1", groupId: "sampleDeck1"},
+          {label: "Sample Deck 1", deckListId: "sampleDeck1"},
         ],
       },
       {
@@ -289,7 +295,7 @@ const processDeckMenu = () => {
           {
             label: "Nested Menu",
             deckLists: [
-              {label: "Sample Deck 2", groupId: "sampleDeck2"},
+              {label: "Sample Deck 2", deckListId: "sampleDeck2"},
             ],
           }
         ]
@@ -368,8 +374,8 @@ const processLayout = (inputs) => {
   const numRows = layout.numRows;
   const rectangles = layout.rectangles;
 
-  const width = layout.offsetWidth;
-  const height = layout.offsetHeight;
+  const width = layout.canvasWidth;
+  const height = layout.canvasHeight;
 
   const newLayout = {
     cardSize: Math.ceil((1 / numRows) * 100 - 4),
@@ -388,9 +394,14 @@ const processLayout = (inputs) => {
       width: `${((w / width) * 100).toFixed(1)}%`,
       height: `${((h / height) * 100).toFixed(1)}%`
     };
+    if (type === "hand") {
+      regions[groupId].disableDroppableAttachments = true;
+    }
   });
 
   newLayout.regions = regions;
+
+  newLayout.chat = layout.chatBox;
 
   return {
     default: newLayout,
@@ -406,14 +417,14 @@ const processPlayerCountMenu = (inputs) => {
     options.push({
       label: `${i}`,
       numPlayers: i,
-      layout: "default"
+      layoutId: "default"
     });
   }
 
   return options;
 };
 
-const processPrebuiltDecks = (inputs) => {
+const processPreBuiltDecks = (inputs) => {
   // Select 10 random ids from the inputs.cardDb
   const cardDb = inputs.cardDb || {};
   const cardIds = Object.keys(cardDb);
@@ -428,7 +439,7 @@ const processPrebuiltDecks = (inputs) => {
     cards: shuffledIds1.map(id => ({
       databaseId: id,
       quantity: 1,
-      groupId: groupId
+      loadGroupId: groupId
     }))
   };
   const sampleDeck2 = {
@@ -436,7 +447,7 @@ const processPrebuiltDecks = (inputs) => {
     cards: shuffledIds2.map(id => ({
       databaseId: id,
       quantity: 1,
-      groupId: groupId
+      loadGroupId: groupId
     }))
   };
 
@@ -453,10 +464,8 @@ const processSpawnExistingCardModal = (inputs) => {
     }
   });
   return {
-    spawnExistingCardModal: {
-      "columnProperties": ["name", "type"],
-      "loadGroupIds": groupIds
-    }
+    "columnProperties": ["name", "type"],
+    "loadGroupIds": groupIds
   };
 };
 
@@ -526,6 +535,16 @@ const processTokens = (inputs) => {
   return newTokens;
 };
 
+const processProperties = (inputs, propertyType) => {
+  const propertiesList = inputs[propertyType] || [];
+  const properties = {};
+  propertiesList.forEach(prop => {
+    if (prop.id) {
+      properties[prop.id] = prop;
+    }
+  });
+  return properties;
+};
 
 const processInputsIntoGameDefinition = (inputs) => {
   // Current date in YYYY-MM-DD format
@@ -538,15 +557,15 @@ const processInputsIntoGameDefinition = (inputs) => {
     browse: processBrowse(inputs),
     cardBacks: inputs.cardBacks || {},
     cardMenu: processCardMenu(inputs),
-    cardProperties: inputs.cardProperties || {},
+    cardProperties: processProperties(inputs, "cardProperties"),
     cardTypes: processCardTypes(inputs),
     clearTableOptions: defaultClearTableOptions,
     deckbuilder: processDeckbuilder(inputs),
     deckMenu: processDeckMenu(),
     defaultActions: [],
-    faceProperties: inputs.faceProperties || {},
+    faceProperties: processProperties(inputs, "faceProperties"),
     functions: defaultFunctions,
-    gameProperties: inputs.GameProperties || {},
+    gameProperties: processProperties(inputs, "gameProperties"),
     groupMenu: processGroupMenu(inputs),
     groups: processGroups(inputs),
     groupTypes: defaultGroupTypes,
@@ -554,22 +573,22 @@ const processInputsIntoGameDefinition = (inputs) => {
     imageUrlPrefix: {},
     labels: {},
     layouts: processLayout(inputs),
-    phases: processPhases(inputs),
+    phases: processPhases(inputs).phases,
+    phaseOrder: processPhases(inputs).phaseOrder,
     playerCountMenu: processPlayerCountMenu(inputs),
-    PlayerProperties: inputs.PlayerProperties || {},
+    playerProperties: processProperties(inputs, "playerProperties"),
     pluginMenu: {},
-    prebuiltDecks: processPrebuiltDecks(inputs),
+    preBuiltDecks: processPreBuiltDecks(inputs),
     preferences: {},
     prompts: {},
     spawnExistingCardModal: processSpawnExistingCardModal(inputs),
     stepReminderRegex: [],
-    steps: processSteps(inputs),
+    steps: processSteps(inputs).steps,
+    stepOrder: processSteps(inputs).stepOrder,
     tokens: processTokens(inputs),
     topBarCounters: defaultTopBarCounters,
     touchBar: [],
     pluginName: inputs.pluginName || "My Game",
-    minPlayers: inputs.minPlayers || 2,
-    maxPlayers: inputs.maxPlayers || 2,
     backgroundUrl: inputs.backgroundUrl || "",
   };
 
@@ -588,7 +607,7 @@ export const ExportGameDefinition = ({ inputs }) => {
     const gameDefinition = processInputsIntoGameDefinition(inputs);
 
     Object.entries(gameDefinition).forEach(([key, value]) => {
-      const jsonString = JSON.stringify(value, null, 2);
+      const jsonString = JSON.stringify({[key]: value}, null, 2);
       zip.file(`${key}.json`, jsonString);
     });
 

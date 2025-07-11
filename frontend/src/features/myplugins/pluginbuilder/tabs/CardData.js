@@ -43,7 +43,6 @@ const setCardData = (inputs, setInputs, cardDb) => {
     ...inputs,
     cardBacks: cardBacks,
   }));
-  console.log("Card DB:", cardDb);
 };
 
 export const CardData = ({inputs, setInputs}) => {
@@ -53,12 +52,12 @@ export const CardData = ({inputs, setInputs}) => {
     const [successMessage, setSuccessMessage] = useState("");
     const [errorMessages, setErrorMessages] = useState([]);
 
-    useEffect(() => {
-      // Initialize cardDb if not present
-      if (!inputs.cardDb) {
-        setCardData(inputs, setInputs, tempCardDb);
-      }
-    }, [inputs, setInputs]);
+    // useEffect(() => {
+    //   // Initialize cardDb if not present
+    //   if (!inputs.cardDb) {
+    //     setCardData(inputs, setInputs, tempCardDb);
+    //   }
+    // }, [inputs, setInputs]);
 
     const handleFileChange = useCallback(async (event) => {
       const { files } = event.target;
@@ -76,7 +75,6 @@ export const CardData = ({inputs, setInputs}) => {
           setErrorMessages([]);
 
           setCardData(inputs, setInputs, result.cardDb);
-          console.log("Card database updated:", result.cardDb);
         } else {
           setSuccessMessage("");
           setErrorMessages(result.messages || [siteL10n("Unknown error during upload.")]);
