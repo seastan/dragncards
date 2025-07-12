@@ -92,7 +92,7 @@ export const CardBacks = ({ inputs, setInputs }) => {
                 <div className="mt-2">
                   <img
                     src={imageUrl}
-                    alt={`Card back for ${type}`}
+                    alt={`Unable to load URL load for ${type}`}
                     className="rounded shadow max-h-40 border border-gray-500"
                   />
                 </div>

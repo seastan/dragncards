@@ -112,7 +112,7 @@ export const MyPlugins = () => {
   }
 
   return (
-    <div className="mt-4 mx-auto w-full max-w-[600px] p-2 overflow-y-scroll">
+    <div className="mt-4 mx-auto w-full max-w-[600px] p-2 overflow-y-auto">
       <div className="flex justify-between gap-2 mb-4">
         <LobbyButton className="flex-1 aspect-square p-4 flex flex-col items-center justify-center" onClick={handlePluginBuilderClick}>
           <FontAwesomeIcon icon={faWrench} className="text-xl mb-1" />
