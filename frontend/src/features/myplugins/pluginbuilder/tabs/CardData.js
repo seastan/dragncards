@@ -3,7 +3,6 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { importCardDbTsv } from "../../uploadPluginFunctions";
 import Button from "../../../../components/basic/Button";
 import { useSiteL10n } from "../../../../hooks/useSiteL10n";
-import { tempCardDb } from "../tempCardDb";
 
 const setCardData = (inputs, setInputs, cardDb) => {
   setInputs(inputs => ({
