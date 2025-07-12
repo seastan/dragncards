@@ -40,7 +40,6 @@ defmodule DragnCards.MixProject do
       {:postgrex, ">= 0.0.0"},
       {:phoenix_html, "~> 2.11"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
-      {:gettext, "~> 0.22.2"},
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
       {:pow, "~> 1.0.19"},
