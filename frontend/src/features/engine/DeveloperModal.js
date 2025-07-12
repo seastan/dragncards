@@ -8,21 +8,18 @@ import { setShowModal, setTyping } from "../store/playerUiSlice";
 import Button from "../../components/basic/Button";
 import { useDoActionList } from "./hooks/useDoActionList";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faWindowClose, faX } from "@fortawesome/free-solid-svg-icons";
-import { faXmark } from "@fortawesome/free-regular-svg-icons";
+import { faTimes } from "@fortawesome/free-solid-svg-icons";
 import { Z_INDEX } from "./functions/common";
 
 const DeveloperModal = () => {
   const dispatch = useDispatch();
   dispatch(setTyping(true));
-  const [code, setCode] = useState("");
   const [input, setInput] = useState("");
   const doActionList = useDoActionList();
 
   const handleClick = () => {
     try {
       const parsedCode = JSON.parse(input);
-      setCode(parsedCode);
       doActionList(parsedCode, "Custom Developer Code Execution");
     } catch (e) {
       alert("Invalid JSON");
@@ -31,29 +28,43 @@ const DeveloperModal = () => {
 
   return (
     <Draggable handle=".handle">
-      <div style={{ position: "absolute", zIndex: Z_INDEX.DeveloperModal, cursor: "move", width: "40vw" }}>
-        <div className="handle flex justify-between items-center bg-gray-500" style={{ width: '100%', cursor: 'move', height: '40px' }}>
-          <div> {/* Title or draggable area content */} </div>
-          <div className="p-2 hover:bg-red-600" onClick={() => dispatch(setShowModal(null))}>
-            <span className="text-white font-bold">X</span>
-          </div>
+      <div
+        style={{ position: "absolute", zIndex: Z_INDEX.DeveloperModal }}
+        className="w-[40vw] bg-gray-900 border border-gray-700 rounded-lg shadow-lg overflow-hidden"
+      >
+        {/* Title Bar */}
+        <div className="handle flex justify-between items-center bg-gray-700 px-4 py-2 cursor-move">
+          <span className="text-white font-semibold">Developer Tools</span>
+          <button
+            className="text-white hover:text-red-400 transition"
+            onClick={() => dispatch(setShowModal(null))}
+            aria-label="Close developer modal"
+          >
+            <FontAwesomeIcon icon={faTimes} />
+          </button>
         </div>
-        <CodeMirror
-          value={input}
-          options={{
-            lineNumbers: true,
-            mode: { name: "javascript", json: true },
-          }}
-          onBeforeChange={(editor, data, value) => {
-            setInput(value);
-          }}
-          className="h-full"
-        />
-        <Button onClick={handleClick}>Run</Button>
+
+        {/* Code Editor */}
+        <div className="p-4 bg-gray-800">
+          <CodeMirror
+            value={input}
+            options={{
+              lineNumbers: true,
+              mode: { name: "javascript", json: true },
+              theme: "default",
+            }}
+            onBeforeChange={(editor, data, value) => setInput(value)}
+            className="border border-gray-600 rounded overflow-hidden"
+          />
+        </div>
+
+        {/* Action Button */}
+        <div className="flex justify-end p-4 bg-gray-800 border-t border-gray-700">
+          <Button onClick={handleClick}>Run</Button>
+        </div>
       </div>
     </Draggable>
-  
-  );  
+  );
 };
 
 export default DeveloperModal;

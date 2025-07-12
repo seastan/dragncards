@@ -1,5 +1,5 @@
 import React from 'react';
-import Button from '../../components/basic/Button';
+import Button from '../../../components/basic/Button';
 
 const PatreonButton = ({ patreonClientId, amount, redirectURI }) => {
   const clientId = `&client_id=${patreonClientId}`;

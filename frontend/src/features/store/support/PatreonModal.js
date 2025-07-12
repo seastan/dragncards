@@ -1,9 +1,9 @@
 import React from "react";
 import ReactModal from "react-modal";
-import Button from "../../components/basic/Button";
-import { PleaseLogIn } from "../lobby/PleaseLogIn";
+import Button from "../../../components/basic/Button";
+import { PleaseLogIn } from "../../lobby/PleaseLogIn";
 import PatreonButton from "./PatreonButton";
-import { Z_INDEX } from "../engine/functions/common";
+import { Z_INDEX } from "../../engine/functions/common";
 
 ReactModal.setAppElement("#root");
 
@@ -18,7 +18,7 @@ export const PatreonModal = ({
           benefits: ["Unlimited saved games", "Saved games include full replay"] 
         },
         { 
-          amount: 500, 
+          amount: 500,  
           benefits: ["All lower tier benefits", "Custom alt art cards", "Custom card backs", "Custom backgrounds", "Private custom content"] 
         },
         { 

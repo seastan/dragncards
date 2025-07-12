@@ -175,7 +175,7 @@ export const processArrayOfRows = (gameDef, arrayOfRows) => {
           errors.push(`Missing type for ${face.name}`)
         }
         // If face.type is not in gameDef.cardTypes, add an error
-        if (face["type"] && !Object.keys(gameDef?.cardTypes).includes(face["type"])) {
+        if (gameDef && face["type"] && !Object.keys(gameDef?.cardTypes).includes(face["type"])) {
           errors.push(`type ${face.type} for ${face.name} not found in gameDef.cardTypes`)
         }
         const dbId = face.databaseId;
@@ -213,7 +213,7 @@ export const processArrayOfRows = (gameDef, arrayOfRows) => {
           for (var key of header0) {
               faceB[key] = null;
           }
-          if (faceA.cardBack !== "multi_sided") {
+          if (gameDef && faceA.cardBack !== "multi_sided") {
             if (!gameDef?.cardBacks || !Object.keys(gameDef.cardBacks).includes(faceA.cardBack)) throw new Error(`cardBack for ${faceA.name} (${faceA.cardBack}) not found in gameDef.cardBacks`)
           }
           faceB["name"] = faceA.cardBack;

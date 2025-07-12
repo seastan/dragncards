@@ -61,7 +61,6 @@ config :dragncards, DragnCardsWeb.Endpoint,
   live_reload: [
     patterns: [
       ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
-      ~r"priv/gettext/.*(po)$",
       ~r"lib/dragncards_web/{live,views}/.*(ex)$",
       ~r"lib/dragncards_web/templates/.*(eex)$"
     ]
