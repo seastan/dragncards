@@ -49,15 +49,15 @@ export const FaceProperties = ({ inputs, setInputs }) => {
     <div className="w-full max-w-3xl p-6 m-4 bg-gray-800 rounded-lg text-white">
       <h3 className="text-lg font-semibold mb-4">{siteL10n("Face Properties")}</h3>
 
-      <div className="flex items-start gap-3 p-2 mb-4 bg-blue-600 rounded-lg text-sm text-blue-800">
-          <FontAwesomeIcon icon={faInfoCircle} className="text-white" />
-      <p className="m-0">
-          A <strong>"face"</strong> is the information printed on a card.
-          Face properties are extracted from the columns in your TSV file. If you don't plan on
-          using these properties in any automation, you can leave them as strings. But if you
-          plan to use them to make calculations or comparisons, you should set the type
-          accordingly.
-      </p>
+      <div className="flex items-start gap-3 p-2 mb-4 bg-blue-900 rounded-lg text-sm text-blue-800">
+        <FontAwesomeIcon icon={faInfoCircle} className="text-white" />
+        <p className="m-0">
+            A <strong>"face"</strong> is the information printed on a card.
+            Face properties are extracted from the columns in your TSV file. If you don't plan on
+            using these properties in any automation, you can leave them as strings. But if you
+            plan to use them to make calculations or comparisons, you should set the type
+            accordingly.
+        </p>
       </div>
       {/* Column headers */}
       <div className="grid grid-cols-[1fr_12rem_10rem] gap-4 text-sm text-gray-400 m-2 px-1">

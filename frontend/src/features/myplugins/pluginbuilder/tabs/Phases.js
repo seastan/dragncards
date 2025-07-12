@@ -77,7 +77,7 @@ export const Phases = ({ inputs, setInputs }) => {
   return (
     <div className="w-full max-w-4xl p-6 m-4 bg-gray-800 rounded-lg text-white">
       <h3 className="text-lg font-semibold mb-4">Phases</h3>
-      <div className="flex items-start gap-3 p-2 mb-4 bg-blue-600 rounded-lg text-sm text-white">
+      <div className="flex items-start gap-3 p-2 mb-4 bg-blue-900 rounded-lg text-sm text-white">
         <FontAwesomeIcon icon={faInfoCircle} className="text-white mt-1" />
         <p className="m-0">Define the game phases and their steps.</p>
       </div>

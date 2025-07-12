@@ -1,22 +1,19 @@
 import React, { useEffect } from "react";
 import { useSiteL10n } from "../../../../hooks/useSiteL10n";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTrash, faPlus } from "@fortawesome/free-solid-svg-icons";
+import { faTrash, faPlus, faInfoCircle, faClone } from "@fortawesome/free-solid-svg-icons"; // 👈 added faClone
 
 export const Groups = ({ inputs, setInputs }) => {
   const siteL10n = useSiteL10n();
   const groups = inputs.groups || [];
   const maxPlayers = inputs.maxPlayers || 2;
 
-  // Define controller options
   const controllerOptions = ["shared", ...Array.from({ length: maxPlayers }, (_, i) => `player${i + 1}`)];
 
-  // Set default groups once if none are present
   useEffect(() => {
     if (!inputs.groups || inputs.groups.length === 0) {
-      const defaultGroups = []
+      const defaultGroups = [];
 
-      // Loop from 1 to maxPlayers to create player groups
       for (let i = 1; i <= maxPlayers; i++) {
         const playerId = `player${i}`;
         defaultGroups.push(
@@ -66,15 +63,55 @@ export const Groups = ({ inputs, setInputs }) => {
     }));
   };
 
+  // 👇 Add duplicate handler
+  const duplicateGroup = (index) => {
+    const original = groups[index];
+    let newGroup = { ...original };
+
+    const playerMatch = newGroup.groupId.match(/player(\d+)/);
+    if (playerMatch) {
+      const increment = window.confirm("Increment player number?");
+      if (increment) {
+        const oldNum = parseInt(playerMatch[1], 10);
+        const newNum = oldNum + 1;
+
+        // update groupId
+        newGroup.groupId = newGroup.groupId.replace(`player${oldNum}`, `player${newNum}`);
+        // update controller
+        newGroup.controller = newGroup.controller.replace(`player${oldNum}`, `player${newNum}`);
+        // update label
+        newGroup.label = newGroup.label.replace(
+          new RegExp(`Player ${oldNum}`),
+          `Player ${newNum}`
+        );
+        // update correspondingDeck if it exists
+        if (newGroup.correspondingDeck) {
+          newGroup.correspondingDeck = newGroup.correspondingDeck.replace(`player${oldNum}`, `player${newNum}`);
+        }
+
+      }
+    }
+
+    setInputs((prev) => ({
+      ...prev,
+      groups: [...prev.groups, newGroup],
+    }));
+  };
+
   const groupTypes = ["Deck", "Discard", "Hand", "In Play", "Aside"];
 
   return (
-    
-    <div className="w-full max-w-4xl p-6 m-4 bg-gray-800 rounded-lg text-white">
+    <div className="w-full max-w-5xl p-6 m-4 bg-gray-800 rounded-lg text-white">
       <h3 className="text-lg font-semibold mb-4">{siteL10n("Groups")}</h3>
 
-      {/* Column headers */}
-      <div className="grid grid-cols-[32px_8rem_10rem_8rem_8rem_12rem] gap-4 text-sm text-gray-400 mb-2 px-1">
+      <div className="flex items-start gap-3 p-2 mb-4 bg-blue-900 rounded-lg text-sm text-blue-800">
+        <FontAwesomeIcon icon={faInfoCircle} className="text-white" />
+        <p className="m-0">
+          A <strong>"group"</strong> is a place where you can put cards during the game, such as a deck, a player's hand, a discard pile, or a play area. They can also be places to set cards aside, either onscreen or offscreen. A sample of groups has been created for you based on the number of players you specified, but you can customize these or add your own.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-[64px_8rem_10rem_8rem_8rem_12rem] gap-4 text-sm text-gray-400 mb-2 px-1">
         <span></span>
         <span>{siteL10n("Group ID")}</span>
         <span>{siteL10n("Label")}</span>
@@ -83,20 +120,28 @@ export const Groups = ({ inputs, setInputs }) => {
         <span>{siteL10n("Corresponding Deck")}</span>
       </div>
 
-      {/* Group rows */}
       <div className="space-y-2">
         {groups.map((group, index) => (
           <div
             key={index}
-            className="grid grid-cols-[32px_8rem_10rem_8rem_8rem_12rem] gap-4 items-center"
+            className="grid grid-cols-[64px_8rem_10rem_8rem_8rem_12rem] gap-4 items-center"
           >
-            <button
-              onClick={() => removeGroup(index)}
-              className="text-red-400 hover:text-red-600"
-              title={siteL10n("Remove group")}
-            >
-              <FontAwesomeIcon icon={faTrash} />
-            </button>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => removeGroup(index)}
+                className="text-red-400 hover:text-red-600"
+                title={siteL10n("Remove group")}
+              >
+                <FontAwesomeIcon icon={faTrash} />
+              </button>
+              <button
+                onClick={() => duplicateGroup(index)}
+                className="text-green-400 hover:text-green-600"
+                title={siteL10n("Duplicate group")}
+              >
+                <FontAwesomeIcon icon={faClone} />
+              </button>
+            </div>
 
             <input
               type="text"
@@ -155,7 +200,6 @@ export const Groups = ({ inputs, setInputs }) => {
         ))}
       </div>
 
-      {/* Add group button */}
       <div className="mt-6">
         <button
           onClick={addGroup}
@@ -166,6 +210,5 @@ export const Groups = ({ inputs, setInputs }) => {
         </button>
       </div>
     </div>
-
   );
 };
