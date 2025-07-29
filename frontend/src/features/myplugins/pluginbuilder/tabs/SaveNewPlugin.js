@@ -1,9 +1,14 @@
-import React from "react";
+import React, { useState } from "react";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import { useSiteL10n } from "../../../../hooks/useSiteL10n";
 import { GameProperties } from "./GameProperties";
 import { PlayerProperties } from "./PlayerProperties";
+import useProfile from "../../../../hooks/useProfile";
+import { useAuthOptions } from "../../../../hooks/useAuthOptions";
+import axios from "axios";
+import { downloadGameDefinitionAsZip } from "../DownloadPlugin";
+
 
 
 const defaultAutomation = {
@@ -596,38 +601,72 @@ const processInputsIntoGameDefinition = (inputs) => {
 };
 
 
-
-export const ExportGameDefinition = ({ inputs }) => {
+export const SaveNewPlugin = ({ inputs }) => {
   const siteL10n = useSiteL10n();
-  console.log("inputs in ExportGameDefinition:", inputs);
+  const user = useProfile();
+  const authOptions = useAuthOptions();
 
-  const exportGameDefinition = async () => {
-    const zip = new JSZip();
+  const [loadingMessage, setLoadingMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
-    const gameDefinition = processInputsIntoGameDefinition(inputs);
+  const gameDef = processInputsIntoGameDefinition(inputs);
 
-    Object.entries(gameDefinition).forEach(([key, value]) => {
-      const jsonString = JSON.stringify({[key]: value}, null, 2);
-      zip.file(`${key}.json`, jsonString);
-    });
+  const handleCreateAndExport = async () => {
+    setSuccessMessage("");
+    setErrorMessage("");
+    setLoadingMessage("Creating plugin...");
 
-    const content = await zip.generateAsync({ type: "blob" });
-    saveAs(content, `${inputs.pluginName}_game_definition_export.zip`);
+    const updateData = {
+      plugin: {
+        name: gameDef.pluginName,
+        author_id: user?.id,
+        game_def: gameDef,
+        card_db: inputs.cardDb,
+        public: false, 
+      },
+    };
+
+    try {
+      const res = await axios.post("/be/api/myplugins", updateData, authOptions);
+      setLoadingMessage("");
+
+      setSuccessMessage("Plugin created.");
+    } catch (err) {
+      setLoadingMessage("");
+      setErrorMessage("Failed to create plugin or export files.");
+      console.error(err);
+    }
   };
 
   return (
-    <div className="max-w-3xl p-6 m-4 bg-gray-800 rounded-lg">
+    <div className="max-w-3xl p-6 m-4 bg-gray-800 rounded-lg text-white">
       <p className="text-sm text-gray-300 mb-4">
-        {siteL10n("Click below to export your game definition. You can then make further modifications to the JSON files if needed. Once you are ready to test it, go to \"My Plugins\" and upload the files along with your TSV card database.")}
+        {siteL10n("Click below to export your game definition and create your plugin. Once complete, visit 'My Plugins' to test and manage your plugin.")}
       </p>
 
+      {loadingMessage && <p className="text-yellow-300 mb-2">{loadingMessage}</p>}
+      {successMessage && (
+        <div className="text-green-400 mb-2">
+          {successMessage}{" "}
+          {user?.id && (
+            <a
+              href={`/myplugins/${user.id}?showTutorial=true`}
+              className="underline text-blue-300 ml-2"
+            >
+              Go to My Plugins
+            </a>
+          )}
+        </div>
+      )}
+      {errorMessage && <p className="text-red-400 mb-2">{errorMessage}</p>}
+
       <button
-        onClick={exportGameDefinition}
-        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm"
+        onClick={handleCreateAndExport}
+        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
       >
-        Export Game Definition as ZIP
+        Create Plugin
       </button>
     </div>
-
   );
 };
