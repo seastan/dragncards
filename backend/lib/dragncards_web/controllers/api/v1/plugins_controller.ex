@@ -60,6 +60,17 @@ defmodule DragnCardsWeb.PluginsController do
 
   end
 
+  def get_plugin_raw(conn, params) do
+    {plugin_id, ""} = Integer.parse(params["plugin_id"])
+    plugin = Repo.get_by(Plugin, id: plugin_id)
+
+    original_data = Jason.encode!(plugin)
+
+    conn
+    |> send_resp(200, original_data)
+
+  end
+
   # def get_plugin(conn, params) do
   #   IO.puts("get_plugin 1")
   #   IO.inspect(params)

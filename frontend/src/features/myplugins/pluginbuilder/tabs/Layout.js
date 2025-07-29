@@ -330,13 +330,14 @@ export default function Layout({ inputs, setInputs }) {
               rect={rect}
               gridSnap={gridSnap}
               updateRectangle={updateRectangle}
-              deleteRectangle={(id) => setRectangles((prev) => prev.filter((r) => r.id !== id))}
+              deleteRectangle={(id) => {
+                setRectangles(rectangles.filter((r) => r.id !== id));
+              }}
               bringToFront={(id) =>
-                setRectangles((prev) => {
-                  const target = prev.find((r) => r.id === id);
-                  const others = prev.filter((r) => r.id !== id);
-                  return [target, ...others];
-                })
+                setRectangles([
+                  rectangles.find((r) => r.id === id),
+                  ...rectangles.filter((r) => r.id !== id)
+                ])
               }
               groups={inputs.groups || []}
               maxPlayers={inputs.maxPlayers}

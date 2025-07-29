@@ -13,7 +13,7 @@ import Layout from './tabs/Layout';
 import { Deckbuilder } from './tabs/Deckbuilder';
 import { Phases } from './tabs/Phases';
 import { Tokens } from './tabs/Tokens';
-import { ExportGameDefinition } from './tabs/ExportGameDefinition';
+import { SaveNewPlugin } from './tabs/SaveNewPlugin';
 import { Instructions } from './tabs/Instructions';
 
 const tabs = [
@@ -31,7 +31,7 @@ const tabs = [
   'Layout',
   'Phases',
   'Tokens',
-  'Export Game Definition'
+  'Save Plugin'
 ];
 
 const initialInputs = {
@@ -74,7 +74,7 @@ export default function PluginBuilder() {
       case 'Deckbuilder': return <Deckbuilder inputs={inputs} setInputs={setInputs} />;
       case 'Phases': return <Phases inputs={inputs} setInputs={setInputs} />;
       case 'Tokens': return <Tokens inputs={inputs} setInputs={setInputs} />;
-      case 'Export Game Definition': return <ExportGameDefinition inputs={inputs} />;
+      case 'Save Plugin': return <SaveNewPlugin inputs={inputs} />;
       default: return null;
     }
   };
@@ -86,7 +86,7 @@ export default function PluginBuilder() {
     const isAllowed =
       isBeforeCardData || (isCardDbReady && isUnlocked);
 
-    if (!isAllowed) return;
+    //if (!isAllowed) return;
 
     setActiveTab(label);
     if (index === maxUnlockedTabIndex + 1) {
