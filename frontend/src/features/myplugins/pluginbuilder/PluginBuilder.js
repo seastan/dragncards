@@ -86,7 +86,7 @@ export default function PluginBuilder() {
     const isAllowed =
       isBeforeCardData || (isCardDbReady && isUnlocked);
 
-    //if (!isAllowed) return;
+    if (!isAllowed) return;
 
     setActiveTab(label);
     if (index === maxUnlockedTabIndex + 1) {
