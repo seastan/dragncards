@@ -50,7 +50,6 @@ export const EditPluginModal = ({ plugin, closeModal, doFetchHash}) => {
   const [roomSlugCreated, setRoomSlugCreated] = useState(null);
 
   const createRoom = async (pluginId, pluginName, pluginVersion) => {
-    console.log("Creating Room",pluginId, pluginName, pluginVersion)
     const data = { 
       room: { 
         name: "", 
@@ -66,14 +65,11 @@ export const EditPluginModal = ({ plugin, closeModal, doFetchHash}) => {
       }
     };
     try {
-      console.log("Creating room 1",data)
       const res = await axios.post("/be/api/v1/games", data);
-      console.log("Creating room 2",res)
       if (res.status !== 201) {
         throw new Error("Room not created");
       }
       const room = res.data.success.room;
-      console.log("room created", room)
       setRoomSlugCreated(room.slug);
     } catch (err) {
       console.log("Error creating room", err)

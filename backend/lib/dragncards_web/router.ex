@@ -63,6 +63,7 @@ defmodule DragnCardsWeb.Router do
     #get("/plugins/info/:plugin_id", PluginsController, :get_plugin_info)
     get("/plugins/visible/:plugin_id/:user_id", PluginsController, :get_visible_plugin)
     get("/plugins/visible/:user_id", PluginsController, :get_visible_plugins)
+    get("/plugins/raw/:plugin_id", PluginsController, :get_plugin_raw)
     get("/plugins/:plugin_id", PluginsController, :get_plugin)
     get("/plugins", PluginsController, :index)
   end
