@@ -1246,7 +1246,15 @@ export const getGameDefSchema = (gameDef) => {
               "visible": {
                 "_description_": "Whether the button is visible",
                 "_type_": "boolean",
-              }
+              },
+              "style": {
+                "_description_": "The style of the region, in the form of a CSS object. Example: {'background-color': 'red'}",
+                "_type_": "object",
+                "_itemSchema_": {
+                  "_description_": "A CSS style property",
+                  "_type_": "string",
+                }
+              },
             }
           },
           "textBoxes": {
