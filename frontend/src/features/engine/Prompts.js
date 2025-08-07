@@ -161,28 +161,32 @@ export const Prompts = React.memo(({
 
   return (
     <Draggable handle=".drag-handle">
-      <div className="absolute text-white" 
+      <div
+        className="absolute text-white"
         style={{
           ...promptStyle,
-          left: "2%", 
-          top: "4%", 
+          left: "2%",
+          top: "4%",
           width: "19%",
+          maxHeight: "92vh",       
+          overflowY: "auto",       
           zIndex: Z_INDEX.Prompts,
-        }}>
-          {/* Add a drag handle here */}
-          <div className="drag-handle p-1 cursor-move bg-gray-800 flex justify-center align-center">
-            <FontAwesomeIcon icon={faGripLines} />
-          </div>
-          {sortedPromptIds.map((promptKey, promptIndex) => {
-            return(
-              <Prompt 
-                key={promptIndex} 
-                promptIndex={promptIndex} 
-                promptId={promptKey}
-                {...prompts[promptKey]} 
-              />
-            )
-          })}
+        }}
+      >
+        {/* Add a drag handle here */}
+        <div className="drag-handle p-1 cursor-move bg-gray-800 flex justify-center items-center">
+          <FontAwesomeIcon icon={faGripLines} />
+        </div>
+        {sortedPromptIds.map((promptKey, promptIndex) => {
+          return (
+            <Prompt
+              key={promptIndex}
+              promptIndex={promptIndex}
+              promptId={promptKey}
+              {...prompts[promptKey]}
+            />
+          );
+        })}
       </div>
     </Draggable>
   )
