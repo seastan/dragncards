@@ -76,6 +76,16 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
       get_in(game_def, ["preBuiltDecks", load_list_id, "cards"])
     end
 
+    # Validate the load_list
+    if !is_list(load_list) do
+      raise("Expected load_list to be a list, got: #{inspect(load_list)}")
+    end
+    Enum.each(load_list, fn item ->
+      if !is_map(item) or !Map.has_key?(item, "databaseId") or !Map.has_key?(item, "loadGroupId") or !Map.has_key?(item, "quantity") do
+        raise("Each card in the load list must be a map with keys: databaseId, loadGroupId, and quantity. Got: #{inspect(item)}")
+      end
+    end)
+
     # Run preLoadActionList if it exists
     game = GameUI.do_automation_action_list(game, "preLoadActionList", trace ++ ["preLoadActionList"])
 

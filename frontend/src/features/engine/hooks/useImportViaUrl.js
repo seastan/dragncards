@@ -149,7 +149,7 @@ export const loadRingsDb = (importLoadList, doActionList, playerN, ringsDbDomain
           } else if (slotJsonData.octgnid) {
             const type = slotJsonData.type_name;
             var loadGroupId = (type === "Hero" || type === "Contract") ? playerN+"Play1" : playerN+"Deck";
-            if (slotJsonData.text.includes("Encounter")) loadGroupId = playerN+"Sideboard";
+            if (slotJsonData.text.includes("Encounter.")) loadGroupId = playerN+"Sideboard";
             console.log("ringsdbimport", slotJsonData.name, slotJsonData)
             loadList.push({'databaseId': slotJsonData.octgnid, 'quantity': quantity, 'loadGroupId': loadGroupId});
           } else {

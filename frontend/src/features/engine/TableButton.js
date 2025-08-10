@@ -29,6 +29,7 @@ export const TableButton = React.memo(({
         width: convertToPercentage(tableButton.width), 
         height: convertToPercentage(tableButton.height),
         zIndex: Z_INDEX.TableButton,
+        ...tableButton.style
       }}
       onClick={() => handleButtonClick()}>
       {gameL10n(tableButton.label)}
