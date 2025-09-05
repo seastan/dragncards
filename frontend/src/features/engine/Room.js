@@ -5,7 +5,7 @@ import {useSetMessages} from '../../contexts/MessagesContext';
 import useChannel from "../../hooks/useChannel";
 import { applyDeltaRedo, appendDelta, setGameUi, setPlayerInfo, setSockets, setDeltas, setSpectators } from "../store/gameUiSlice";
 import useProfile from "../../hooks/useProfile";
-import { resetPlayerUi, setAlert, setPluginRepoUpdateGameDef, setReplayStep } from "../store/playerUiSlice";
+import { resetPlayerUi, setAlert, setPluginRepoUpdateGameDef, setReplayStep, setPlayerUiValues } from "../store/playerUiSlice";
 import { PluginProvider } from "../../contexts/PluginContext";
 import store from "../../store";
 import { mergeObjects } from "../myplugins/uploadPluginFunctions";
@@ -13,12 +13,14 @@ import { getGameDefSchema } from "../myplugins/validate/getGameDefSchema";
 import { useSendLocalMessage } from "./hooks/useSendLocalMessage";
 import { validateSchema } from "../myplugins/validate/validateGameDef";
 import { useIsPluginAuthor } from "./hooks/isPluginAuthor";
+import { usePlayerN } from "./hooks/usePlayerN";
 
 export const Room = ({ slug }) => {
   const dispatch = useDispatch();
   const roomSlug = useSelector(state => state.gameUi.roomSlug);
   const setMessages = useSetMessages();
   const myUser = useProfile();
+  const playerN = usePlayerN();
   const sendLocalMessage = useSendLocalMessage();
   const [outOfSync, setOutOfSync] = useState(false);
   const myUserId = myUser?.id;
@@ -143,6 +145,11 @@ export const Room = ({ slug }) => {
         }
       } catch (error) {
         sendLocalMessage(`Invalid JSON file(s): ${error.message}`, "crash", false);
+      }
+    } else if (event === "gui_update" && payload !== null) {
+      // Handle GUI updates sent specifically to this player
+      if (playerN != null && playerN != undefined && playerN == payload.targetPlayerN) {
+        dispatch(setPlayerUiValues(payload.updates));
       }
     }
 

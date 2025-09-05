@@ -698,6 +698,7 @@ defmodule DragnCardsGame.GameUI do
 
     game_new = game_new
       |> put_in(["messages"], [])
+      |> put_in(["pendingGuiUpdates"], [])
 
     game_new = game_new
       |> resolve_action_type(action, options, user_id)
