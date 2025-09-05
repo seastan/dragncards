@@ -141,9 +141,7 @@ const updateValue = (obj, update) => {
     obj[update[0]] = update[1];
     const unix_ms = Math.floor(Date.now());
     obj["lastUpdated"] = unix_ms;
-    console.log("objupdate",obj["lastUpdated"], update[0], update[1])
   } else if (updateLength > 2) {
-    console.log("objupdate",obj, update[0], update.slice(1))
     updateValue(obj[update[0]], update.slice(1));
   }
 }
