@@ -25,6 +25,10 @@ export const Token = React.memo(({
     const gameDef = useGameDefinition();
     const tokenDef = gameDef?.tokens?.[tokenType];
 
+    useEffect(() => {
+        if (tokenValue !== amount) setAmount(tokenValue);
+    }, [tokenValue]);
+
     if (!tokenDef) return;
 
     var label = amount;
@@ -34,10 +38,6 @@ export const Token = React.memo(({
     if (amount === 1 && tokenDef.hideLabel1) {
         label = "";
     }
-
-    useEffect(() => {    
-        if (tokenValue !== amount) setAmount(tokenValue);
-    }, [tokenValue]);
 
     if (tokenValue === null) return null;
 
