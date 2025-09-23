@@ -104,7 +104,8 @@
     "url": "^0.11.4",
     "util": "^0.12.5",
     "uuid": "^3.4.0",
-    "xml2js": "^0.4.23"
+    "xml2js": "^0.4.23",
+    "@craco/craco": "^7.1.0"
   },
   "scripts": {
     "start-elixir": "REACT_APP_WS_URL=ws://172.22.2.174:4000/socket npm-run-all -p start:css start:js",
@@ -140,7 +141,6 @@
     ]
   },
   "devDependencies": {
-    "@craco/craco": "^7.1.0",
     "find-unused-exports": "^5.0.0",
     "jest": "^24.9.0",
     "react-error-overlay": "^6.0.9",
