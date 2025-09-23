@@ -5,8 +5,6 @@ import { Link } from "react-router-dom";
 import MUIDataTable, { MUIDataTableOptions } from "mui-datatables";
 import useDataApi from "../../hooks/useDataApi";
 import useChannel from "../../hooks/useChannel";
-import { ThemeProvider } from "@material-ui/core";
-import { getMuiTheme } from "../engine/functions/common";
 
 const columns = [
   {name: "name", label: "Label", options: { filter: false, sort: true }},
