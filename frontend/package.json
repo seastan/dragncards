@@ -104,16 +104,17 @@
     "url": "^0.11.4",
     "util": "^0.12.5",
     "uuid": "^3.4.0",
-    "xml2js": "^0.4.23"
+    "xml2js": "^0.4.23",
+    "@craco/craco": "^7.1.0"
   },
   "scripts": {
     "start-elixir": "REACT_APP_WS_URL=ws://172.22.2.174:4000/socket npm-run-all -p start:css start:js",
     "start": "REACT_APP_WS_URL=ws://127.0.0.1:4000/socket npm-run-all -p start:js",
     "start:docker": "REACT_APP_WS_URL=ws://localhost:4000/socket npm-run-all -p start:css start:js:docker",
     "build": "npm-run-all build:js",
-    "start:js": "npx craco start",
-    "start:js:docker": "REACT_APP_DB_HOSTNAME=backend npx craco start",
-    "build:js": "npx craco build",
+    "start:js": "craco start",
+    "start:js:docker": "REACT_APP_DB_HOSTNAME=backend craco start",
+    "build:js": "craco build",
     "start:css": "postcss src/css/tailwind.src.css -o src/css/tailwind.compiled.css -w",
     "build:css": "postcss src/css/tailwind.src.css -o src/css/tailwind.compiled.css --env production",
     "orig_start": "react-scripts start",
@@ -140,7 +141,6 @@
     ]
   },
   "devDependencies": {
-    "@craco/craco": "^7.1.0",
     "find-unused-exports": "^5.0.0",
     "jest": "^24.9.0",
     "log-symbols": "^7.0.0",
