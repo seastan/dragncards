@@ -26,7 +26,7 @@ export const useBrowseRegion = () => {
   const playerN = usePlayerN();
   const gameDef = useGameDefinition();
   const cardTypes = gameDef?.cardTypes;
-  const maxHeight = Math.max(...Object.values(cardTypes).map(cardType => cardType?.height || 1));
+  const maxHeight = 1; //Math.max(...Object.values(cardTypes).map(cardType => cardType?.height || 1));
   const browseGroupId = useSelector(state => state?.gameUi?.game?.playerData?.[playerN]?.browseGroup?.id);
   const cardScaleFactor = useCardScaleFactor();
   return {

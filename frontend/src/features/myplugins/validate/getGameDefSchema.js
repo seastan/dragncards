@@ -728,10 +728,10 @@ export const getGameDefSchema = (gameDef) => {
           "_strictKeys_": true,
           "args": {
             "_description_": "The arguments of the function. Example: ['$PLAYER_I']",
-            "_type_": "any",
+            "_type_": "array",
             "_itemSchema_": {
               "_description_": "An argument of the function. Example: '$PLAYER_I'",
-              "_type_": "string",
+              "_type_": "any",
             }
           },
           "code": {
@@ -1511,7 +1511,7 @@ export const getGameDefSchema = (gameDef) => {
             "_required_": true,
             "_itemSchema_": {
               "_description_": "An argument of the prompt. Example: '$PLAYER_I'",
-              "_type_": "string",
+              "_type_": "any",
             }
           },
           "message": {

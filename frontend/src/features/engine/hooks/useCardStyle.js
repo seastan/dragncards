@@ -4,10 +4,11 @@ import { Z_INDEX } from '../functions/common';
 import { useCardProp } from './useCardProp';
 import { useGameDefinition } from './useGameDefinition';
 import { useVisibleFace } from './useVisibleFace';
+import { useCardRotation } from './useCardRotation';
 
 export const useCardStyle = (cardId, cardIndexFromGui, isDragging, offset) => {
     const gameDef = useGameDefinition();
-    const cardRotation = useCardProp(cardId, "rotation");
+    const cardRotation = useCardRotation(cardId);
     const cardIndex = cardIndexFromGui || 0;
     const cardScaleFactor = useCardScaleFactor();
     const cardVisibleFace = useVisibleFace(cardId);
