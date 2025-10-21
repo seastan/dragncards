@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@craco/craco": "^7.1.0",
     "@emotion/core": "^10.0.28",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^10.3.0",
@@ -34,6 +35,7 @@
     "@types/uuid": "^8.0.0",
     "@types/webpack-env": "^1.15.1",
     "@types/xml2js": "^0.4.8",
+    "ajv": "^8.17.1",
     "assert": "^2.1.0",
     "autoprefixer": "^9.8.8",
     "axios": "^0.19.2",
@@ -104,8 +106,7 @@
     "url": "^0.11.4",
     "util": "^0.12.5",
     "uuid": "^3.4.0",
-    "xml2js": "^0.4.23",
-    "@craco/craco": "^7.1.0"
+    "xml2js": "^0.4.23"
   },
   "scripts": {
     "start-elixir": "REACT_APP_WS_URL=ws://172.22.2.174:4000/socket npm-run-all -p start:css start:js",
