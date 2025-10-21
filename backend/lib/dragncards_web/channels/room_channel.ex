@@ -6,7 +6,7 @@ defmodule DragnCardsWeb.RoomChannel do
   alias DragnCardsGame.{GameUIServer, GameUI}
   alias DragnCardsChat.{ChatMessage}
   alias DragnCards.Users
-  intercept ["send_update", "send_state"]
+  intercept ["send_update", "send_state", "gui_update"]
 
   require Logger
 
@@ -81,6 +81,14 @@ defmodule DragnCardsWeb.RoomChannel do
     GameUIServer.game_action(room_slug, user_id, action, options)
 
     new_state = GameUIServer.state(room_slug)
+
+    # Process any pending GUI updates
+    pending_gui_updates = get_in(new_state, ["game", "pendingGuiUpdates"])
+    if is_list(pending_gui_updates) and length(pending_gui_updates) > 0 do
+      Enum.each(pending_gui_updates, fn gui_update ->
+        send_gui_message_to_player(socket, gui_update)
+      end)
+    end
 
     # If round changed, save replay asynchronously
     if get_in(new_state, ["game", "roundNumber"]) != get_in(old_state, ["game", "roundNumber"]) do
@@ -373,6 +381,11 @@ defmodule DragnCardsWeb.RoomChannel do
     {:noreply, socket}
   end
 
+  def send_gui_message_to_player(socket, gui_update) do
+    # Send the GUI update to the specific player
+    push(socket, "gui_update", gui_update)
+  end
+
   # Define the handle_out function for the intercepted event
   def handle_out("send_state", triggered_by, socket) do
     new_client_state = client_state(socket)
@@ -396,6 +409,18 @@ defmodule DragnCardsWeb.RoomChannel do
     new_client_update = client_update(payload, socket.assigns)
     if new_client_update != nil do
       push(socket, "go_to_replay_step", new_client_update)
+    end
+    {:noreply, socket}
+  end
+
+  # Define the handle_out function for GUI updates
+  def handle_out("gui_update", payload, socket) do
+    gameui = GameUIServer.state(socket.assigns[:room_slug])
+    player_n = GameUI.get_player_n_by_user_id(gameui, socket.assigns[:user_id])
+
+    # Only send the GUI update to the target player
+    if player_n == payload.target_player_n do
+      push(socket, "gui_update", payload.updates)
     end
     {:noreply, socket}
   end

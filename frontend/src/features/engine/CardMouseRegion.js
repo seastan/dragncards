@@ -28,6 +28,9 @@ export const CardMouseRegion = React.memo(({
     const getDefaultAction = useGetDefaultAction(cardId);
     const multiSelectEnabled = useSelector(state => state?.playerUi?.multiSelect?.enabled);
 
+    const playerUi = useSelector(state => state?.playerUi);
+    console.log("playerUiprint", playerUi)
+
     const lastTouchTime = useRef(0);
 
     const isRecentTouch = () => Date.now() - lastTouchTime.current < 500;

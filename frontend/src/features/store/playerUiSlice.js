@@ -1,6 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { updateValues } from "./updateValues";
 import { uiSettings } from "../engine/SettingsModal";
+import { deepMerge } from "../myplugins/uploadPluginFunctions";
 
 const draggingDefault = {
   stackId: null,
@@ -86,7 +87,7 @@ const playerUiSlice = createSlice({
   reducers: {
     resetPlayerUi: () => initialState,
     setPlayerUiValues: (state, { payload }) => {
-      updateValues(state, payload.updates);
+      deepMerge(state, payload);
     },
     setPlayerN: (state, { payload }) => {
       state.playerN = payload;
