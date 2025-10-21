@@ -25,7 +25,15 @@ defmodule DragnCardsGame.Evaluate.Functions.DRAW_CARD do
   def execute(game, code, trace) do
     argc = Evaluate.argc(code, 0, 2)
     num = if argc == 0 do 1 else Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["num"]) end
+    # If num is non-numeric or less than 0, raise an error.
+    if not is_number(num) or num < 0 do
+      raise("DRAW_CARD: num must be a non-negative number, got #{inspect(num)}")
+    end
     player_n = if argc == 2 do Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["player_n"]) else Evaluate.evaluate(game, "$PLAYER_N", trace ++ ["player_n"]) end
+    # if player_n is not a string like "player1", raise an error.
+    if not is_binary(player_n) or not String.starts_with?(player_n, "player") do
+      raise("DRAW_CARD: player_n must be a string like 'player1', got #{inspect(player_n)}")
+    end
     GameUI.move_stacks(game, player_n <> "Deck", player_n <> "Hand", num, "bottom")
   end
 

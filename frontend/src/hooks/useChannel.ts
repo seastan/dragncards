@@ -73,10 +73,14 @@ const joinChannel = (
 
   channel.onMessage = (event, payload) => {
     //console.log("game state payload", payload)
+    console.log("RAW channel message received:", event, payload);
     const userId = payload?.response?.user_id;
     // I don't think the chan_reply_ events are needed - always duplicates of phx_reply?
     if (event != null && !event.startsWith("chan_reply_")) {
+      console.log("Calling onMessage for event:", event);
       onMessage(event, payload);
+    } else {
+      console.log("Filtered out event:", event);
     }
 
     // Specific Hack for DragnCards

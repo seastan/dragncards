@@ -27,6 +27,7 @@ defmodule DragnCardsGame.Card do
       "currentSide" => group["defaultSideUp"] || "A",
       # TODO: default inPlay?
       "rotation" => 0,
+      "rotationByPlayer" => %{},
       "owner" => controller,
       "peeking" => %{},
       "targeting" => %{},
