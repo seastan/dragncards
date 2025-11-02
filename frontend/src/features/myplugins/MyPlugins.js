@@ -23,7 +23,7 @@ const MyPluginEntry = ({plugin, setSelectedPlugin, setShowEditModal, setShowShar
 
   const handleDownloadClick = async () => {
     const res = await axios.get(`/be/api/plugins/raw/${plugin.id}`, authOptions);
-    downloadGameDefinitionAsZip(res.data);
+    downloadGameDefinitionAsZip(res.data.game_def);
   };
 
   const handleEditClick = () => setShowEditModal(true) || setSelectedPlugin(plugin);
