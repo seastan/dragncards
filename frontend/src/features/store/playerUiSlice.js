@@ -86,8 +86,11 @@ const playerUiSlice = createSlice({
   initialState,
   reducers: {
     resetPlayerUi: () => initialState,
-    setPlayerUiValues: (state, { payload }) => {
+    mergePlayerUiValues: (state, { payload }) => {
       deepMerge(state, payload);
+    },
+    overridePlayerUiValues: (state, { payload }) => {
+      deepMerge(state, payload, true);
     },
     setPlayerN: (state, { payload }) => {
       state.playerN = payload;
@@ -285,7 +288,8 @@ const playerUiSlice = createSlice({
 
 export const { 
   resetPlayerUi,
-  setPlayerUiValues,
+  mergePlayerUiValues,
+  overridePlayerUiValues,
   setPlayerN, 
   setKeypress, 
   setKeypressControl,

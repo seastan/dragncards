@@ -149,6 +149,14 @@ defmodule DragnCardsWeb.RoomChannel do
         broadcast!(socket, "go_to_replay_step", payload)
     end
 
+    # Process any pending GUI updates
+    pending_gui_updates = get_in(new_state, ["game", "pendingGuiUpdates"])
+    if is_list(pending_gui_updates) and length(pending_gui_updates) > 0 do
+      Enum.each(pending_gui_updates, fn gui_update ->
+        send_gui_message_to_player(socket, gui_update)
+      end)
+    end
+
     {:reply, {:ok, "step_through"}, socket}
   end
 

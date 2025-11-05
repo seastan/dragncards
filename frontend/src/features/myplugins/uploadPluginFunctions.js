@@ -19,38 +19,39 @@ export const readFileAsText = (file) => {
 }
 
 
-export const deepMerge = (obj1, obj2) => {
-// If they are already equal, we are done
-if (obj1 === obj2) return;
-// If obj1 does not exist, set it to obj2
-if (!obj1) {
-  obj1 = obj2;
-  return;
-}
-// The we loop through obj2 properties and update obj1
-for (var p in obj2) {
-  // Ignore prototypes
-  if (!obj2.hasOwnProperty(p)) continue;
-  // If property does not exists in obj1, add it to obj1
-  if (!obj1.hasOwnProperty(p)) {
-    obj1[p] = obj2[p];
-    continue;
+export const deepMerge = (obj1, obj2, overwriteArrays = false) => {
+  // If they are already equal, we are done
+  if (obj1 === obj2) return;
+  // If obj1 does not exist, set it to obj2
+  if (!obj1) {
+    obj1 = obj2;
+    return;
   }
-  // Both objects have the property
-  // If they have the same strict value or identity then no need to update
-  if (obj1[p] === obj2[p]) continue;
-  // Objects are not equal. We need to examine their data type to decide what to do
-  if (Array.isArray(obj1[p]) && Array.isArray(obj2[p])) {
-    console.log("Merging arrays: ",p, obj1[p], obj2[p])
-    // Both values are arrays. Concatenate them.
-    obj1[p] = [...obj1[p], ...obj2[p]];
-    console.log("Merged arrays: ",p, obj1[p])
-  } else if (isObject(obj1[p]) && isObject(obj2[p])) {
-    // Both values are objects
-    deepMerge(obj1[p], obj2[p]);
-  }
-}
-} 
+  // The we loop through obj2 properties and update obj1
+  for (var p in obj2) {
+    // Ignore prototypes
+    if (!obj2.hasOwnProperty(p)) continue;
+    // If property does not exists in obj1, add it to obj1
+    if (!obj1.hasOwnProperty(p)) {
+      obj1[p] = obj2[p];
+      continue;
+    }
+    // Both objects have the property
+    // If they have the same strict value or identity then no need to update
+    if (obj1[p] === obj2[p]) continue;
+    // Objects are not equal. We need to examine their data type to decide what to do
+    if (Array.isArray(obj1[p]) && Array.isArray(obj2[p]) && overwriteArrays) {
+      // Both values are arrays. Concatenate them.
+      obj1[p] = [...obj1[p], ...obj2[p]];
+    } else if (isObject(obj1[p]) && isObject(obj2[p])) {
+      // Both values are objects
+      deepMerge(obj1[p], obj2[p], overwriteArrays);
+    } else {
+      // Primitive values or different types, just overwrite
+      obj1[p] = obj2[p];
+    }
+  } 
+};
 
 const removeComments = (json) => {
   let insideString = false;
