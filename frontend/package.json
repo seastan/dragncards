@@ -101,7 +101,7 @@
     "start": "REACT_APP_WS_URL=ws://127.0.0.1:4000/socket npm-run-all -p start:js",
     "start:docker": "REACT_APP_WS_URL=ws://localhost:4000/socket npm-run-all -p start:css start:js:docker",
     "build": "npm-run-all build:js",
-    "start:js": "react-scripts start",
+    "start:js": "react-scripts --openssl-legacy-provider start",
     "start:js:docker": "REACT_APP_DB_HOSTNAME=backend react-scripts --openssl-legacy-provider start",
     "build:js": "react-scripts build",
     "start:css": "postcss src/css/tailwind.src.css -o src/css/tailwind.compiled.css -w",
