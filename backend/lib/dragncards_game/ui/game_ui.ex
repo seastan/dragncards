@@ -698,6 +698,7 @@ defmodule DragnCardsGame.GameUI do
 
     game_new = game_new
       |> put_in(["messages"], [])
+      |> put_in(["fadeText"], nil)
       |> put_in(["pendingGuiUpdates"], [])
 
     game_new = game_new
@@ -842,6 +843,7 @@ defmodule DragnCardsGame.GameUI do
 
   def get_delta(game_old, game_new) do
     game_old = Map.delete(game_old, "messages")
+    game_old = Map.delete(game_old, "fadeText")
     diff_map = MapDiff.diff(game_old, game_new)
     delta("game", diff_map)
   end

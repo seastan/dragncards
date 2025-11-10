@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { TableLayout } from "./TableLayout";
 import { GiantCard } from "./GiantCard";
+import { FadeTextGame } from "./FadeTextGame";
 import { TopBar } from "./TopBar";
 import { SpawnExistingCardModal } from "./SpawnExistingCardModal";
 import { SpawnCustomCardModal } from "./SpawnCustomCardModal";
@@ -97,6 +98,7 @@ export const Table = React.memo(({onDragEnd}) => {
           {/* Table */}
           <div className="relative w-full" style={{height: touchMode ? "82%" : "94%"}}>
             <TableLayout onDragEnd={onDragEnd}/>
+            <FadeTextGame/>
           </div>
           {/* Touch Bar */}
           {touchMode && <div className="relative bg-gray-700 w-full" style={{height: "12%"}}>
@@ -116,7 +118,7 @@ export const Table = React.memo(({onDragEnd}) => {
       {showModal === "developer" ? <DeveloperModal/> : null}
       {showModal === "patreon" ? 
         <PatreonModal isOpen={true} isLoggedIn={myUserId} closeModal={() => dispatch(setShowModal(null))}/> : null}
-      {tooltipIds.map((tooltipId, index) => {
+      {tooltipIds.map((tooltipId) => {
         return(
         <TooltipModal
           tooltipId={tooltipId}

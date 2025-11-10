@@ -121,7 +121,8 @@
       "ruleById" => %{},
       "ruleMap" => %{},
       "messageByTimestamp" => %{},
-      "messages" => [] # These messages will be delivered to the GameUi parent, which will then relay them to chat
+      "messages" => [], # These messages will be delivered to the GameUi parent, which will then relay them to chat
+      "fadeText" => nil
     }
     rescue
       e in KeyError ->
