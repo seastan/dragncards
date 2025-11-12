@@ -56,7 +56,7 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
   """
   def execute(game, code, trace) do
     load_list_or_id = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["load_list"])
-    game_def = PluginCache.get_game_def_cached(game["options"]["pluginId"])
+    game_def = PluginCache.get_game_def_cached(game["pluginId"])
 
     if !is_list(load_list_or_id) and get_in(game_def, ["preBuiltDecks", load_list_or_id]) == nil do
       raise("Could not find pre-built deck with id: #{inspect(load_list_or_id)} in game definition.")

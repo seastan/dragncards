@@ -11,6 +11,6 @@ defmodule DragnCardsGame.Evaluate.Variables.CARD_DB do
   alias DragnCardsGame.{PluginCache}
 
   def execute(game, _trace) do
-    PluginCache.get_card_db_cached(game["options"]["pluginId"])
+    PluginCache.get_card_db_cached(game["pluginId"])
   end
 end

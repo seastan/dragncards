@@ -95,8 +95,8 @@ defmodule DragnCardsGame.GameUI do
 
   defp update_player_data(gameui, player_n, user_id) do
     user = Users.get_user(user_id)
-    game_def = PluginCache.get_game_def_cached(gameui["game"]["pluginId"])
-    plugin_id = gameui["options"]["pluginId"]
+    plugin_id = gameui["game"]["pluginId"]
+    game_def = PluginCache.get_game_def_cached(plugin_id)
     plugin_player_settings = user.plugin_settings["#{plugin_id}"]["player"]
     action_list = if plugin_player_settings != nil do
       Enum.reduce(plugin_player_settings, [], fn({key, val}, acc) ->
@@ -1075,7 +1075,7 @@ defmodule DragnCardsGame.GameUI do
 
       deltas = gameui["deltas"] |> trim_saved_deltas(user_id)
 
-      game_def = PluginCache.get_game_def_cached(game["options"]["pluginId"])
+      game_def = PluginCache.get_game_def_cached(game["pluginId"])
       save_metadata = get_in(game_def, ["saveGame", "metadata"])
 
       updates = %{
@@ -1149,7 +1149,7 @@ defmodule DragnCardsGame.GameUI do
 
   def reset_game(game, user_id, action_list) do
     game_old = game
-    game_def = PluginCache.get_game_def_cached(game["options"]["pluginId"])
+    game_def = PluginCache.get_game_def_cached(game["pluginId"])
     game = Evaluate.evaluate_with_timeout(game, action_list)
     #game = save_replay(game, user_id)
     game = Game.new(game["roomSlug"], user_id, game_def, game["options"])
@@ -1227,7 +1227,7 @@ defmodule DragnCardsGame.GameUI do
 
   def do_automation_action_list(game, action_list_id, trace) do
     # Run postLoadActionList if it exists
-    game_def = PluginCache.get_game_def_cached(game["options"]["pluginId"])
+    game_def = PluginCache.get_game_def_cached(game["pluginId"])
     automation_action_list = game_def["automation"][action_list_id]
     game = if automation_action_list do
       if game["automationEnabled"] == true do
@@ -1299,14 +1299,14 @@ defmodule DragnCardsGame.GameUI do
 
     Logger.debug("load_cards 1")
 
-    game_def = DragnCardsGame.PluginCache.get_game_def_cached(game["options"]["pluginId"])
+    game_def = DragnCardsGame.PluginCache.get_game_def_cached(game["pluginId"])
 
     Logger.debug("load_cards 2")
 
-    # {card_db_time, card_db} = :timer.tc(fn -> Plugins.get_card_db(game["options"]["pluginId"]) end)
+    # {card_db_time, card_db} = :timer.tc(fn -> Plugins.get_card_db(game["pluginId"]) end)
     # IO.puts("get_card_db execution time: #{card_db_time} microseconds")
 
-    card_db = DragnCardsGame.PluginCache.get_card_db_cached(game["options"]["pluginId"])
+    card_db = DragnCardsGame.PluginCache.get_card_db_cached(game["pluginId"])
 
 
     Logger.debug("load_cards 3")
@@ -1390,9 +1390,9 @@ defmodule DragnCardsGame.GameUI do
   #     raise "load_list is nil"
   #   end
   #   Logger.debug("load_cards 1")
-  #   game_def = Plugins.get_game_def(game["options"]["pluginId"])
+  #   game_def = Plugins.get_game_def(game["pluginId"])
   #   Logger.debug("load_cards 2")
-  #   card_db = Plugins.get_card_db(game["options"]["pluginId"])
+  #   card_db = Plugins.get_card_db(game["pluginId"])
   #   Logger.debug("load_cards 3")
 
   #   # Loop over load list and add a "cardDetails" field to each item

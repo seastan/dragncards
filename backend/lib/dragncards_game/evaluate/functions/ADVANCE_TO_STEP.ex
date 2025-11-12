@@ -23,7 +23,7 @@ defmodule DragnCardsGame.Evaluate.Functions.ADVANCE_TO_STEP do
   """
   def execute(game, code, trace) do
     step_id = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["stepId"])
-    game_def = PluginCache.get_game_def_cached(game["options"]["pluginId"])
+    game_def = PluginCache.get_game_def_cached(game["pluginId"])
     step_order = game_def["stepOrder"]
     # If the stepId is not in the list of steps, return the game state as is
     if not Enum.member?(step_order, step_id) do

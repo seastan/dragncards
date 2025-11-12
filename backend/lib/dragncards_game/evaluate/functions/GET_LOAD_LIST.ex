@@ -46,7 +46,7 @@ defmodule DragnCardsGame.Evaluate.Functions.GET_LOAD_LIST do
   """
   def execute(game, code, trace) do
     load_list_id = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["load_list"])
-    game_def = Plugins.get_game_def(game["options"]["pluginId"])
+    game_def = Plugins.get_game_def(game["pluginId"])
 
     get_in(game_def, ["preBuiltDecks", load_list_id, "cards"])
 

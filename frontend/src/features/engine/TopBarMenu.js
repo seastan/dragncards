@@ -37,6 +37,7 @@ export const TopBarMenu = React.memo(({}) => {
   const gameOptions = useSelector(state => state?.gameUi?.game?.options);
   const autoLoadedDecksGame = useSelector(state => state?.gameUi?.game?.autoLoadedDecks);
   const autoLoadedDecksPlayer = useSelector(state => state?.playerUi?.autoLoadedDecks);
+  const pluginId = useSelector(state => state?.gameUi?.game?.pluginId);
   
   const dispatch = useDispatch();
   const inputFileDeck = useRef(null);
@@ -163,10 +164,25 @@ export const TopBarMenu = React.memo(({}) => {
       }
       if (replayObj) {
         if (replayObj.game && replayObj.deltas) {
+          // Update the saved game to have the current pluginId
+          if (pluginId !== replayObj.game.pluginId) {
+            // Ask the user if they want to proceed
+            const proceed = window.confirm("The uploaded replay uses a different plugin ID than the current room. Loading it may crash your room. Proceed anyway?");
+            if (!proceed) return;
+            replayObj.game.pluginId = pluginId;
+          }
           gameBroadcast("set_replay", {replay: replayObj})
           gameBroadcast("send_alert", {message: `${user.alias} uploaded a replay.`})
         } else if (replayObj.roomSlug) {
-          gameBroadcast("game_action", {action: "set_game", options: {game: replayObj, description: "Game loaded from JSON file."}})
+          const game = replayObj;
+          // Update the saved game to have the current pluginId
+          if (pluginId !== game.pluginId) {
+            // Ask the user if they want to proceed
+            const proceed = window.confirm("The uploaded game uses a different plugin ID than the current room. Loading it may crash your room. Proceed anyway?");
+            if (!proceed) return;
+            game.pluginId = pluginId;
+          }
+          gameBroadcast("game_action", {action: "set_game", options: {game: game, description: "Game loaded from JSON file."}})
           gameBroadcast("send_alert", {message: `${user.alias} uploaded a game.`})
         } else {
           alert("Uploaded JSON file does not look like a valid game or replay.");

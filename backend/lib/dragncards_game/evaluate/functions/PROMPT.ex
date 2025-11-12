@@ -48,7 +48,7 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
     end
     prompt_id = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["prompt_id"])
     arg_vals = Enum.slice(code, 3, Enum.count(code))
-    game_def = PluginCache.get_game_def_cached(game["options"]["pluginId"])
+    game_def = PluginCache.get_game_def_cached(game["pluginId"])
 
     orig_prompt = game_def["prompts"][prompt_id] || dragn_prompt(prompt_id)
     if orig_prompt == nil do
