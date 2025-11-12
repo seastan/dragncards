@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { FadeText } from "./FadeText";
 import { setValues } from "../store/gameUiSlice";
+import { useGameDefinition } from "./hooks/useGameDefinition";
 
 /**
  * FadeTextCard component that displays fade text messages on top of a specific card
@@ -11,6 +12,8 @@ import { setValues } from "../store/gameUiSlice";
  */
 export const FadeTextCard = React.memo(({ cardId }) => {
   const dispatch = useDispatch();
+  const gameDef = useGameDefinition();
+  const fadeText = useSelector(state => state.gameUi?.game?.fadeText);
   const cardMessages = useSelector(state => state?.gameUi?.game?.fadeText?.card?.[cardId]) || [];
   const [activeMessages, setActiveMessages] = useState([]);
   const nextMessageIdRef = useRef(0);
@@ -45,13 +48,18 @@ export const FadeTextCard = React.memo(({ cardId }) => {
     }
   }, [cardMessages]);
 
+  // Count tokens in a message to adjust centering
+  const countTokens = (text) => {
+    const matches = text.match(/token:[a-zA-Z0-9_-]+/g);
+    return matches ? matches.length : 0;
+  };
+
   const handleMessageComplete = (messageId) => {
     setActiveMessages(prev => {
       const updated = prev.filter(msg => msg.id !== messageId);
       // Reset processed index and clear fadeText when all messages are done
       if (updated.length === 0) {
         processedCountRef.current = 0;
-        dispatch(setValues({ updates: [["game", "fadeText", "card", cardId, []]] }));
       }
       return updated;
     });
@@ -68,24 +76,29 @@ export const FadeTextCard = React.memo(({ cardId }) => {
         left: 0
       }}
     >
-      {activeMessages.map((message, index) => (
-        <FadeText
-          key={message.id}
-          text={message.text}
-          onComplete={() => handleMessageComplete(message.id)}
-          delay={message.delay}
-          className="text-white font-bold text-center absolute"
-          style={{
-            fontSize: "3dvh",
-            padding: "1dvh 10dvh",
-            background: "radial-gradient(in srgb-linear ellipse at center, rgb(0 0 0 / 0.90) 0%, rgb(0 0 0 / 0.00) 75%)",
-            top: "0",
-            left: "50%",
-            transform: `translate(-50%, ${index * 35}px)`,
-            transition: "transform 0.3s ease-out"
-          }}
-        />
-      ))}
+      {activeMessages.map((message, index) => {
+        const tokenCount = countTokens(message.text);
+        const tokenOffset = tokenCount * 0.6; // Shift left by 0.6em per token
+        return (
+          <FadeText
+            key={message.id}
+            text={message.text}
+            onComplete={() => handleMessageComplete(message.id)}
+            delay={message.delay}
+            gameDef={gameDef}
+            className="text-white font-bold text-center absolute"
+            style={{
+              fontSize: "3dvh",
+              padding: "1dvh 3dvh",
+              background: "radial-gradient(in srgb-linear ellipse at center, rgb(0 0 0 / 0.90) 0%, rgb(0 0 0 / 0.00) 75%)",
+              top: "0",
+              left: "50%",
+              transform: `translate(calc(-50% - ${tokenOffset}em), ${index * 35}px)`,
+              transition: "transform 0.3s ease-out"
+            }}
+          />
+        );
+      })}
     </div>
   );
 });

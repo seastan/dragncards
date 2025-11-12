@@ -26,7 +26,8 @@ config :dragncards, DragnCardsWeb.Endpoint,
       "--mode",
       "development",
       "--watch-stdin",
-      cd: Path.expand("../assets", __DIR__)
+      cd: Path.expand("../assets", __DIR__),
+      env: %{"NODE_OPTIONS" => "--openssl-legacy-provider"}
     ]
   ],
   front_end_email_confirm_url: "http://localhost:3000/confirm-email/{token}",

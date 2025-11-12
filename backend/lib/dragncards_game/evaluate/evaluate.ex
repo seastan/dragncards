@@ -148,6 +148,7 @@ defmodule DragnCardsGame.Evaluate do
     trace = [description]
     task = Task.async(fn ->
       try do
+        game = put_in(game, ["currentScopeIndex"], 0)
         evaluate(game, code, trace)
       rescue
         e ->
@@ -172,11 +173,13 @@ defmodule DragnCardsGame.Evaluate do
 
   def evaluate(game, code, trace \\ []) do
     # if is_list(code) do
-    #   IO.puts("evaluate 1")
-    #   IO.inspect(code)
-    #   IO.puts("evaluate 2")
-    #   #IO.inspect(game)
-    #   IO.puts("evaluate 3")
+      # IO.puts("evaluate 1")
+      # IO.inspect(game)
+      # IO.puts("evaluate 2")
+      # IO.inspect(game["playerUi"])
+      # IO.puts("evaluate 3")
+      # IO.inspect(code)
+      # IO.puts("evaluate 4")
     # end
 
     try do

@@ -21,8 +21,11 @@ defmodule DragnCardsGame.Card do
     Logger.debug("card_from_card_details 1")
     group = game_def["groups"][group_id]
     controller = group["controller"]
+    side_a_name = card_details["A"]["name"] || "noname"
+    side_a_name_clean = String.replace(side_a_name, ~r/[^a-zA-Z0-9]/, "")
+    card_id = side_a_name_clean <> "_" <> (:crypto.strong_rand_bytes(6) |> Base.url_encode64(padding: false)) |> String.downcase()
     base = %{
-      "id" => Ecto.UUID.generate,
+      "id" => card_id,
       "databaseId" => card_db_id,
       "currentSide" => group["defaultSideUp"] || "A",
       # TODO: default inPlay?

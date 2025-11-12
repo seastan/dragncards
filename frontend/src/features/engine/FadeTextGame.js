@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { FadeText } from "./FadeText";
 import { setValues } from "../store/gameUiSlice";
+import { useGameDefinition } from "./hooks/useGameDefinition";
 import { Z_INDEX } from "./functions/common";
 
 /**
@@ -10,6 +11,7 @@ import { Z_INDEX } from "./functions/common";
  */
 export const FadeTextGame = React.memo(() => {
   const dispatch = useDispatch();
+  const gameDef = useGameDefinition();
   const gameMessages = useSelector(state => state?.gameUi?.game?.fadeText?.game) || [];
   const [activeMessages, setActiveMessages] = useState([]);
   const nextMessageIdRef = useRef(0);
@@ -44,6 +46,12 @@ export const FadeTextGame = React.memo(() => {
     }
   }, [gameMessages]);
 
+  // Count tokens in a message to adjust centering
+  const countTokens = (text) => {
+    const matches = text.match(/token:[a-zA-Z0-9_-]+/g);
+    return matches ? matches.length : 0;
+  };
+
   const handleMessageComplete = (messageId) => {
     setActiveMessages(prev => {
       const updated = prev.filter(msg => msg.id !== messageId);
@@ -67,24 +75,29 @@ export const FadeTextGame = React.memo(() => {
       }}
     >
       <div className="relative" style={{ height: "100%" }}>
-        {activeMessages.map((message, index) => (
-          <FadeText
-            key={message.id}
-            text={message.text}
-            onComplete={() => handleMessageComplete(message.id)}
-            delay={message.delay}
-            className="text-white font-bold text-center absolute"
-            style={{
-              fontSize: "10dvh",
-              padding: "2dvh 6dvh",
-              background: "radial-gradient(in srgb-linear ellipse at center, rgb(0 0 0 / 0.90) 0%, rgb(0 0 0 / 0.00) 70%)",
-              top: "50%",
-              left: "50%",
-              transform: `translate(-50%, calc(-50% + ${(index - (activeMessages.length - 1) / 2) * 80}px))`,
-              transition: "transform 0.3s ease-out"
-            }}
-          />
-        ))}
+        {activeMessages.map((message, index) => {
+          const tokenCount = countTokens(message.text);
+          const tokenOffset = tokenCount * 0.6; // Shift left by 0.6em per token
+          return (
+            <FadeText
+              key={message.id}
+              text={message.text}
+              onComplete={() => handleMessageComplete(message.id)}
+              delay={message.delay}
+              gameDef={gameDef}
+              className="text-white font-bold text-center absolute"
+              style={{
+                fontSize: "6dvh",
+                padding: "2dvh 6dvh",
+                background: "radial-gradient(in srgb-linear ellipse at center, rgb(0 0 0 / 0.90) 0%, rgb(0 0 0 / 0.00) 70%)",
+                top: "50%",
+                left: "50%",
+                transform: `translate(calc(-50% - ${tokenOffset}em), calc(-50% + ${(index - (activeMessages.length - 1) / 2) * 80}px))`,
+                transition: "transform 0.3s ease-out"
+              }}
+            />
+          );
+        })}
       </div>
     </div>
   );

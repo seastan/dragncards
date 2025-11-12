@@ -294,25 +294,69 @@ defmodule DragnCardsGame.GameUI do
 
   # Move a card
   def move_card(game, card_id, dest_group_id, dest_stack_index, dest_card_index, move_options \\ nil) do
+    # Check if card exists
+    if not Map.has_key?(game["cardById"] || %{}, card_id) do
+      raise "Card not found: #{card_id}"
+    end
+
     # Check if dest_group_id is a key in game["groupById"]
     if dest_group_id not in Map.keys(game["groupById"]) do
       raise "Group not found: #{dest_group_id}"
     end
-    # Get position of card
-    {orig_group_id, _orig_stack_index, _orig_card_index} = gsc(game, card_id)
-    orig_stack_id = get_stack_by_card_id(game, card_id)["id"]
-    # Pepare destination stack
+
+    # Check if dest_stack_index is valid
+    if dest_stack_index < 0 or dest_stack_index > length(game["groupById"][dest_group_id]["stackIds"]) do
+      raise "Invalid dest_stack_index: #{dest_stack_index} for group #{dest_group_id} (valid range: 0-#{length(game["groupById"][dest_group_id]["stackIds"])})"
+    end
+
+    # Get position of card - wrap in try to catch MatchError from gsc
+    {orig_group_id, _orig_stack_index, _orig_card_index} =
+      try do
+        gsc(game, card_id)
+      rescue
+        e in MatchError ->
+          raise "Failed to find card #{card_id} in any group/stack. Card may not be on the table."
+      end
+
+    # Get the original stack
+    orig_stack = get_stack_by_card_id(game, card_id)
+    if orig_stack == nil do
+      raise "Failed to get stack for card #{card_id}. Card state may be corrupted."
+    end
+    orig_stack_id = orig_stack["id"]
+
+    # Prepare destination stack
     game = if get_in(move_options, ["combine"]) do
       dest_stack = get_stack_by_index(game, dest_group_id, dest_stack_index)
-      add_to_stack(game, dest_stack["id"], card_id, dest_card_index)
-    else
-      new_stack = Stack.empty_stack() |> put_in(["cardIds"], [card_id])
-      insert_new_stack(game, dest_group_id, dest_stack_index, new_stack)
-  end
+      if dest_stack == nil do
+        raise "Stack not found at index #{dest_stack_index} in group #{dest_group_id}"
+      end
 
-    game = game
-    |> remove_from_stack(card_id, orig_stack_id)
-    |> update_card_state(card_id, orig_group_id, move_options)
+      try do
+        add_to_stack(game, dest_stack["id"], card_id, dest_card_index)
+      rescue
+        e ->
+          raise "Failed to add card #{card_id} to stack #{dest_stack["id"]} at index #{dest_card_index}. Error: #{Exception.message(e)}"
+      end
+    else
+      new_stack = Stack.empty_stack(card_id) |> put_in(["cardIds"], [card_id])
+      try do
+        insert_new_stack(game, dest_group_id, dest_stack_index, new_stack)
+      rescue
+        e ->
+          raise "Failed to insert new stack at index #{dest_stack_index} in group #{dest_group_id}. Error: #{Exception.message(e)}"
+      end
+    end
+
+    # Remove card from original location and update state
+    try do
+      game
+      |> remove_from_stack(card_id, orig_stack_id)
+      |> update_card_state(card_id, orig_group_id, move_options)
+    rescue
+      e ->
+        raise "Failed to finalize move for card #{card_id} from stack #{orig_stack_id}. Error: #{Exception.message(e)}"
+    end
   end
 
   # Update a card state
