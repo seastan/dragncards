@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { TableLayout } from "./TableLayout";
 import { GiantCard } from "./GiantCard";
-import { FadeTextGame } from "./FadeTextGame";
+import { FadeTextPlayer } from "./FadeTextPlayer";
 import { TopBar } from "./TopBar";
 import { SpawnExistingCardModal } from "./SpawnExistingCardModal";
 import { SpawnCustomCardModal } from "./SpawnCustomCardModal";
@@ -98,7 +98,7 @@ export const Table = React.memo(({onDragEnd}) => {
           {/* Table */}
           <div className="relative w-full" style={{height: touchMode ? "82%" : "94%"}}>
             <TableLayout onDragEnd={onDragEnd}/>
-            <FadeTextGame/>
+            <FadeTextPlayer/>
           </div>
           {/* Touch Bar */}
           {touchMode && <div className="relative bg-gray-700 w-full" style={{height: "12%"}}>
