@@ -55,78 +55,127 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
   The result of the 'LOAD_CARDS' operation.
   """
   def execute(game, code, trace) do
-    load_list_or_id = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["load_list"])
-    game_def = PluginCache.get_game_def_cached(game["pluginId"])
+    try do
+      load_list_or_id = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["load_list"])
 
-    if !is_list(load_list_or_id) and get_in(game_def, ["preBuiltDecks", load_list_or_id]) == nil do
-      raise("Could not find pre-built deck with id: #{inspect(load_list_or_id)} in game definition.")
-    end
-
-    # Set the load_list_id
-    load_list_id = if is_list(load_list_or_id) do
-      nil
-    else
-      load_list_or_id
-    end
-
-    # Set the load_list
-    load_list = if is_list(load_list_or_id) do
-      load_list_or_id
-    else
-      get_in(game_def, ["preBuiltDecks", load_list_id, "cards"])
-    end
-
-    # Validate the load_list
-    if !is_list(load_list) do
-      raise("Expected load_list to be a list, got: #{inspect(load_list)}")
-    end
-    Enum.each(load_list, fn item ->
-      if !is_map(item) or !Map.has_key?(item, "databaseId") or !Map.has_key?(item, "loadGroupId") or !Map.has_key?(item, "quantity") do
-        raise("Each card in the load list must be a map with keys: databaseId, loadGroupId, and quantity. Got: #{inspect(item)}")
+      game_def = try do
+        PluginCache.get_game_def_cached(game["pluginId"])
+      rescue
+        e ->
+          reraise "LOAD_CARDS failed while loading game definition for plugin #{inspect(game["pluginId"])}: #{Exception.message(e)}", __STACKTRACE__
       end
-    end)
 
-    # Run preLoadActionList if it exists
-    game = GameUI.do_automation_action_list(game, "preLoadActionList", trace ++ ["preLoadActionList"])
+      if !is_list(load_list_or_id) and get_in(game_def, ["preBuiltDecks", load_list_or_id]) == nil do
+        available_decks = (game_def["preBuiltDecks"] || %{}) |> Map.keys() |> Enum.join(", ")
+        raise("LOAD_CARDS failed: Could not find pre-built deck with id '#{inspect(load_list_or_id)}' in game definition. Available decks: [#{available_decks}]")
+      end
 
-    game = if load_list_id && game_def["preBuiltDecks"][load_list_id]["preLoadActionList"] do
-      if game["automationEnabled"] do
-        Evaluate.evaluate(game, ["ACTION_LIST", game_def["preBuiltDecks"][load_list_id]["preLoadActionList"]], trace ++ ["deck preLoadActionList"])
+      # Set the load_list_id
+      load_list_id = if is_list(load_list_or_id) do
+        nil
       else
-        Evaluate.evaluate(game, ["LOG", "Skipping deck's preLoadActionList because automation is disabled."], trace ++ ["action_list_id"])
+        load_list_or_id
       end
-    else
-      game
-    end
 
-    prev_loaded_card_ids = game["loadedCardIds"]
-
-    player_n = GameUI.get_player_n(game)
-    user_id = GameUI.get_user_id_from_player_n(game, player_n)
-    game = GameUI.load_cards(game, load_list, player_n, user_id, trace ++ ["load_cards"])
-
-    # Run deck's postLoadActionList if it exists
-    game = if load_list_id && game_def["preBuiltDecks"][load_list_id]["postLoadActionList"] do
-      if game["automationEnabled"] do
-        Evaluate.evaluate(game, ["ACTION_LIST", game_def["preBuiltDecks"][load_list_id]["postLoadActionList"]], trace ++ ["deck postLoadActionList"])
+      # Set the load_list
+      load_list = if is_list(load_list_or_id) do
+        load_list_or_id
       else
-        Evaluate.evaluate(game, ["LOG", "Skipping deck's postLoadActionList because automation is disabled."], trace ++ ["action_list_id"])
+        cards = get_in(game_def, ["preBuiltDecks", load_list_id, "cards"])
+        if cards == nil do
+          raise("LOAD_CARDS failed: Pre-built deck '#{load_list_id}' exists but has no 'cards' field.")
+        end
+        cards
       end
-    else
-      game
+
+      # Validate the load_list
+      if !is_list(load_list) do
+        raise("LOAD_CARDS failed: Expected load_list to be a list, got: #{inspect(load_list)}")
+      end
+
+      Enum.with_index(load_list, fn item, index ->
+        if !is_map(item) or !Map.has_key?(item, "databaseId") or !Map.has_key?(item, "loadGroupId") or !Map.has_key?(item, "quantity") do
+          raise("LOAD_CARDS failed: Card at index #{index} in load list must be a map with keys: databaseId, loadGroupId, and quantity. Got: #{inspect(item)}")
+        end
+      end)
+
+      # Run preLoadActionList if it exists
+      game = try do
+        GameUI.do_automation_action_list(game, "preLoadActionList", trace ++ ["preLoadActionList"])
+      rescue
+        e ->
+          reraise "LOAD_CARDS failed during preLoadActionList execution: #{Exception.message(e)}", __STACKTRACE__
+      end
+
+      game = if load_list_id && game_def["preBuiltDecks"][load_list_id]["preLoadActionList"] do
+        if game["automationEnabled"] do
+          try do
+            Evaluate.evaluate(game, ["ACTION_LIST", game_def["preBuiltDecks"][load_list_id]["preLoadActionList"]], trace ++ ["deck preLoadActionList"])
+          rescue
+            e ->
+              reraise "LOAD_CARDS failed during deck '#{load_list_id}' preLoadActionList execution: #{Exception.message(e)}", __STACKTRACE__
+          end
+        else
+          Evaluate.evaluate(game, ["LOG", "Skipping deck's preLoadActionList because automation is disabled."], trace ++ ["action_list_id"])
+        end
+      else
+        game
+      end
+
+      prev_loaded_card_ids = game["loadedCardIds"]
+
+      player_n = GameUI.get_player_n(game)
+      user_id = GameUI.get_user_id_from_player_n(game, player_n)
+
+      game = try do
+        GameUI.load_cards(game, load_list, player_n, user_id, trace ++ ["load_cards"])
+      rescue
+        e ->
+          deck_info = if load_list_id, do: " from deck '#{load_list_id}'", else: " from custom list"
+          reraise "LOAD_CARDS failed while loading #{length(load_list)} card(s)#{deck_info} for player #{player_n}: #{Exception.message(e)}", __STACKTRACE__
+      end
+
+      # Run deck's postLoadActionList if it exists
+      game = if load_list_id && game_def["preBuiltDecks"][load_list_id]["postLoadActionList"] do
+        if game["automationEnabled"] do
+          try do
+            Evaluate.evaluate(game, ["ACTION_LIST", game_def["preBuiltDecks"][load_list_id]["postLoadActionList"]], trace ++ ["deck postLoadActionList"])
+          rescue
+            e ->
+              reraise "LOAD_CARDS failed during deck '#{load_list_id}' postLoadActionList execution: #{Exception.message(e)}", __STACKTRACE__
+          end
+        else
+          Evaluate.evaluate(game, ["LOG", "Skipping deck's postLoadActionList because automation is disabled."], trace ++ ["action_list_id"])
+        end
+      else
+        game
+      end
+
+      # Run postLoadActionList if it exists
+      game = try do
+        GameUI.do_automation_action_list(game, "postLoadActionList", trace ++ ["postLoadActionList"])
+      rescue
+        e ->
+          reraise "LOAD_CARDS failed during postLoadActionList execution: #{Exception.message(e)}", __STACKTRACE__
+      end
+
+      # Restore prev_loaded_card_ids
+      game = put_in(game, ["loadedCardIds"], prev_loaded_card_ids)
+
+      # Add the load code to the history
+      game = add_load_code_to_history(game, code, player_n, trace ++ ["add_load_code_to_history"])
+
+      # Set loadedADeck to true
+      put_in(game, ["loadedADeck"], true)
+    rescue
+      e ->
+        # Re-raise with additional context if this is not already a wrapped error
+        if String.starts_with?(Exception.message(e), "LOAD_CARDS failed") do
+          reraise e, __STACKTRACE__
+        else
+          reraise "LOAD_CARDS failed with unexpected error: #{Exception.message(e)}", __STACKTRACE__
+        end
     end
-
-    # Run postLoadActionList if it exists
-    game = GameUI.do_automation_action_list(game, "postLoadActionList", trace ++ ["postLoadActionList"])
-
-    # Restore prev_loaded_card_ids
-    game = put_in(game, ["loadedCardIds"], prev_loaded_card_ids)
-
-    # Add the load code to the history
-    game = add_load_code_to_history(game, code, player_n, trace ++ ["add_load_code_to_history"])
-
-    # Set loadedADeck to true
-    put_in(game, ["loadedADeck"], true)
   end
 
 

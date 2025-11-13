@@ -305,8 +305,8 @@ defmodule DragnCardsGame.GameUI do
     end
 
     # Check if dest_stack_index is valid
-    if dest_stack_index < 0 or dest_stack_index > length(game["groupById"][dest_group_id]["stackIds"]) do
-      raise "Invalid dest_stack_index: #{dest_stack_index} for group #{dest_group_id} (valid range: 0-#{length(game["groupById"][dest_group_id]["stackIds"])})"
+    if dest_stack_index > length(game["groupById"][dest_group_id]["stackIds"]) do
+      raise "Invalid dest_stack_index: #{dest_stack_index} for group #{dest_group_id} with size #{length(game["groupById"][dest_group_id]["stackIds"])})"
     end
 
     # Get position of card - wrap in try to catch MatchError from gsc

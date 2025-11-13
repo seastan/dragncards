@@ -184,13 +184,15 @@ defmodule DragnCardsGame.Evaluate do
 
     try do
       # Increase scope index
-      current_scope_index = game["currentScopeIndex"] + 1
+      prev_scope_index = game["currentScopeIndex"] || 0
+      current_scope_index = prev_scope_index + 1
       game = put_in(game, ["currentScopeIndex"], current_scope_index)
       game = if not Map.has_key?(game["variables"], "#{current_scope_index}") do
         put_in(game, ["variables", "#{current_scope_index}"], %{})
       else
         game
       end
+
 
       # Evaluate the code
       result = evaluate_inner(game, code, trace)
@@ -228,8 +230,8 @@ defmodule DragnCardsGame.Evaluate do
 
 
   def evaluate_inner(game, code, trace) do
-    #IO.puts("evaluate_inner 1")
-    #IO.inspect(code)
+    # IO.puts("evaluate_inner 1")
+    # IO.inspect(code)
     current_scope_index = game["currentScopeIndex"]
 
 
