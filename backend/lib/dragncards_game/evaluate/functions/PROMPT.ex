@@ -19,6 +19,10 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
   ```
   Show a prompt to player1 and player2 to choose a target player:
   ```
+                ["SET", "/currentPlayer", ["NEXT_PLAYER", "$PLAYER_I"]],
+                ["LOG", "{{$ALIAS_N}} ends their turn."],
+                ["LOG", "{{$ALIAS_N}} drew up to their hand size."],
+                ["D
   ["PROMPT", ["LIST", "player1", "player2"], "chooseTargetPlayer"]
   ```
   Show a prompt to all players to choose a target player (using the built-in `$PLAYER_ORDER` variable to get the list of players in order of their turn):

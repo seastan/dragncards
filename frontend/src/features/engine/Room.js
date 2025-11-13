@@ -126,7 +126,7 @@ export const Room = ({ slug }) => {
         timestamp: Date.now()
       }));
       //setRoomClosed(true);
-    } else if (event === "plugin_repo_update" && payload !== null && isPluginAuthor) {
+    } else if (event === "plugin_repo_update" && payload !== null) {
       const parsedFiles = payload.files;
       var mergedJSONs;
       try {

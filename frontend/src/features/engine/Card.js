@@ -16,6 +16,7 @@ import { FadeTextCard } from "./FadeTextCard";
 
 import styled, { keyframes, css } from "styled-components";
 import { MultiSelectOverlay } from "./MultiSelectOverlay";
+import { useCardRotation } from "./hooks/useCardRotation";
 
 // Define the vibration keyframes that respect existing rotation
 const vibrate = (baseRotation = "0deg") => keyframes`
@@ -57,7 +58,7 @@ export const Card = React.memo(({
     const dropdownMenuVisible = useSelector(state => state?.playerUi?.dropdownMenu?.visible);
     const cardVisibleFace = useVisibleFace(cardId);
     const cardStyle = useCardStyle(cardId, cardIndexFromGui, isDragging, offset);
-    const cardRotation = useSelector(state => state?.gameUi?.game?.cardById[cardId]?.rotation);
+    const cardRotation = useCardRotation(cardId);
     const isActive = useSelector(state => {return state?.playerUi?.activeCardId === cardId});
     const triggeredTimestamp = useSelector(state => state?.gameUi?.game?.cardById[cardId]?.triggeredTimestamp);
     const shouldGlow = triggeredTimestamp !== undefined && triggeredTimestamp !== null;

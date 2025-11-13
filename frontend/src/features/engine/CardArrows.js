@@ -24,12 +24,10 @@ export const CardArrows = React.memo(({ cardId, hideArrows }) => {
 
   const currentMinute = new Date().getMinutes();
 
-
   // useEffect(() => {
   //   const updates = [["game", "cardById", cardId, "arrows", {...cardArrows}]];
   //   dispatch(setValues({updates: updates}));
   // }, [stack.left, stack.top, resources]);
-  if (hideArrows) return null;
 
   console.log("Rendering CardArrows", cardId, cardArrows);
   const arrowElements = useMemo(() => {
@@ -57,6 +55,8 @@ export const CardArrows = React.memo(({ cardId, hideArrows }) => {
       </ArcherElement>
     );
   }, [cardArrows, cardId]);
+
+  if (hideArrows) return null;
 
   return <>{arrowElements}</>;
 });

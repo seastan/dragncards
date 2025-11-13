@@ -2,8 +2,8 @@
   "repository": {},
   "license": "MIT",
   "scripts": {
-    "deploy": "NODE_OPTIONS=--openssl-legacy-provider webpack --mode production",
-    "watch": "NODE_OPTIONS=--openssl-legacy-provider webpack --mode development --watch"
+    "watch": "NODE_OPTIONS=--openssl-legacy-provider webpack --mode development --watch-stdin",
+    "deploy": "NODE_OPTIONS=--openssl-legacy-provider webpack --mode production"
   },
   "dependencies": {
     "@babel/compat-data": "^7.9.0",
