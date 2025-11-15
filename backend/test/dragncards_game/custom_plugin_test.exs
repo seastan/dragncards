@@ -183,14 +183,17 @@ defmodule DragnCardsGame.CustomPluginTest do
 
 
   @tag :profiling
-  test "profiling create_card_in_group", %{user: _user, game: game, game_def: game_def} do
+  test "profiling create_card_in_group", %{user: user, game: game, game_def: game_def} do
     # Load some decks into the game
     Enum.each(1..2, fn _ ->
       GameUI.load_cards(game, [%{
         "databaseId" => "51223bd0-ffd1-11df-a976-0801206c9005",
         "loadGroupId" => "player1Play1",
         "quantity" => 1
-      }])
+      }],
+      "player1",
+      user.id,
+      [])
     end)
 
     assert true
@@ -799,11 +802,20 @@ defmodule DragnCardsGame.CustomPluginTest do
   # foundations
   @tag :foundations
   test "Foundations", %{user: _user, game: game, game_def: _game_def} do
+    if game["currentScopeIndex"] == nil do
+        raise "Game state is missing currentScopeIndex 1."
+    end
     # Select 3 player
-    prompt_id = Enum.at(Map.keys(game["playerData"]["player1"]["prompts"]), 0)
+    prompt_id = game["playerData"]["player1"]["mostRecentPromptId"]
     prompt = game["playerData"]["player1"]["prompts"][prompt_id]
     option = Enum.at(prompt["options"], 2)
+    if option["code"] == nil do
+        raise "Option code is missing: #{inspect(option)}, prompt: #{inspect(prompt)}"
+    end
     game = Evaluate.evaluate(game, option["code"])
+    if game["currentScopeIndex"] == nil do
+        raise "Game state is missing currentScopeIndex 2. after evaluating code: #{inspect(option["code"])}"
+    end
 
     # Load decks
     game = Evaluate.evaluate(game, ["LOAD_CARDS", "starterElves"])

@@ -48,6 +48,18 @@ export const useDoActionList = () => {
             var playerUi = store.getState().playerUi;
             // Drop the droppableRefs from the playerUi object
             playerUi = {...playerUi, droppableRefs: {}}
+            
+            // If playerUi.playerN is null, don't send the action list
+            if (!playerUi.playerN) {
+                sendLocalMessage("You must be logged in and seated at the table to perform this action.");
+                return;
+            }
+
+            // If playerN does not start with "player", something is wrong
+            if (!playerUi.playerN.startsWith("player")) {
+                sendLocalMessage("You must be seated at the table to perform this action.");
+                return;
+            }
 
             gameBroadcast("game_action", {
                 action: "evaluate", 

@@ -79,7 +79,11 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT_ADD_OPTION do
         "code" => prompt_code
       }
       new_options = options ++ [new_option]
-      put_in(acc, ["playerData", target_player_n, "prompts", prompt_uuid, "options"], new_options)
+      try do
+        put_in(acc, ["playerData", target_player_n, "prompts", prompt_uuid, "options"], new_options)
+      rescue
+        _ -> raise "Failed to add option to prompt #{prompt_uuid} for player #{target_player_n}. Does player #{target_player_n} exist and have a prompt?"
+      end
     end)
 
     game

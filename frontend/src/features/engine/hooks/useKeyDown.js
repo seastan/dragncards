@@ -177,7 +177,7 @@ export const useKeyDown = () => {
 }
 
 const keyMatch = (key1, key2) => {
-
+    if (!key1 || !key2) return false;
     if (key1 === key2) return true;
     if (key1.split('+').sort().join('+') === key2.split('+').sort().join('+')) return true;
 

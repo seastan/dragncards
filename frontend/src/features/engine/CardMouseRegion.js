@@ -54,7 +54,7 @@ export const CardMouseRegion = React.memo(({
     }
 
     const handleClick = (event) => {
-        console.log("cardaction click", {card, touchMode, isActive, touchAction});
+        console.log(`Clicked ${cardId}`, {card, touchMode, isActive, touchAction});
         event.stopPropagation(); 
         if (multiSelectEnabled) {
             // If multi-select is enabled, we don't want to make the card active

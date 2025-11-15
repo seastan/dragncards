@@ -12,6 +12,7 @@ import { DefaultActionLabel } from "./DefaultActionLabel";
 import { useCardStyle } from "./hooks/useCardStyle";
 import { PeekingSymbol } from "./PeekingSymbol";
 import { AbilityButton } from "./AbilityButton";
+import { FadeTextCard } from "./FadeTextCard";
 
 import styled, { keyframes, css } from "styled-components";
 import { MultiSelectOverlay } from "./MultiSelectOverlay";
@@ -114,6 +115,7 @@ export const Card = React.memo(({
             <CardArrows cardId={cardId} hideArrows={hideArrows}/>
             <AbilityButton cardId={cardId}/>
             <MultiSelectOverlay cardId={cardId} />
+            <FadeTextCard cardId={cardId} />
         </StyledCard>
     );
    

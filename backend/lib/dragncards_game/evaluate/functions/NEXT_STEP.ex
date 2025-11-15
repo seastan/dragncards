@@ -23,7 +23,7 @@ defmodule DragnCardsGame.Evaluate.Functions.NEXT_STEP do
   """
   def execute(game, code, trace) do
     game_old = game
-    game_def = PluginCache.get_game_def_cached(game["options"]["pluginId"])
+    game_def = PluginCache.get_game_def_cached(game["pluginId"])
     next_step_action_list = [
       # ["COND",
       #   ["EQUAL", "$GAME.roundNumber", 0],

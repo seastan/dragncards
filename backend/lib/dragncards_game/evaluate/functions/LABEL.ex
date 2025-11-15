@@ -27,7 +27,7 @@ defmodule DragnCardsGame.Evaluate.Functions.LABEL do
   The result of the 'LABEL' operation.
   """
   def get_label_l(game, labelId, l, pluralIndex, _trace) do
-    labels = PluginCache.get_game_def_cached(game["options"]["pluginId"])["labels"]
+    labels = PluginCache.get_game_def_cached(game["pluginId"])["labels"]
     if is_nil(pluralIndex) do
       try do
         lc = labels[labelId][l]
