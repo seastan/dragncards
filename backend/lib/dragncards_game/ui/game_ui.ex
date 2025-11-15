@@ -886,8 +886,9 @@ defmodule DragnCardsGame.GameUI do
   end
 
   def get_delta(game_old, game_new) do
-    game_old = Map.delete(game_old, "messages")
-    game_old = Map.delete(game_old, "fadeText")
+    game_old = game_old
+    |> put_in(["messages"], [])
+    |> put_in(["fadeText"], nil)
     diff_map = MapDiff.diff(game_old, game_new)
     delta("game", diff_map)
   end
@@ -1047,70 +1048,10 @@ defmodule DragnCardsGame.GameUI do
     supporter_level >= 3
   end
 
-  def trim_saved_deltas(deltas, user_id) do
-    save_full_replay = Users.get_replay_save_permission(user_id)
-
-    if save_full_replay do
-      deltas
-    else
-      start_index = if Enum.count(deltas) > 5 do
-        Enum.count(deltas)-5
-      else
-        0
-      end
-      Enum.slice(deltas, start_index..-1)
-    end
-  end
-
   def save_replay(gameui, user_id, options) do
-    if user_id == nil do
-      {:error, "Error saving game: user not recognized."}
-    else
-      game = gameui["game"]
-      game = game
-        |> put_in(["playerUi"], options["player_ui"])
-        |> put_in(["playerInfo"], gameui["playerInfo"])
-
-      game_uuid = game["id"]
-
-      deltas = gameui["deltas"] |> trim_saved_deltas(user_id)
-
-      game_def = PluginCache.get_game_def_cached(game["pluginId"])
-      save_metadata = get_in(game_def, ["saveGame", "metadata"])
-
-      updates = %{
-        game_json: game,
-        metadata: if save_metadata == nil do nil else Evaluate.evaluate(game, ["PROCESS_MAP", save_metadata], ["save_replay"]) end,
-        plugin_id: game["pluginId"],
-        deltas: deltas,
-      }
-
-      result = case Repo.get_by(Replay, [user_id: user_id, uuid: game_uuid]) do
-        nil  -> %Replay{user_id: user_id, uuid: game_uuid} # Replay not found, we build one
-        replay -> replay  # Replay exists, let's use it
-      end
-
-      result = result
-      |> Replay.changeset(updates)
-      |> Repo.insert_or_update
-
-      # Check if it worked
-      case result do
-        {:ok, _struct} ->
-          Logger.debug("Insert or update was successful!")
-
-        {:error, changeset} ->
-          Logger.debug("An error occurred:")
-          Logger.debug(inspect(changeset.errors)) # Print the errors
-      end
-
-      case Users.get_replay_save_permission(user_id) do
-        true ->
-          {:ok, "Full replay saved."}
-        false ->
-          {:ok, "Current game saved. To save full replays, become a supporter."}
-      end
-    end
+    game = gameui["game"]
+    deltas = gameui["deltas"]
+    DragnCardsGame.Game.save_replay_to_db(game, user_id, deltas)
   end
 
 

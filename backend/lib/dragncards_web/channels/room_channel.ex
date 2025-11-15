@@ -169,6 +169,8 @@ defmodule DragnCardsWeb.RoomChannel do
     old_game = old_state["game"]
     GameUIServer.set_seat(room_slug, user_id, player_i, new_user_id)
     new_state = GameUIServer.state(room_slug)
+    IO.puts("New state messages")
+    IO.inspect(new_state["game"]["messages"])
 
     if new_state["playerInfo"] != nil do
       broadcast!(socket, "seats_changed", new_state["playerInfo"])

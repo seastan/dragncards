@@ -320,6 +320,10 @@ defmodule DragnCardsGame.GameUIServer do
   end
 
   def handle_call({:set_seat, _user_id, player_i, new_user_id}, _from, gameui) do
+    gameui = gameui
+    |> put_in(["game", "messages"], [])
+    |> put_in(["game", "pendingGuiUpdates"], [])
+    |> put_in(["game", "fadeText"], nil)
     try do
       if new_user_id == nil do
         GameUI.get_up(gameui, player_i)

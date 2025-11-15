@@ -7,7 +7,7 @@
   require Logger
   import Ecto.Query
   alias ElixirSense.Log
-  alias DragnCardsGame.{Groups, Game, PlayerData, GameVariables, Evaluate, AutomationRules, TempTokens}
+  alias DragnCardsGame.{Groups, Game, PlayerData, GameVariables, Evaluate, AutomationRules, TempTokens, PluginCache}
   alias DragnCards.{Repo, Replay, Users, Plugins}
 
   @type t :: Map.t()
@@ -176,6 +176,81 @@
       IO.puts("Game is NOT healthy")
     else
       IO.puts("Game is healthy")
+    end
+  end
+
+  @doc """
+  Saves the game replay to the database for a specific user.
+
+  ## Parameters
+
+    - `game`: The game state to save
+    - `user_id`: The user ID to save the replay for
+    - `deltas`: List of game deltas (defaults to [])
+
+  ## Returns
+
+  A tuple {:ok, message} or {:error, message}
+  """
+  def save_replay_to_db(game, user_id, deltas \\ []) do
+    if user_id == nil do
+      {:error, "Error saving game: user not recognized."}
+    else
+      game_uuid = game["id"]
+
+      # Trim deltas based on user's replay save permission
+      trimmed_deltas = trim_saved_deltas(deltas, user_id)
+
+      game_def = PluginCache.get_game_def_cached(game["pluginId"])
+      save_metadata = get_in(game_def, ["saveGame", "metadata"])
+
+      updates = %{
+        game_json: game,
+        metadata: if save_metadata == nil do nil else Evaluate.evaluate(game, ["PROCESS_MAP", save_metadata], ["save_replay"]) end,
+        plugin_id: game["pluginId"],
+        deltas: trimmed_deltas,
+      }
+
+      result = case Repo.get_by(Replay, [user_id: user_id, uuid: game_uuid]) do
+        nil  -> %Replay{user_id: user_id, uuid: game_uuid} # Replay not found, we build one
+        replay -> replay  # Replay exists, let's use it
+      end
+
+      result = result
+      |> Replay.changeset(updates)
+      |> Repo.insert_or_update
+
+      # Check if it worked
+      case result do
+        {:ok, _struct} ->
+          Logger.debug("Insert or update was successful!")
+
+        {:error, changeset} ->
+          Logger.debug("An error occurred:")
+          Logger.debug(inspect(changeset.errors)) # Print the errors
+      end
+
+      case Users.get_replay_save_permission(user_id) do
+        true ->
+          {:ok, "Full replay saved."}
+        false ->
+          {:ok, "Current game saved. To save full replays, become a supporter."}
+      end
+    end
+  end
+
+  defp trim_saved_deltas(deltas, user_id) do
+    save_full_replay = Users.get_replay_save_permission(user_id)
+
+    if save_full_replay do
+      deltas
+    else
+      start_index = if Enum.count(deltas) > 5 do
+        Enum.count(deltas)-5
+      else
+        0
+      end
+      Enum.slice(deltas, start_index..-1)
     end
   end
 

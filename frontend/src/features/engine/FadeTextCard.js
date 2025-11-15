@@ -20,17 +20,13 @@ export const FadeTextCard = React.memo(({ cardId }) => {
   const processedCountRef = useRef(0);
 
   useEffect(() => {
-    // Reset if we've processed more than what's currently available
-    if (processedCountRef.current > cardMessages.length) {
-      processedCountRef.current = 0;
-    }
+    // New batch of messages arrived, reset the index.
+    processedCountRef.current = 0;
 
     // Process new messages from fadeText list
-    const newMessagesCount = cardMessages.length - processedCountRef.current;
+    const newMessages = cardMessages.slice(processedCountRef.current);
 
-    if (newMessagesCount > 0) {
-      const newMessages = cardMessages.slice(processedCountRef.current);
-
+    if (newMessages.length > 0) {
       newMessages.forEach((text, index) => {
         const delay = index * 100; // 0.1s delay between messages
         const messageId = nextMessageIdRef.current++;

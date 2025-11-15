@@ -123,7 +123,7 @@ export const FadeText = React.memo(({ text, onComplete, delay = 0, style = {}, c
         }, 200); // Fade out duration
 
         return () => clearTimeout(fadeOutTimer);
-      }, 300); // Hold duration
+      }, 600); // Hold duration
 
       return () => clearTimeout(holdTimer);
     }, 200); // Fade in duration
