@@ -143,6 +143,14 @@ defmodule DragnCardsWeb.RoomChannel do
         broadcast!(socket, "go_to_replay_step", payload)
     end
 
+    # Process any pending GUI updates
+    pending_gui_updates = get_in(new_state, ["game", "pendingGuiUpdates"])
+    if is_list(pending_gui_updates) and length(pending_gui_updates) > 0 do
+      Enum.each(pending_gui_updates, fn gui_update ->
+        send_gui_message_to_player(socket, gui_update)
+      end)
+    end
+
     {:reply, {:ok, "step_through"}, socket}
   end
 
@@ -161,6 +169,8 @@ defmodule DragnCardsWeb.RoomChannel do
     old_game = old_state["game"]
     GameUIServer.set_seat(room_slug, user_id, player_i, new_user_id)
     new_state = GameUIServer.state(room_slug)
+    IO.puts("New state messages")
+    IO.inspect(new_state["game"]["messages"])
 
     if new_state["playerInfo"] != nil do
       broadcast!(socket, "seats_changed", new_state["playerInfo"])

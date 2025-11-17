@@ -35,7 +35,7 @@ defmodule DragnCardsGame.Evaluate.Functions.SET_LAYOUT do
   def execute(game, code, trace) do
     player_i = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["player_i"])
     layout_id = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["layout_id"])
-    layout = get_layout_from_game_def(game["options"]["pluginId"], layout_id)
+    layout = get_layout_from_game_def(game["pluginId"], layout_id)
     game = case player_i do
       "shared" ->
         # Update the shared layout

@@ -52,7 +52,7 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
     end
     prompt_id = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["prompt_id"])
     arg_vals = Enum.slice(code, 3, Enum.count(code))
-    game_def = PluginCache.get_game_def_cached(game["options"]["pluginId"])
+    game_def = PluginCache.get_game_def_cached(game["pluginId"])
 
     orig_prompt = game_def["prompts"][prompt_id] || dragn_prompt(prompt_id)
     if orig_prompt == nil do
@@ -131,8 +131,12 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
         end
 
       # Add the prompt to the player's prompts
-      acc = put_in(acc, ["playerData", target_player_n, "prompts", prompt_uuid], new_prompt)
-      put_in(acc, ["playerData", target_player_n, "mostRecentPromptId"], prompt_uuid)
+      acc = try do
+        put_in(acc, ["playerData", target_player_n, "prompts", prompt_uuid], new_prompt)
+        |> put_in(["playerData", target_player_n, "mostRecentPromptId"], prompt_uuid)
+      rescue
+        _ -> raise "Failed to add prompt #{prompt_id} to player #{target_player_n}. Does player #{target_player_n} exist?"
+      end
     end)
 
     game

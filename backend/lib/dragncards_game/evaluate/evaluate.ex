@@ -148,6 +148,7 @@ defmodule DragnCardsGame.Evaluate do
     trace = [description]
     task = Task.async(fn ->
       try do
+        game = put_in(game, ["currentScopeIndex"], 0)
         evaluate(game, code, trace)
       rescue
         e ->
@@ -172,22 +173,26 @@ defmodule DragnCardsGame.Evaluate do
 
   def evaluate(game, code, trace \\ []) do
     # if is_list(code) do
-    #   IO.puts("evaluate 1")
-    #   IO.inspect(code)
-    #   IO.puts("evaluate 2")
-    #   #IO.inspect(game)
-    #   IO.puts("evaluate 3")
+      # IO.puts("evaluate 1")
+      # IO.inspect(game)
+      # IO.puts("evaluate 2")
+      # IO.inspect(game["playerUi"])
+      # IO.puts("evaluate 3")
+      # IO.inspect(code)
+      # IO.puts("evaluate 4")
     # end
 
     try do
       # Increase scope index
-      current_scope_index = game["currentScopeIndex"] + 1
+      prev_scope_index = game["currentScopeIndex"] || 0
+      current_scope_index = prev_scope_index + 1
       game = put_in(game, ["currentScopeIndex"], current_scope_index)
       game = if not Map.has_key?(game["variables"], "#{current_scope_index}") do
         put_in(game, ["variables", "#{current_scope_index}"], %{})
       else
         game
       end
+
 
       # Evaluate the code
       result = evaluate_inner(game, code, trace)
@@ -225,8 +230,8 @@ defmodule DragnCardsGame.Evaluate do
 
 
   def evaluate_inner(game, code, trace) do
-    #IO.puts("evaluate_inner 1")
-    #IO.inspect(code)
+    # IO.puts("evaluate_inner 1")
+    # IO.inspect(code)
     current_scope_index = game["currentScopeIndex"]
 
 

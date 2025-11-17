@@ -5,7 +5,7 @@ import {useSetMessages} from '../../contexts/MessagesContext';
 import useChannel from "../../hooks/useChannel";
 import { applyDeltaRedo, appendDelta, setGameUi, setPlayerInfo, setSockets, setDeltas, setSpectators } from "../store/gameUiSlice";
 import useProfile from "../../hooks/useProfile";
-import { resetPlayerUi, setAlert, setPluginRepoUpdateGameDef, setReplayStep, setPlayerUiValues } from "../store/playerUiSlice";
+import { resetPlayerUi, setAlert, setPluginRepoUpdateGameDef, setReplayStep, setPlayerUiValues, overridePlayerUiValues } from "../store/playerUiSlice";
 import { PluginProvider } from "../../contexts/PluginContext";
 import store from "../../store";
 import { mergeObjects } from "../myplugins/uploadPluginFunctions";
@@ -149,7 +149,7 @@ export const Room = ({ slug }) => {
     } else if (event === "gui_update" && payload !== null) {
       // Handle GUI updates sent specifically to this player
       if (playerN != null && playerN != undefined && playerN == payload.targetPlayerN) {
-        dispatch(setPlayerUiValues(payload.updates));
+        dispatch(overridePlayerUiValues(payload.updates));
       }
     }
 

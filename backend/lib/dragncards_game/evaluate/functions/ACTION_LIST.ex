@@ -44,10 +44,10 @@ defmodule DragnCardsGame.Evaluate.Functions.ACTION_LIST do
           is_list(res) ->
             res
           true ->
-            get_action_list_from_game_def(game["options"]["pluginId"], res)
+            get_action_list_from_game_def(game["pluginId"], res)
         end
       true ->
-        get_action_list_from_game_def(game["options"]["pluginId"], action_list_or_id)
+        get_action_list_from_game_def(game["pluginId"], action_list_or_id)
     end
 
     trace = cond do
