@@ -17,6 +17,13 @@ export const PluginsTable = ({ plugins }) => {
   const toggleFavorite = () => null;
   const numPlugins = plugins?.length || 0;
 
+  // Check if plugin is less than a week old
+  const isNewPlugin = (createdAt) => {
+    if (!createdAt) return false;
+    const weekAgo = moment().subtract(7, 'days');
+    return moment(createdAt).isAfter(weekAgo);
+  };
+
   // const { isLoading, isError, data, setData } = useDataApi(
   //   "/be/api/rooms",
   //   null
@@ -59,6 +66,12 @@ export const PluginsTable = ({ plugins }) => {
             {plugins?.map((plugin, pluginIndex) => {
               return(
                 <tr className={trClass} onClick={() => history.push("/plugin/"+plugin.id)}>
+                  {/* New plugin badge */}
+                  {isNewPlugin(plugin.inserted_at) && (
+                    <div className="absolute left-0 top-0 bg-red-600 text-white text-xs font-bold px-2 rounded-br-lg rounded-tl-lg shadow-lg z-10">
+                      New
+                    </div>
+                  )}
                   <div className="relative m-4">
                     <div className="text-xl inline">{plugin.name}</div>
                     {/* <a 

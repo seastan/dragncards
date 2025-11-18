@@ -5,7 +5,7 @@ defmodule DragnCardsWeb.API.V1.GameController do
 
   alias DragnCards.{Rooms, Users}
   alias DragnCardsUtil.{NameGenerator}
-  alias DragnCardsGame.GameUISupervisor
+  alias DragnCardsGame.{GameUISupervisor, PluginCache}
 
   def create(conn, params) do
     Logger.debug("game_controller create")
@@ -22,6 +22,10 @@ defmodule DragnCardsWeb.API.V1.GameController do
       "pluginVersion" => params["game_options"]["plugin_version"],
       "pluginName" => params["game_options"]["plugin_name"],
     }
+
+    # Force refresh plugin cache when creating a new room
+    PluginCache.refresh_plugin(options["pluginId"])
+
     GameUISupervisor.start_game(game_name, user, options)
     room = Rooms.get_room_by_name(game_name)
     if room do
