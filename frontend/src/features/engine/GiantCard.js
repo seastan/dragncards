@@ -15,6 +15,7 @@ export const GiantCard = React.memo(() => {
   const gameDef = useGameDefinition();
   const dispatch = useDispatch();
   const touchAction = useTouchAction();
+  const touchMode = useSelector(state => state?.playerUi?.userSettings?.touchMode);
   const activeCardId = useActiveCardId();
   const activeCard = useActiveCard();
   const [initialActiveCard, setInitialActiveCard] = useState(activeCard);
@@ -34,7 +35,7 @@ export const GiantCard = React.memo(() => {
     }
   }, [activeCard, dispatch]);
 
-  if (!visibleFace || !activeCardId || touchAction || dropdownMenu) return null;
+  if (!visibleFace || !activeCardId || touchAction || (dropdownMenu && !touchMode)) return null;
   const cardType = visibleFace?.type;
   const zoomFactor = gameDef?.cardTypes?.[cardType]?.zoomFactor;
   let height = zoomFactor ? `${zoomFactor * 95}dvh` : "70dvh";

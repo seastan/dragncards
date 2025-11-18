@@ -69,7 +69,7 @@ export const PluginsTable = ({ plugins }) => {
                   {/* New plugin badge */}
                   {isNewPlugin(plugin.inserted_at) && (
                     <div className="absolute left-0 top-0 bg-red-600 text-white text-xs font-bold px-2 rounded-br-lg rounded-tl-lg shadow-lg z-10">
-                      New
+                       New
                     </div>
                   )}
                   <div className="relative m-4">
