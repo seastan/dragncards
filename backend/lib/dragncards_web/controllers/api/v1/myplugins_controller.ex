@@ -22,6 +22,7 @@ defmodule DragnCardsWeb.MyPluginsController do
           :version,
           :num_favorites,
           :public,
+          :inserted_at,
           :updated_at,
           :repo_url
         ]
