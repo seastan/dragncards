@@ -1879,9 +1879,77 @@ defmodule DragnCardsGame.CustomPluginTest do
       end)
     end)
     IO.puts("Post move time: #{post_move_time / 1000}ms")
+  end
 
 
 
+  @tag :request_json
+  test "REQUEST_JSON", %{user: _user, game: game, game_def: _game_def} do
+    # Test REQUEST_JSON with a real API endpoint
+    url = "https://ringsdb.com/api/public/card/01001"
+    result = Evaluate.evaluate(game, ["REQUEST_JSON", url])
+
+    # Verify that we got data back
+    assert result != nil
+
+    # Verify it's a map (JSON object)
+    assert is_map(result)
+
+    # Log the result for debugging
+    IO.puts("REQUEST_JSON result:")
+    IO.inspect(result)
+
+    # Test storing the result in a variable
+    game = Evaluate.evaluate(game, ["VAR", "$apiData", ["REQUEST_JSON", url]])
+    retrieved_data = Evaluate.evaluate(game, "$apiData")
+    assert retrieved_data == result
+  end
+
+  @tag :html_scraping
+  test "REQUEST_HTML, EXTRACT_TAG, STRING_TO_OBJ", %{user: _user, game: game, game_def: _game_def} do
+    # Test the HTML scraping pipeline - mimics the Python example
+    url = "https://rangersdb.com/campaigns/6642"
+
+    # Step 1: Fetch HTML
+    html = Evaluate.evaluate(game, ["REQUEST_HTML", url])
+    assert is_binary(html)
+    assert String.length(html) > 0
+    IO.puts("Fetched HTML length: #{String.length(html)}")
+
+    # Step 2: Extract the __NEXT_DATA__ script tag
+    script_content = Evaluate.evaluate(game, ["EXTRACT_TAG", html, "script", "__NEXT_DATA__"])
+
+    if script_content != nil do
+      assert is_binary(script_content)
+      IO.puts("Extracted script tag content length: #{String.length(script_content)}")
+
+      # Step 3: Parse the JSON string to an object
+      data = Evaluate.evaluate(game, ["STRING_TO_OBJ", script_content])
+      assert is_map(data)
+      IO.puts("Parsed data keys: #{inspect(Map.keys(data))}")
+
+      # Test the full pipeline in one expression
+      pipeline_result = Evaluate.evaluate(game, [
+        "STRING_TO_OBJ",
+        ["EXTRACT_TAG",
+          ["REQUEST_HTML", url],
+          "script",
+          "__NEXT_DATA__"
+        ]
+      ])
+
+      assert pipeline_result == data
+      IO.puts("Pipeline test passed!")
+
+      # Test accessing nested data
+      if Map.has_key?(data, "props") do
+        props = Evaluate.evaluate(game, ["OBJ_GET_VAL", data, "props"])
+        IO.puts("Props keys: #{inspect(Map.keys(props))}")
+      end
+    else
+      IO.puts("Warning: __NEXT_DATA__ tag not found in HTML")
+    end
+  end
 
   # # temp
   # @tag :temp
@@ -1891,8 +1959,6 @@ defmodule DragnCardsGame.CustomPluginTest do
   #   res = Evaluate.evaluate(game, ["DEFINED", "$GAME.stackById/123abc"])
   #   IO.inspect(res)
   # end
-
-  end
 
 
 end

@@ -42,7 +42,7 @@ const initialState = {
   keypress: defaultKeypress,
   replayStep: 0,
   showHotkeys: false,
-  touchMode: false,
+  touchMode: false, // Unused? Use userSettings.touchMode instead
   typing: false,
   activeCardId: null,
   preHotkeyActiveCardGroupId: null,
