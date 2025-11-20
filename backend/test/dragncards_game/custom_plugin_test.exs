@@ -1905,6 +1905,76 @@ defmodule DragnCardsGame.CustomPluginTest do
     assert retrieved_data == result
   end
 
+  @tag :request_post_graphql
+  test "REQUEST_POST for GraphQL", %{user: _user, game: game, game_def: _game_def} do
+    # This test demonstrates how to make GraphQL requests like the ones seen in browser Network tab
+    # NOTE: The authorization token will expire, so this test may fail after some time
+
+    # The GraphQL query from the Network tab
+    graphql_query = """
+    query getCampaign($campaignId: Int!) {
+      campaign: rangers_campaign_by_pk(id: $campaignId) {
+        id
+        user_id
+        name
+        notes
+        day
+      }
+    }
+    """
+
+    # Build the request body (same structure as in Network tab)
+    result = Evaluate.evaluate(game, [
+      "REQUEST_POST",
+      "https://gapi.rangersdb.com/v1/graphql",
+      %{
+        "operationName" => "getCampaign",
+        "variables" => %{
+          "campaignId" => 6642
+        },
+        "query" => graphql_query
+      }
+    ])
+
+    # The response should be a map
+    assert is_map(result)
+    IO.puts("GraphQL response:")
+    IO.inspect(result)
+
+    # GraphQL responses typically have "data" and possibly "errors" fields
+    if Map.has_key?(result, "data") do
+      IO.puts("Successfully received GraphQL data")
+      campaign_data = Evaluate.evaluate(game, ["OBJ_GET_VAL", result, "data"])
+      IO.inspect(campaign_data)
+    end
+
+    if Map.has_key?(result, "errors") do
+      IO.puts("GraphQL returned errors (possibly due to missing/expired auth token):")
+      IO.inspect(result["errors"])
+    end
+
+
+    # All as one backend process
+    current_location = Evaluate.evaluate(game, [
+      ["VAR", "$CAMPAIGN_ID", 6642],
+      ["VAR", "$QUERY", "query getCampaign($campaignId: Int!) {\n  campaign: rangers_campaign_by_pk(id: $campaignId) {\n    ...Campaign\n    __typename\n  }\n}\n\nfragment Campaign on rangers_campaign {\n  id\n  user_id\n  name\n  notes\n  day\n  extended_calendar\n  cycle_id\n  current_location\n  current_path_terrain\n  missions\n  events\n  rewards\n  removed\n  history\n  calendar\n  expansions\n  latest_decks {\n    deck {\n      ...Deck\n      __typename\n    }\n    user {\n      ...UserInfo\n      __typename\n    }\n    __typename\n  }\n  access {\n    user {\n      ...UserInfo\n      __typename\n    }\n    __typename\n  }\n  next_campaign_id\n  previous_campaign {\n    id\n    __typename\n  }\n  __typename\n}\n\nfragment Deck on rangers_deck {\n  id\n  user_id\n  slots\n  side_slots\n  extra_slots\n  version\n  name\n  description\n  awa\n  spi\n  fit\n  foc\n  created_at\n  updated_at\n  meta\n  user {\n    ...UserInfo\n    __typename\n  }\n  taboo_set_id\n  published\n  previous_deck {\n    id\n    meta\n    slots\n    side_slots\n    version\n    __typename\n  }\n  next_deck {\n    id\n    meta\n    slots\n    side_slots\n    version\n    __typename\n  }\n  __typename\n}\n\nfragment UserInfo on rangers_users {\n  id\n  handle\n  __typename\n}"],
+      ["VAR", "$REQUEST_BODY",
+        ["PROCESS_MAP",
+          %{
+            "operationName" => "getCampaign",
+            "variables" => ["PROCESS_MAP", %{
+              "campaignId" => "$CAMPAIGN_ID"
+            }],
+            "query" => "$QUERY"
+          }
+        ],
+      ],
+      ["VAR", "$GRAPHQL_RESPONSE", ["REQUEST_POST", "https://gapi.rangersdb.com/v1/graphql", "$REQUEST_BODY"]],
+      "$GRAPHQL_RESPONSE.data.campaign.current_location"
+    ])
+    assert current_location != nil
+  end
+
   @tag :html_scraping
   test "REQUEST_HTML, EXTRACT_TAG, STRING_TO_OBJ", %{user: _user, game: game, game_def: _game_def} do
     # Test the HTML scraping pipeline - mimics the Python example
@@ -1949,6 +2019,14 @@ defmodule DragnCardsGame.CustomPluginTest do
     else
       IO.puts("Warning: __NEXT_DATA__ tag not found in HTML")
     end
+
+    # All in one backaend process
+    game = Evaluate.evaluate(game, [
+      ["VAR", "$SCRAPED_HTML", ["REQUEST_HTML", "https://rangersdb.com/campaigns/6642"]],
+      ["VAR", "$SCRIPT_CONTENT", ["EXTRACT_TAG", "$SCRAPED_HTML", "script", "__NEXT_DATA__"]],
+      ["VAR", "$PARSED_DATA", ["STRING_TO_OBJ", "$SCRIPT_CONTENT"]],
+      ["LOG_DEV", "$PARSED_DATA.data"]
+    ])
   end
 
   # # temp
