@@ -93,6 +93,29 @@ const useAuthDataApi = (
   useEffect(() => {
     console.log("debug1 initial 1", authOptions)
     const fetchData = async () => {
+      // // DEVELOPMENT MODE: Use hardcoded data to avoid login issues during hot reload
+      // if (process.env.NODE_ENV === 'development' && url === '/be/api/v1/profile') {
+      //   const devData = {
+      //     data: {
+      //       user_profile: {
+      //         admin: true,
+      //         alias: "dev_user",
+      //         email: "dev_user@example.com",
+      //         email_confirmed_at: "2023-09-20T18:29:31Z",
+      //         id: 1,
+      //         inserted_at: "2023-06-06T04:32:12Z",
+      //         language: "English",
+      //         plugin_settings: {},
+      //         supporter_level: 3
+      //       }
+      //     }
+      //   };
+      //   console.log("debug1 using hardcoded dev data", devData);
+      //   setData(devData);
+      //   setIsLoading(false);
+      //   return;
+      // }
+
       // Do not request if we don't have auth tokens loaded
       // Also, clear data (Unsure about this, but needed for the logout
       // button to clear the ProfileProvider context)
@@ -118,6 +141,7 @@ const useAuthDataApi = (
         console.log("debug1 result 2", result)
         if (result != null) {
           console.log("debug1 fetchtry", result.data?.user_profile?.language)
+          console.log("debug1 fetchtry data", result.data)
           setData(result.data);
         }
       } catch (error) {

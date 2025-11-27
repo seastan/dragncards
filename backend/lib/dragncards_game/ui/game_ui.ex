@@ -280,16 +280,29 @@ defmodule DragnCardsGame.GameUI do
     # end)
   end
 
-  def update_stack(game, new_stack) do
-    Evaluate.evaluate(game, ["SET", "/stackById" <> "/" <> new_stack["id"], new_stack])
+  def update_stack(game, new_stack, trace \\ []) do
+    try do
+      Evaluate.evaluate(game, ["SET", "/stackById" <> "/" <> new_stack["id"], new_stack], trace ++ ["update_stack"])
+    rescue
+      e ->
+        stack_id = new_stack["id"] || "unknown"
+        reraise "Error in update_stack for stack '#{stack_id}': #{Exception.message(e)}", __STACKTRACE__
+    end
   end
 
   def update_card_ids(game, stack_id, new_card_ids) do
     Evaluate.evaluate(game, ["SET", "/stackById/" <> stack_id <> "/cardIds", ["LIST"] ++ new_card_ids])
   end
 
-  def update_card(game, new_card) do
-    Evaluate.evaluate(game, ["SET", "/cardById" <> "/" <> new_card["id"], new_card])
+  def update_card(game, new_card, trace \\ []) do
+    try do
+      Evaluate.evaluate(game, ["SET", "/cardById" <> "/" <> new_card["id"], new_card], trace ++ ["update_card"])
+    rescue
+      e ->
+        card_id = new_card["id"] || "unknown"
+        card_name = get_in(new_card, ["sides", "A", "name"]) || "unknown"
+        reraise "Error in update_card for card '#{card_name}' (id: #{card_id}): #{Exception.message(e)}", __STACKTRACE__
+    end
   end
 
   # Move a card
@@ -465,45 +478,55 @@ defmodule DragnCardsGame.GameUI do
     end
   end
 
-  def update_card_state(game, card_id, orig_group_id \\ nil, move_options \\ nil) do
-    # Set up some variables
-    game_old = game
-    {dest_group_id, dest_stack_index, dest_card_index} = gsc(game, card_id)
-    {orig_group, dest_group} = {get_group(game, orig_group_id), get_group(game, dest_group_id)}
-    old_card = get_card(game, card_id)
-    card_name = old_card["sides"]["A"]["name"]
-    allow_flip = ucs_compute_allow_flip(move_options, orig_group, dest_group)
-    parent_card = get_card_by_group_id_stack_index_card_index(game, [dest_group_id, dest_stack_index, 0])
-    stack_ids = game["groupById"][dest_group_id]["stackIds"]
-    stack_id = Enum.at(stack_ids, dest_stack_index)
+  def update_card_state(game, card_id, orig_group_id \\ nil, move_options \\ nil, trace \\ []) do
+    try do
+      # Set up some variables
+      game_old = game
+      {dest_group_id, dest_stack_index, dest_card_index} = gsc(game, card_id)
+      {orig_group, dest_group} = {get_group(game, orig_group_id), get_group(game, dest_group_id)}
+      old_card = get_card(game, card_id)
+      card_name = old_card["sides"]["A"]["name"]
+      allow_flip = ucs_compute_allow_flip(move_options, orig_group, dest_group)
+      parent_card = get_card_by_group_id_stack_index_card_index(game, [dest_group_id, dest_stack_index, 0])
+      stack_ids = game["groupById"][dest_group_id]["stackIds"]
+      stack_id = Enum.at(stack_ids, dest_stack_index)
 
-    # Apply onCardLeave first and resolve any triggers
-    {game, cardleave_pathstrings} = ucs_apply_dict(game, card_id, orig_group["onCardLeave"], allow_flip)
-    AutomationRules.apply_automation_rules_for_update_pathstrings(game, game_old, cardleave_pathstrings, ["cardById", card_id], ["cardleave_pathstrings:#{card_name}"])
+      # Apply onCardLeave first and resolve any triggers
+      {game, cardleave_pathstrings} = ucs_apply_dict(game, card_id, orig_group["onCardLeave"], allow_flip)
+      AutomationRules.apply_automation_rules_for_update_pathstrings(game, game_old, cardleave_pathstrings, ["cardById", card_id], trace ++ ["cardleave_pathstrings:#{card_name}"])
 
 
-    {game, position_pathstrings} = ucs_card_position(game, card_id, dest_group_id, stack_id, dest_stack_index, dest_card_index, parent_card, move_options)
+      {game, position_pathstrings} = ucs_card_position(game, card_id, dest_group_id, stack_id, dest_stack_index, dest_card_index, parent_card, move_options)
 
-    game = ucs_group_refresh(game, orig_group_id, orig_group)
-    game = ucs_group_refresh(game, dest_group_id, dest_group)
+      game = ucs_group_refresh(game, orig_group_id, orig_group, trace)
+      game = ucs_group_refresh(game, dest_group_id, dest_group, trace)
 
-    {game, peeking_pathstrings} = ucs_set_peeking(game, card_id, orig_group_id, dest_group_id, dest_group, old_card, allow_flip)
+      {game, peeking_pathstrings} = ucs_set_peeking(game, card_id, orig_group_id, dest_group_id, dest_group, old_card, allow_flip)
 
-    {game, cardenter_pathstrings} = ucs_apply_dict(game, card_id, dest_group["onCardEnter"], allow_flip)
+      {game, cardenter_pathstrings} = ucs_apply_dict(game, card_id, dest_group["onCardEnter"], allow_flip)
 
-    {game, attachment_dir_pathstrings} = ucs_apply_attachment_dir(game, card_id, move_options)
+      {game, attachment_dir_pathstrings} = ucs_apply_attachment_dir(game, card_id, move_options)
 
-    {game, token_pathstrings} = ucs_remove_tokens(game, card_id, old_card, orig_group, dest_group)
+      {game, token_pathstrings} = ucs_remove_tokens(game, card_id, old_card, orig_group, dest_group)
 
-    update_pathstrings = cardleave_pathstrings ++ position_pathstrings ++ peeking_pathstrings ++ cardenter_pathstrings ++ token_pathstrings
+      update_pathstrings = cardleave_pathstrings ++ position_pathstrings ++ peeking_pathstrings ++ cardenter_pathstrings ++ token_pathstrings
 
-    game = if is_map(game["ruleMap"]) and game["automationEnabled"] == true do
-      AutomationRules.apply_automation_rules_for_update_pathstrings(game, game_old, update_pathstrings, ["cardById", card_id], ["apply_automation_rules_for_update_pathstrings:#{card_name}"])
-    else
+      game = if is_map(game["ruleMap"]) and game["automationEnabled"] == true do
+        AutomationRules.apply_automation_rules_for_update_pathstrings(game, game_old, update_pathstrings, ["cardById", card_id], trace ++ ["apply_automation_rules_for_update_pathstrings:#{card_name}"])
+      else
+        game
+      end
+
       game
+    rescue
+      e ->
+        card_name = try do
+          get_in(get_card(game, card_id), ["sides", "A", "name"]) || "unknown"
+        rescue
+          _ -> "unknown"
+        end
+        reraise "Error in update_card_state for card '#{card_name}' (id: #{card_id}): #{Exception.message(e)}", __STACKTRACE__
     end
-
-    game
   end
 
   # Delete card from game
@@ -716,16 +739,26 @@ defmodule DragnCardsGame.GameUI do
     |> update_stack_ids(group_id, new_stack_ids)
   end
 
-  def insert_stack_in_group(game, group_id, stack_id, index) do
-    old_stack_ids = get_stack_ids(game, group_id)
-    new_stack_ids = List.insert_at(old_stack_ids, index, stack_id)
-    update_stack_ids(game, group_id, new_stack_ids)
+  def insert_stack_in_group(game, group_id, stack_id, index, trace \\ []) do
+    try do
+      old_stack_ids = get_stack_ids(game, group_id)
+      new_stack_ids = List.insert_at(old_stack_ids, index, stack_id)
+      update_stack_ids(game, group_id, new_stack_ids)
+    rescue
+      e ->
+        reraise "Error in insert_stack_in_group for stack '#{stack_id}' into group '#{group_id}' at index #{index}: #{Exception.message(e)}", __STACKTRACE__
+    end
   end
 
-  def set_stack_left_top(game, stack_id, left, top) do
-    game = game
-    |> put_in(["stackById", stack_id, "left"], left)
-    |> put_in(["stackById", stack_id, "top"], top)
+  def set_stack_left_top(game, stack_id, left, top, trace \\ []) do
+    try do
+      game = game
+      |> put_in(["stackById", stack_id, "left"], left)
+      |> put_in(["stackById", stack_id, "top"], top)
+    rescue
+      e ->
+        reraise "Error in set_stack_left_top for stack '#{stack_id}' (left: #{inspect(left)}, top: #{inspect(top)}): #{Exception.message(e)}", __STACKTRACE__
+    end
   end
 
   ################################################################
@@ -1050,8 +1083,14 @@ defmodule DragnCardsGame.GameUI do
 
   def save_replay(gameui, user_id, options) do
     game = gameui["game"]
+    game = put_in(game["playerUi"], options["player_ui"])
     deltas = gameui["deltas"]
-    DragnCardsGame.Game.save_replay_to_db(game, user_id, deltas)
+    try do
+      DragnCardsGame.Game.save_replay_to_db(game, user_id, deltas)
+    rescue
+      e ->
+        {:error, e.message}
+    end
   end
 
 
@@ -1119,31 +1158,38 @@ defmodule DragnCardsGame.GameUI do
 
   # end
 
-  def create_card_in_group(game, game_def, group_id, load_list_item) do
-    group_size = Enum.count(get_stack_ids(game, group_id))
+  def create_card_in_group(game, game_def, group_id, load_list_item, trace) do
+    try do
+      group_size = Enum.count(get_stack_ids(game, group_id))
 
-    new_card = Card.card_from_card_details(load_list_item["cardDetails"], game_def, load_list_item["databaseId"], group_id)
-    new_stack = Stack.stack_from_card(new_card)
+      new_card = Card.card_from_card_details(load_list_item["cardDetails"], game_def, load_list_item["databaseId"], group_id)
+      new_stack = Stack.stack_from_card(new_card)
 
-    game = update_card(game, new_card)
+      game = update_card(game, new_card, trace)
 
-    game = update_stack(game, new_stack)
+      game = update_stack(game, new_stack, trace)
 
-    game = insert_stack_in_group(game, group_id, new_stack["id"], group_size)
+      game = insert_stack_in_group(game, group_id, new_stack["id"], group_size, trace)
 
-    game = set_stack_left_top(game, new_stack["id"], load_list_item["left"], load_list_item["top"])
+      game = set_stack_left_top(game, new_stack["id"], load_list_item["left"], load_list_item["top"], trace)
 
-    game = AutomationRules.implement_card_rules(game, game_def, new_card)
+      game = AutomationRules.implement_card_rules(game, game_def, new_card)
 
-    game = update_card_state(game, new_card["id"], nil, nil)
+      game = update_card_state(game, new_card["id"], nil, nil, trace)
 
-    game = Evaluate.evaluate(
-      game,
-      ["SET", "/loadedCardIds", ["LIST"] ++ game["loadedCardIds"] ++ [new_card["id"]]],
-      ["create_card_in_group"]
-    )
+      game = Evaluate.evaluate(
+        game,
+        ["SET", "/loadedCardIds", ["LIST"] ++ game["loadedCardIds"] ++ [new_card["id"]]],
+        trace ++ ["create_card_in_group"]
+      )
 
-    game
+      game
+    rescue
+      e ->
+        database_id = load_list_item["databaseId"]
+        card_name = get_in(load_list_item, ["cardDetails", "A","name"]) || "Unknown"
+        reraise "Failed to create card '#{card_name}' (databaseId: #{database_id}) in group '#{group_id}': #{Exception.message(e)}", __STACKTRACE__
+    end
   end
 
 
@@ -1182,17 +1228,24 @@ defmodule DragnCardsGame.GameUI do
   end
 
 
-  def load_card(game, game_def, load_list_item) do
+  def load_card(game, game_def, load_list_item, trace) do
     quantity = load_list_item["quantity"]
     if quantity <= 0 do
       game
     else
       group_id = load_list_item["loadGroupId"]
+      database_id = load_list_item["databaseId"]
 
-      1..quantity
-      |> Enum.reduce(game, fn(_index, acc) ->
-        create_card_in_group(acc, game_def, group_id, load_list_item)
-      end)
+      try do
+        1..quantity
+        |> Enum.reduce(game, fn(index, acc) ->
+          create_card_in_group(acc, game_def, group_id, load_list_item, trace ++ ["load_card", "card_#{index}"])
+        end)
+      rescue
+        e ->
+          card_name = get_in(load_list_item, ["cardDetails", "A", "name"]) || "Unknown"
+          reraise "Failed to load card '#{card_name}' (databaseId: #{database_id}, quantity: #{quantity}): #{Exception.message(e)}", __STACKTRACE__
+      end
     end
   end
 
@@ -1310,8 +1363,15 @@ defmodule DragnCardsGame.GameUI do
     game = Evaluate.evaluate(game, ["SET", "/loadedCardIds", []])
 
     {reduce_load_list_time, game} = :timer.tc(fn ->
-      Enum.reduce(load_list, game, fn load_list_item, acc ->
-        load_card(acc, game_def, load_list_item)
+      Enum.reduce(Enum.with_index(load_list), game, fn {load_list_item, index}, acc ->
+        try do
+          load_card(acc, game_def, load_list_item, trace ++ ["load_cards", "item_#{index}"])
+        rescue
+          e ->
+            database_id = load_list_item["databaseId"]
+            card_name = get_in(load_list_item, ["cardDetails", "A", "name"]) || "Unknown"
+            reraise "Failed to load card at index #{index}: '#{card_name}' (databaseId: #{database_id}): #{Exception.message(e)}", __STACKTRACE__
+        end
       end)
     end)
     IO.puts("Enum.reduce (load_list processing) execution time: #{reduce_load_list_time} microseconds")

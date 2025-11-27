@@ -34,7 +34,9 @@ defmodule DragnCardsGame.Evaluate.Functions.EQUAL do
   The result of the 'EQUAL' operation.
   """
   def execute(game, code, trace) do
-    Evaluate.evaluate(game, Enum.at(code,1), trace ++ ["left"]) == Evaluate.evaluate(game, Enum.at(code,2), trace ++ ["right"])
+    lhs = Evaluate.evaluate(game, Enum.at(code,1), trace ++ ["left"])
+    rhs = Evaluate.evaluate(game, Enum.at(code,2), trace ++ ["right"])
+    lhs == rhs
   end
 
 
