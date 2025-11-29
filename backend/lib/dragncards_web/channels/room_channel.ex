@@ -237,7 +237,16 @@ defmodule DragnCardsWeb.RoomChannel do
   ) do
     gameui = GameUIServer.state(room_slug)
     if options["save"] == true or options["save"] == nil do
-      GameUI.save_replay(gameui, user_id, options)
+      try do
+        GameUI.save_replay(gameui, user_id, options)
+      rescue
+        e ->
+          Logger.error("Failed to save replay in reset_game for room #{room_slug}: #{inspect(e)}")
+          notify_alert(socket, room_slug, user_id, %{
+            "level" => "warning",
+            "text" => "Game was reset but replay failed to save"
+          })
+      end
     end
     GameUIServer.reset_game(room_slug, user_id)
 
@@ -255,7 +264,16 @@ defmodule DragnCardsWeb.RoomChannel do
   ) do
     gameui = GameUIServer.state(room_slug)
     if options["save"] == true or options["save"] == nil do
-      GameUI.save_replay(gameui, user_id, options)
+      try do
+        GameUI.save_replay(gameui, user_id, options)
+      rescue
+        e ->
+          Logger.error("Failed to save replay in reset_and_reload for room #{room_slug}: #{inspect(e)}")
+          notify_alert(socket, room_slug, user_id, %{
+            "level" => "warning",
+            "text" => "Game was reset and reloaded but replay failed to save"
+          })
+      end
     end
     GameUIServer.reset_and_reload(room_slug, user_id)
 
@@ -287,7 +305,16 @@ defmodule DragnCardsWeb.RoomChannel do
     %{assigns: %{room_slug: room_slug, user_id: user_id}} = socket
   ) do
     gameui = GameUIServer.state(room_slug)
-    GameUI.save_replay(gameui, user_id, options)
+    try do
+      GameUI.save_replay(gameui, user_id, options)
+    rescue
+      e ->
+        Logger.error("Failed to save replay in close_room for room #{room_slug}: #{inspect(e)}")
+        notify_alert(socket, room_slug, user_id, %{
+          "level" => "warning",
+          "text" => "Room was closed but replay failed to save"
+        })
+    end
     GameUIServer.close_room(room_slug, user_id)
 
     notify_state(socket, room_slug, user_id)
