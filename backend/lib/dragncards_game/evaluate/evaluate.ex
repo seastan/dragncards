@@ -171,6 +171,10 @@ defmodule DragnCardsGame.Evaluate do
     defexception message: "Default message", code: nil, trace: []
   end
 
+  def is_game(val) do
+    is_map(val) and Map.has_key?(val, "roomSlug") and Map.has_key?(val, "pluginId") and Map.has_key?(val, "groupById") and Map.has_key?(val, "playerData") and Map.has_key?(val, "cardById")
+  end
+
   def evaluate(game, code, trace \\ []) do
     # if is_list(code) do
       # IO.puts("evaluate 1")
@@ -198,7 +202,7 @@ defmodule DragnCardsGame.Evaluate do
       result = evaluate_inner(game, code, trace)
 
       # Delete local variables
-      if is_map(result) and Map.has_key?(result, "variables") do
+      if is_game(result) do
         result = if Map.has_key?(result["variables"], "#{current_scope_index+1}") do
           put_in(result, ["variables"], Map.delete(result["variables"], "#{current_scope_index+1}"))
         else

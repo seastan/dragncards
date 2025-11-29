@@ -1879,9 +1879,155 @@ defmodule DragnCardsGame.CustomPluginTest do
       end)
     end)
     IO.puts("Post move time: #{post_move_time / 1000}ms")
+  end
 
 
 
+  @tag :request_json
+  test "REQUEST_JSON", %{user: _user, game: game, game_def: _game_def} do
+    # Test REQUEST_JSON with a real API endpoint
+    url = "https://ringsdb.com/api/public/card/01001"
+    result = Evaluate.evaluate(game, ["REQUEST_JSON", url])
+
+    # Verify that we got data back
+    assert result != nil
+
+    # Verify it's a map (JSON object)
+    assert is_map(result)
+
+    # Log the result for debugging
+    IO.puts("REQUEST_JSON result:")
+    IO.inspect(result)
+
+    # Test storing the result in a variable
+    game = Evaluate.evaluate(game, ["VAR", "$apiData", ["REQUEST_JSON", url]])
+    retrieved_data = Evaluate.evaluate(game, "$apiData")
+    assert retrieved_data == result
+  end
+
+  @tag :request_post_graphql
+  test "REQUEST_POST for GraphQL", %{user: _user, game: game, game_def: _game_def} do
+    # This test demonstrates how to make GraphQL requests like the ones seen in browser Network tab
+    # NOTE: The authorization token will expire, so this test may fail after some time
+
+    # The GraphQL query from the Network tab
+    graphql_query = """
+    query getCampaign($campaignId: Int!) {
+      campaign: rangers_campaign_by_pk(id: $campaignId) {
+        id
+        user_id
+        name
+        notes
+        day
+      }
+    }
+    """
+
+    # Build the request body (same structure as in Network tab)
+    result = Evaluate.evaluate(game, [
+      "REQUEST_POST",
+      "https://gapi.rangersdb.com/v1/graphql",
+      %{
+        "operationName" => "getCampaign",
+        "variables" => %{
+          "campaignId" => 6642
+        },
+        "query" => graphql_query
+      }
+    ])
+
+    # The response should be a map
+    assert is_map(result)
+    IO.puts("GraphQL response:")
+    IO.inspect(result)
+
+    # GraphQL responses typically have "data" and possibly "errors" fields
+    if Map.has_key?(result, "data") do
+      IO.puts("Successfully received GraphQL data")
+      campaign_data = Evaluate.evaluate(game, ["OBJ_GET_VAL", result, "data"])
+      IO.inspect(campaign_data)
+    end
+
+    if Map.has_key?(result, "errors") do
+      IO.puts("GraphQL returned errors (possibly due to missing/expired auth token):")
+      IO.inspect(result["errors"])
+    end
+
+
+    # All as one backend process
+    current_location = Evaluate.evaluate(game, [
+      ["VAR", "$CAMPAIGN_ID", 6642],
+      ["VAR", "$QUERY", "query getCampaign($campaignId: Int!) {\n  campaign: rangers_campaign_by_pk(id: $campaignId) {\n    ...Campaign\n    __typename\n  }\n}\n\nfragment Campaign on rangers_campaign {\n  id\n  user_id\n  name\n  notes\n  day\n  extended_calendar\n  cycle_id\n  current_location\n  current_path_terrain\n  missions\n  events\n  rewards\n  removed\n  history\n  calendar\n  expansions\n  latest_decks {\n    deck {\n      ...Deck\n      __typename\n    }\n    user {\n      ...UserInfo\n      __typename\n    }\n    __typename\n  }\n  access {\n    user {\n      ...UserInfo\n      __typename\n    }\n    __typename\n  }\n  next_campaign_id\n  previous_campaign {\n    id\n    __typename\n  }\n  __typename\n}\n\nfragment Deck on rangers_deck {\n  id\n  user_id\n  slots\n  side_slots\n  extra_slots\n  version\n  name\n  description\n  awa\n  spi\n  fit\n  foc\n  created_at\n  updated_at\n  meta\n  user {\n    ...UserInfo\n    __typename\n  }\n  taboo_set_id\n  published\n  previous_deck {\n    id\n    meta\n    slots\n    side_slots\n    version\n    __typename\n  }\n  next_deck {\n    id\n    meta\n    slots\n    side_slots\n    version\n    __typename\n  }\n  __typename\n}\n\nfragment UserInfo on rangers_users {\n  id\n  handle\n  __typename\n}"],
+      ["VAR", "$REQUEST_BODY",
+        ["PROCESS_MAP",
+          %{
+            "operationName" => "getCampaign",
+            "variables" => ["PROCESS_MAP", %{
+              "campaignId" => "$CAMPAIGN_ID"
+            }],
+            "query" => "$QUERY"
+          }
+        ],
+      ],
+      ["VAR", "$GRAPHQL_RESPONSE", ["REQUEST_POST", "https://gapi.rangersdb.com/v1/graphql", "$REQUEST_BODY"]],
+      "$GRAPHQL_RESPONSE.data.campaign.current_location"
+    ])
+    assert current_location != nil
+  end
+
+  @tag :html_scraping
+  test "REQUEST_HTML, EXTRACT_TAG, STRING_TO_OBJ", %{user: _user, game: game, game_def: _game_def} do
+    # Test the HTML scraping pipeline - mimics the Python example
+    url = "https://rangersdb.com/campaigns/6642"
+
+    # Step 1: Fetch HTML
+    html = Evaluate.evaluate(game, ["REQUEST_HTML", url])
+    assert is_binary(html)
+    assert String.length(html) > 0
+    IO.puts("Fetched HTML length: #{String.length(html)}")
+
+    # Step 2: Extract the __NEXT_DATA__ script tag
+    script_content = Evaluate.evaluate(game, ["EXTRACT_TAG", html, "script", "__NEXT_DATA__"])
+
+    if script_content != nil do
+      assert is_binary(script_content)
+      IO.puts("Extracted script tag content length: #{String.length(script_content)}")
+
+      # Step 3: Parse the JSON string to an object
+      data = Evaluate.evaluate(game, ["STRING_TO_OBJ", script_content])
+      assert is_map(data)
+      IO.puts("Parsed data keys: #{inspect(Map.keys(data))}")
+
+      # Test the full pipeline in one expression
+      pipeline_result = Evaluate.evaluate(game, [
+        "STRING_TO_OBJ",
+        ["EXTRACT_TAG",
+          ["REQUEST_HTML", url],
+          "script",
+          "__NEXT_DATA__"
+        ]
+      ])
+
+      assert pipeline_result == data
+      IO.puts("Pipeline test passed!")
+
+      # Test accessing nested data
+      if Map.has_key?(data, "props") do
+        props = Evaluate.evaluate(game, ["OBJ_GET_VAL", data, "props"])
+        IO.puts("Props keys: #{inspect(Map.keys(props))}")
+      end
+    else
+      IO.puts("Warning: __NEXT_DATA__ tag not found in HTML")
+    end
+
+    # All in one backaend process
+    game = Evaluate.evaluate(game, [
+      ["VAR", "$SCRAPED_HTML", ["REQUEST_HTML", "https://rangersdb.com/campaigns/6642"]],
+      ["VAR", "$SCRIPT_CONTENT", ["EXTRACT_TAG", "$SCRAPED_HTML", "script", "__NEXT_DATA__"]],
+      ["VAR", "$PARSED_DATA", ["STRING_TO_OBJ", "$SCRIPT_CONTENT"]],
+      ["LOG_DEV", "$PARSED_DATA.data"]
+    ])
+  end
 
   # # temp
   # @tag :temp
@@ -1891,8 +2037,6 @@ defmodule DragnCardsGame.CustomPluginTest do
   #   res = Evaluate.evaluate(game, ["DEFINED", "$GAME.stackById/123abc"])
   #   IO.inspect(res)
   # end
-
-  end
 
 
 end
