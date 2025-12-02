@@ -37,7 +37,6 @@ defmodule DragnCardsGame.Evaluate.Functions.PROCESS_MAP do
 
     Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["map"])
     |> Enum.reduce(%{}, fn({k, v}, acc) ->
-      IO.inspect({k, v}, label: "PROCESS_MAP key-value pair")
       k = Evaluate.evaluate(game, k, trace ++ ["key"])
       v = Evaluate.evaluate(game, v, trace ++ ["value"])
       put_in(acc, [k], v)
