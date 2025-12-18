@@ -38,8 +38,9 @@ defmodule DragnCardsGame.CardFace do
     end
   end
 
-  @spec card_face_from_card_face_details(Map.t(), Map.t(), String.t(), String.t()) :: Map.t()
-  def card_face_from_card_face_details(card_face_details, game_def, side, card_db_id) do
+  @spec card_face_from_card_face_details(Map.t(), Map.t(), String.t()) :: Map.t()
+  def card_face_from_card_face_details(card_face_details, game_def, side) do
+    card_db_id = card_face_details["databaseId"]
     Logger.debug("card_face_from_card_face_details #{side} #{card_db_id}")
     type = card_face_details["type"]
     name = card_face_details["name"]

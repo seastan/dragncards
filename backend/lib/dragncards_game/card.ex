@@ -47,7 +47,7 @@ defmodule DragnCardsGame.Card do
       case Map.has_key?(card_details, side) do
         true ->
           val = card_details[side]
-          put_in(acc[side], CardFace.card_face_from_card_face_details(val, game_def, side, card_db_id))
+          put_in(acc[side], CardFace.card_face_from_card_face_details(val, game_def, side))
         false ->
           acc
       end
