@@ -57,12 +57,21 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
   def execute(game, code, trace) do
     try do
       load_list_or_id = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["load_list"])
+      player_n = Evaluate.evaluate(game, "$PLAYER_N", trace ++ ["player_n"])
+      user_id = GameUI.get_user_id_from_player_n(game, player_n)
 
       game_def = try do
         PluginCache.get_game_def_cached(game["pluginId"])
       rescue
         e ->
           reraise "LOAD_CARDS failed while loading game definition for plugin #{inspect(game["pluginId"])}: #{Exception.message(e)}", __STACKTRACE__
+      end
+
+      card_db = try do
+        DragnCardsGame.PluginCache.get_card_db_cached(game["pluginId"])
+      rescue
+        e ->
+          reraise "LOAD_CARDS failed while loading card database for plugin #{inspect(game["pluginId"])}: #{Exception.message(e)}", __STACKTRACE__
       end
 
       if !is_list(load_list_or_id) and get_in(game_def, ["preBuiltDecks", load_list_or_id]) == nil do
@@ -99,6 +108,63 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
         end
       end)
 
+      # Attach the load list to the game state
+      prev_load_list = game["loadList"] || []
+
+      # Pre-process the load list
+      load_list = Enum.map(load_list, fn load_list_item ->
+        # If the load_list_item has a "cardDetails"
+        database_id = get_in(load_list_item, ["databaseId"])
+
+        cardDetails =
+          cond do
+            Map.has_key?(load_list_item, "cardDetails") ->
+              load_list_item["cardDetails"]
+
+            Map.has_key?(load_list_item, "authorId") ->
+              CustomCardDb.get_card_details_for_user(game["pluginId"], user_id, database_id)
+
+            database_id != nil ->
+              card_details = {:ok, card_db[database_id]}
+              case card_details do
+                {:ok, nil} -> raise "Card with databaseId #{database_id} not found."
+                {:ok, card_details} -> card_details
+                :error -> raise "Card with databaseId #{database_id} not found."
+              end
+
+            true ->
+              raise "Map must contain either 'databaseId' or 'cardDetails'"
+          end
+
+        quantity = Map.fetch!(load_list_item, "quantity")
+
+        loadGroupId = Map.fetch!(load_list_item, "loadGroupId")
+
+        loadGroupId =
+          if String.contains?(loadGroupId, "playerN") and player_n == nil do
+            raise "Tried to load a card into player group #{loadGroupId}, but no player was specified. Are you sitting in a seat?"
+          else
+            String.replace(loadGroupId, "playerN", player_n || "")
+          end
+
+        possibleGroupIds = Map.keys(game["groupById"])
+
+        if loadGroupId not in possibleGroupIds do
+          raise "Tried to load a card into a group that doesn't exist: #{loadGroupId}"
+        end
+
+        load_list_item_processed = %{
+          "databaseId" => database_id,
+          "cardDetails" => cardDetails,
+          "quantity" => quantity,
+          "loadGroupId" => loadGroupId,
+          "left" => load_list_item["left"],
+          "top" => load_list_item["top"]
+        }
+
+      end)
+      game = put_in(game, ["loadList"], load_list)
+
       # Run preLoadActionList if it exists
       game = try do
         GameUI.do_automation_action_list(game, "preLoadActionList", trace ++ ["preLoadActionList"])
@@ -123,16 +189,31 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
       end
 
       prev_loaded_card_ids = game["loadedCardIds"]
+      game = put_in(game, ["loadedCardIds"], [])
 
-      player_n = GameUI.get_player_n(game)
-      user_id = GameUI.get_user_id_from_player_n(game, player_n)
-
+      old_game = game
       game = try do
-        GameUI.load_cards(game, load_list, player_n, user_id, trace ++ ["load_cards"])
+
+        {reduce_load_list_time, game} = :timer.tc(fn ->
+          Enum.reduce(Enum.with_index(game["loadList"]), game, fn {load_list_item, index}, acc ->
+            try do
+              GameUI.load_card(acc, game_def, load_list_item, trace ++ ["load_cards", "item_#{index}"])
+            rescue
+              e ->
+                database_id = load_list_item["databaseId"]
+                card_name = get_in(load_list_item, ["cardDetails", "A", "name"]) || "Unknown"
+                reraise "Failed to load card at index #{index}: '#{card_name}' (databaseId: #{database_id}): #{Exception.message(e)}", __STACKTRACE__
+            end
+          end)
+        end)
+        IO.puts("Enum.reduce (load_list processing) execution time: #{reduce_load_list_time} microseconds")
+
+        game = GameUI.shuffle_changed_decks(game, old_game, game_def)
+
       rescue
         e ->
           deck_info = if load_list_id, do: " from deck '#{load_list_id}'", else: " from custom list"
-          reraise "LOAD_CARDS failed while loading #{length(load_list)} card(s)#{deck_info} for player #{player_n}: #{Exception.message(e)}", __STACKTRACE__
+          reraise "LOAD_CARDS failed while loading #{length(game["loadList"])} card(s)#{deck_info}: #{Exception.message(e)}", __STACKTRACE__
       end
 
       # Run deck's postLoadActionList if it exists
@@ -159,8 +240,9 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
           reraise "LOAD_CARDS failed during postLoadActionList execution: #{Exception.message(e)}", __STACKTRACE__
       end
 
-      # Restore prev_loaded_card_ids
+      # Restore prev_loaded_card_ids and load_list
       game = put_in(game, ["loadedCardIds"], prev_loaded_card_ids)
+      game = put_in(game, ["loadList"], prev_load_list)
 
       # Add the load code to the history
       game = add_load_code_to_history(game, code, player_n, trace ++ ["add_load_code_to_history"])

@@ -115,6 +115,7 @@
       "options" => options,
       "loadedADeck" => false,
       "loadCardsHistory" => [],
+      "loadList" => [],
       "loadedCardIds" => [],
       "variables" => GameVariables.default(),
       "functions" => game_def["functions"] || %{},
