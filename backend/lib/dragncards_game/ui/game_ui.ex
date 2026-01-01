@@ -1346,7 +1346,7 @@ defmodule DragnCardsGame.GameUI do
         raise "Tried to load a card into a group that doesn't exist: #{loadGroupId}"
       end
 
-      %{
+      load_list_item_processed = %{
         "databaseId" => database_id,
         "cardDetails" => cardDetails,
         "quantity" => quantity,
@@ -1354,6 +1354,7 @@ defmodule DragnCardsGame.GameUI do
         "left" => load_list_item["left"],
         "top" => load_list_item["top"]
       }
+
     end)
 
     Logger.debug("load_cards 4")
