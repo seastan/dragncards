@@ -12,6 +12,7 @@ import { usePlayerN } from './usePlayerN';
 import { useVisibleFace } from './useVisibleFace';
 import { setPromptVisible } from '../../store/gameUiSlice';
 import { useVisiblePrompts } from './useVisiblePrompts';
+import store from '../../../store';
 
 function isLetter(value) {
     return /^[a-z,A-Z]$/.test(value);
@@ -153,7 +154,8 @@ export const useKeyDown = () => {
                     sendLocalMessage(`You must hover over a card to use the "${dictKey}" hotkey.`);
                     return;
                 }
-                doActionList(keyObj.actionList, `Pressed hotkey "${dictKey}" on card ${visibleFace?.name}`);
+                var playerUi = store.getState().playerUi;
+                doActionList(keyObj.actionList, `Pressed hotkey "${dictKey}" on card ${visibleFace?.name}`, playerUi);
                 dispatch(setPreHotkeyActiveCardGroupId(activeCardGroupId));
                 return;
             }
