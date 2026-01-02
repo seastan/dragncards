@@ -1,6 +1,7 @@
 defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
   alias DragnCardsGame.{Evaluate, GameUI, PluginCache}
-  alias DragnCards.{Plugins, CustomCardDb}
+  alias DragnCards.Plugins
+  alias DragnCards.Plugins.CustomCardDb
   @moduledoc """
   *Arguments*:
   1. `loadListId` (string) or `loadList` (list)
