@@ -665,6 +665,15 @@ export const siteL10n = {
     "German": "Berührungsmodus",
     "Chinese": "触摸模式"
   },
+  "use3DView": {
+    "English": "3D View (Beta)",
+    "French": "Vue 3D (Bêta)",
+    "Spanish": "Vista 3D (Beta)",
+    "Portuguese": "Visão 3D (Beta)",
+    "Italian": "Vista 3D (Beta)",
+    "German": "3D-Ansicht (Beta)",
+    "Chinese": "3D 视图（测试版）"
+  },
   "pluginOptions": {
     "English": "Plugin Options",
     "French": "Options du plugin",

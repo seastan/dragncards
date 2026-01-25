@@ -27,6 +27,13 @@ defmodule DragnCardsWeb.Router do
     #get("/", PageController, :index)
   end
 
+  # Image proxy for 3D view textures (CORS workaround)
+  scope "/api/image-proxy", DragnCardsWeb do
+    pipe_through(:api)
+    options("/", ImageProxyController, :options)
+    get("/", ImageProxyController, :proxy)
+  end
+
   # Other scopes may use custom stacks.
   scope "/api", DragnCardsWeb do
     pipe_through(:api)

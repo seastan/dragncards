@@ -324,33 +324,34 @@ defmodule DragnCardsGame.AutomationRules do
       status == "prompt" or status == "promptYN" ->
         promptPlayerI = Evaluate.evaluate(game, rule["autoRun"]["promptPlayerI"], trace ++ ["promptPlayerI"])
         promptMessage = Evaluate.evaluate(game, rule["autoRun"]["promptMessage"], trace ++ ["promptMessage"])
-        if promptPlayerI == nil do
-          raise "Tried to confirm rule automation #{rule["id"]} with a null player."
+        cond do
+          promptPlayerI == nil or not Map.has_key?(game["playerData"] || %{}, promptPlayerI)  ->
+            Evaluate.evaluate(game, ["LOG", "Automation rule #{rule["id"]} could not prompt a player becuase given player (#{promptPlayerI}) is invalid."], trace ++ ["log_invalid_promptPlayerI"])
+          true ->
+            var_statements = var_statements_for_this_and_target(game)
+            #game = Evaluate.evaluate(game, ["TARGET_PLAYER_I", "$TARGET_ID", promptPlayerI, true])
+            always_code = ["POINTER", [
+              #["TARGET_PLAYER_I", "$THIS_ID", promptPlayerI, false],
+              #["LOG", "{{$ALIAS_N}} picked always."],
+              ["SET", "/ruleById/#{rule["id"]}/autoRun/status", "always"],
+              var_statements ++ rule_code
+            ]]
+            yes_code = ["POINTER", [
+              #["TARGET_PLAYER_I", "$THIS_ID", promptPlayerI, false],
+              #["LOG", "{{$ALIAS_N}} picked yes."],
+              var_statements ++ rule_code
+            ]]
+            no_code = nil
+            never_code = ["POINTER", [
+              #["TARGET_PLAYER_I", "$THIS_ID", promptPlayerI, false],
+              ["SET", "/ruleById/#{rule["id"]}/autoRun/status", "never"]
+            ]]
+            prompt_id = if status == "promptYN" do
+              Evaluate.evaluate(game, ["PROMPT", promptPlayerI, "confirmAutomationYN", promptMessage, yes_code, no_code])
+            else
+              Evaluate.evaluate(game, ["PROMPT", promptPlayerI, "confirmAutomationAYNN", promptMessage, always_code, yes_code, no_code, never_code])
+            end
         end
-        var_statements = var_statements_for_this_and_target(game)
-        #game = Evaluate.evaluate(game, ["TARGET_PLAYER_I", "$TARGET_ID", promptPlayerI, true])
-        always_code = ["POINTER", [
-          #["TARGET_PLAYER_I", "$THIS_ID", promptPlayerI, false],
-          #["LOG", "{{$ALIAS_N}} picked always."],
-          ["SET", "/ruleById/#{rule["id"]}/autoRun/status", "always"],
-          var_statements ++ rule_code
-        ]]
-        yes_code = ["POINTER", [
-          #["TARGET_PLAYER_I", "$THIS_ID", promptPlayerI, false],
-          #["LOG", "{{$ALIAS_N}} picked yes."],
-          var_statements ++ rule_code
-        ]]
-        no_code = nil
-        never_code = ["POINTER", [
-          #["TARGET_PLAYER_I", "$THIS_ID", promptPlayerI, false],
-          ["SET", "/ruleById/#{rule["id"]}/autoRun/status", "never"]
-        ]]
-        prompt_id = if status == "promptYN" do
-          Evaluate.evaluate(game, ["PROMPT", promptPlayerI, "confirmAutomationYN", promptMessage, yes_code, no_code])
-        else
-          Evaluate.evaluate(game, ["PROMPT", promptPlayerI, "confirmAutomationAYNN", promptMessage, always_code, yes_code, no_code, never_code])
-        end
-
       status == "never" ->
         game
       true ->

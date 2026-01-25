@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@craco/craco": "^7.1.0",
     "@emotion/core": "^10.0.28",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^10.3.0",
@@ -15,6 +16,9 @@
     "@material-ui/icons": "^4.11.3",
     "@mui/icons-material": "^7.3.2",
     "@mui/material": "^7.3.2",
+    "@react-spring/three": "^9.7.5",
+    "@react-three/drei": "^9.122.0",
+    "@react-three/fiber": "^8.18.0",
     "@reduxjs/toolkit": "^1.5.0",
     "@seastan/react-beautiful-dnd": "^13.1.1",
     "@types/classnames": "^2.2.10",
@@ -99,6 +103,7 @@
     "styled-components": "^5.1.0",
     "tabletop": "^1.6.3",
     "tailwindcss": "^3.3.2",
+    "three": "^0.169.0",
     "timers-browserify": "^2.0.12",
     "typeface-roboto": "^1.1.13",
     "typescript": "^5.9.2",
@@ -106,7 +111,7 @@
     "util": "^0.12.5",
     "uuid": "^3.4.0",
     "xml2js": "^0.4.23",
-    "@craco/craco": "^7.1.0"
+    "zustand": "^5.0.10"
   },
   "scripts": {
     "start-elixir": "REACT_APP_WS_URL=ws://172.22.2.174:4000/socket npm-run-all -p start:css start:js",

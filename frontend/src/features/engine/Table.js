@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, lazy, Suspense } from "react";
 import { TableLayout } from "./TableLayout";
 import { GiantCard } from "./GiantCard";
 import { FadeTextPlayer } from "./FadeTextPlayer";
@@ -32,11 +32,15 @@ import { useTouchAction } from "./hooks/useTouchAction";
 import { CustomContentModal } from "./CustomContentModal";
 import { SpawnPublicDeckModal } from "./SpawnPublicDeckModal";
 
+// Lazy load the R3F table layout to avoid loading Three.js when not needed
+const R3FTableLayout = lazy(() => import("../engine-r3f/R3FTableLayout"));
+
 export const Table = React.memo(({onDragEnd}) => {
   const gameDef = useGameDefinition();
   const dispatch = useDispatch();
   const tooltipIds = useSelector(state => state?.playerUi?.tooltipIds);
   const touchMode = useSelector(state => state?.playerUi?.userSettings?.touchMode);
+  const use3DView = useSelector(state => state?.playerUi?.userSettings?.use3DView);
   const touchAction = useTouchAction();
   const setTouchAction = useSetTouchAction();
   const showModal = useSelector(state => state?.playerUi?.showModal);
@@ -46,7 +50,7 @@ export const Table = React.memo(({onDragEnd}) => {
   const playerN = usePlayerN();
   const doActionList = useDoActionList();
   usePreloadCardImages();
-  console.log('Rendering Table', playerN);
+  console.log('Rendering Table', playerN, 'use3DView:', use3DView);
 
   useEffect(() => {
     if (!loadedADeck && isHost && gameDef?.loadPreBuiltOnNewGame) {
@@ -97,7 +101,13 @@ export const Table = React.memo(({onDragEnd}) => {
           </div>
           {/* Table */}
           <div className="relative w-full" style={{height: touchMode ? "82%" : "94%"}}>
-            <TableLayout onDragEnd={onDragEnd}/>
+            {use3DView ? (
+              <Suspense fallback={<div className="h-full w-full bg-gray-900 flex items-center justify-center text-white">Loading 3D View...</div>}>
+                <R3FTableLayout showControls={true} />
+              </Suspense>
+            ) : (
+              <TableLayout onDragEnd={onDragEnd}/>
+            )}
             <FadeTextPlayer/>
           </div>
           {/* Touch Bar */}

@@ -37,6 +37,12 @@ export const uiSettings = {
     "label": "touchMode",
     "type": "boolean",
     "default": false
+  },
+  "use3DView": {
+    "id": "use3DView",
+    "label": "use3DView",
+    "type": "boolean",
+    "default": false
   }
 }
 
