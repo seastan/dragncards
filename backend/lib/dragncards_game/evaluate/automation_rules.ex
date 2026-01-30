@@ -287,8 +287,10 @@ defmodule DragnCardsGame.AutomationRules do
   end
 
   def apply_passive_rule(rule, game_old, game_new, trace) do
+    IO.puts("Applying passive rule #{rule["id"]}")
     onBefore = Evaluate.evaluate(game_old, rule["condition"], trace ++ ["game_old", Jason.encode!(rule["condition"])])
     onAfter = Evaluate.evaluate(game_new, rule["condition"], trace ++ ["game_new", Jason.encode!(rule["condition"])])
+    IO.puts("  onBefore: #{onBefore}, onAfter: #{onAfter}")
 
     onDo = rule["onDo"]
     offDo = rule["offDo"]
@@ -297,9 +299,11 @@ defmodule DragnCardsGame.AutomationRules do
       onDo == nil && offDo == nil ->
         raise "Tried to trigger a passive rule that does not have an onDo or offDo."
       !onBefore && onAfter && onDo != nil ->
+        IO.puts("  running onDo")
         run_rule_code(game_new, rule, onDo, trace ++ ["onDo"])
         #Evaluate.evaluate(game_new, onDo, trace ++ ["onDo"])
       onBefore && !onAfter && offDo != nil ->
+        IO.puts("  running offDo")
         run_rule_code(game_new, rule, offDo, trace ++ ["offDo"])
         #Evaluate.evaluate(game_new, offDo, trace ++ ["offDo"])
       true ->

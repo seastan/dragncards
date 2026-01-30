@@ -90,20 +90,24 @@ export const regionToWorld = (region, stackLeftPercent, stackTopPercent, baseY =
 };
 
 /**
- * Calculate insertion index based on X position for row/fan regions
+ * Calculate insertion index based on drag position for row/fan regions
+ * Supports both horizontal (default) and vertical directions
  * @param {number} dragX - Drag X position in world coordinates
  * @param {Object} region - Region definition
  * @param {number} stackCount - Number of stacks in the region
  * @param {string} regionType - Region type ('row' or 'fan')
+ * @param {number} dragZ - Drag Z position in world coordinates (for vertical regions)
  * @returns {number} - Insertion index
  */
-export const calculateInsertionIndex = (dragX, region, stackCount, regionType) => {
+export const calculateInsertionIndex = (dragX, region, stackCount, regionType, dragZ = 0) => {
   if (stackCount === 0) return 0;
 
+  const isVertical = region.direction === 'vertical';
+
   const regionLeft = parsePercent(region.left);
+  const regionTop = parsePercent(region.top);
   const regionWidth = parsePercent(region.width);
-  const regionWidthWorld = (regionWidth / 100) * TABLE_WIDTH;
-  const regionLeftWorld = ((regionLeft / 100) - 0.5) * TABLE_WIDTH;
+  const regionHeight = parsePercent(region.height);
 
   const CARD_WIDTH = 6;
   const CARD_HEIGHT = 8.4;
@@ -111,37 +115,81 @@ export const calculateInsertionIndex = (dragX, region, stackCount, regionType) =
   if (regionType === 'row') {
     const landscapeCardWidth = CARD_HEIGHT;
     const edgePadding = landscapeCardWidth * 0.5;
-    const availableWidth = regionWidthWorld - (2 * edgePadding);
 
-    let cardSpacing;
-    if (stackCount <= 1) {
-      cardSpacing = landscapeCardWidth * 1.02;
+    if (isVertical) {
+      // Vertical row: cards arranged along Z axis
+      const regionHeightWorld = (regionHeight / 100) * TABLE_HEIGHT;
+      const regionTopWorld = ((regionTop / 100) - 0.5) * TABLE_HEIGHT;
+      const availableHeight = regionHeightWorld - (2 * edgePadding);
+
+      let cardSpacing;
+      if (stackCount <= 1) {
+        cardSpacing = landscapeCardWidth * 1.02;
+      } else {
+        cardSpacing = Math.min(availableHeight / (stackCount - 1), landscapeCardWidth * 1.02);
+      }
+
+      const startZ = regionTopWorld + edgePadding;
+      const relativeZ = dragZ - startZ;
+      const insertIndex = Math.round(relativeZ / cardSpacing);
+      return Math.max(0, Math.min(stackCount, insertIndex));
     } else {
-      cardSpacing = Math.min(availableWidth / (stackCount - 1), landscapeCardWidth * 1.02);
+      // Horizontal row: cards arranged along X axis
+      const regionWidthWorld = (regionWidth / 100) * TABLE_WIDTH;
+      const regionLeftWorld = ((regionLeft / 100) - 0.5) * TABLE_WIDTH;
+      const availableWidth = regionWidthWorld - (2 * edgePadding);
+
+      let cardSpacing;
+      if (stackCount <= 1) {
+        cardSpacing = landscapeCardWidth * 1.02;
+      } else {
+        cardSpacing = Math.min(availableWidth / (stackCount - 1), landscapeCardWidth * 1.02);
+      }
+
+      const startX = regionLeftWorld + edgePadding;
+      const relativeX = dragX - startX;
+      const insertIndex = Math.round(relativeX / cardSpacing);
+      return Math.max(0, Math.min(stackCount, insertIndex));
     }
-
-    const startX = regionLeftWorld + edgePadding;
-    const relativeX = dragX - startX;
-
-    // Calculate insertion point - add 0.5 to round to nearest slot
-    const insertIndex = Math.round(relativeX / cardSpacing);
-    return Math.max(0, Math.min(stackCount, insertIndex));
   } else if (regionType === 'fan') {
     const portraitCardWidth = CARD_WIDTH;
     const edgePadding = portraitCardWidth * 0.8;
-    const availableWidth = regionWidthWorld - (2 * edgePadding);
 
-    let cardSpacing;
-    if (stackCount <= 1) {
-      cardSpacing = portraitCardWidth * 0.7;
+    if (isVertical) {
+      // Vertical fan: cards arranged along Z axis
+      const regionHeightWorld = (regionHeight / 100) * TABLE_HEIGHT;
+      const regionTopWorld = ((regionTop / 100) - 0.5) * TABLE_HEIGHT;
+      const availableHeight = regionHeightWorld - (2 * edgePadding);
+
+      let cardSpacing;
+      if (stackCount <= 1) {
+        cardSpacing = portraitCardWidth * 0.7;
+      } else {
+        cardSpacing = Math.min(availableHeight / (stackCount - 1), portraitCardWidth * 0.7);
+      }
+
+      const startZ = regionTopWorld + edgePadding;
+      const relativeZ = dragZ - startZ;
+      const insertIndex = Math.round(relativeZ / cardSpacing);
+      return Math.max(0, Math.min(stackCount, insertIndex));
     } else {
-      cardSpacing = Math.min(availableWidth / (stackCount - 1), portraitCardWidth * 0.7);
-    }
+      // Horizontal fan: cards arranged along X axis
+      const regionWidthWorld = (regionWidth / 100) * TABLE_WIDTH;
+      const regionLeftWorld = ((regionLeft / 100) - 0.5) * TABLE_WIDTH;
+      const availableWidth = regionWidthWorld - (2 * edgePadding);
 
-    const startX = regionLeftWorld + edgePadding;
-    const relativeX = dragX - startX;
-    const insertIndex = Math.round(relativeX / cardSpacing);
-    return Math.max(0, Math.min(stackCount, insertIndex));
+      let cardSpacing;
+      if (stackCount <= 1) {
+        cardSpacing = portraitCardWidth * 0.7;
+      } else {
+        cardSpacing = Math.min(availableWidth / (stackCount - 1), portraitCardWidth * 0.7);
+      }
+
+      const startX = regionLeftWorld + edgePadding;
+      const relativeX = dragX - startX;
+      const insertIndex = Math.round(relativeX / cardSpacing);
+      return Math.max(0, Math.min(stackCount, insertIndex));
+    }
   }
 
   return stackCount; // Default to end

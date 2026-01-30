@@ -77,7 +77,8 @@ const R3FGroupCards = ({ groupId, region }) => {
       dragPosition[0],
       region,
       nonDraggedStackCount,
-      region.type
+      region.type,
+      dragPosition[2] // Z coordinate for vertical regions
     );
   }
   // Use pending drop insertion index if no active drag but pending drop exists
@@ -143,11 +144,12 @@ const R3FGroupCards = ({ groupId, region }) => {
           position[2] += cardIndexInStack * 1.5; // Fan out in Z direction
         }
       } else if (region.type === 'row') {
-        // Row regions: cards arranged horizontally with spacing
+        // Row regions: cards arranged with spacing (horizontal or vertical)
         const regionLeft = parsePercent(region.left);
         const regionTop = parsePercent(region.top);
         const regionWidth = parsePercent(region.width);
         const regionHeight = parsePercent(region.height);
+        const isVertical = region.direction === 'vertical';
 
         // Card dimensions - when landscape, visual width is cardHeight
         const CARD_WIDTH = 6;
@@ -155,42 +157,62 @@ const R3FGroupCards = ({ groupId, region }) => {
         // For landscape cards, use card height as spacing (cards touching)
         const landscapeCardWidth = CARD_HEIGHT;
 
-        // Calculate region dimensions in world coordinates
-        const regionWidthWorld = (regionWidth / 100) * TABLE_WIDTH;
-        const regionLeftWorld = ((regionLeft / 100) - 0.5) * TABLE_WIDTH;
-
         // Calculate effective stack count for spacing
         // Base count excludes the dragged card if this is source group (or has pending drop from here)
         // Add 1 if making room for an incoming card
         const baseStackCount = isEffectiveSourceGroup ? nonDraggedStackCount : group.stackIds.length;
         const effectiveStackCount = shouldMakeRoom ? baseStackCount + 1 : baseStackCount;
 
-        // Dynamic spacing that respects region width
         const edgePadding = landscapeCardWidth * 0.5;
-        const availableWidth = regionWidthWorld - (2 * edgePadding);
-        let cardSpacing;
-        if (effectiveStackCount <= 1) {
-          cardSpacing = landscapeCardWidth * 1.02;
+
+        if (isVertical) {
+          // Vertical row: cards arranged along Z axis
+          const regionHeightWorld = (regionHeight / 100) * TABLE_HEIGHT;
+          const regionTopWorld = ((regionTop / 100) - 0.5) * TABLE_HEIGHT;
+          const availableHeight = regionHeightWorld - (2 * edgePadding);
+
+          let cardSpacing;
+          if (effectiveStackCount <= 1) {
+            cardSpacing = landscapeCardWidth * 1.02;
+          } else {
+            cardSpacing = Math.min(availableHeight / (effectiveStackCount - 1), landscapeCardWidth * 1.02);
+          }
+
+          const startZ = regionTopWorld + edgePadding;
+          const regionCenterX = ((regionLeft / 100) - 0.5) * TABLE_WIDTH + (regionWidth / 100) * TABLE_WIDTH * 0.5;
+
+          const posIndex = isBeingDragged ? originalStackIndex : adjustedStackIndex;
+          position = [regionCenterX, baseY, startZ + posIndex * cardSpacing];
+
+          // Stack cards behind (fan out in X direction for vertical)
+          if (cardIndexInStack > 0) {
+            position[1] += cardIndexInStack * 0.02;
+            position[0] += cardIndexInStack * 1.5;
+          }
         } else {
-          // Try to fit cards within region, but cap at touching distance
-          cardSpacing = Math.min(availableWidth / (effectiveStackCount - 1), landscapeCardWidth * 1.02);
-        }
+          // Horizontal row: cards arranged along X axis
+          const regionWidthWorld = (regionWidth / 100) * TABLE_WIDTH;
+          const regionLeftWorld = ((regionLeft / 100) - 0.5) * TABLE_WIDTH;
+          const availableWidth = regionWidthWorld - (2 * edgePadding);
 
-        // Start position: offset by half card width so left edge aligns with region left
-        const startX = regionLeftWorld + edgePadding;
+          let cardSpacing;
+          if (effectiveStackCount <= 1) {
+            cardSpacing = landscapeCardWidth * 1.02;
+          } else {
+            cardSpacing = Math.min(availableWidth / (effectiveStackCount - 1), landscapeCardWidth * 1.02);
+          }
 
-        // Center vertically in region
-        const regionCenterZ = ((regionTop / 100) - 0.5) * TABLE_HEIGHT + (regionHeight / 100) * TABLE_HEIGHT * 0.5;
+          const startX = regionLeftWorld + edgePadding;
+          const regionCenterZ = ((regionTop / 100) - 0.5) * TABLE_HEIGHT + (regionHeight / 100) * TABLE_HEIGHT * 0.5;
 
-        // Use originalStackIndex for dragged card (keeps it at original position)
-        // Use adjustedStackIndex for other cards (Trello-style shifting)
-        const posIndex = isBeingDragged ? originalStackIndex : adjustedStackIndex;
-        position = [startX + posIndex * cardSpacing, baseY, regionCenterZ];
+          const posIndex = isBeingDragged ? originalStackIndex : adjustedStackIndex;
+          position = [startX + posIndex * cardSpacing, baseY, regionCenterZ];
 
-        // Stack cards behind
-        if (cardIndexInStack > 0) {
-          position[1] += cardIndexInStack * 0.02;
-          position[2] += cardIndexInStack * 1.5;
+          // Stack cards behind
+          if (cardIndexInStack > 0) {
+            position[1] += cardIndexInStack * 0.02;
+            position[2] += cardIndexInStack * 1.5;
+          }
         }
       } else if (region.type === 'pile') {
         // Pile regions: all cards at same position, stacked
@@ -210,51 +232,73 @@ const R3FGroupCards = ({ groupId, region }) => {
         const regionTop = parsePercent(region.top);
         const regionWidth = parsePercent(region.width);
         const regionHeight = parsePercent(region.height);
+        const isVertical = region.direction === 'vertical';
 
         // Card dimensions - fan cards are typically portrait
         const CARD_WIDTH = 6;
         const CARD_HEIGHT = 8.4;
         const portraitCardWidth = CARD_WIDTH;
 
-        // Calculate region dimensions in world coordinates
-        const regionWidthWorld = (regionWidth / 100) * TABLE_WIDTH;
-        const regionLeftWorld = ((regionLeft / 100) - 0.5) * TABLE_WIDTH;
-
         // Padding from edges - more than half card width for visual appeal
         const edgePadding = portraitCardWidth * 0.8;
 
-        // Calculate dynamic spacing based on number of visible stacks
+        // Calculate effective stack count for spacing
         // Base count excludes the dragged card if this is source group (or has pending drop from here)
         // Add 1 if making room for an incoming card
         const baseStackCount = isEffectiveSourceGroup ? nonDraggedStackCount : group.stackIds.length;
         const effectiveStackCount = shouldMakeRoom ? baseStackCount + 1 : baseStackCount;
-        const availableWidth = regionWidthWorld - (2 * edgePadding);
 
-        let cardSpacing;
-        if (effectiveStackCount <= 1) {
-          cardSpacing = 0;
+        if (isVertical) {
+          // Vertical fan: cards arranged along Z axis
+          const regionHeightWorld = (regionHeight / 100) * TABLE_HEIGHT;
+          const regionTopWorld = ((regionTop / 100) - 0.5) * TABLE_HEIGHT;
+          const availableHeight = regionHeightWorld - (2 * edgePadding);
+
+          let cardSpacing;
+          if (effectiveStackCount <= 1) {
+            cardSpacing = 0;
+          } else {
+            cardSpacing = availableHeight / (effectiveStackCount - 1);
+            const maxSpacing = portraitCardWidth * 0.7;
+            cardSpacing = Math.min(cardSpacing, maxSpacing);
+          }
+
+          const startZ = regionTopWorld + edgePadding;
+          const regionCenterX = ((regionLeft / 100) - 0.5) * TABLE_WIDTH + (regionWidth / 100) * TABLE_WIDTH * 0.5;
+
+          const posIndex = isBeingDragged ? originalStackIndex : adjustedStackIndex;
+          position = [regionCenterX, baseY, startZ + posIndex * cardSpacing];
+
+          // Stack cards behind (fan out in X direction for vertical)
+          if (cardIndexInStack > 0) {
+            position[1] += cardIndexInStack * 0.02;
+            position[0] += cardIndexInStack * 1.5;
+          }
         } else {
-          // Divide available space by gaps between cards
-          cardSpacing = availableWidth / (effectiveStackCount - 1);
-          // Cap spacing at a maximum for nice fan effect
-          const maxSpacing = portraitCardWidth * 0.7;
-          cardSpacing = Math.min(cardSpacing, maxSpacing);
-        }
+          // Horizontal fan: cards arranged along X axis
+          const regionWidthWorld = (regionWidth / 100) * TABLE_WIDTH;
+          const regionLeftWorld = ((regionLeft / 100) - 0.5) * TABLE_WIDTH;
+          const availableWidth = regionWidthWorld - (2 * edgePadding);
 
-        // Start position: center of first card at left edge + padding
-        const startX = regionLeftWorld + edgePadding;
+          let cardSpacing;
+          if (effectiveStackCount <= 1) {
+            cardSpacing = 0;
+          } else {
+            cardSpacing = availableWidth / (effectiveStackCount - 1);
+            const maxSpacing = portraitCardWidth * 0.7;
+            cardSpacing = Math.min(cardSpacing, maxSpacing);
+          }
 
-        // Center vertically in region
-        const regionCenterZ = ((regionTop / 100) - 0.5) * TABLE_HEIGHT + (regionHeight / 100) * TABLE_HEIGHT * 0.5;
+          const startX = regionLeftWorld + edgePadding;
+          const regionCenterZ = ((regionTop / 100) - 0.5) * TABLE_HEIGHT + (regionHeight / 100) * TABLE_HEIGHT * 0.5;
 
-        // Use originalStackIndex for dragged card (keeps it at original position)
-        // Use adjustedStackIndex for other cards (Trello-style shifting)
-        const posIndex = isBeingDragged ? originalStackIndex : adjustedStackIndex;
-        position = [startX + posIndex * cardSpacing, baseY, regionCenterZ];
+          const posIndex = isBeingDragged ? originalStackIndex : adjustedStackIndex;
+          position = [startX + posIndex * cardSpacing, baseY, regionCenterZ];
 
-        if (cardIndexInStack > 0) {
-          position[1] += cardIndexInStack * 0.02;
-          position[2] += cardIndexInStack * 1.5;
+          if (cardIndexInStack > 0) {
+            position[1] += cardIndexInStack * 0.02;
+            position[2] += cardIndexInStack * 1.5;
+          }
         }
       } else {
         // Default: use region position
@@ -386,7 +430,7 @@ export const R3FSceneFromRedux = ({ showRegionBoundaries = true, onCardDrop }) =
   }, [formattedRegions]);
 
   // Function to calculate insertion index for drop position
-  const getInsertionIndex = useCallback((dropX, targetRegion, sourceGroupId) => {
+  const getInsertionIndex = useCallback((dropX, targetRegion, sourceGroupId, dropZ = 0) => {
     if (!targetRegion || (targetRegion.type !== 'row' && targetRegion.type !== 'fan')) {
       return null;
     }
@@ -400,7 +444,7 @@ export const R3FSceneFromRedux = ({ showRegionBoundaries = true, onCardDrop }) =
       stackCount = Math.max(0, stackCount - 1);
     }
 
-    return calculateInsertionIndex(dropX, targetRegion, stackCount, targetRegion.type);
+    return calculateInsertionIndex(dropX, targetRegion, stackCount, targetRegion.type, dropZ);
   }, [groupById, draggedStack]);
 
   // Create drop context value - memoized to prevent unnecessary re-renders

@@ -75,7 +75,8 @@ export const R3FCardFromRedux = ({ cardId, stackId, groupId, region, position, z
       insertionIndex = getInsertionIndex(
         finalPosition[0],
         targetInfo.region,
-        groupId // source group ID to exclude dragged card from count
+        groupId, // source group ID to exclude dragged card from count
+        finalPosition[2] // Z coordinate for vertical regions
       );
     }
 

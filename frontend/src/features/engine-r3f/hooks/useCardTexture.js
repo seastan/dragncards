@@ -22,11 +22,17 @@ const textureLoader = new THREE.TextureLoader();
  * @returns {{texture: THREE.Texture|null, loading: boolean, error: boolean}}
  */
 export const useCardTexture = (imageSrc) => {
+  // Track the last successfully loaded texture to show during loading
+  const lastTextureRef = useRef(null);
+
   // Initialize from cache immediately to prevent flicker when component mounts
-  const [texture, setTexture] = useState(() => {
+  const [texture, setTextureState] = useState(() => {
     if (imageSrc && textureCache.has(imageSrc)) {
       const cached = textureCache.get(imageSrc);
-      return cached === 'error' ? null : cached;
+      if (cached !== 'error') {
+        lastTextureRef.current = cached;
+        return cached;
+      }
     }
     return null;
   });
@@ -38,6 +44,14 @@ export const useCardTexture = (imageSrc) => {
     return false;
   });
   const lastValidSrcRef = useRef(imageSrc);
+
+  // Wrapper to track last successful texture
+  const setTexture = (newTexture) => {
+    if (newTexture) {
+      lastTextureRef.current = newTexture;
+    }
+    setTextureState(newTexture);
+  };
 
   useEffect(() => {
     if (!imageSrc) {
@@ -67,15 +81,20 @@ export const useCardTexture = (imageSrc) => {
 
     setLoading(true);
     setError(false);
+    // Don't clear the texture here - keep showing the previous image until new one loads
 
     // Try loading with CORS - required for WebGL textures
     textureLoader.setCrossOrigin('anonymous');
     textureLoader.load(
       imageSrc,
       (loadedTexture) => {
-        loadedTexture.minFilter = THREE.LinearFilter;
+        // Enable mipmaps for anisotropic filtering to work properly
+        loadedTexture.generateMipmaps = true;
+        loadedTexture.minFilter = THREE.LinearMipmapLinearFilter;
         loadedTexture.magFilter = THREE.LinearFilter;
         loadedTexture.colorSpace = THREE.SRGBColorSpace;
+        // Note: anisotropy is set in R3FCard.jsx using renderer.capabilities.getMaxAnisotropy()
+
         textureCache.set(imageSrc, loadedTexture);
         setTexture(loadedTexture);
         setLoading(false);
@@ -86,12 +105,15 @@ export const useCardTexture = (imageSrc) => {
         console.warn('3D texture loading failed (CORS). Card will use fallback color:', imageSrc);
         textureCache.set(imageSrc, 'error');
         setError(true);
+        setTexture(null); // Only clear texture on error, not during loading
         setLoading(false);
       }
     );
   }, [imageSrc]);
 
-  return { texture, loading, error };
+  // Return the last successful texture while loading to prevent flicker
+  const displayTexture = loading ? (lastTextureRef.current || texture) : texture;
+  return { texture: displayTexture, loading, error };
 };
 
 export default useCardTexture;

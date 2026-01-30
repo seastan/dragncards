@@ -6,8 +6,9 @@
  */
 
 import React, { Suspense, useMemo, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { PerspectiveCamera } from '@react-three/drei';
+import * as THREE from 'three';
 import { useRef } from 'react';
 import { getCameraPosition } from './utils/cameraUtils';
 import { R3FSceneFromRedux } from './components/R3FScene';
@@ -21,6 +22,15 @@ const LoadingFallback = () => (
     <meshStandardMaterial color="#333" />
   </mesh>
 );
+
+// Component to configure renderer settings (disable tone mapping for accurate colors)
+const RendererConfig = () => {
+  const { gl } = useThree();
+  gl.toneMapping = THREE.NoToneMapping;
+  gl.outputColorSpace = THREE.SRGBColorSpace;
+  gl.setPixelRatio(2);
+  return null;
+};
 
 // Camera component that looks at a target point
 const CameraWithTarget = ({ position, yOffset }) => {
@@ -61,11 +71,12 @@ export const R3FTableLayout = ({
   return (
     <div style={{ width: '100%', height: '100%', background: '#0a0a0a', position: 'relative' }}>
       <Canvas
-        dpr={[1, 2]}
+        dpr={window.devicePixelRatio}
         gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
         style={{ touchAction: 'none' }}
       >
         <Suspense fallback={<LoadingFallback />}>
+          <RendererConfig />
           <CameraWithTarget position={cameraPosition} yOffset={localYOffset} />
           <ambientLight intensity={0.4} />
           <directionalLight position={[0, 100, 0]} intensity={0.9} />
@@ -135,7 +146,7 @@ export const R3FTableLayout = ({
           <input
             type="range"
             min={25}
-            max={200}
+            max={1800}
             value={localZoom}
             onChange={(e) => setLocalZoom(Number(e.target.value))}
             style={{ width: '100%', cursor: 'pointer', marginBottom: '10px' }}

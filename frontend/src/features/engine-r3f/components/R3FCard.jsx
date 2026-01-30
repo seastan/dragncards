@@ -23,8 +23,8 @@ const DRAG_THRESHOLD = 5;
 export const DraggableCard = ({
   position = [0, 0, 0],
   color = '#4A5568',
-  cardWidth = 6,
-  cardHeight = 8.4,
+  cardWidth = 7.14,
+  cardHeight = 10,
   label = 'Card',
   initialZIndex = 0,
   imageSrc = null,
@@ -71,6 +71,15 @@ export const DraggableCard = ({
   const { texture, loading, error } = useCardTexture(imageSrc);
 
   const { camera, gl } = useThree();
+
+  // Set max anisotropic filtering on texture for sharper rendering
+  // useEffect(() => {
+  //   if (texture && gl) {
+  //     const maxAnisotropy = gl.capabilities.getMaxAnisotropy();
+  //     texture.anisotropy = maxAnisotropy;
+  //     texture.needsUpdate = true;
+  //   }
+  // }, [texture, gl]);
   const raycaster = useMemo(() => new THREE.Raycaster(), []);
   const tablePlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), []);
 
@@ -560,18 +569,61 @@ export const DraggableCard = ({
     return geometry;
   }, [cardWidth, cardHeight, cornerRadius]);
 
-  // Create rounded border geometry for yellow glow
-  const borderGeometry = useMemo(() => {
-    const shape = createRoundedRectShape(cardWidth + 0.3, cardHeight + 0.3, cornerRadius + 0.1);
-    const points = shape.getPoints(32);
-    return new THREE.BufferGeometry().setFromPoints(points);
-  }, [cardWidth, cardHeight, cornerRadius]);
+  // Glow: use a simple plane with SDF-based fragment shader for pixel-perfect gradient
+  const glowWidth = 0.8;
+  const glowGeometry = useMemo(() => {
+    return new THREE.PlaneGeometry(cardWidth + glowWidth * 2, cardHeight + glowWidth * 2);
+  }, [cardWidth, cardHeight]);
 
-  const outerBorderGeometry = useMemo(() => {
-    const shape = createRoundedRectShape(cardWidth + 0.6, cardHeight + 0.6, cornerRadius + 0.2);
-    const points = shape.getPoints(32);
-    return new THREE.BufferGeometry().setFromPoints(points);
-  }, [cardWidth, cardHeight, cornerRadius]);
+  const glowMaterial = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        glowColor: { value: new THREE.Color('#FFD700') },
+        halfSize: { value: new THREE.Vector2(cardWidth / 2, cardHeight / 2) },
+        radius: { value: cornerRadius },
+        glowDist: { value: glowWidth },
+      },
+      vertexShader: `
+        varying vec2 vPos;
+        void main() {
+          // Pass local XY position to fragment shader
+          vPos = position.xy;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 glowColor;
+        uniform vec2 halfSize;
+        uniform float radius;
+        uniform float glowDist;
+        varying vec2 vPos;
+
+        // Signed distance to a rounded rectangle centered at origin
+        float sdRoundedRect(vec2 p, vec2 b, float r) {
+          vec2 q = abs(p) - b + vec2(r);
+          return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
+        }
+
+        void main() {
+          float d = sdRoundedRect(vPos, halfSize, radius);
+
+          // Inside the card: fully transparent
+          if (d < 0.0) discard;
+
+          // Outside the glow range: fully transparent
+          if (d > glowDist) discard;
+
+          // Gradient: 1 at card edge, 0 at outer edge
+          float t = 1.0 - d / glowDist;
+          float alpha = t * t * 0.8; // Quadratic falloff
+          gl_FragColor = vec4(glowColor, alpha);
+        }
+      `,
+      transparent: true,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+  }, [cardWidth, cardHeight, cornerRadius, glowWidth]);
 
   // Get animated rotation value for the yellow glow (needs current value for non-animated elements)
   const currentRotation = rotSpring.rotation;
@@ -591,7 +643,7 @@ export const DraggableCard = ({
         geometry={cardGeometry}
       >
         {texture ? (
-          <meshBasicMaterial map={texture} side={THREE.DoubleSide} transparent />
+          <meshBasicMaterial map={texture} side={THREE.DoubleSide} />
         ) : (
           <meshStandardMaterial color={color} side={THREE.DoubleSide} roughness={0.7} metalness={0.1} />
         )}
@@ -645,17 +697,10 @@ export const DraggableCard = ({
         })}
       </animated.group>
 
-      {/* Yellow border when hovered or active - rendered as rounded line loop */}
+      {/* Yellow gradient glow when hovered or active */}
       {showYellowGlow && (
-        <animated.group rotation={currentRotation.to(r => [-Math.PI / 2, 0, r])} position={[0, 0.05, 0]}>
-          {/* Outer glow - slightly larger, more transparent */}
-          <line geometry={outerBorderGeometry}>
-            <lineBasicMaterial color="#FFD700" transparent opacity={0.4} linewidth={3} />
-          </line>
-          {/* Inner border - card edge */}
-          <line geometry={borderGeometry}>
-            <lineBasicMaterial color="#FFD700" transparent opacity={0.9} linewidth={2} />
-          </line>
+        <animated.group rotation={currentRotation.to(r => [-Math.PI / 2, 0, r])} position={[0, 0.02, 0]}>
+          <mesh geometry={glowGeometry} material={glowMaterial} />
         </animated.group>
       )}
     </group>
