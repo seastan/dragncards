@@ -72,7 +72,7 @@ export const R3FTableLayout = ({
     <div style={{ width: '100%', height: '100%', background: '#0a0a0a', position: 'relative' }}>
       <Canvas
         dpr={window.devicePixelRatio}
-        gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
+        gl={{ antialias: true, alpha: false, stencil: true, powerPreference: 'high-performance' }}
         style={{ touchAction: 'none' }}
       >
         <Suspense fallback={<LoadingFallback />}>

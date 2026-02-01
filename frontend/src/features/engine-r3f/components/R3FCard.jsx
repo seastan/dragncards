@@ -2,7 +2,7 @@
  * R3FCard - Draggable card component for the 3D view
  */
 
-import React, { useRef, useState, useEffect, useMemo } from 'react';
+import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { useSpring, animated } from '@react-spring/three';
@@ -43,6 +43,7 @@ export const DraggableCard = ({
 }) => {
   const meshRef = useRef();
   const groupRef = useRef();
+  const shadowRef = useRef();
   const [isDragging, setIsDragging] = useState(false);
   const [isLifted, setIsLifted] = useState(false); // Keep card scaled up during slide animation
   const [hovered, setHovered] = useState(false);
@@ -50,6 +51,10 @@ export const DraggableCard = ({
   const [zIndex, setZIndex] = useState(initialZIndex);
   const dragOffsetRef = useRef({ x: 0, z: 0 });
   const isDraggingRef = useRef(false);
+
+  // DEBUG: frame-by-frame logging around drop events
+  const debugLogFramesRef = useRef(0); // counts down frames to log
+  const debugTagRef = useRef(''); // 'source' or 'target'
 
   // For distinguishing click vs drag
   const pointerDownRef = useRef(false);
@@ -84,8 +89,9 @@ export const DraggableCard = ({
   const tablePlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), []);
 
   // Spring for scale - only scale up when dragging, not on hover
+  // For cross-region drops, start at 1.1 to match the source card's lifted scale
   const [springProps, springApi] = useSpring(() => ({
-    scale: 1,
+    scale: pendingDropPosition ? 1.1 : 1,
     config: { tension: 400, friction: 30, clamp: true }
   }));
 
@@ -124,22 +130,37 @@ export const DraggableCard = ({
   // Track if cross-region animation has been initialized (to prevent useFrame from overwriting position)
   const crossRegionInitializedRef = useRef(!pendingDropPosition);
 
+  // DEBUG: log unmount
+  useEffect(() => {
+    return () => {
+      const y = groupRef.current?.position?.y;
+      const vis = groupRef.current?.visible;
+      console.log(`[DEBUG:unmount:${cardId}] Y=${y?.toFixed(3)}, visible=${vis}`);
+    };
+  }, []);
+
   // Handle cross-region drops: new component mounted with pendingDropPosition
   // Use useLayoutEffect to run synchronously before paint (prevents jitter)
   React.useLayoutEffect(() => {
     if (pendingDropPosition && !animationInProgressRef.current) {
-      console.log('→ Cross-region drop: initializing from pendingDropPosition', pendingDropPosition);
       animationInProgressRef.current = true;
       setIsLifted(true);
 
       const liftedY = pendingDropPosition[1];
       const newBaseY = 0.1 + (zIndex * 0.02);
 
+      console.log(`[DEBUG:target:${cardId}] useLayoutEffect: setting position Y=${liftedY}, visible=true`);
+      debugTagRef.current = 'target';
+      debugLogFramesRef.current = 30;
+
       // Directly set group position to prevent any jitter before spring takes over
       if (groupRef.current) {
         groupRef.current.position.x = pendingDropPosition[0];
         groupRef.current.position.y = liftedY;
         groupRef.current.position.z = pendingDropPosition[2];
+        // Show the group now that position and spring are correctly set.
+        // It was hidden in the ref callback to prevent any flash.
+        groupRef.current.visible = true;
       }
 
       // Set spring to the drop position (lifted)
@@ -446,7 +467,11 @@ export const DraggableCard = ({
         // IMPORTANT: Set refs BEFORE any state changes that trigger re-renders
         dropPositionRef.current = [dropX, liftedY, dropZ];
         justDroppedRef.current = true;
-        console.log('Drop handler: set refs', { dropPosition: [dropX, liftedY, dropZ], cardId });
+
+        // Activate frame logging for the source card
+        debugTagRef.current = 'source';
+        debugLogFramesRef.current = 30;
+        console.log(`[DEBUG:source:${cardId}] drop: spring set Y=${liftedY}, pos Y=${groupRef.current.position.y}`);
 
         finalPosition = [dropX, newBaseY, dropZ];
         currentPosRef.current = finalPosition;
@@ -498,30 +523,77 @@ export const DraggableCard = ({
   }, [pointerIsDown, camera, gl, raycaster, tablePlane, onDragEnd, onDragMove, posSpringApi, onHover, cardId, onClick]);
 
   // Update group position from spring when not dragging
-  useFrame(({ clock }) => {
+  useFrame(({ clock }, delta) => {
     if (!groupRef.current) return;
 
-    if (isDraggingRef.current) {
-      // During drag, position is set directly in moveHandler
-      return;
+    // DEBUG: log frame-by-frame state for 30 frames after drop
+    if (debugLogFramesRef.current > 0) {
+      const tag = debugTagRef.current;
+      const f = 31 - debugLogFramesRef.current;
+      console.log(
+        `[DEBUG:${tag}:${cardId}] frame ${f}: Y=${groupRef.current.position.y.toFixed(3)}, ` +
+        `visible=${groupRef.current.visible}, isDragging=${isDraggingRef.current}, ` +
+        `crossRegInit=${crossRegionInitializedRef.current}, springY=${posSpring.y.get().toFixed(3)}, ` +
+        `scale=${meshRef.current?.scale?.x?.toFixed(2) || '?'}`
+      );
+      debugLogFramesRef.current--;
     }
 
-    // Skip spring updates if cross-region animation hasn't been initialized yet
-    // This prevents jitter where the spring has wrong values on first frame
-    if (!crossRegionInitializedRef.current) {
-      return;
+    if (!isDraggingRef.current && crossRegionInitializedRef.current) {
+      // Apply spring position
+      groupRef.current.position.x = posSpring.x.get();
+      groupRef.current.position.z = posSpring.z.get();
+
+      // Add subtle floating animation when idle
+      const springY = posSpring.y.get();
+      if (!hovered) {
+        groupRef.current.position.y = springY + Math.sin(clock.getElapsedTime() * 0.5) * 0.02;
+      } else {
+        groupRef.current.position.y = springY;
+      }
     }
 
-    // Apply spring position
-    groupRef.current.position.x = posSpring.x.get();
-    groupRef.current.position.z = posSpring.z.get();
+    // Write stencil=1 whenever the shadow has any visible opacity so the
+    // shadow can't draw on top of its own card. This avoids timing gaps
+    // between isLifted turning false and the shadow finishing its fade-out.
+    if (meshRef.current && meshRef.current.material) {
+      const shadowVisible = shadowMaterial.uniforms.opacity.value > 0.01;
+      const mat = meshRef.current.material;
+      mat.stencilWrite = shadowVisible;
+      mat.stencilRef = 1;
+      mat.stencilFunc = THREE.AlwaysStencilFunc;
+      mat.stencilZPass = THREE.ReplaceStencilOp;
+      mat.stencilFail = THREE.KeepStencilOp;
+      mat.stencilZFail = THREE.KeepStencilOp;
+    }
 
-    // Add subtle floating animation when idle
-    const springY = posSpring.y.get();
-    if (!hovered) {
-      groupRef.current.position.y = springY + Math.sin(clock.getElapsedTime() * 0.5) * 0.02;
-    } else {
-      groupRef.current.position.y = springY;
+    // Update shadow
+    if (shadowRef.current && shadowMaterial.uniforms) {
+      const groupY = groupRef.current.position.y;
+
+      // Pin shadow to the table surface: offset local Y so world Y ≈ 0.05
+      shadowRef.current.position.y = -groupY + 0.05;
+
+      // Match card rotation (lay flat via X rotation, card yaw via Z)
+      const cardRot = rotSpring.rotation.get();
+      shadowRef.current.rotation.set(-Math.PI / 2, 0, cardRot);
+
+      const lifted = isDragging || isLifted;
+      const targetOpacity = lifted ? 0.65 : 0.0;
+      const currentOpacity = shadowMaterial.uniforms.opacity.value;
+      // Smooth fade in/out
+      const fadeSpeed = lifted ? 8 : 5;
+      shadowMaterial.uniforms.opacity.value += (targetOpacity - currentOpacity) * Math.min(delta * fadeSpeed, 1);
+
+      // Height-based softness: higher card = softer, larger shadow
+      const height = Math.max(0, groupY);
+      const baseSoftness = 0.6;
+      const heightSoftness = baseSoftness + height * 0.25;
+      shadowMaterial.uniforms.shadowSoftness.value = heightSoftness;
+
+      // Slight scale increase with height
+      const shadowScale = 1.0 + height * 0.04;
+      shadowRef.current.scale.set(shadowScale, shadowScale, 1);
     }
   });
 
@@ -625,14 +697,89 @@ export const DraggableCard = ({
     });
   }, [cardWidth, cardHeight, cornerRadius, glowWidth]);
 
+  // Shadow: SDF-based rounded-rect shadow that stays pinned to the table surface
+  const shadowSpread = 1.0;
+  const shadowGeometry = useMemo(() => {
+    return new THREE.PlaneGeometry(cardWidth + shadowSpread * 2, cardHeight + shadowSpread * 2);
+  }, [cardWidth, cardHeight]);
+
+  const shadowMaterial = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        halfSize: { value: new THREE.Vector2(cardWidth / 2, cardHeight / 2) },
+        radius: { value: cornerRadius },
+        shadowSoftness: { value: 0.8 },
+        opacity: { value: 0.0 },
+      },
+      vertexShader: `
+        varying vec2 vPos;
+        void main() {
+          vPos = position.xy;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec2 halfSize;
+        uniform float radius;
+        uniform float shadowSoftness;
+        uniform float opacity;
+        varying vec2 vPos;
+
+        float sdRoundedRect(vec2 p, vec2 b, float r) {
+          vec2 q = abs(p) - b + vec2(r);
+          return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
+        }
+
+        void main() {
+          float d = sdRoundedRect(vPos, halfSize, radius);
+          float alpha = 1.0 - smoothstep(-shadowSoftness, shadowSoftness, d);
+          gl_FragColor = vec4(0.0, 0.0, 0.0, alpha * opacity);
+        }
+      `,
+      transparent: true,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      depthTest: false,
+      // Only draw where the lifted card hasn't written stencil=1.
+      // stencilWrite must be true to enable stencil testing; all ops are Keep
+      // so the shadow doesn't actually modify the stencil buffer.
+      stencilWrite: true,
+      stencilRef: 1,
+      stencilFunc: THREE.NotEqualStencilFunc,
+      stencilFail: THREE.KeepStencilOp,
+      stencilZFail: THREE.KeepStencilOp,
+      stencilZPass: THREE.KeepStencilOp,
+    });
+  }, [cardWidth, cardHeight, cornerRadius]);
+
   // Get animated rotation value for the yellow glow (needs current value for non-animated elements)
   const currentRotation = rotSpring.rotation;
 
-  // For cross-region drops, start at the drop position to avoid jitter on first frame
-  const initialGroupPosition = pendingDropPosition || position;
+  // Don't pass a position prop to the group. R3F reconciles position props
+  // against the actual Three.js state every render — if useFrame has set Y=2
+  // (lifted) but the prop says Y=baseY, R3F resets Y to baseY for one frame.
+  // Instead, set the initial position imperatively via the ref callback, and
+  // let useFrame / useLayoutEffect handle all subsequent updates.
+  const groupRefCallback = useCallback((el) => {
+    groupRef.current = el;
+    if (el && !el.userData._positionInitialized) {
+      const initPos = pendingDropPosition || position;
+      el.position.set(initPos[0], initPos[1], initPos[2]);
+      el.userData._positionInitialized = true;
+      // Hide the group for cross-region drops until useLayoutEffect has set
+      // up the position and spring. This prevents any one-frame flash where
+      // the card might appear at the wrong position before animation begins.
+      if (pendingDropPosition) {
+        el.visible = false;
+        console.log(`[DEBUG:target:${cardId}] refCallback: pos Y=${initPos[1]}, visible=false`);
+      } else {
+        console.log(`[DEBUG:normal:${cardId}] refCallback: pos Y=${initPos[1]}, visible=true`);
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <group ref={groupRef} position={initialGroupPosition}>
+    <group ref={groupRefCallback}>
       <animated.mesh
         ref={meshRef}
         scale={springProps.scale}
@@ -703,6 +850,13 @@ export const DraggableCard = ({
           <mesh geometry={glowGeometry} material={glowMaterial} />
         </animated.group>
       )}
+
+      {/* Shadow pinned to table surface — renderOrder=1 ensures it draws
+           after region backgrounds (renderOrder=0) so the shadow isn't
+           washed out by transparent-sort flipping */}
+      <group ref={shadowRef}>
+        <mesh renderOrder={1} geometry={shadowGeometry} material={shadowMaterial} />
+      </group>
     </group>
   );
 };

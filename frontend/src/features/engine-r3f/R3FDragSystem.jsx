@@ -165,7 +165,7 @@ export const RegionBoundary = ({ region, isHovered = false, showLabel = true, st
       {/* Region fill */}
       <mesh>
         <planeGeometry args={[bounds.width, bounds.height]} />
-        <meshBasicMaterial color={color} transparent opacity={opacity} side={THREE.DoubleSide} />
+        <meshBasicMaterial color={color} transparent opacity={opacity} side={THREE.DoubleSide} depthWrite={false} />
       </mesh>
 
       {/* Region border */}
