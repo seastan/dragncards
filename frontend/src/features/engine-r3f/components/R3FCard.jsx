@@ -17,6 +17,10 @@ let globalDragCounter = 0;
 // Minimum distance in pixels the pointer must move before a drag starts
 const DRAG_THRESHOLD = 5;
 
+// Cache the last stable texture per card so cross-region remounts can show
+// the old face during the flip animation
+const lastTextureByCard = new Map();
+
 /**
  * DraggableCard - A 3D card that can be dragged around the table
  */
@@ -40,6 +44,8 @@ export const DraggableCard = ({
   onHoverEnd = null,
   isActive = false,
   pendingDropPosition = null, // For cross-region drops: where the card was dropped (lifted Y)
+  currentSide = null, // Visible side string ("A", "B", etc.) for flip animation
+  previousSide = null, // Previous side from module-level map (for cross-region flip)
 }) => {
   const meshRef = useRef();
   const groupRef = useRef();
@@ -55,6 +61,16 @@ export const DraggableCard = ({
   // DEBUG: frame-by-frame logging around drop events
   const debugLogFramesRef = useRef(0); // counts down frames to log
   const debugTagRef = useRef(''); // 'source' or 'target'
+
+  // Flip animation refs
+  const flipGroupRef = useRef();
+  const prevTextureRef = useRef(null); // Old texture to show during first half of flip
+  // If previousSide differs from currentSide, initialize to previousSide so the
+  // useEffect detects the change on mount (handles cross-region drops)
+  const prevCurrentSideRef = useRef(
+    (previousSide != null && previousSide !== currentSide) ? previousSide : currentSide
+  );
+  const flipAxisVec = useMemo(() => new THREE.Vector3(), []); // Reusable vector for flip axis
 
   // For distinguishing click vs drag
   const pointerDownRef = useRef(false);
@@ -109,6 +125,30 @@ export const DraggableCard = ({
     rotation: -(rotation * Math.PI) / 180,
     config: { tension: 300, friction: 30, clamp: true }
   }));
+
+  // Spring for flip animation progress (0 → 1)
+  const [flipSpring, flipSpringApi] = useSpring(() => ({
+    progress: 0,
+    config: { duration: 250 }
+  }));
+
+  // Detect side change and start flip animation
+  useEffect(() => {
+    if (prevCurrentSideRef.current === null) {
+      // First mount — just store the side, don't flip
+      prevCurrentSideRef.current = currentSide;
+      return;
+    }
+    if (currentSide !== prevCurrentSideRef.current) {
+      // Side changed — use cached texture from before the change (handles both
+      // same-region re-renders and cross-region remounts)
+      prevTextureRef.current = lastTextureByCard.get(cardId) || texture;
+      prevCurrentSideRef.current = currentSide;
+      // Reset to 0 and animate to 1
+      flipSpringApi.set({ progress: 0 });
+      flipSpringApi.start({ progress: 1 });
+    }
+  }, [currentSide]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update scale on drag or lift state change (not hover)
   useEffect(() => {
@@ -553,6 +593,40 @@ export const DraggableCard = ({
       }
     }
 
+    // Flip animation: rotate around the card's height axis and lift Y
+    // The height axis in flipGroup space is [-sin(r), 0, -cos(r)] where r
+    // is the card's yaw rotation, so the flip follows the long axis even
+    // when the card is rotated 90°/180°/270°.
+    const fp = flipSpring.progress.get();
+    const isFlipping = fp > 0.001 && fp < 0.999;
+    if (flipGroupRef.current) {
+      if (isFlipping) {
+        const cardRot = rotSpring.rotation.get();
+        flipAxisVec.set(-Math.sin(cardRot), 0, -Math.cos(cardRot));
+        flipGroupRef.current.quaternion.setFromAxisAngle(flipAxisVec, fp * Math.PI);
+        // Lift: cardWidth/2 keeps the edge above the table at 90°
+        groupRef.current.position.y += Math.sin(fp * Math.PI) * (cardWidth / 2);
+      } else {
+        flipGroupRef.current.quaternion.identity();
+      }
+    }
+
+    // Update two-sided material: during flip, front=old face, back=new face
+    // so the new texture is physically on the underside and ends up on top
+    if (meshRef.current?.material?.uniforms?.mapFront) {
+      if (isFlipping) {
+        meshRef.current.material.uniforms.mapFront.value = prevTextureRef.current;
+        meshRef.current.material.uniforms.mapBack.value = texture;
+      } else {
+        meshRef.current.material.uniforms.mapFront.value = texture;
+        meshRef.current.material.uniforms.mapBack.value = texture;
+        // Cache texture when stable so future cross-region remounts can use it
+        if (texture && cardId) {
+          lastTextureByCard.set(cardId, texture);
+        }
+      }
+    }
+
     // Write stencil=1 whenever the shadow has any visible opacity so the
     // shadow can't draw on top of its own card. This avoids timing gaps
     // between isLifted turning false and the shadow finishing its fade-out.
@@ -752,6 +826,39 @@ export const DraggableCard = ({
     });
   }, [cardWidth, cardHeight, cornerRadius]);
 
+  // Two-sided card material: uses gl_FrontFacing to show different textures
+  // on front and back faces so the flip animation is seamless from any angle
+  const flipCardMaterial = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        mapFront: { value: null },
+        mapBack: { value: null },
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D mapFront;
+        uniform sampler2D mapBack;
+        varying vec2 vUv;
+        void main() {
+          if (gl_FrontFacing) {
+            gl_FragColor = texture2D(mapFront, vUv);
+          } else {
+            // Mirror U so back-face texture isn't horizontally flipped
+            gl_FragColor = texture2D(mapBack, vec2(1.0 - vUv.x, vUv.y));
+          }
+          #include <colorspace_fragment>
+        }
+      `,
+      side: THREE.DoubleSide,
+    });
+  }, []);
+
   // Get animated rotation value for the yellow glow (needs current value for non-animated elements)
   const currentRotation = rotSpring.rotation;
 
@@ -780,76 +887,78 @@ export const DraggableCard = ({
 
   return (
     <group ref={groupRefCallback}>
-      <animated.mesh
-        ref={meshRef}
-        scale={springProps.scale}
-        rotation={currentRotation.to(r => [-Math.PI / 2, 0, r])}
-        onPointerDown={handlePointerDown}
-        onPointerOver={handlePointerOver}
-        onPointerOut={handlePointerOut}
-        geometry={cardGeometry}
-      >
-        {texture ? (
-          <meshBasicMaterial map={texture} side={THREE.DoubleSide} />
-        ) : (
-          <meshStandardMaterial color={color} side={THREE.DoubleSide} roughness={0.7} metalness={0.1} />
-        )}
-        {/* Only show label if no texture */}
-        {!texture && (
-          <Html position={[0, 0.01, 0]} center rotation={[Math.PI / 2, 0, 0]} style={{ pointerEvents: 'none' }} transform>
-            <div style={{ color: 'white', fontSize: '16px', fontFamily: 'Arial', fontWeight: 'bold', textShadow: '0 0 5px black', userSelect: 'none' }}>{label}</div>
-          </Html>
-        )}
-      </animated.mesh>
+      <group ref={flipGroupRef}>
+        <animated.mesh
+          ref={meshRef}
+          scale={springProps.scale}
+          rotation={currentRotation.to(r => [-Math.PI / 2, 0, r])}
+          onPointerDown={handlePointerDown}
+          onPointerOver={handlePointerOver}
+          onPointerOut={handlePointerOut}
+          geometry={cardGeometry}
+        >
+          {texture ? (
+            <primitive object={flipCardMaterial} attach="material" />
+          ) : (
+            <meshStandardMaterial color={color} side={THREE.DoubleSide} roughness={0.7} metalness={0.1} />
+          )}
+          {/* Only show label if no texture */}
+          {!texture && (
+            <Html position={[0, 0.01, 0]} center rotation={[Math.PI / 2, 0, 0]} style={{ pointerEvents: 'none' }} transform>
+              <div style={{ color: 'white', fontSize: '16px', fontFamily: 'Arial', fontWeight: 'bold', textShadow: '0 0 5px black', userSelect: 'none' }}>{label}</div>
+            </Html>
+          )}
+        </animated.mesh>
 
-      {/* Tokens rendered as 3D planes that lay flat on the card */}
-      <animated.group rotation={currentRotation.to(r => [-Math.PI / 2, 0, r])} position={[0, 0.15, 0]}>
-        {Object.entries(tokens).map(([tokenType, tokenValue]) => {
-          if (!tokenValue || tokenValue === 0) return null;
-          const tokenDef = tokenDefinitions[tokenType];
-          if (!tokenDef) return null;
+        {/* Tokens rendered as 3D planes that lay flat on the card */}
+        <animated.group rotation={currentRotation.to(r => [-Math.PI / 2, 0, r])} position={[0, 0.15, 0]}>
+          {Object.entries(tokens).map(([tokenType, tokenValue]) => {
+            if (!tokenValue || tokenValue === 0) return null;
+            const tokenDef = tokenDefinitions[tokenType];
+            if (!tokenDef) return null;
 
-          const parsePercent = (value) => {
-            if (typeof value === 'string' && value.endsWith('%')) {
+            const parsePercent = (value) => {
+              if (typeof value === 'string' && value.endsWith('%')) {
+                return parseFloat(value) / 100;
+              }
               return parseFloat(value) / 100;
-            }
-            return parseFloat(value) / 100;
-          };
+            };
 
-          const leftPercent = parsePercent(tokenDef.left || '50%');
-          const topPercent = parsePercent(tokenDef.top || '50%');
-          const tokenWidthPercent = parsePercent(tokenDef.width || '15%');
-          const tokenHeightPercent = parsePercent(tokenDef.height || '15%');
+            const leftPercent = parsePercent(tokenDef.left || '50%');
+            const topPercent = parsePercent(tokenDef.top || '50%');
+            const tokenWidthPercent = parsePercent(tokenDef.width || '15%');
+            const tokenHeightPercent = parsePercent(tokenDef.height || '15%');
 
-          // Position in card's local space (XY plane)
-          const localX = (leftPercent + tokenWidthPercent / 2 - 0.33) * cardWidth;
-          const localY = (0.39 - topPercent - tokenHeightPercent / 2) * cardHeight;
+            // Position in card's local space (XY plane)
+            const localX = (leftPercent + tokenWidthPercent / 2 - 0.33) * cardWidth;
+            const localY = (0.39 - topPercent - tokenHeightPercent / 2) * cardHeight;
 
-          // Token size relative to card
-          const tokenSize = cardWidth * tokenWidthPercent * 8;
+            // Token size relative to card
+            const tokenSize = cardWidth * tokenWidthPercent * 8;
 
-          let displayLabel = tokenValue;
-          if (tokenDef.modifier) displayLabel = '+' + tokenValue;
-          if (tokenValue === 1 && tokenDef.hideLabel1) displayLabel = '';
+            let displayLabel = tokenValue;
+            if (tokenDef.modifier) displayLabel = '+' + tokenValue;
+            if (tokenValue === 1 && tokenDef.hideLabel1) displayLabel = '';
 
-          return (
-            <Token3D
-              key={tokenType}
-              position={[localX, localY, 0.01]}
-              size={tokenSize}
-              imageUrl={tokenDef.imageUrl}
-              label={displayLabel}
-            />
-          );
-        })}
-      </animated.group>
-
-      {/* Yellow gradient glow when hovered or active */}
-      {showYellowGlow && (
-        <animated.group rotation={currentRotation.to(r => [-Math.PI / 2, 0, r])} position={[0, 0.02, 0]}>
-          <mesh geometry={glowGeometry} material={glowMaterial} />
+            return (
+              <Token3D
+                key={tokenType}
+                position={[localX, localY, 0.01]}
+                size={tokenSize}
+                imageUrl={tokenDef.imageUrl}
+                label={displayLabel}
+              />
+            );
+          })}
         </animated.group>
-      )}
+
+        {/* Yellow gradient glow when hovered or active */}
+        {showYellowGlow && (
+          <animated.group rotation={currentRotation.to(r => [-Math.PI / 2, 0, r])} position={[0, 0.02, 0]}>
+            <mesh geometry={glowGeometry} material={glowMaterial} />
+          </animated.group>
+        )}
+      </group>
 
       {/* Shadow pinned to table surface — renderOrder=1 ensures it draws
            after region backgrounds (renderOrder=0) so the shadow isn't

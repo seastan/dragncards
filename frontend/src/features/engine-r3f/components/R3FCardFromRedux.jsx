@@ -6,11 +6,16 @@ import React, { useCallback, useMemo, useRef, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { DraggableCard } from './R3FCard';
 import { useVisibleFaceSrc } from '../../engine/hooks/useVisibleFaceSrc';
+import { useVisibleSide } from '../../engine/hooks/useVisibleSide';
 import { useCardRotation } from '../../engine/hooks/useCardRotation';
 import { useGameDefinition } from '../../engine/hooks/useGameDefinition';
 import { getProxiedImageUrl } from '../utils/imageProxy';
 import { setActiveCardId, setScreenLeftRight, setDropdownMenu, setCardClicked, setMouseXY, setMouseTopBottom } from '../../store/playerUiSlice';
 import { useDropContext, useDragStateContext } from './R3FScene';
+
+// Track the last known visible side for each card across component remounts
+// so cross-region drops can detect that a side change occurred
+const prevSideMap = new Map();
 
 /**
  * R3FCardFromRedux - Gets card data from Redux and renders a DraggableCard
@@ -26,6 +31,12 @@ export const R3FCardFromRedux = ({ cardId, stackId, groupId, region, position, z
   const visibleFaceName = visibleFaceSrc?.name;
   // Get card rotation (in degrees: 0, 90, 180, 270)
   const cardRotation = useCardRotation(cardId);
+  // Get visible side for flip animation ("A", "B", etc.)
+  const currentSide = useVisibleSide(cardId);
+  const previousSide = prevSideMap.get(cardId);
+  useEffect(() => {
+    prevSideMap.set(cardId, currentSide);
+  }, [cardId, currentSide]);
 
   const card = useSelector(state => state?.gameUi?.game?.cardById?.[cardId]);
   const playerN = useSelector(state => state?.playerUi?.playerN);
@@ -312,6 +323,8 @@ export const R3FCardFromRedux = ({ cardId, stackId, groupId, region, position, z
       onHoverEnd={handleHoverEnd}
       isActive={isActive}
       pendingDropPosition={pendingDropPosition}
+      currentSide={currentSide}
+      previousSide={previousSide}
     />
   );
 };
