@@ -233,7 +233,9 @@ export const useR3FDragActions = (doActionList) => {
       targetGroupId,
       targetRegion,
       position,
-      insertionIndex
+      insertionIndex,
+      combineStackId,
+      combineDirection,
     } = dropData;
 
     if (!stackId || !targetGroupId) {
@@ -253,6 +255,26 @@ export const useR3FDragActions = (doActionList) => {
 
     const sourceGroup = game.groupById?.[sourceGroupId];
     const targetGroup = game.groupById?.[targetGroupId];
+
+    // --- Combine (attachment) drop ---
+    if (combineStackId && combineDirection) {
+      const destStack = game.stackById?.[combineStackId];
+      const destCardId = destStack?.cardIds?.[0];
+      const destCard = game.cardById?.[destCardId];
+      const destStackIndex = destCard?.stackIndex ?? 0;
+
+      const actionList = [
+        ["LOG", "$ALIAS_N", " attached ", cardName, " from ", `$GAME.groupById.${sourceGroupId}.label`, " to ", ["FACEUP_NAME_FROM_STACK_ID", combineStackId], "."],
+        ["MOVE_STACK", stackId, targetGroupId, destStackIndex, { "combine": combineDirection, "allowFlip": true }],
+      ];
+
+      console.log('R3F Combine action:', { actionList, dropData, combineStackId, combineDirection });
+
+      doActionList(actionList, `Attached ${cardName} to ${destCard?.sides?.[destCard?.currentSide]?.name || 'card'}`);
+      return;
+    }
+
+    // --- Normal move drop ---
 
     // Calculate position for free regions
     let stackLeft = null;

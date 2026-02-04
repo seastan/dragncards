@@ -3,7 +3,7 @@
  * Renders cards based on the game state
  */
 
-import React, { useState, useCallback, createContext, useContext, useMemo, useRef } from 'react';
+import React, { useState, useCallback, createContext, useContext, useMemo, useRef, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { TableSurface } from './R3FTable';
 import { R3FCardFromRedux } from './R3FCardFromRedux';
@@ -11,6 +11,59 @@ import { RegionBoundary, isPointInRegion } from '../R3FDragSystem';
 import { useFormatGroupId } from '../../engine/hooks/useFormatGroupId';
 import { TABLE_WIDTH, TABLE_HEIGHT } from '../utils/cameraUtils';
 import { parsePercent, percentToWorld, regionToWorld, calculateInsertionIndex } from '../utils/regionUtils';
+
+// Attachment offset in world units (~50% card width, matches 2D ATTACHMENT_OFFSET)
+const ATTACHMENT_OFFSET_3D = 3.5;
+
+/**
+ * Apply direction-aware attachment offset to a card's position.
+ * Cards at cardIndexInStack > 0 are attachments; their direction determines
+ * the offset axis. We iterate preceding cards' directions to compute
+ * cumulative edge offsets (matching the 2D engine's useOffsetTotalsAndAmounts).
+ */
+const applyAttachmentOffset = (position, cardIndexInStack, cardById, stack) => {
+  if (cardIndexInStack <= 0) return;
+
+  // Build cumulative edge offsets by iterating all cards before this one
+  const stackEdges = { top: 0, left: 0, right: 0, bottom: 0 };
+  for (let i = 1; i <= cardIndexInStack; i++) {
+    const cId = stack.cardIds[i];
+    const dir = cardById?.[cId]?.attachmentDirection || 'right';
+    if (i < cardIndexInStack) {
+      // Accumulate edges for cards before the one we're positioning
+      switch (dir) {
+        case 'left':   stackEdges.left -= ATTACHMENT_OFFSET_3D; break;
+        case 'right':  stackEdges.right += ATTACHMENT_OFFSET_3D; break;
+        case 'top':    stackEdges.top -= ATTACHMENT_OFFSET_3D; break;
+        case 'bottom': stackEdges.bottom += ATTACHMENT_OFFSET_3D; break;
+        default: break; // 'behind' has no lateral offset
+      }
+    } else {
+      // This is the card we're positioning
+      position[1] -= cardIndexInStack * 0.04; // overcome globalCardIndex increment (0.02) AND go under parent
+      switch (dir) {
+        case 'left':
+          position[0] += stackEdges.left - ATTACHMENT_OFFSET_3D;
+          break;
+        case 'right':
+          position[0] += stackEdges.right + ATTACHMENT_OFFSET_3D;
+          break;
+        case 'top':
+          position[2] += stackEdges.top - ATTACHMENT_OFFSET_3D;
+          break;
+        case 'bottom':
+          position[2] += stackEdges.bottom + ATTACHMENT_OFFSET_3D;
+          break;
+        case 'behind':
+          // Only Y offset (z-fighting already applied above)
+          break;
+        default:
+          position[0] += stackEdges.right + ATTACHMENT_OFFSET_3D;
+          break;
+      }
+    }
+  }
+};
 
 // Context to share drag-drop functionality with cards
 const DropContext = createContext(null);
@@ -26,6 +79,7 @@ export const useDragStateContext = () => useContext(DragStateContext);
 const R3FGroupCards = ({ groupId, region }) => {
   const group = useSelector(state => state?.gameUi?.game?.groupById?.[groupId]);
   const stackById = useSelector(state => state?.gameUi?.game?.stackById);
+  const cardById = useSelector(state => state?.gameUi?.game?.cardById);
   const layout = useSelector(state => state?.gameUi?.game?.layout);
   const cardSize = layout?.cardSize || 6;
   const dragStateContext = useDragStateContext();
@@ -100,7 +154,12 @@ const R3FGroupCards = ({ groupId, region }) => {
     (hasPendingDropToThisGroup && pendingDropIsInternal)
   );
 
+  // Get registration callbacks from context
+  const registerStackPosition = dragStateContext?.registerStackPosition;
+  const unregisterStackPosition = dragStateContext?.unregisterStackPosition;
+
   const cards = [];
+  const parentPositions = []; // Collect parent card positions for registration
   let globalCardIndex = 0;
   let positionIndex = 0; // Separate counter for position calculation (skips dragged card)
 
@@ -138,11 +197,8 @@ const R3FGroupCards = ({ groupId, region }) => {
         const stackTop = stack.top || '0%';
         position = regionToWorld(region, stackLeft, stackTop, baseY);
 
-        // Offset for cards in the same stack (fan out behind)
-        if (cardIndexInStack > 0) {
-          position[1] += cardIndexInStack * 0.02;
-          position[2] += cardIndexInStack * 1.5; // Fan out in Z direction
-        }
+        // Offset for attached cards (direction-aware)
+        applyAttachmentOffset(position, cardIndexInStack, cardById, stack);
       } else if (region.type === 'row') {
         // Row regions: cards arranged with spacing (horizontal or vertical)
         const regionLeft = parsePercent(region.left);
@@ -184,11 +240,8 @@ const R3FGroupCards = ({ groupId, region }) => {
           const posIndex = isBeingDragged ? originalStackIndex : adjustedStackIndex;
           position = [regionCenterX, baseY, startZ + posIndex * cardSpacing];
 
-          // Stack cards behind (fan out in X direction for vertical)
-          if (cardIndexInStack > 0) {
-            position[1] += cardIndexInStack * 0.02;
-            position[0] += cardIndexInStack * 1.5;
-          }
+          // Offset for attached cards (direction-aware)
+          applyAttachmentOffset(position, cardIndexInStack, cardById, stack);
         } else {
           // Horizontal row: cards arranged along X axis
           const regionWidthWorld = (regionWidth / 100) * TABLE_WIDTH;
@@ -208,11 +261,8 @@ const R3FGroupCards = ({ groupId, region }) => {
           const posIndex = isBeingDragged ? originalStackIndex : adjustedStackIndex;
           position = [startX + posIndex * cardSpacing, baseY, regionCenterZ];
 
-          // Stack cards behind
-          if (cardIndexInStack > 0) {
-            position[1] += cardIndexInStack * 0.02;
-            position[2] += cardIndexInStack * 1.5;
-          }
+          // Offset for attached cards (direction-aware)
+          applyAttachmentOffset(position, cardIndexInStack, cardById, stack);
         }
       } else if (region.type === 'pile') {
         // Pile regions: all cards at same position, stacked
@@ -225,7 +275,8 @@ const R3FGroupCards = ({ groupId, region }) => {
         const centerX = ((regionLeft + regionWidth / 2) / 100 - 0.5) * TABLE_WIDTH;
         const centerZ = ((regionTop + regionHeight / 2) / 100 - 0.5) * TABLE_HEIGHT;
 
-        position = [centerX, baseY + cardIndexInStack * 0.02, centerZ + cardIndexInStack * 0.05];
+        position = [centerX, baseY, centerZ];
+        applyAttachmentOffset(position, cardIndexInStack, cardById, stack);
       } else if (region.type === 'fan') {
         // Fan regions: cards arranged in a spread (typically portrait orientation)
         const regionLeft = parsePercent(region.left);
@@ -269,11 +320,8 @@ const R3FGroupCards = ({ groupId, region }) => {
           const posIndex = isBeingDragged ? originalStackIndex : adjustedStackIndex;
           position = [regionCenterX, baseY, startZ + posIndex * cardSpacing];
 
-          // Stack cards behind (fan out in X direction for vertical)
-          if (cardIndexInStack > 0) {
-            position[1] += cardIndexInStack * 0.02;
-            position[0] += cardIndexInStack * 1.5;
-          }
+          // Offset for attached cards (direction-aware)
+          applyAttachmentOffset(position, cardIndexInStack, cardById, stack);
         } else {
           // Horizontal fan: cards arranged along X axis
           const regionWidthWorld = (regionWidth / 100) * TABLE_WIDTH;
@@ -295,14 +343,24 @@ const R3FGroupCards = ({ groupId, region }) => {
           const posIndex = isBeingDragged ? originalStackIndex : adjustedStackIndex;
           position = [startX + posIndex * cardSpacing, baseY, regionCenterZ];
 
-          if (cardIndexInStack > 0) {
-            position[1] += cardIndexInStack * 0.02;
-            position[2] += cardIndexInStack * 1.5;
-          }
+          // Offset for attached cards (direction-aware)
+          applyAttachmentOffset(position, cardIndexInStack, cardById, stack);
         }
       } else {
         // Default: use region position
         position = percentToWorld(parsePercent(region.left), parsePercent(region.top), baseY);
+      }
+
+      // Register parent card (index 0) position for attachment zone detection
+      if (cardIndexInStack === 0) {
+        parentPositions.push({
+          stackId,
+          x: position[0],
+          z: position[2],
+          cardWidth: 7.14,
+          cardHeight: 10,
+          groupId,
+        });
       }
 
       cards.push(
@@ -318,6 +376,27 @@ const R3FGroupCards = ({ groupId, region }) => {
       );
       globalCardIndex++;
     });
+  });
+
+  // Register/unregister stack positions for attachment detection
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useEffect(() => {
+    if (!registerStackPosition) return;
+    for (const pp of parentPositions) {
+      registerStackPosition(pp.stackId, {
+        x: pp.x,
+        z: pp.z,
+        cardWidth: pp.cardWidth,
+        cardHeight: pp.cardHeight,
+        groupId: pp.groupId,
+      });
+    }
+    return () => {
+      if (!unregisterStackPosition) return;
+      for (const pp of parentPositions) {
+        unregisterStackPosition(pp.stackId);
+      }
+    };
   });
 
   return <>{cards}</>;
@@ -368,10 +447,39 @@ export const R3FSceneFromRedux = ({ showRegionBoundaries = true, onCardDrop }) =
   // Track last known pointer world position for hover detection after drop
   const lastPointerPositionRef = useRef(null);
 
+  // Attachment hover state
+  const [hoverOverStackId, setHoverOverStackId] = useState(null);
+  const [hoverOverDirection, setHoverOverDirection] = useState(null);
+  const [hoverOverAttachmentAllowed, setHoverOverAttachmentAllowed] = useState(true);
+
+  // Stack position registry for attachment zone detection
+  const stackPositionsRef = useRef(new Map());
+
+  const registerStackPosition = useCallback((stackId, posData) => {
+    stackPositionsRef.current.set(stackId, posData);
+  }, []);
+
+  const unregisterStackPosition = useCallback((stackId) => {
+    stackPositionsRef.current.delete(stackId);
+  }, []);
+
+  const getStackPositionsForGroup = useCallback((groupId, excludeStackId) => {
+    const result = [];
+    for (const [sId, data] of stackPositionsRef.current) {
+      if (data.groupId === groupId && sId !== excludeStackId) {
+        result.push({ stackId: sId, ...data });
+      }
+    }
+    return result;
+  }, []);
+
   const clearDraggedStack = useCallback(() => {
     setDraggedStack(null);
     setDragPosition(null);
     setHoveredGroupId(null);
+    setHoverOverStackId(null);
+    setHoverOverDirection(null);
+    setHoverOverAttachmentAllowed(true);
   }, []);
 
   const setPendingDropState = useCallback((dropInfo) => {
@@ -470,7 +578,18 @@ export const R3FSceneFromRedux = ({ showRegionBoundaries = true, onCardDrop }) =
     clearPendingDrop,
     updatePointerPosition,
     getPointerPosition,
-  }), [draggedStack, dragPosition, hoveredGroupId, pendingDrop, clearDraggedStack, setPendingDropState, clearPendingDrop, updatePointerPosition, getPointerPosition]);
+    // Attachment hover state
+    hoverOverStackId,
+    hoverOverDirection,
+    hoverOverAttachmentAllowed,
+    setHoverOverStackId,
+    setHoverOverDirection,
+    setHoverOverAttachmentAllowed,
+    // Stack position registry
+    registerStackPosition,
+    unregisterStackPosition,
+    getStackPositionsForGroup,
+  }), [draggedStack, dragPosition, hoveredGroupId, pendingDrop, clearDraggedStack, setPendingDropState, clearPendingDrop, updatePointerPosition, getPointerPosition, hoverOverStackId, hoverOverDirection, hoverOverAttachmentAllowed, registerStackPosition, unregisterStackPosition, getStackPositionsForGroup]);
 
   if (!formattedRegions) {
     return <TableSurface />;

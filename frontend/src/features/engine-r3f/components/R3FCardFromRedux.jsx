@@ -12,6 +12,7 @@ import { useGameDefinition } from '../../engine/hooks/useGameDefinition';
 import { getProxiedImageUrl } from '../utils/imageProxy';
 import { setActiveCardId, setScreenLeftRight, setDropdownMenu, setCardClicked, setMouseXY, setMouseTopBottom } from '../../store/playerUiSlice';
 import { useDropContext, useDragStateContext } from './R3FScene';
+import { findAttachmentTarget, isAttachmentAllowed } from '../utils/attachmentUtils';
 
 // Track the last known visible side for each card across component remounts
 // so cross-region drops can detect that a side change occurred
@@ -80,9 +81,15 @@ export const R3FCardFromRedux = ({ cardId, stackId, groupId, region, position, z
     const { findRegionAtPoint, onCardDrop, getInsertionIndex } = dropContext;
     const targetInfo = findRegionAtPoint(finalPosition[0], finalPosition[2]);
 
-    // Calculate insertion index for row/fan regions
+    // Read attachment hover state before clearing
+    const combineStackId = dragStateContext?.hoverOverStackId;
+    const combineDirection = dragStateContext?.hoverOverDirection;
+    const combineAllowed = dragStateContext?.hoverOverAttachmentAllowed;
+    const isCombineDrop = combineStackId && combineDirection && combineAllowed;
+
+    // Calculate insertion index for row/fan regions (skip for attachment drops)
     let insertionIndex = null;
-    if (targetInfo?.region && getInsertionIndex) {
+    if (!isCombineDrop && targetInfo?.region && getInsertionIndex) {
       insertionIndex = getInsertionIndex(
         finalPosition[0],
         targetInfo.region,
@@ -98,6 +105,9 @@ export const R3FCardFromRedux = ({ cardId, stackId, groupId, region, position, z
       region: targetInfo?.region,
       groupId: targetInfo?.region?.groupId,
       insertionIndex,
+      isCombineDrop,
+      combineStackId,
+      combineDirection,
     });
 
     if (targetInfo && onCardDrop) {
@@ -122,6 +132,8 @@ export const R3FCardFromRedux = ({ cardId, stackId, groupId, region, position, z
         targetRegion: targetInfo.region,
         position: finalPosition,
         insertionIndex,
+        // Attachment combine data
+        ...(isCombineDrop ? { combineStackId, combineDirection } : {}),
       });
     }
 
@@ -157,8 +169,32 @@ export const R3FCardFromRedux = ({ cardId, stackId, groupId, region, position, z
       dragStateContext.setHoveredGroupId(targetInfo?.region?.groupId || null);
     }
 
+    // Attachment zone detection
+    const targetGroupId = targetInfo?.region?.groupId;
+    const targetRegion = targetInfo?.region;
+    if (targetGroupId && dragStateContext?.getStackPositionsForGroup) {
+      const stackPositions = dragStateContext.getStackPositionsForGroup(targetGroupId, stackId);
+      const { stackId: hoverStackId, direction } = findAttachmentTarget(
+        currentPosition[0], currentPosition[2], stackPositions, 7.14, targetRegion
+      );
+      if (hoverStackId) {
+        const allowed = isAttachmentAllowed(stackId, hoverStackId, gameDef, playerN, targetRegion);
+        if (dragStateContext.setHoverOverStackId) dragStateContext.setHoverOverStackId(hoverStackId);
+        if (dragStateContext.setHoverOverDirection) dragStateContext.setHoverOverDirection(direction);
+        if (dragStateContext.setHoverOverAttachmentAllowed) dragStateContext.setHoverOverAttachmentAllowed(allowed);
+      } else {
+        if (dragStateContext.setHoverOverStackId) dragStateContext.setHoverOverStackId(null);
+        if (dragStateContext.setHoverOverDirection) dragStateContext.setHoverOverDirection(null);
+        if (dragStateContext.setHoverOverAttachmentAllowed) dragStateContext.setHoverOverAttachmentAllowed(true);
+      }
+    } else {
+      if (dragStateContext?.setHoverOverStackId) dragStateContext.setHoverOverStackId(null);
+      if (dragStateContext?.setHoverOverDirection) dragStateContext.setHoverOverDirection(null);
+      if (dragStateContext?.setHoverOverAttachmentAllowed) dragStateContext.setHoverOverAttachmentAllowed(true);
+    }
+
     return targetInfo;
-  }, [dropContext, dragStateContext]);
+  }, [dropContext, dragStateContext, stackId, gameDef, playerN]);
 
   // Handle hover - set active card ID and screen position for GiantCard
   const handleHover = useCallback((id, event) => {
@@ -294,6 +330,18 @@ export const R3FCardFromRedux = ({ cardId, stackId, groupId, region, position, z
 
   const isActive = activeCardId === cardId;
 
+  // Attachment hover: this card is being dragged AND context has a valid attachment target
+  const isBeingDragged = dragStateContext?.draggedStack?.stackId === stackId;
+  const isAttachmentHover = isBeingDragged &&
+    dragStateContext?.hoverOverStackId != null &&
+    dragStateContext?.hoverOverAttachmentAllowed === true;
+
+  // Attachment indicator: this card's stack is the hover target
+  const attachmentIndicatorDirection =
+    (dragStateContext?.hoverOverStackId === stackId && dragStateContext?.hoverOverAttachmentAllowed === true)
+      ? dragStateContext?.hoverOverDirection
+      : null;
+
   // For cross-region drops, pass the drop position so the new component can animate from it
   // IMPORTANT: Only pass to the TARGET card, not the source card (which would try to animate backwards)
   const isCrossRegionDrop = hasPendingDrop && pendingDrop?.sourceGroupId !== pendingDrop?.targetGroupId;
@@ -325,6 +373,8 @@ export const R3FCardFromRedux = ({ cardId, stackId, groupId, region, position, z
       pendingDropPosition={pendingDropPosition}
       currentSide={currentSide}
       previousSide={previousSide}
+      isAttachmentHover={isAttachmentHover}
+      attachmentIndicatorDirection={attachmentIndicatorDirection}
     />
   );
 };

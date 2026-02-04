@@ -22,6 +22,89 @@ const DRAG_THRESHOLD = 5;
 const lastTextureByCard = new Map();
 
 /**
+ * R3FLinkIndicator - Shows a circular link icon at the edge of a card
+ * indicating where an attachment will be placed.
+ */
+const R3FLinkIndicator = ({ direction, cardWidth, cardHeight, rotation }) => {
+  // Position the indicator at the appropriate edge of the card
+  // Card lies in XZ plane (rotated -PI/2 around X), so we position
+  // relative to the card's local coordinate system
+  const halfW = cardWidth / 2;
+  const halfH = cardHeight / 2;
+  const indicatorSize = 2.0;
+  const yOffset = 0.3; // Float above card surface
+
+  // Calculate position based on direction
+  // The card mesh is rotated [-PI/2, 0, cardRotation] so its face is in XY local space
+  // But the indicator is a child of flipGroup, so we work in that space
+  let posX = 0, posZ = 0;
+  switch (direction) {
+    case 'left':   posX = -halfW; break;
+    case 'right':  posX = halfW; break;
+    case 'top':    posZ = -halfH; break;
+    case 'bottom': posZ = halfH; break;
+    case 'center': break; // centered
+  }
+
+  return (
+    <animated.group
+      rotation={rotation.to(r => [-Math.PI / 2, 0, r])}
+      position={[0, yOffset, 0]}
+    >
+      <group position={[posX, -posZ, 0.01]}>
+        {/* Translucent circle background */}
+        <mesh>
+          <circleGeometry args={[indicatorSize / 2, 32]} />
+          <meshBasicMaterial
+            color="#d1d5db"
+            transparent
+            opacity={0.85}
+            side={THREE.DoubleSide}
+            depthWrite={false}
+          />
+        </mesh>
+        {/* Border ring */}
+        <lineLoop>
+          <bufferGeometry>
+            <bufferAttribute
+              attach="attributes-position"
+              count={33}
+              array={(() => {
+                const pts = new Float32Array(33 * 3);
+                for (let i = 0; i <= 32; i++) {
+                  const angle = (i / 32) * Math.PI * 2;
+                  pts[i * 3] = Math.cos(angle) * (indicatorSize / 2);
+                  pts[i * 3 + 1] = Math.sin(angle) * (indicatorSize / 2);
+                  pts[i * 3 + 2] = 0;
+                }
+                return pts;
+              })()}
+              itemSize={3}
+            />
+          </bufferGeometry>
+          <lineBasicMaterial color="#374151" linewidth={2} />
+        </lineLoop>
+        {/* Chain link icon using Html overlay */}
+        <Html
+          center
+          style={{ pointerEvents: 'none' }}
+          zIndexRange={[0, 0]}
+        >
+          <div style={{
+            fontSize: '20px',
+            color: '#374151',
+            userSelect: 'none',
+            lineHeight: 1,
+          }}>
+            🔗
+          </div>
+        </Html>
+      </group>
+    </animated.group>
+  );
+};
+
+/**
  * DraggableCard - A 3D card that can be dragged around the table
  */
 export const DraggableCard = ({
@@ -46,6 +129,8 @@ export const DraggableCard = ({
   pendingDropPosition = null, // For cross-region drops: where the card was dropped (lifted Y)
   currentSide = null, // Visible side string ("A", "B", etc.) for flip animation
   previousSide = null, // Previous side from module-level map (for cross-region flip)
+  isAttachmentHover = false, // True when dragging over a valid attachment target
+  attachmentIndicatorDirection = null, // Direction of attachment indicator ('left','right','top','bottom','center')
 }) => {
   const meshRef = useRef();
   const groupRef = useRef();
@@ -131,6 +216,17 @@ export const DraggableCard = ({
     progress: 0,
     config: { duration: 250 }
   }));
+
+  // Spring for opacity (1.0 normal, 0.4 when attachment-hovering)
+  const [opacitySpring, opacitySpringApi] = useSpring(() => ({
+    opacity: 1.0,
+    config: { tension: 300, friction: 26 }
+  }));
+
+  // Drive opacity from isAttachmentHover prop
+  useEffect(() => {
+    opacitySpringApi.start({ opacity: isAttachmentHover ? 0.4 : 1.0 });
+  }, [isAttachmentHover, opacitySpringApi]);
 
   // Detect side change and start flip animation
   useEffect(() => {
@@ -245,12 +341,13 @@ export const DraggableCard = ({
     }
 
     if (!isDraggingRef.current) {
-      const newBaseY = 0.1 + (zIndex * 0.02);
-      targetPosRef.current = [position[0], newBaseY, position[2]];
+      // Use position[1] directly — it already includes attachment offsets from R3FScene
+      const restingY = position[1];
+      targetPosRef.current = [position[0], restingY, position[2]];
 
       console.log('Position useEffect:', {
         cardId,
-        position: [position[0], position[2]],
+        position: [position[0], position[1], position[2]],
         zIndex,
         justDropped: justDroppedRef.current,
         waitingForUpdate: waitingForPositionUpdateRef.current,
@@ -281,7 +378,7 @@ export const DraggableCard = ({
                 // Start Y drop and scale reduction at the same time
                 setIsLifted(false);
                 posSpringApi.start({
-                  y: newBaseY,
+                  y: restingY,
                   onRest: () => {
                     animationInProgressRef.current = false;
                   },
@@ -330,7 +427,7 @@ export const DraggableCard = ({
             // Start Y drop and scale reduction at the same time
             setIsLifted(false);
             posSpringApi.start({
-              y: newBaseY,
+              y: restingY,
               onRest: () => {
                 animationInProgressRef.current = false;
               },
@@ -341,12 +438,12 @@ export const DraggableCard = ({
         console.log('→ Normal position update');
         posSpringApi.start({
           x: position[0],
-          y: newBaseY,
+          y: restingY,
           z: position[2],
         });
       }
     }
-  }, [position[0], position[2], zIndex, posSpringApi, pendingDropPosition]);
+  }, [position[0], position[1], position[2], zIndex, posSpringApi, pendingDropPosition]);
 
   const getPointerCoords = (event) => {
     const rect = gl.domElement.getBoundingClientRect();
@@ -627,13 +724,26 @@ export const DraggableCard = ({
       }
     }
 
+    // Update card opacity from spring (for attachment hover transparency)
+    if (meshRef.current?.material?.uniforms?.opacity) {
+      const curOpacity = opacitySpring.opacity.get();
+      meshRef.current.material.uniforms.opacity.value = curOpacity;
+      // Only enable transparent mode when actually semi-transparent;
+      // keeps cards in the opaque render bucket for correct depth sorting
+      meshRef.current.material.transparent = curOpacity < 0.99;
+    }
+
     // Write stencil=1 whenever the shadow has any visible opacity so the
     // shadow can't draw on top of its own card. This avoids timing gaps
     // between isLifted turning false and the shadow finishing its fade-out.
+    // Skip stencil write when semi-transparent (attachment hover) to avoid
+    // incorrectly masking the shadow.
     if (meshRef.current && meshRef.current.material) {
+      const cardOpacity = opacitySpring.opacity.get();
+      const isSemiTransparent = cardOpacity < 0.95;
       const shadowVisible = shadowMaterial.uniforms.opacity.value > 0.01;
       const mat = meshRef.current.material;
-      mat.stencilWrite = shadowVisible;
+      mat.stencilWrite = shadowVisible && !isSemiTransparent;
       mat.stencilRef = 1;
       mat.stencilFunc = THREE.AlwaysStencilFunc;
       mat.stencilZPass = THREE.ReplaceStencilOp;
@@ -833,6 +943,7 @@ export const DraggableCard = ({
       uniforms: {
         mapFront: { value: null },
         mapBack: { value: null },
+        opacity: { value: 1.0 },
       },
       vertexShader: `
         varying vec2 vUv;
@@ -844,17 +955,22 @@ export const DraggableCard = ({
       fragmentShader: `
         uniform sampler2D mapFront;
         uniform sampler2D mapBack;
+        uniform float opacity;
         varying vec2 vUv;
         void main() {
+          vec4 color;
           if (gl_FrontFacing) {
-            gl_FragColor = texture2D(mapFront, vUv);
+            color = texture2D(mapFront, vUv);
           } else {
             // Mirror U so back-face texture isn't horizontally flipped
-            gl_FragColor = texture2D(mapBack, vec2(1.0 - vUv.x, vUv.y));
+            color = texture2D(mapBack, vec2(1.0 - vUv.x, vUv.y));
           }
+          color.a *= opacity;
+          gl_FragColor = color;
           #include <colorspace_fragment>
         }
       `,
+      transparent: false, // kept opaque by default; toggled in useFrame when opacity < 1
       side: THREE.DoubleSide,
     });
   }, []);
@@ -957,6 +1073,16 @@ export const DraggableCard = ({
           <animated.group rotation={currentRotation.to(r => [-Math.PI / 2, 0, r])} position={[0, 0.02, 0]}>
             <mesh geometry={glowGeometry} material={glowMaterial} />
           </animated.group>
+        )}
+
+        {/* Attachment link indicator */}
+        {attachmentIndicatorDirection && (
+          <R3FLinkIndicator
+            direction={attachmentIndicatorDirection}
+            cardWidth={cardWidth}
+            cardHeight={cardHeight}
+            rotation={currentRotation}
+          />
         )}
       </group>
 
