@@ -10,12 +10,13 @@ defmodule DragnCardsWeb.ReplayController do
   action_fallback DragnCardsWeb.FallbackController
 
   def index(conn, params) do
-    user_id = params["user_id"]
+    user_id = String.to_integer(params["user_id"])
     # Faster to gather all columns except game_json
-    query = from Replay, order_by: [desc: :updated_at], where: [user_id: ^user_id], select: [:deleted_by, :uuid, :updated_at, :inserted_at, :user_id, :metadata, :plugin_id]
-    #query = from(r in Replay, order_by: [desc: :updated_at], where: r.user == ^user_id)
+    query = from r in Replay,
+      order_by: [desc: r.updated_at],
+      where: fragment("? = ANY(?)", ^user_id, r.player_ids) or r.user_id == ^user_id,
+      select: [:deleted_by, :uuid, :updated_at, :inserted_at, :user_id, :metadata, :plugin_id, :player_ids]
     replays = Repo.all(query)
-    #replays = Repo.all(Replay, user: params["user_id"])
     render(conn, "index.json", replays: replays)
   end
 
@@ -34,7 +35,7 @@ defmodule DragnCardsWeb.ReplayController do
       deleted_by: new_deleted_by
     }
     # Get replay from database where uuid and user_id match
-    r = Repo.get_by!(Replay, uuid: replay["uuid"], user_id: user_id)
+    r = Repo.get_by!(Replay, uuid: replay["uuid"])
     c = Ecto.Changeset.change(r, updates)
     case Repo.update(c) do
       {:ok, _struct}       -> # Updated with success

@@ -37,17 +37,9 @@
   end
 
   defp load_replay_game(replay_uuid, room_slug, user_id, game_def, options) do
+    replay = Repo.get_by(Replay, uuid: replay_uuid)
 
-    query =
-      from(e in Replay,
-        where: e.uuid == ^replay_uuid,
-        order_by: [desc: e.inserted_at],
-        limit: 1
-      )
-
-    replay = Repo.one(query)
-
-    if replay.game_json do
+    if replay != nil and replay.game_json do
       %{
         game: replay.game_json,
         deltas: replay.deltas
@@ -55,8 +47,6 @@
     else
       new_game(room_slug, user_id, game_def, options)
     end
-
-    # TODO: Set room name
   end
 
   def automation_action_lists(game_def) do
@@ -198,9 +188,16 @@
       {:error, "Error saving game: user not recognized."}
     else
       game_uuid = game["id"]
+      player_ids = extract_player_ids(game)
 
-      # Trim deltas based on user's replay save permission
-      trimmed_deltas = trim_saved_deltas(deltas, user_id)
+      # Look up by uuid only — one row per game
+      {replay, creator_id} = case Repo.get_by(Replay, uuid: game_uuid) do
+        nil  -> {%Replay{user_id: user_id, uuid: game_uuid}, user_id}
+        existing -> {existing, existing.user_id}
+      end
+
+      # Trim deltas based on creator's supporter status
+      trimmed_deltas = trim_saved_deltas(deltas, creator_id)
 
       game_def = PluginCache.get_game_def_cached(game["pluginId"])
       save_metadata = get_in(game_def, ["saveGame", "metadata"])
@@ -210,14 +207,10 @@
         metadata: if save_metadata == nil do nil else Evaluate.evaluate(game, ["PROCESS_MAP", save_metadata], ["save_replay"]) end,
         plugin_id: game["pluginId"],
         deltas: trimmed_deltas,
+        player_ids: player_ids,
       }
 
-      result = case Repo.get_by(Replay, [user_id: user_id, uuid: game_uuid]) do
-        nil  -> %Replay{user_id: user_id, uuid: game_uuid} # Replay not found, we build one
-        replay -> replay  # Replay exists, let's use it
-      end
-
-      result = result
+      result = replay
       |> Replay.changeset(updates)
       |> Repo.insert_or_update
 
@@ -228,15 +221,31 @@
 
         {:error, changeset} ->
           Logger.debug("An error occurred:")
-          Logger.debug(inspect(changeset.errors)) # Print the errors
+          Logger.debug(inspect(changeset.errors))
       end
 
-      case Users.get_replay_save_permission(user_id) do
+      case Users.get_replay_save_permission(creator_id) do
         true ->
           {:ok, "Full replay saved."}
         false ->
           {:ok, "Current game saved. To save full replays, become a supporter."}
       end
+    end
+  end
+
+  defp extract_player_ids(game) do
+    case game["playerData"] do
+      nil -> []
+      player_data ->
+        player_data
+        |> Enum.flat_map(fn {_seat, data} ->
+          case data["user_id"] do
+            nil -> []
+            id when is_integer(id) -> [id]
+            _ -> []
+          end
+        end)
+        |> Enum.uniq()
     end
   end
 
