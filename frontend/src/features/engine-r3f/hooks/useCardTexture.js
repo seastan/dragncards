@@ -93,7 +93,7 @@ export const useCardTexture = (imageSrc) => {
         loadedTexture.minFilter = THREE.LinearMipmapLinearFilter;
         loadedTexture.magFilter = THREE.LinearFilter;
         loadedTexture.colorSpace = THREE.SRGBColorSpace;
-        // Note: anisotropy is set in R3FCard.jsx using renderer.capabilities.getMaxAnisotropy()
+        // Note: anisotropy can be set using renderer.capabilities.getMaxAnisotropy()
 
         textureCache.set(imageSrc, loadedTexture);
         setTexture(loadedTexture);
