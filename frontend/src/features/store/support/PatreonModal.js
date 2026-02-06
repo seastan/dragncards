@@ -15,15 +15,15 @@ export const PatreonModal = ({
     const tiers = [
         { 
           amount: 300, 
-          benefits: ["Unlimited saved games", "Saved games include full replay"] 
+          benefits: ["Unlimited saved games", "Saved games include full replay", "Idle room timeout increased from 1 hour to 24 hours"] 
         },
         { 
           amount: 500,  
-          benefits: ["All lower tier benefits", "Custom alt art cards", "Custom card backs", "Custom backgrounds", "Private custom content"] 
+          benefits: ["All lower tier benefits", "Custom alt art cards", "Custom card backs", "Custom backgrounds", "Private custom content", "Idle room timeout increased to 3 days"] 
         },
         { 
           amount: 1000, 
-          benefits: ["All lower tier benefits", `Optional "Esteemed Supporter" discord role`, `Access to plugin developer discord channels`] 
+          benefits: ["All lower tier benefits", `Optional "Esteemed Supporter" discord role`, `Access to plugin developer discord channels`, "Idle room timeout increased to 7 days"]
         },
     ];
 
@@ -43,7 +43,7 @@ export const PatreonModal = ({
           zIndex: Z_INDEX.Modal
         },
         content: {
-          width: '400px',
+          width: '450px',
         }
       }}>
       <h1 className="mb-2">Support on Patreon</h1>

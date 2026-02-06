@@ -3,7 +3,7 @@ defmodule DragnCardsGame.GameUIServer do
   GenServer for holding GameUI state.
   """
   use GenServer
-  @timeout :timer.minutes(60)
+  @timeout :timer.minutes(1)
 
   require Logger
   alias DragnCardsGame.{GameUI, GameRegistry, User, PlayerInfo, Evaluate}
@@ -414,13 +414,66 @@ defmodule DragnCardsGame.GameUIServer do
 
   # timeout/1
   # Given the current state of the game, what should the
-  # GenServer timeout be? (Games with winners expire quickly)
-  defp timeout(_state) do
-    @timeout
+  # GenServer timeout be? Depends on room creator's supporter level.
+  defp timeout(state) do
+    creator_id = state["createdBy"]
+    timeout_for_supporter_level(creator_id)
+  end
+
+  defp timeout_for_supporter_level(nil), do: @timeout
+  defp timeout_for_supporter_level(creator_id) do
+    level = Users.get_supporter_level(creator_id)
+    cond do
+      level >= 10 -> :timer.hours(168)   # 7 days
+      level >= 5  -> :timer.hours(72)    # 3 days
+      level >= 3  -> :timer.hours(24)    # 24 hours
+      true        -> @timeout            # 1 hour
+    end
+  end
+
+  def terminate({:shutdown, :timeout}, state) do
+    Logger.info("Room #{state["roomSlug"]} timed out due to inactivity")
+
+    # Auto-save the game before the room is cleaned up
+    try do
+      game = state["game"]
+      creator_id = state["createdBy"]
+      deltas = state["deltas"] || []
+      if game != nil and creator_id != nil do
+        case DragnCardsGame.Game.save_replay_to_db(game, creator_id, deltas) do
+          {:ok, _msg} -> Logger.info("Auto-saved game on timeout for room #{state["roomSlug"]}")
+          {:error, msg} -> Logger.error("Failed to auto-save on timeout: #{msg}")
+        end
+      end
+    rescue
+      e -> Logger.error("Error auto-saving on timeout for room #{state["roomSlug"]}: #{inspect e}")
+    end
+
+    game = state["game"]
+    plugin_id = if game, do: game["pluginId"], else: nil
+    game_uuid = if game, do: game["id"], else: nil
+
+    DragnCardsWeb.Endpoint.broadcast(
+      "room:#{state["roomSlug"]}",
+      "send_alert",
+      %{
+        "level" => "warning",
+        "text" => "This room has timed out due to inactivity. Your game has been saved.",
+        "action" => "room_timeout",
+        "autoClose" => false,
+        "pluginId" => plugin_id,
+        "replayUuid" => game_uuid
+      }
+    )
+    cleanup_room(state)
   end
 
   def terminate(reason, state) do
     Logger.info("Terminate #{inspect reason} for #{state["roomSlug"]}")
+    cleanup_room(state)
+  end
+
+  defp cleanup_room(state) do
     :ets.delete(:game_uis, state["roomSlug"])
     try do
       GameRegistry.remove(state["roomSlug"])
