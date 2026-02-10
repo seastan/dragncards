@@ -25,6 +25,7 @@ import { pl } from "date-fns/locale";
 import { usePreloadCardImages } from "../../hooks/usePreloadCardImages";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { SettingsModal } from "./SettingsModal";
+import { AutomationModal } from "./AutomationModal";
 import { useIsHost } from "./hooks/useIsHost";
 import { useDoActionList } from "./hooks/useDoActionList";
 import { useSetTouchAction } from "./hooks/useSetTouchAction";
@@ -112,6 +113,7 @@ export const Table = React.memo(({onDragEnd}) => {
       {showModal === "prebuilt_deck" ? <SpawnPrebuiltModal/> : null}
       {showModal === "public_deck" ? <SpawnPublicDeckModal/> : null}
       {showModal === "settings" ? <SettingsModal/> : null}
+{showModal === "automation" ? <AutomationModal/> : null}
       {showModal === "custom" ? <SpawnCustomCardModal/> : null}
       {showModal === "custom_decks" ? <DeckbuilderModal/> : null}
       {showModal === "custom_content" ? <CustomContentModal/> : null}

@@ -30,6 +30,7 @@ module.exports = {
         "black-40": "rgba(0,0,0,0.4)",
         "blue-400-50": "rgba(99,179,237,0.5)",
         "yellow-950": "#271605",
+        'gray-550': '#5a6474',
         'gray-600-10': 'rgba(75, 85, 99, 0.1)',  // bg-gray-600 with 10% opacity
         'gray-600-20': 'rgba(75, 85, 99, 0.2)',  // bg-gray-600 with 20% opacity
         'gray-600-30': 'rgba(75, 85, 99, 0.3)',  // bg-gray-600 with 30% opacity

@@ -16,6 +16,7 @@ import { usePlayerN } from "./hooks/usePlayerN";
 import store from "../../store";
 import { useIsHost } from "./hooks/useIsHost";
 import { Z_INDEX } from "./functions/common";
+import { ToggleSwitch } from "./AutomationModal";
 
 // Move to another file, use this to set the default falues in playerUiSlice
 export const uiSettings = {
@@ -255,11 +256,14 @@ const ModalContent = () => {
       <h1 className="mb-1">{siteL10n("playerPreferences")}</h1>
       {description("playerPreferencesDescription")}
       <SettingModalTable settings={gameDefPlayerSettings} currentKeyVals={currentPlayerKeyVals} defaultKeyVals={defaultPlayerKeyVals} setCurrentFunction={setCurrentPlayerKeyVals} setDefaultFunction={setDefaultPlayerKeyVals} l10n={gameL10n}/>
-      {isHost && 
+      {isHost &&
         <div>
           <h1 className="mb-1">{siteL10n("gamePreferences")}</h1>
           {description("gamePreferencesDescription")}
           <SettingModalTable settings={gameDefGameSettings} currentKeyVals={currentGameKeyVals} defaultKeyVals={defaultGameKeyVals} setCurrentFunction={setCurrentGameKeyVals} setDefaultFunction={setDefaultGameKeyVals} l10n={gameL10n}/>
+          <Button isPrimary className="my-2" onClick={() => dispatch(setShowModal("automation"))}>
+            Automation Preferences
+          </Button>
         </div>
       }
       <div className="flex items-center justify-between">
@@ -359,13 +363,10 @@ const SettingsModalFormElement = ({val, settingObj, setFunction, l10n}) => {
       );
     case 'boolean':
       return (
-        <input
-          type="checkbox"
-          className="p-1"
+        <ToggleSwitch
           checked={val}
-          onChange={(e) => {
-            const newValue = e.target.checked;
-            setFunction(prevSettings => ({...prevSettings, [settingObj.id]: newValue}))}
+          onChange={(newValue) =>
+            setFunction(prevSettings => ({...prevSettings, [settingObj.id]: newValue}))
           }
         />
       );

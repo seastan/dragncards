@@ -158,6 +158,21 @@
       game
     end
 
+    # Apply automation defaults
+    user_automation_defaults = get_in(user.plugin_settings, ["#{plugin_id}", "automation"]) || %{}
+    game = put_in(game, ["automationDefaults"], user_automation_defaults)
+
+    # Disable game rules per user defaults
+    game_rule_defaults = user_automation_defaults["gameRules"] || %{}
+    game = Enum.reduce(game_rule_defaults, game, fn {rule_id, disabled}, acc ->
+      if disabled == true and get_in(acc, ["ruleById", rule_id]) != nil do
+        acc = put_in(acc, ["ruleById", rule_id, "disabled"], true)
+        Evaluate.evaluate(acc, ["LOG", "[system] Game rule '#{rule_id}' disabled by host preferences."])
+      else
+        acc
+      end
+    end)
+
     Logger.debug("Set game settings")
     game
   end
