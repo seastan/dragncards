@@ -1,10 +1,10 @@
 import React, {useEffect, useState} from "react";
 import { useDispatch } from 'react-redux';
 import ReactModal from "react-modal";
-import { faSort, faSortDown, faSortUp } from "@fortawesome/free-solid-svg-icons";
+import { faChevronRight, faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { DropdownItem, GoBack } from "./DropdownMenuHelpers";
 import { setShowModal, setTyping } from "../store/playerUiSlice";
-import { useGameL10n } from "./hooks/useGameL10n";
 import { useSiteL10n } from "../../hooks/useSiteL10n";
 import { usePlugin } from "./hooks/usePlugin";
 import { RotatingLines } from "react-loader-spinner";
@@ -13,8 +13,11 @@ import { useAuthOptions } from "../../hooks/useAuthOptions";
 import { useImportLoadList } from "./hooks/useImportLoadList";
 import { Z_INDEX } from "./functions/common";
 
-
-const RESULTS_LIMIT = 100;
+const isStringMatch = (searchStr, target) => {
+  if (!target) return false;
+  return target.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "")
+    .includes(searchStr.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, ""));
+};
 
 export const SpawnPublicDeckModal = React.memo(({}) => {
     const dispatch = useDispatch();
@@ -30,7 +33,7 @@ export const SpawnPublicDeckModal = React.memo(({}) => {
           dispatch(setShowModal(null));
           dispatch(setTyping(false));
         }}
-        contentLabel={"Load quest"}
+        contentLabel={"Load public deck"}
         overlayClassName="fixed inset-0 bg-black-50"
         className="insert-auto p-5 bg-gray-700 border max-h-lg mx-auto my-2 rounded-lg outline-none"
         style={{
@@ -38,179 +41,240 @@ export const SpawnPublicDeckModal = React.memo(({}) => {
             zIndex: Z_INDEX.Modal
           },
           content: {
-            width: "80dvh",
+            width: "40vw",
+            maxWidth: "1200px",
             maxHeight: "95dvh",
             overflowY: "scroll",
           }
         }}>
         <h1 className="mb-2">{siteL10n("Load public custom deck")}</h1>
-        <Table/>
-      </ReactModal>  
+        <ModalContent/>
+      </ReactModal>
     )
 })
 
-
-const Table = React.memo(({}) => {
+const ModalContent = () => {
   const plugin = usePlugin();
   const authOptions = useAuthOptions();
-  const importLoadList = useImportLoadList();
-  const [sortConfig, setSortConfig] = useState({ column: null, direction: null });
-  const gameL10n = useGameL10n();
-  const [objectDb, setObjectDb] = useState({});
-
-  const [sortedIds, setSortedIds] = useState([]);
-  const [filteredIds, setFilteredIds] = useState([]);
-  const [filters, setFilters] = useState({});
+  const [decks, setDecks] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const columnInfo = [{propName: "author_alias", label: "Author"}, {propName: "name", label: "Name"}];
-
-  console.log("Rendering DeckbuilderTable", columnInfo, filters);
-
-  const handleFilterTyping = (event, propName) => {
-    const filteredVal = event.target.value;
-    console.log("filtertype", filters, filteredVal, propName);
-    // If the filter is empty, remove it from the filters
-    if (filteredVal === "") {
-      const filtersCopy = {...filters};
-      delete filtersCopy[propName];
-      setFilters(filtersCopy);
-      return;
-    }
-    // Otherwise, set the filter
-    setFilters({...filters, [propName]: filteredVal});
-  };
-
-  const handleSort = (columnName) => {
-    const direction = sortConfig.column === columnName && sortConfig.direction === 'asc' ? 'desc' : 'asc';
-    setSortConfig({ column: columnName, direction });
-    // Stable sort the cardIds
-    const sortedIdsCopy = [...sortedIds];
-    sortedIdsCopy.sort((a, b) => {
-      const aValue = objectDb[a][columnName];
-      const bValue = objectDb[b][columnName];
-      // String comparison
-      return direction === 'asc' ? aValue?.localeCompare(bValue) : bValue?.localeCompare(aValue);
-    });
-    setSortedIds(sortedIdsCopy);
-  };
-
-  const handleRowClick = (obj) => {
-    console.log("handleRowClick", obj);
-    importLoadList(obj.load_list);
-  };
+  const [nameFilter, setNameFilter] = useState("");
+  const [authorFilter, setAuthorFilter] = useState("");
 
   useEffect(() => {
-    setSortedIds(Object.keys(objectDb));
-  }, [objectDb]);
-
-  useEffect(() => {
-    const tableContainer = document.querySelector('.deckbuilder-table');
-    if (tableContainer) {
-      tableContainer.scrollLeft = 0;
-    }
-  }, []);
-
-  useEffect(() => {
-    const fetchCustomContent = async () => {
+    const fetchDecks = async () => {
       const res = await Axios.get(`/be/api/v1/public_decks/${plugin.id}`, authOptions);
       if (res?.data?.public_decks) {
-        const publicDecks = res.data.public_decks;
-        setObjectDb(publicDecks)
+        setDecks(Object.values(res.data.public_decks));
       }
       setLoading(false);
     }
-    if (plugin?.id) fetchCustomContent();
+    if (plugin?.id) fetchDecks();
   }, [plugin?.id]);
 
-  useEffect(() => {
-    // Filter the cardIds
-    const filteredIds = sortedIds.filter(id => {
-      return Object.entries(filters).every(([propName, filterVal]) => {
-        const obj = objectDb[id];
-        const match = (
-          obj[propName] !== null &&
-          obj[propName] !== "" &&
-          String(obj[propName]).toLowerCase().includes(String(filterVal).toLowerCase())
-        );
-        return match;
-      });
-    });
-    setFilteredIds(filteredIds);
-  }, [filters, sortedIds]);
-
-  //return;
-  if (!objectDb) return;
-
-  console.log("deckbuilder objectDb 2", columnInfo)
-  return (
-    loading ?
+  if (loading) {
+    return (
       <div className="flex h-full w-full items-center justify-center" style={{width:"30px", height:"30px"}}>
         <RotatingLines height={100} width={100} strokeColor="white"/>
       </div>
-      :
-      <div className="overflow-scroll deckbuilder-table w-full">
-        <table className="table-fixed rounded-lg w-full">
-          <thead>
-            <tr className="bg-gray-800">
-              {columnInfo?.map((colDetails, colindex) => {
-                const isSorted = sortConfig.column === colDetails.propName;
-                return (
-                  <th key={colindex} className="p-2">
-                    <div className="text-white whitespace-nowrap flex justify-between items-center">
-                      {gameL10n(colDetails.label)}
-                      <div 
-                        className="px-1 rounded border hover:bg-red-700"
-                        onClick={() => handleSort(colDetails.propName)}>
-                        <FontAwesomeIcon
-                          icon={isSorted ? (sortConfig.direction === 'asc' ? faSortUp : faSortDown) : faSort}
-                          className="cursor-pointer"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <input 
-                        autoFocus
-                        style={{width:"95%"}} 
-                        type="text"
-                        id="name" 
-                        name="name" 
-                        className="m-2 rounded" 
-                        placeholder={"Filter " + gameL10n(colDetails.label)} 
-                        value={filters[colDetails.propName] || ""}
-                        onChange={(event) => handleFilterTyping(event, colDetails.propName)}
-                      />
-                    </div>
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-          <tbody>
-            {filteredIds.length <= RESULTS_LIMIT && filteredIds.map((id, rowindex) => {
-              const obj = objectDb[id];
-              const rowClass = rowindex % 2 === 0 ? 'bg-gray-400' : 'bg-gray-500';
-    
-              if (obj) return (
-                <tr 
-                  key={rowindex} 
-                  className={`${rowClass} text-black hover:bg-gray-600 cursor-pointer`} 
-                  onClick={() => handleRowClick(obj)}
-                >
-                  {columnInfo?.map((colDetails, colindex) => {
-                    const content = obj[colDetails.propName];
-                    const isCenteredContent = (typeof content === 'string' && content.length === 1) || !isNaN(+content);
-                    const cellClass = `p-2 whitespace-nowrap text-ellipsis overflow-hidden ${isCenteredContent ? 'text-center' : ''}`;
-                    return (
-                      <td key={colindex} className={cellClass}>{content}</td>
-                    );
-                  })}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        {filteredIds.length > RESULTS_LIMIT && <div className="p-1 text-white">Too many results</div>}
-      </div>
+    );
+  }
+
+  const hasFilter = nameFilter || authorFilter;
+
+  return (
+    <>
+      <SearchBoxes
+        nameFilter={nameFilter}
+        setNameFilter={setNameFilter}
+        authorFilter={authorFilter}
+        setAuthorFilter={setAuthorFilter}
+      />
+      {hasFilter
+        ? <FilteredList decks={decks} nameFilter={nameFilter} authorFilter={authorFilter}/>
+        : <AuthorMenu decks={decks}/>
+      }
+    </>
   );
-})
+};
+
+const SearchBoxes = ({ nameFilter, setNameFilter, authorFilter, setAuthorFilter }) => {
+  const dispatch = useDispatch();
+  return (
+    <div className="flex gap-2 mb-2">
+      <input
+        style={{width:"50%"}}
+        type="text"
+        className="rounded-md p-1"
+        placeholder=" Deck name..."
+        value={nameFilter}
+        onChange={(e) => setNameFilter(e.target.value)}
+        onFocus={() => dispatch(setTyping(true))}
+        onBlur={() => dispatch(setTyping(false))}
+      />
+      <input
+        style={{width:"50%"}}
+        type="text"
+        className="rounded-md p-1"
+        placeholder=" Author..."
+        value={authorFilter}
+        onChange={(e) => setAuthorFilter(e.target.value)}
+        onFocus={() => dispatch(setTyping(true))}
+        onBlur={() => dispatch(setTyping(false))}
+      />
+    </div>
+  );
+};
+
+const FilteredList = ({ decks, nameFilter, authorFilter }) => {
+  const importLoadList = useImportLoadList();
+  const dispatch = useDispatch();
+
+  const filtered = decks.filter(deck => {
+    if (nameFilter && !isStringMatch(nameFilter, deck.name)) return false;
+    if (authorFilter && !isStringMatch(authorFilter, deck.author_alias)) return false;
+    return true;
+  }).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+
+  const handleDeckClick = (deck) => {
+    importLoadList(deck.load_list);
+    dispatch(setShowModal(null));
+  };
+
+  if (filtered.length === 0) return <div className="text-white">No results</div>;
+
+  return (
+    <table className="table-fixed rounded-lg w-full">
+      <thead>
+        <tr className="text-white bg-gray-800">
+          <th className="w-1/2 p-2 text-left">Name</th>
+          <th className="w-1/2 p-2 text-left">Author</th>
+        </tr>
+      </thead>
+      <tbody>
+        {filtered.map((deck) => (
+          <tr
+            key={deck.id}
+            className="bg-gray-600 text-white cursor-pointer hover:bg-gray-500 hover:text-black"
+            onClick={() => handleDeckClick(deck)}
+          >
+            <td className="p-1">{deck.name}</td>
+            <td className="p-1">{deck.author_alias}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+};
+
+const AuthorMenu = ({ decks }) => {
+  const [selectedAuthor, setSelectedAuthor] = useState(null);
+
+  // Group decks by author
+  const authorMap = {};
+  decks.forEach(deck => {
+    const author = deck.author_alias || "Unknown";
+    if (!authorMap[author]) {
+      authorMap[author] = {
+        alias: author,
+        supporterLevel: deck.author_supporter_level || 0,
+        decks: [],
+      };
+    }
+    authorMap[author].decks.push(deck);
+  });
+
+  // Split into supporters and regular, sorted alphabetically
+  const supporters = Object.values(authorMap)
+    .filter(a => a.supporterLevel > 0)
+    .sort((a, b) => a.alias.localeCompare(b.alias));
+  const regular = Object.values(authorMap)
+    .filter(a => a.supporterLevel <= 0)
+    .sort((a, b) => a.alias.localeCompare(b.alias));
+
+  if (selectedAuthor) {
+    const authorData = authorMap[selectedAuthor];
+    if (!authorData) {
+      setSelectedAuthor(null);
+      return null;
+    }
+    return (
+      <AuthorDeckList
+        authorData={authorData}
+        onGoBack={() => setSelectedAuthor(null)}
+      />
+    );
+  }
+
+  return (
+    <div className="modalmenu bg-gray-800">
+      <div className="menu">
+        {supporters.length > 0 && (
+          <>
+            <div className="text-yellow-400 text-sm font-bold px-2 pt-2 pb-1">Supporters</div>
+            {supporters.map(author => (
+              <AuthorMenuItem
+                key={author.alias}
+                author={author}
+                onClick={() => setSelectedAuthor(author.alias)}
+              />
+            ))}
+            <div className="text-gray-400 text-sm font-bold px-2 pt-3 pb-1">Community</div>
+          </>
+        )}
+        {regular.map(author => (
+          <AuthorMenuItem
+            key={author.alias}
+            author={author}
+            onClick={() => setSelectedAuthor(author.alias)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const AuthorMenuItem = ({ author, onClick }) => {
+  return (
+    <DropdownItem
+      rightIcon={<FontAwesomeIcon icon={faChevronRight}/>}
+      clickCallback={onClick}
+    >
+      <span className="flex-1">{author.alias}</span>
+      <span className="text-gray-400 text-sm mr-2">
+        {author.decks.length} {author.decks.length === 1 ? "deck" : "decks"}
+      </span>
+    </DropdownItem>
+  );
+};
+
+const AuthorDeckList = ({ authorData, onGoBack }) => {
+  const importLoadList = useImportLoadList();
+  const dispatch = useDispatch();
+
+  const sortedDecks = [...authorData.decks].sort((a, b) =>
+    (a.name || "").localeCompare(b.name || "")
+  );
+
+  const handleDeckClick = (deck) => {
+    importLoadList(deck.load_list);
+    dispatch(setShowModal(null));
+  };
+
+  return (
+    <div className="modalmenu bg-gray-800">
+      <div className="menu">
+        <GoBack clickCallback={onGoBack}/>
+        {sortedDecks.map(deck => (
+          <DropdownItem
+            key={deck.id}
+            rightIcon={<FontAwesomeIcon icon={faPlus}/>}
+            clickCallback={() => handleDeckClick(deck)}
+          >
+            {deck.name}
+          </DropdownItem>
+        ))}
+      </div>
+    </div>
+  );
+};

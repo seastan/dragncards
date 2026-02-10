@@ -46,7 +46,8 @@ defmodule DragnCards.Decks do
         load_list: d.load_list,
         public: d.public,
         author_id: d.author_id,
-        author_alias: u.alias
+        author_alias: u.alias,
+        author_supporter_level: u.supporter_level
       }
     )
     |> Repo.all()

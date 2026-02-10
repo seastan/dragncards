@@ -53,27 +53,26 @@
   
   /* Icon Button */
   .icon-button {
-    --button-size: calc(var(--nav-size) * 0.5);
-    width: var(--button-size);
-    height: var(--button-size);
+    width: 3.5dvh;
+    height: 3.5dvh;
     background-color: #484a4d;
     border-radius: 50%;
-    padding: 5px;
-    margin: 2px;
+    padding: 0.5dvh;
+    margin: 0.25dvh;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: filter 300ms;
   }
-  
+
   .icon-button:hover {
     filter: brightness(1.2);
   }
-  
-  .icon-button svg { 
+
+  .icon-button svg {
     fill: var(--text-color);
-    width: 20px;
-    height: 20px;
+    width: 2dvh;
+    height: 2dvh;
   }
   
   
