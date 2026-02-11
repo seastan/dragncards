@@ -1,5 +1,7 @@
 import React from "react";
 import ReactModal from "react-modal";
+import { faHeart } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Button from "../../../components/basic/Button";
 import { PleaseLogIn } from "../../lobby/PleaseLogIn";
 import PatreonButton from "./PatreonButton";
@@ -15,7 +17,7 @@ export const PatreonModal = ({
     const tiers = [
         { 
           amount: 300, 
-          benefits: ["Unlimited saved games", "Saved games include full replay", "Idle room timeout increased from 1 hour to 24 hours"] 
+          benefits: ["Unlimited saved games", "Saved games include full replay", "Favorite prebuilt decks and URLs", "Idle room timeout increased from 1 hour to 24 hours"]
         },
         { 
           amount: 500,  
@@ -58,7 +60,7 @@ export const PatreonModal = ({
                     redirectURI={redirectURI}
                 />
                 <ul className="text-white mt-2 list-disc list-inside">
-                  {tier.benefits.map((benefit, i) => <li key={i}>{benefit}</li>)}
+                  {tier.benefits.map((benefit, i) => <li key={i}>{benefit}{benefit === "Favorite prebuilt decks and URLs" && <FontAwesomeIcon icon={faHeart} style={{color: "#e53e3e", marginLeft: "6px", fontSize: "0.85em"}}/>}</li>)}
                 </ul>
                 </div>
             ))}
