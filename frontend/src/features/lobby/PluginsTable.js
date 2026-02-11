@@ -17,16 +17,16 @@ export const PluginsTable = ({ plugins }) => {
   const authOptions = useAuthOptions();
 
   const [favorites, setFavorites] = useState(
-    () => user?.plugin_settings?.lobby?.favoritePlugins || {}
+    () => user?.favorite_plugins || {}
   );
 
   // Sync favorites when user profile loads or updates (e.g. after page refresh)
   useEffect(() => {
-    const loaded = user?.plugin_settings?.lobby?.favoritePlugins;
+    const loaded = user?.favorite_plugins;
     if (loaded) {
       setFavorites(loaded);
     }
-  }, [user?.plugin_settings?.lobby?.favoritePlugins]);
+  }, [user?.favorite_plugins]);
 
   const toggleFavorite = async (pluginId) => {
     const newFavorites = {...favorites};
@@ -37,19 +37,12 @@ export const PluginsTable = ({ plugins }) => {
     }
     setFavorites(newFavorites);
 
-    const settingsUpdate = { favoritePlugins: newFavorites };
-    const newDatabasePluginSettings = { lobby: settingsUpdate };
-    await Axios.post("/be/api/v1/profile/update_plugin_user_settings", newDatabasePluginSettings, authOptions);
+    await Axios.post("/be/api/v1/profile/update_favorite_plugins", { favorite_plugins: newFavorites }, authOptions);
 
-    const pluginSettings = user.plugin_settings || {};
-    pluginSettings.lobby = {
-      ...pluginSettings.lobby,
-      ...settingsUpdate,
-    };
     user.setData({
       user_profile: {
         ...user,
-        plugin_settings: pluginSettings,
+        favorite_plugins: newFavorites,
       }
     });
   };

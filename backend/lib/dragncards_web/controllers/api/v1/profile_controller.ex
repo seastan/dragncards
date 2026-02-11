@@ -58,6 +58,27 @@ defmodule DragnCardsWeb.API.V1.ProfileController do
     end
   end
 
+  def update_favorite_plugins(conn, %{"favorite_plugins" => favorite_plugins}) do
+    current_user = conn.assigns.current_user
+    if current_user do
+      user = Repo.get!(User, current_user.id)
+      changeset = Ecto.Changeset.change(user, %{favorite_plugins: favorite_plugins})
+
+      case Repo.update(changeset) do
+        {:ok, _user} ->
+          Pow.Plug.update_user(conn, %{})
+          conn
+          |> json(%{success: %{message: "Updated favorite plugins"}})
+        {:error, changeset} ->
+          conn
+          |> json(%{error: %{message: "Failed to update favorite plugins", changeset: changeset}})
+      end
+    else
+      conn
+      |> json(%{error: %{message: "User not authenticated"}})
+    end
+  end
+
   def update_plugin_user_settings(conn, nested_obj) do
     current_user = conn.assigns.current_user
     IO.puts "current_user: #{inspect(current_user)}"
