@@ -92,6 +92,7 @@ defmodule DragnCardsWeb.Router do
     post("/profile/update", ProfileController, :update)
     post("/profile/update_plugin_user_settings", ProfileController, :update_plugin_user_settings)
     post("/profile/update_favorite_plugins", ProfileController, :update_favorite_plugins)
+    post("/profile/update_whats_new_dismissed", ProfileController, :update_whats_new_dismissed)
     get("/profile/:id", ProfileController, :show)
 
     # reCAPTCHA verification

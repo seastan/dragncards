@@ -79,6 +79,27 @@ defmodule DragnCardsWeb.API.V1.ProfileController do
     end
   end
 
+  def update_whats_new_dismissed(conn, %{"version" => version}) do
+    current_user = conn.assigns.current_user
+    if current_user do
+      user = Repo.get!(User, current_user.id)
+      changeset = Ecto.Changeset.change(user, %{whats_new_dismissed: version})
+
+      case Repo.update(changeset) do
+        {:ok, _user} ->
+          Pow.Plug.update_user(conn, %{})
+          conn
+          |> json(%{success: %{message: "Dismissed what's new"}})
+        {:error, changeset} ->
+          conn
+          |> json(%{error: %{message: "Failed to dismiss what's new", changeset: changeset}})
+      end
+    else
+      conn
+      |> json(%{error: %{message: "User not authenticated"}})
+    end
+  end
+
   def update_plugin_user_settings(conn, nested_obj) do
     current_user = conn.assigns.current_user
     IO.puts "current_user: #{inspect(current_user)}"

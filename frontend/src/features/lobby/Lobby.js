@@ -3,9 +3,17 @@ import useDataApi from "../../hooks/useDataApi";
 import { PluginsTable } from "./PluginsTable";
 import LobbyContainer from "./LobbyContainer";
 import useProfile from "../../hooks/useProfile";
+import { WhatsNewModal, WHATS_NEW_VERSION } from "./WhatsNewModal";
 
 export const Lobby = () => {
   const user = useProfile();
+  const [showWhatsNew, setShowWhatsNew] = useState(false);
+
+  useEffect(() => {
+    if (user?.id && (user.whats_new_dismissed || 0) < WHATS_NEW_VERSION) {
+      setShowWhatsNew(true);
+    }
+  }, [user?.id]);
   const [replayId, setReplayId] = useState("");
   const [ringsDbInfo, setRingsDbInfo] = useState([null,null,null,null]);
   const [pluginsType, setPluginsType] = useState("public");
@@ -57,6 +65,7 @@ export const Lobby = () => {
 
   return (
     <LobbyContainer>
+      <WhatsNewModal isOpen={showWhatsNew} closeModal={() => setShowWhatsNew(false)} user={user} />
       <div className="w-full" style={{minHeight: "600px"}}>
         {/* <div className="bg-red-600-30 p-4 rounded-lg mb-4 text-white text-sm">A recent DragnCards update has impacted the performance of some plugins</div> */}
         <div className="text-center text-white text-2xl mb-2">
