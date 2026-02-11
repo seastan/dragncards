@@ -54,7 +54,7 @@ export const SettingsModal = React.memo(({}) => {
         }}
         contentLabel={"Load quest"}
         overlayClassName="fixed inset-0 bg-black-50"
-        className="insert-auto p-5 bg-gray-700 border max-h-lg mx-auto my-2 rounded-lg outline-none"
+        className="insert-auto bg-gray-800 border border-gray-600 max-h-lg mx-auto mt-12 rounded-lg outline-none"
         style={{
           overlay: {
             zIndex: Z_INDEX.Modal
@@ -62,10 +62,20 @@ export const SettingsModal = React.memo(({}) => {
           content: {
             width: "800px",
             maxHeight: "95dvh",
-            overflowY: "scroll",
+            overflowY: "auto",
           }
         }}>
-        <ModalContent/>
+        <div style={{padding: "20px 24px 8px 24px", borderBottom: "1px solid #374151"}}>
+          <h1 style={{margin: 0, fontSize: "1.25rem", fontWeight: 600, color: "white", letterSpacing: "-0.01em"}}>
+            Settings
+          </h1>
+          <p style={{margin: "4px 0 0 0", fontSize: "0.8rem", color: "#9ca3af"}}>
+            Adjust UI, player, and game preferences
+          </p>
+        </div>
+        <div style={{padding: "12px 24px 20px 24px"}}>
+          <ModalContent/>
+        </div>
       </ReactModal>  
     )
 })
@@ -250,15 +260,15 @@ const ModalContent = () => {
 
   return(
     <div className="text-white">
-      <h1 className="mb-1">{siteL10n("uiPreferences")}</h1>
+      <h2 className="mb-1">{siteL10n("uiPreferences")}</h2>
       {description("uiPreferencesDescription")}
       <SettingModalTable settings={uiSettings} currentKeyVals={currentUiKeyVals} defaultKeyVals={defaultUiKeyVals} setCurrentFunction={setCurrentUiKeyVals} setDefaultFunction={setDefaultUiKeyVals} l10n={siteL10n}/>
-      <h1 className="mb-1">{siteL10n("playerPreferences")}</h1>
+      <h2 className="mb-1">{siteL10n("playerPreferences")}</h2>
       {description("playerPreferencesDescription")}
       <SettingModalTable settings={gameDefPlayerSettings} currentKeyVals={currentPlayerKeyVals} defaultKeyVals={defaultPlayerKeyVals} setCurrentFunction={setCurrentPlayerKeyVals} setDefaultFunction={setDefaultPlayerKeyVals} l10n={gameL10n}/>
       {isHost &&
         <div>
-          <h1 className="mb-1">{siteL10n("gamePreferences")}</h1>
+          <h2 className="mb-1">{siteL10n("gamePreferences")}</h2>
           {description("gamePreferencesDescription")}
           <SettingModalTable settings={gameDefGameSettings} currentKeyVals={currentGameKeyVals} defaultKeyVals={defaultGameKeyVals} setCurrentFunction={setCurrentGameKeyVals} setDefaultFunction={setDefaultGameKeyVals} l10n={gameL10n}/>
           <Button isPrimary className="my-2" onClick={() => dispatch(setShowModal("automation"))}>

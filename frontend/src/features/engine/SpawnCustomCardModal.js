@@ -116,7 +116,7 @@ export const SpawnCustomCardModal = React.memo(({}) => {
         }}
         contentLabel="Spawn a custom card"
         overlayClassName="fixed inset-0 bg-black-50"
-        className="insert-auto overflow-auto p-5 bg-gray-700 border mx-auto my-12 rounded-lg outline-none"
+        className="insert-auto overflow-auto bg-gray-800 border border-gray-600 mx-auto mt-12 rounded-lg outline-none"
         style={{
           overlay: {
             zIndex: Z_INDEX.Modal
@@ -124,10 +124,18 @@ export const SpawnCustomCardModal = React.memo(({}) => {
           content: {
             width: "50vw",
             maxHeight: "85dvh",
-            overflowY: "scroll",
+            overflowY: "auto",
           }
         }}>
-        {/* <h1 className="mb-2">Spawn a custom card</h1> */}
+        <div style={{padding: "20px 24px 8px 24px", borderBottom: "1px solid #374151"}}>
+          <h1 style={{margin: 0, fontSize: "1.25rem", fontWeight: 600, color: "white", letterSpacing: "-0.01em"}}>
+            Create Custom Card
+          </h1>
+          <p style={{margin: "4px 0 0 0", fontSize: "0.8rem", color: "#9ca3af"}}>
+            Design and spawn a custom card
+          </p>
+        </div>
+        <div style={{padding: "12px 24px 20px 24px"}}>
 
         <form className="w-full" onSubmit={handleSubmit(onSubmit)}> 
           <label for="owner"><h2 className="text-white">Load group: </h2></label>
@@ -177,6 +185,7 @@ export const SpawnCustomCardModal = React.memo(({}) => {
             </div>
           </div>
         </form>
+        </div>
 
       </ReactModal>
     )

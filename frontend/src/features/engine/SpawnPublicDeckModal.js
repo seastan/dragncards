@@ -5,7 +5,6 @@ import { faChevronRight, faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { DropdownItem, GoBack } from "./DropdownMenuHelpers";
 import { setShowModal, setTyping } from "../store/playerUiSlice";
-import { useSiteL10n } from "../../hooks/useSiteL10n";
 import { usePlugin } from "./hooks/usePlugin";
 import { RotatingLines } from "react-loader-spinner";
 import Axios from "axios";
@@ -21,7 +20,6 @@ const isStringMatch = (searchStr, target) => {
 
 export const SpawnPublicDeckModal = React.memo(({}) => {
     const dispatch = useDispatch();
-    const siteL10n = useSiteL10n();
 
     dispatch(setTyping(true));
 
@@ -35,7 +33,7 @@ export const SpawnPublicDeckModal = React.memo(({}) => {
         }}
         contentLabel={"Load public deck"}
         overlayClassName="fixed inset-0 bg-black-50"
-        className="insert-auto p-5 bg-gray-700 border max-h-lg mx-auto my-2 rounded-lg outline-none"
+        className="insert-auto bg-gray-800 border border-gray-600 max-h-lg mx-auto mt-12 rounded-lg outline-none"
         style={{
           overlay: {
             zIndex: Z_INDEX.Modal
@@ -44,11 +42,20 @@ export const SpawnPublicDeckModal = React.memo(({}) => {
             width: "40vw",
             maxWidth: "1200px",
             maxHeight: "95dvh",
-            overflowY: "scroll",
+            overflowY: "auto",
           }
         }}>
-        <h1 className="mb-2">{siteL10n("Load public custom deck")}</h1>
-        <ModalContent/>
+        <div style={{padding: "20px 24px 8px 24px", borderBottom: "1px solid #374151"}}>
+          <h1 style={{margin: 0, fontSize: "1.25rem", fontWeight: 600, color: "white", letterSpacing: "-0.01em"}}>
+            Load Public Custom Deck
+          </h1>
+          <p style={{margin: "4px 0 0 0", fontSize: "0.8rem", color: "#9ca3af"}}>
+            Browse by author or search by name
+          </p>
+        </div>
+        <div style={{padding: "12px 24px 20px 24px"}}>
+          <ModalContent/>
+        </div>
       </ReactModal>
     )
 })

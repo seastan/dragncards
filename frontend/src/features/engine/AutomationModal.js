@@ -45,7 +45,7 @@ export const AutomationModal = React.memo(() => {
       }}
       contentLabel={"Automation Preferences"}
       overlayClassName="fixed inset-0 bg-black-50"
-      className="insert-auto p-5 bg-gray-700 border max-h-lg mx-auto my-2 rounded-lg outline-none"
+      className="insert-auto bg-gray-800 border border-gray-600 max-h-lg mx-auto mt-12 rounded-lg outline-none"
       style={{
         overlay: {
           zIndex: Z_INDEX.Modal,
@@ -53,7 +53,7 @@ export const AutomationModal = React.memo(() => {
         content: {
           width: "800px",
           maxHeight: "95dvh",
-          overflowY: "scroll",
+          overflowY: "auto",
         },
       }}
     >
@@ -230,14 +230,22 @@ const AutomationModalContent = () => {
 
   return (
     <div className="text-white">
-      <div className="flex items-center justify-between mb-2">
-        <h1>Automation Preferences</h1>
+      <div style={{padding: "20px 24px 8px 24px", borderBottom: "1px solid #374151", display: "flex", alignItems: "center", justifyContent: "space-between"}}>
+        <div>
+          <h1 style={{margin: 0, fontSize: "1.25rem", fontWeight: 600, color: "white", letterSpacing: "-0.01em"}}>
+            Automation Preferences
+          </h1>
+          <p style={{margin: "4px 0 0 0", fontSize: "0.8rem", color: "#9ca3af"}}>
+            Enable or disable game and card automation rules
+          </p>
+        </div>
         <Button isPrimary
           onClick={() => dispatch(setShowModal("settings"))}
         >
           Back to Settings
         </Button>
       </div>
+      <div style={{padding: "12px 24px 20px 24px"}}>
 
       <h2 className="mb-1">Game Rules</h2>
       {gameRules.length === 0 ? (
@@ -341,6 +349,7 @@ const AutomationModalContent = () => {
         <Button isSubmit isPrimary className="my-2 w-64" onClick={handleSave}>
           Update
         </Button>
+      </div>
       </div>
     </div>
   );
