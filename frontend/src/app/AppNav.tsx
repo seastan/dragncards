@@ -1,68 +1,62 @@
-import React, { useState } from "react";
+import React from "react";
 import { Link, useHistory } from "react-router-dom";
-import cx from "classnames";
 import useAuth from "../hooks/useAuth";
 import ProfileLink from "../features/auth/ProfileLink";
-import useWindowDimensions from "../hooks/useWindowDimensions";
 import useProfile from "../hooks/useProfile";
 
-interface Props {}
+const navLinkClass =
+  "px-3 py-1 text-md text-gray-300 font-medium rounded hover:text-white hover:bg-gray-600 no-underline transition-colors duration-150 cursor-pointer";
 
-export const AppNav: React.FC<Props> = () => {
+export const AppNav: React.FC = () => {
   const { authToken, logOut } = useAuth();
   const history = useHistory();
   const user = useProfile();
-  //const { height, width } = useWindowDimensions();
-  const headerLinkClass =
-    "mt-1 sm:mt-0 sm:ml-2 block px-2 py-1 text-white font-light hover:font-normal rounded no-underline";
-  // if (height < 500) return null;
-  // const aspectRatio = width/height;
-  // alert(aspectRatio)
-  // if (aspectRatio > 2) return null;
+
   return (
-    <header className="bg-gray-700 flex justify-between items-center px-4" style={{height:"3dvh",fontFamily:"Roboto", fontSize: "2dvh"}}>
-      <div className="flex items-center justify-between p-0 h-full">
-        <div className="h-full flex text-white justify-center cursor-pointer" onClick={() => history.push("/")}>
-            {/*
-            <img
-              className="h-8 rounded"
-              src="https://placekitten.com/650/150"
-              alt="Logo "
-            />
-                */}
-            Dragn <img className="mt-0.5 mx-0.5" style={{display:"inline", height: "2dvh"}} src={process.env.PUBLIC_URL + '/logosvg.svg'}/> Cards
-        </div>
-      </div>
+    <header
+      className="bg-gray-800 border-b border-gray-700 flex items-center justify-between px-4 py-1"
+      
+    >
+      {/* Logo */}
       <div
-        className="flex"
+        className="flex items-center text-white font-semibold tracking-wide cursor-pointer select-none"
+        style={{ fontSize: "18px" }}
+        onClick={() => history.push("/")}
       >
+        Dragn
+        <img
+          className="mx-1"
+          style={{ height: "18px" }}
+          src={process.env.PUBLIC_URL + "/logosvg.svg"}
+          alt="DragnCards logo"
+        />
+        Cards
+      </div>
+
+      {/* Nav links */}
+      <nav className="flex items-center gap-1">
         {authToken && (
-          <Link to={"/myplugins/"+user?.id} className={headerLinkClass}>
-            <span className="ml-1">My Plugins</span>
+          <Link to={"/myplugins/" + user?.id} className={navLinkClass}>
+            My Plugins
           </Link>
         )}
-        <ProfileLink className={headerLinkClass} />
+        <ProfileLink className={navLinkClass} />
         {!authToken && (
           <>
-            <Link to="/login" className={headerLinkClass}>
+            <Link to="/login" className={navLinkClass}>
               Log In
             </Link>
-            <Link to="/signup" className={headerLinkClass}>
+            <Link to="/signup" className={navLinkClass}>
               Sign Up
             </Link>
           </>
         )}
         {authToken && (
-          <>
-            <span
-              className={headerLinkClass + " underline cursor-pointer"}
-              onClick={() => logOut()}
-            >
-              Sign out
-            </span>
-          </>
+          <span className={navLinkClass} onClick={() => logOut()}>
+            Sign Out
+          </span>
         )}
-      </div>
+      </nav>
     </header>
   );
 };
