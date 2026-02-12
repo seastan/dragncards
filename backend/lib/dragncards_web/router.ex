@@ -117,6 +117,16 @@ defmodule DragnCardsWeb.Router do
     # Alerts
     get("/alerts", AlertController, :show)
 
+    # LFG (Looking for Game)
+    post("/lfg", LfgController, :create)
+    get("/lfg/subscribe/:plugin_id", LfgController, :subscription_status)
+    post("/lfg/subscribe/:plugin_id", LfgController, :subscribe)
+    delete("/lfg/subscribe/:plugin_id", LfgController, :unsubscribe)
+    get("/lfg/:plugin_id", LfgController, :index)
+    delete("/lfg/:id", LfgController, :delete)
+    post("/lfg/:post_id/respond", LfgController, :respond)
+    delete("/lfg/:post_id/respond", LfgController, :cancel_response)
+
   end
 
   # scope "/api/v1", DragnCardsWeb.API.V1, as: :api_v1 do

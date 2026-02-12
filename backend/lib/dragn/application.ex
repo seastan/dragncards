@@ -31,6 +31,22 @@ defmodule DragnCards.Application do
          every: :timer.hours(24)},
         id: :patreon_sync
       ),
+      # LFG room creation (every minute)
+      Supervisor.child_spec(
+        {Periodic,
+         run: &DragnCards.Lfg.create_rooms_for_filled_posts/0,
+         initial_delay: :timer.minutes(2),
+         every: :timer.minutes(1)},
+        id: :lfg_room_creation
+      ),
+      # LFG expired post cleanup (every hour)
+      Supervisor.child_spec(
+        {Periodic,
+         run: &DragnCards.Lfg.cleanup_expired_posts/0,
+         initial_delay: :timer.minutes(10),
+         every: :timer.hours(1)},
+        id: :lfg_cleanup
+      ),
       # Phoenix PubSub
       {Phoenix.PubSub, [name: DragnCards.PubSub, adapter: Phoenix.PubSub.PG2]},
       # Start the CardCache as a GenServer

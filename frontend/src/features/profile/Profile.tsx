@@ -171,32 +171,7 @@ export const Profile: React.FC<Props> = () => {
       {/* Settings */}
       <ProfileSettings/>
 
-      {/* Delete Account */}
-      <div style={{...sectionStyle, borderColor: "rgba(220, 38, 38, 0.3)"}}>
-        <h1 style={{...headingStyle, color: "#fca5a5"}}>Delete Account</h1>
-        <p style={{color: "#9ca3af", fontSize: "0.85rem", margin: "0 0 12px 0"}}>
-          Permanently delete your account and all associated data. This action cannot be undone.
-        </p>
-        <Button
-          isCancel
-          onClick={async () => {
-            const confirmText = window.prompt(
-              'This will permanently delete your account, saved games, decks, and custom content. Type "DELETE" to confirm.'
-            );
-            if (confirmText !== "DELETE") return;
-            try {
-              await axios.delete("/be/api/v1/profile", authOptions);
-              logOut();
-              history.push("/");
-            } catch (e) {
-              alert("Failed to delete account. Please try again.");
-            }
-          }}
-        >
-          Delete My Account
-        </Button>
-      </div>
-
+      {/* Saved Games */}
       {filteredData ?
         <div style={{...sectionStyle, padding: "0", overflow: "hidden"}}>
           <div className="enforce-bg-none">
@@ -228,6 +203,33 @@ export const Profile: React.FC<Props> = () => {
           <p style={{color: "#9ca3af", fontSize: "0.85rem", margin: 0}}>Loading saved games...</p>
         </div>
       }
+
+
+      {/* Delete Account */}
+      <div style={{...sectionStyle, borderColor: "rgba(220, 38, 38, 0.3)"}}>
+        <h1 style={{...headingStyle, color: "#fca5a5"}}>Delete Account</h1>
+        <p style={{color: "#9ca3af", fontSize: "0.85rem", margin: "0 0 12px 0"}}>
+          Permanently delete your account and all associated data. This action cannot be undone.
+        </p>
+        <Button
+          isCancel
+          onClick={async () => {
+            const confirmText = window.prompt(
+              'This will permanently delete your account, saved games, decks, and custom content. Type "DELETE" to confirm.'
+            );
+            if (confirmText !== "DELETE") return;
+            try {
+              await axios.delete("/be/api/v1/profile", authOptions);
+              logOut();
+              history.push("/");
+            } catch (e) {
+              alert("Failed to delete account. Please try again.");
+            }
+          }}
+        >
+          Delete My Account
+        </Button>
+      </div>
     </div>
   );
 };
