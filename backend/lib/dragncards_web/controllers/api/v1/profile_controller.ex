@@ -100,6 +100,25 @@ defmodule DragnCardsWeb.API.V1.ProfileController do
     end
   end
 
+  def delete_account(conn, _params) do
+    current_user = conn.assigns.current_user
+    if current_user do
+      case Users.delete_user(current_user.id) do
+        {:ok, _result} ->
+          Pow.Plug.delete(conn)
+          conn
+          |> json(%{success: %{message: "Account deleted"}})
+        {:error, reason} ->
+          conn
+          |> put_status(500)
+          |> json(%{error: %{message: "Failed to delete account", reason: inspect(reason)}})
+      end
+    else
+      conn
+      |> json(%{error: %{message: "User not authenticated"}})
+    end
+  end
+
   def update_plugin_user_settings(conn, nested_obj) do
     current_user = conn.assigns.current_user
     IO.puts "current_user: #{inspect(current_user)}"

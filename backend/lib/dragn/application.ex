@@ -23,6 +23,14 @@ defmodule DragnCards.Application do
        run: &DragnCardsGame.GameRegistry.cleanup/0,
        initial_delay: :timer.seconds(1),
        every: :timer.minutes(5)},
+      # Daily Patreon supporter level reconciliation
+      Supervisor.child_spec(
+        {Periodic,
+         run: &DragnCards.Users.sync_supporter_levels/0,
+         initial_delay: :timer.minutes(5),
+         every: :timer.hours(24)},
+        id: :patreon_sync
+      ),
       # Phoenix PubSub
       {Phoenix.PubSub, [name: DragnCards.PubSub, adapter: Phoenix.PubSub.PG2]},
       # Start the CardCache as a GenServer

@@ -21,6 +21,7 @@ const releases = [
           "Favorite plugins — Click the star next to any plugin in the lobby to pin it to the top of your list.",
           "Automation toggles — Hosts can now enable or disable individual automation rules during a game via View > Preferences > Automation Preferences.",
           "Improved public custom-deck loading.",
+          "You can now delete your account from the profile settings page.",
         ],
       },
       {

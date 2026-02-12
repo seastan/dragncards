@@ -93,13 +93,15 @@ defmodule DragnCardsWeb.Router do
     post("/profile/update_plugin_user_settings", ProfileController, :update_plugin_user_settings)
     post("/profile/update_favorite_plugins", ProfileController, :update_favorite_plugins)
     post("/profile/update_whats_new_dismissed", ProfileController, :update_whats_new_dismissed)
+    delete("/profile", ProfileController, :delete_account)
     get("/profile/:id", ProfileController, :show)
 
     # reCAPTCHA verification
     post("/recaptcha/verify", RecaptchaController, :verify)
 
-    # Admin Contact
+    # Admin
     get("/admin_contact", AdminContactController, :index)
+    post("/admin/update_user_patreon", AdminController, :update_user_patreon)
 
     # Create a game room
     post("/games", GameController, :create)

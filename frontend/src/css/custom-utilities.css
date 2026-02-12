@@ -192,9 +192,11 @@ padding: 0;
 
 .enforce-bg-none {
   background: none !important;
+  color: white !important;
 }
 .enforce-bg-none * {
   background: inherit !important;
+  color: inherit !important;
 }
 
 .enforce-bg-blue {

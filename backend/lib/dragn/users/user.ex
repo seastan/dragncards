@@ -17,6 +17,7 @@ defmodule DragnCards.Users.User do
     field(:alias, :string)
     field(:admin, :boolean, default: false)
     field(:supporter_level, :integer)
+    field(:patreon_member_id, :string)
     field(:language, :string, default: "English")
     field(:plugin_settings, :map, default: %{})
     field(:favorite_plugins, :map, default: %{})
@@ -55,6 +56,7 @@ defmodule DragnCards.Users.User do
       inserted_at: user.inserted_at,
       email_confirmed_at: user.email_confirmed_at,
       supporter_level: user.supporter_level,
+      patreon_member_id: user.patreon_member_id,
       language: user.language,
       plugin_settings: user.plugin_settings,
       favorite_plugins: user.favorite_plugins,

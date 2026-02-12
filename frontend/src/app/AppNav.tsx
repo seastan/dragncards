@@ -35,6 +35,11 @@ export const AppNav: React.FC = () => {
 
       {/* Nav links */}
       <nav className="flex items-center gap-1">
+        {authToken && user?.admin && (
+          <Link to="/admin" className={navLinkClass}>
+            Admin
+          </Link>
+        )}
         {authToken && (
           <Link to={"/myplugins/" + user?.id} className={navLinkClass}>
             My Plugins
