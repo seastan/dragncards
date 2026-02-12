@@ -29,7 +29,6 @@ frontend/.env
 frontend/PROTOTYPE_INSTALLATION.md
 frontend/babel.config.js
 frontend/node_modules_bak/
-frontend/src/features/admin/
 frontend/src/features/engine/functions/getHoverOverRegionType.js
 frontend/src/features/engine/hooks/useSetKeypress.js
 frontend/src/features/engine/hooks/useZIndex.js
