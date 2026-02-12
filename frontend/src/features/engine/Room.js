@@ -98,8 +98,13 @@ export const Room = ({ slug }) => {
     } else if (event === "users_changed" && payload !== null) {
       dispatch(setSockets(payload));
     } else if (event === "unable_to_get_state_on_join") {
-      alert("Unable to get game state. Room was closed.");
-      //setRoomClosed(true);
+      dispatch(setAlert({
+        level: "warning",
+        text: "This room has been closed due to inactivity.",
+        action: "room_closed",
+        autoClose: false,
+        timestamp: Date.now()
+      }));
     } else if (event === "bad_game_state" && payload !== null) {
       const errors = payload.errors;
       console.error("Bad game state received:", errors);

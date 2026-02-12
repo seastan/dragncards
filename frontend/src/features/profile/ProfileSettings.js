@@ -1,6 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { useHistory } from "react-router-dom";
-import Container from "../../components/basic/Container";
+import React, { useState, useEffect } from "react";
 import Button from "../../components/basic/Button";
 import useProfile from "../../hooks/useProfile";
 import useForm from "../../hooks/useForm";
@@ -13,17 +11,38 @@ function getParameterValue(url, paramName) {
   return urlSearchParams.get(paramName);
 }
 
+const sectionStyle = {
+  backgroundColor: "rgba(75, 85, 99, 0.3)",
+  border: "1px solid rgba(75, 85, 99, 0.5)",
+  borderRadius: "8px",
+  padding: "20px",
+  marginBottom: "16px",
+};
+
+const headingStyle = {
+  margin: "0 0 12px 0",
+  fontSize: "1.1rem",
+  fontWeight: 600,
+  color: "white",
+};
+
+const subheadingStyle = {
+  margin: "0 0 8px 0",
+  fontSize: "0.95rem",
+  fontWeight: 600,
+  color: "#e5e7eb",
+  paddingTop: "12px",
+  borderTop: "1px solid rgba(107,114,128,0.4)",
+};
+
 export const ProfileSettings = () => {
   const user = useProfile();
   const authOptions = useAuthOptions();
-  const history = useHistory();
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [requestedPatreon, setRequestedPatreon] = useState(false);
 
-
   const { inputs, handleSubmit, handleInputChange, setInputs } = useForm(async () => {
-
     const updateData = {
       user: {
         ...user,
@@ -31,7 +50,6 @@ export const ProfileSettings = () => {
         language: inputs.language,
       },
     };
-    //const res = await axios.post("/be/api/v1/profile/update", data);
     const res = await axios.post("/be/api/v1/profile/update", updateData, authOptions);
     const newProfileData = {
       user_profile: {
@@ -40,17 +58,15 @@ export const ProfileSettings = () => {
         language: inputs.language,
       }}
     user.setData(newProfileData);
-    if (
-      res.status === 200
-    ) {
+    if (res.status === 200) {
       setSuccessMessage("Settings updated.");
       setErrorMessage("");
     } else {
       setSuccessMessage("");
-      setErrorMessage("Error."); 
+      setErrorMessage("Error.");
     }
-    
   });
+
   useEffect(() => {
     if (user) {
       setInputs((inputs) => ({
@@ -71,15 +87,12 @@ export const ProfileSettings = () => {
       const patreonStr = patreonIndex > -1 ? splitUrl.slice(patreonIndex + 1).join("/") : null;
       if (patreonStr) {
         setRequestedPatreon(true);
-        console.log("Sending patreon request", patreonStr, user);
         const code = getParameterValue(url, "code");
-        // wait a second for backend to stabilize
         setSuccessMessage("Linking...");
         setErrorMessage("");
         await new Promise(r => setTimeout(r, 2000));
         const res = await axios.get("/be/api/patreon/"+code, authOptions);
 
-        console.log("Patreon res", res);
         if (res?.data?.success) {
           user.doFetchHash((new Date()).toISOString());
           setSuccessMessage("Patreon account linked. Support level: " + res?.data?.success?.supporter_level);
@@ -89,7 +102,6 @@ export const ProfileSettings = () => {
           setSuccessMessage("");
           setErrorMessage("Error linking Patreon account. Please try again. If this error persists, please contact dragncards@gmail.com, indicating your DragnCards email, Patreon email (if different), and Patreon support level.");
         }
-
       }
     }
     getAccessToken();
@@ -99,77 +111,85 @@ export const ProfileSettings = () => {
     return null;
   }
 
-  const PatreonSignUpButton = ({patreonClientId, amount, redirectURI}) => {
-    const clientId = `&client_id=${patreonClientId}`;
-    const pledgeLevel = `&min_cents=${amount}`;
-    const v2Params = "&scope=identity%20identity[email]";
-    const redirectUri = `&redirect_uri=${redirectURI}`;
-    const href = `https://www.patreon.com/oauth2/become-patron?response_type=code${pledgeLevel}${clientId}${redirectUri}${v2Params}`;
-    return (
-      <a
-        className="patreon-button link-button"
-        data-patreon-widget-type="become-patron-button"
-        href={href}
-        rel="noreferrer"
-        target="_blank">
-        <img style={{height: "20px"}} src="https://upload.wikimedia.org/wikipedia/commons/9/94/Patreon_logo.svg"/>
-      </a>
-    );
-  };
-
   // Get patreon data from environment variables
   const redirectURI = process.env.REACT_APP_PATREON_REDIRECT_URI;
   const patreonClientId = process.env.REACT_APP_PATREON_CLIENT_ID;
-  console.log("Patreon data", redirectURI, patreonClientId);
 
   return (
-    <Container>
-      <div className="bg-gray-300 p-4 rounded max-w-xl shadow">
-          
-        {errorMessage && (
-          <div className="alert alert-danger mt-4">{errorMessage}</div>
-        )}
-        {successMessage && (
-          <div className="alert alert-info mt-4">{successMessage}</div>
-        )}
+    <div style={sectionStyle}>
+      <h1 style={headingStyle}>Settings</h1>
 
-        <h1 className="font-semibold mb-2 text-black">Patreon</h1>
-          <div>
-            <span className="font-semibold">
-              <div>Current supporter level: {user.supporter_level ? user.supporter_level : 0}</div> 
-            </span>
+      {errorMessage && (
+        <div style={{backgroundColor: "rgba(220,38,38,0.2)", border: "1px solid rgba(220,38,38,0.4)", borderRadius: "6px", padding: "10px 14px", marginBottom: "12px", color: "#fca5a5", fontSize: "0.85rem"}}>
+          {errorMessage}
+        </div>
+      )}
+      {successMessage && (
+        <div style={{backgroundColor: "rgba(59,130,246,0.2)", border: "1px solid rgba(59,130,246,0.4)", borderRadius: "6px", padding: "10px 14px", marginBottom: "12px", color: "#93c5fd", fontSize: "0.85rem"}}>
+          {successMessage}
+        </div>
+      )}
+
+      {/* Patreon */}
+      <div style={{marginBottom: "16px"}}>
+        <div style={{display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px"}}>
+          <span style={{color: "#9ca3af", fontSize: "0.85rem"}}>Supporter level:</span>
+          <span style={{color: "#e5e7eb", fontSize: "0.85rem", fontWeight: 600}}>{user.supporter_level ? user.supporter_level : 0}</span>
+        </div>
+        {user.patreon_member_id && (
+          <div style={{display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px"}}>
+            <span style={{color: "#9ca3af", fontSize: "0.85rem"}}>Patreon account:</span>
+            <span style={{color: "#e5e7eb", fontSize: "0.85rem", fontWeight: 600}}>{user.patreon_member_id}</span>
           </div>
+        )}
         <PatreonLinkButton patreonClientId={patreonClientId} redirectURI={redirectURI} />
-
-        <h1 className="font-semibold my-2 text-black">Language</h1>
-        <form action="POST" onSubmit={handleSubmit}>
-          <fieldset>
-            <div className="mb-4">
-              <select 
-                name="language"
-                className="form-control w-full"
-                onChange={handleInputChange}
-                value={inputs.language || "English"}>
-                <option value="English">English</option>
-                <option value="French">French</option>
-                <option value="Spanish">Spanish</option>
-                <option value="Portuguese">Portuguese</option>
-                <option value="Italian">Italian</option>
-                <option value="German">German</option>
-                <option value="Chinese">Chinese</option>
-              </select>
-            </div>
-            <div className="flex items-center justify-between">
-                <Button isSubmit isPrimary className="mx-2">
-                  Update Language
-                </Button>
-            </div>
-          </fieldset>
-        </form>
+        {user.supporter_level > 0 && !user.patreon_member_id && (
+          <div style={{
+            backgroundColor: "rgba(217, 169, 56, 0.15)",
+            border: "1px solid rgba(217, 169, 56, 0.5)",
+            borderRadius: "6px",
+            padding: "10px 14px",
+            marginTop: "8px",
+            color: "#f5d98a",
+            fontSize: "0.85rem",
+          }}>
+            Please re-link your Patreon account to ensure uninterrupted benefits.
+          </div>
+        )}
       </div>
 
-    </Container>
-
+      {/* Language */}
+      <div style={subheadingStyle}>Language</div>
+      <form action="POST" onSubmit={handleSubmit}>
+        <select
+          name="language"
+          onChange={handleInputChange}
+          value={inputs.language || "English"}
+          style={{
+            backgroundColor: "rgba(75, 85, 99, 0.5)",
+            border: "1px solid rgba(107,114,128,0.5)",
+            borderRadius: "6px",
+            padding: "6px 12px",
+            color: "#e5e7eb",
+            fontSize: "0.85rem",
+            width: "100%",
+            marginBottom: "12px",
+            outline: "none",
+          }}
+        >
+          <option value="English">English</option>
+          <option value="French">French</option>
+          <option value="Spanish">Spanish</option>
+          <option value="Portuguese">Portuguese</option>
+          <option value="Italian">Italian</option>
+          <option value="German">German</option>
+          <option value="Chinese">Chinese</option>
+        </select>
+        <Button isSubmit isPrimary>
+          Update Language
+        </Button>
+      </form>
+    </div>
   );
 };
 export default ProfileSettings;

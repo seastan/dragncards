@@ -26,10 +26,10 @@ defmodule DragnCardsWeb.PatreonController do
           {:error, reason} ->
             conn
             |> json(%{error: %{message: "Failed to get supporter level"}})
-          {:ok, supporter_level} ->
+          {:ok, {supporter_level, member_id}} ->
             IO.puts("----------------------------- patreon callback 3")
             IO.inspect(supporter_level)
-            update_user_supporter_level(conn, supporter_level)
+            update_user_supporter_level(conn, supporter_level, member_id)
         end
       _ ->
         conn
@@ -95,15 +95,15 @@ defmodule DragnCardsWeb.PatreonController do
   def get_level_from_profile(profile) do
     case get_member_map() do
       nil ->
-        {:erorr, "Failed to get campaign info"}
+        {:error, "Failed to get campaign info"}
       member_map ->
-        {:ok, get_level_from_profile_with_map(profile, member_map)}
+        {:ok, get_level_and_member_id_from_profile(profile, member_map)}
     end
   end
 
-  def get_level_from_profile_with_map(profile, member_map) do
+  def get_level_and_member_id_from_profile(profile, member_map) do
     included = Map.get(profile, "included", [])
-    Enum.reduce(included, 0, fn x, acc ->
+    Enum.reduce(included, {0, nil}, fn x, {best_level, best_id} = acc ->
       id = Map.get(x, "id")
       member = Map.get(member_map, id)
       IO.puts("id = #{id}, member = #{inspect member}")
@@ -111,7 +111,8 @@ defmodule DragnCardsWeb.PatreonController do
         amount_cents = get_in(member, ["attributes", "currently_entitled_amount_cents"])
         IO.puts("Member is in map! amount_cents = #{inspect amount_cents}")
         if amount_cents do
-          amount_cents / 100.0 |> ceil()
+          level = amount_cents / 100.0 |> ceil()
+          if level > best_level, do: {level, id}, else: acc
         else
           acc
         end
@@ -121,7 +122,7 @@ defmodule DragnCardsWeb.PatreonController do
     end)
   end
 
-  def update_user_supporter_level(conn, supporter_level) do
+  def update_user_supporter_level(conn, supporter_level, member_id) do
     # Update user
     user_id = conn.assigns.current_user.id
     IO.puts("----------------------------- patreon callback 4")
@@ -129,7 +130,8 @@ defmodule DragnCardsWeb.PatreonController do
 
     user = Repo.get!(User, user_id)
     updates = %{
-      supporter_level: supporter_level
+      supporter_level: supporter_level,
+      patreon_member_id: member_id
     }
     user = Ecto.Changeset.change(user, updates)
     case Repo.update(user) do

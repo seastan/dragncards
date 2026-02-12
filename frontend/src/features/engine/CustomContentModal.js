@@ -243,7 +243,7 @@ export const CustomContentModal = React.memo(({}) => {
       }}
       contentLabel="Build a deck"
       overlayClassName="fixed inset-0 bg-black-50"
-      className="relative insert-auto overflow-auto p-5 bg-gray-800 border mx-auto my-12 rounded-lg outline-none text-white"
+      className="relative insert-auto overflow-auto bg-gray-800 border border-gray-600 mx-auto mt-12 rounded-lg outline-none text-white"
       style={{
         overlay: {
           zIndex: Z_INDEX.Modal
@@ -252,11 +252,19 @@ export const CustomContentModal = React.memo(({}) => {
           width: "700px",
           height: "85dvh",
           maxHeight: "85dvh",
-          overflowY: "scroll",
+          overflowY: "auto",
         }
       }}>
-      <h1 className="my-2">Custom Cards</h1>
-      
+      <div style={{padding: "20px 24px 8px 24px", borderBottom: "1px solid #374151"}}>
+        <h1 style={{margin: 0, fontSize: "1.25rem", fontWeight: 600, color: "white", letterSpacing: "-0.01em"}}>
+          Custom Cards
+        </h1>
+        <p style={{margin: "4px 0 0 0", fontSize: "0.8rem", color: "#9ca3af"}}>
+          Upload and manage custom card content
+        </p>
+      </div>
+      <div style={{padding: "12px 24px 20px 24px"}}>
+
       <div style={{width:"300px"}}>
         <Button isPrimary onClick={downloadTsv}>
           <FontAwesomeIcon icon={faDownload} className="mr-2"/>
@@ -320,10 +328,10 @@ export const CustomContentModal = React.memo(({}) => {
             {Object.keys(customCardDbPrivate).length > 0 && <div>Note that DragnCards uses the databaseId column to determine what card to load. So if you replace your cards, if any of the databaseIds from the previous upload do not exist in the new upload, any existing decks that have been built using those cards will fail to load properly.</div>}
 
           </>
-        
+
       )}
 
-
+      </div>
     </ReactModal>
   )
 })

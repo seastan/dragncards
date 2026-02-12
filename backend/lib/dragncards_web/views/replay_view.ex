@@ -14,6 +14,7 @@ defmodule DragnCardsWeb.ReplayView do
     %{
       uuid: replay.uuid,
       deleted_by: replay.deleted_by,
+      player_ids: replay.player_ids,
       metadata: replay.metadata,
       plugin_id: replay.plugin_id,
       #game_json: replay.game_json,
