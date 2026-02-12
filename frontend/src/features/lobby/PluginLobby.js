@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useHistory } from "react-router-dom";
 import CreateRoomModal from "./CreateRoomModal";
 import LobbyTable from "./LobbyTable";
-import useDataApi from "../../hooks/useDataApi";
 import useProfile from "../../hooks/useProfile";
 import useIsLoggedIn from "../../hooks/useIsLoggedIn";
 import { Announcements } from "./Announcements";
@@ -10,8 +9,8 @@ import { LobbyButton } from "../../components/basic/LobbyButton";
 import LobbyContainer from "./LobbyContainer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
-import { set } from "date-fns";
 import axios from "axios";
+import LfgSection from "./LfgSection";
 
 
 export const PluginLobby = () => {
@@ -23,7 +22,6 @@ export const PluginLobby = () => {
   const [replayUuid, setReplayUuid] = useState(null);
   const [externalData, setExternalData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [ringsDbInfo, setRingsDbInfo] = useState([null,null,null,null]);
 
   const url = window.location.href;
   const splitUrl = url.split( '/' );
@@ -67,32 +65,9 @@ export const PluginLobby = () => {
     }
   }, []);
 
-
-
-    //   if (url.includes("ringsdb") || url.includes("test")) {
-    //     var splitUrl = url.split( '/' );
-    //     const newroomIndex = splitUrl.findIndex((e) => e === "newroom")
-    //     const ringsDbDomain = splitUrl[newroomIndex + 1]
-    //     const newRingsDbInfo = [null, null, null, null];
-    //     var deckIndex = 0;
-    //     for (var i = newroomIndex + 2; i<splitUrl.length-1; i += 2 ) {
-    //       const ringsDbType = splitUrl[i];
-    //       const ringsDbId = splitUrl[i+1];
-    //       newRingsDbInfo[deckIndex] = {id: ringsDbId, type: ringsDbType, domain: ringsDbDomain};
-    //       deckIndex = deckIndex + 1;
-    //     }
-    //     setRingsDbInfo(newRingsDbInfo);
-    //   }
-    //   if (url.includes("replay")) {
-    //     var splitUrl = url.split( '/' );
-    //     const newroomIndex = splitUrl.findIndex((e) => e === "newroom")
-    //   }
-    //   setShowModal("createRoom");
-    // }
-
   if (isLoading) return null;
   if (!isLoading && !plugin) return <div className="text-white">Plugin either does not exist or you do not have the necessary permissions to view it.</div>;
-  
+
   const handleCreateRoomClick = () => {
     if (isLoggedIn) {
       if (user?.email_confirmed_at) setShowModal("createRoom");
@@ -103,9 +78,10 @@ export const PluginLobby = () => {
   }
 
   return (
-    <LobbyContainer>
+    <LobbyContainer maxWidth="1100px">
 
-      <div className="flex items-center text-white text-xl">
+      {/* Header: back button + plugin name */}
+      <div className="flex items-center text-white text-xl mb-4">
         <div className="mr-2" style={{width: "50px", height: "50px"}}>
           <LobbyButton onClick={()=>history.push("/lobby")}>
             <FontAwesomeIcon icon={faArrowLeft} />
@@ -117,30 +93,53 @@ export const PluginLobby = () => {
         </div>
       </div>
 
+      {/* Two-column layout: rooms table (left/main), sidebar (right) */}
+      <div className="flex gap-8" style={{flexWrap: "wrap"}}>
+        {/* Main column: action buttons + rooms table */}
+        <div className="flex-1" style={{minWidth: "320px"}}>
+          <div className="flex gap-2 mb-3">
+            {plugin?.tutorial_url && (
+              <button
+                onClick={() => window.open(plugin?.tutorial_url, '_blank')}
+                className="bg-gray-600-30 hover:bg-red-600-30 text-white rounded-lg text-lg flex-1 py-4"
+              >
+                Tutorial
+              </button>
+            )}
+            <button
+              onClick={() => handleCreateRoomClick()}
+              className="bg-gray-600-30 hover:bg-red-600-30 text-white rounded-lg text-lg flex-1 py-4"
+            >
+              {isLoggedIn ? "Create Room" : "Log in to create a room"}
+            </button>
+          </div>
+          <Announcements plugin={plugin}/>
+          <div className="mt-3">
+            <LobbyTable plugin={plugin}/>
+          </div>
+        </div>
 
-      <div className="flex justify-center w-full" style={{maxWidth: "600px"}}>
-        <div className="w-full h-24 py-2 text-3xl">
-          <LobbyButton disabled={!plugin?.tutorial_url} onClick={() => window.open(plugin?.tutorial_url, '_blank')}>
-            Tutorial
-          </LobbyButton>
+        {/* Vertical separator */}
+        <div style={{width: "1px", backgroundColor: "rgba(255,255,255,0.15)"}} className="hidden md:block" />
+
+        {/* Sidebar: LFG */}
+        <div className="lfg-sidebar">
+          <LfgSection plugin={plugin}/>
         </div>
       </div>
-      
-      <div className="flex justify-center w-full" style={{maxWidth: "600px"}}>
-        <div className="w-full h-24 py-2 text-3xl">
-          <LobbyButton onClick={() => handleCreateRoomClick()}>
-            {isLoggedIn ? "Create Room" : "Log in to create a room"}
-          </LobbyButton>
-        </div>
-      </div>
-      
-      <Announcements plugin={plugin}/>
-      
-      <div className="mb-6 w-full">
-        <div className="mb-4 w-full">
-          <LobbyTable plugin={plugin}/>
-        </div>
-      </div>
+      <style>{`
+        .lfg-sidebar {
+          width: 100%;
+          min-width: 320px;
+        }
+        @media (min-width: 768px) {
+          .lfg-sidebar {
+            width: 450px;
+            max-width: 450px;
+            flex-shrink: 0;
+          }
+        }
+      `}</style>
 
       <CreateRoomModal
         isOpen={showModal === "createRoom"}
@@ -154,124 +153,3 @@ export const PluginLobby = () => {
   );
 };
 export default PluginLobby;
-
-
-
-// import React, { useEffect, useState } from "react";
-// import { useHistory } from "react-router-dom";
-// import CreateRoomModal from "./CreateRoomModal";
-// import LobbyTable from "./LobbyTable";
-// import useProfile from "../../hooks/useProfile";
-// import useIsLoggedIn from "../../hooks/useIsLoggedIn";
-// import { Announcements } from "./Announcements";
-// import { LobbyButton } from "../../components/basic/LobbyButton";
-// import useDataApi from "../../hooks/useDataApi";
-// import axios from "axios";
-
-// export const PluginLobby = () => {
-//   const isLoggedIn = useIsLoggedIn();
-//   const myUser = useProfile();
-//   const history = useHistory();
-//   const [showModal, setShowModal] = useState(null);
-//   const [plugin, setPlugin] = useState(null);
-
-//   const url = window.location.href;
-//   var splitUrl = url.split( '/' );
-//   const pluginIndex = splitUrl.findIndex((e) => e === "plugin")
-//   const pluginStr = splitUrl[pluginIndex + 1];
-//   const pluginId = parseInt(pluginStr);
-
-//   const apiPlugins = useDataApi(
-//     "/be/api/plugin/" + pluginId,
-//     null
-//   );
-
-//   // useEffect(() => {
-//   //   console.log("apiPlugin", apiPlugins);
-//   //   if (apiPlugins) {
-//   //     setPlugin(apiPlugins);
-//   //   }
-//   // }, [apiPlugins]);
-
-//   const plugins = apiPlugins?.data?.data ? apiPlugins.data.data : null;
-//   console.log("pluginslist 1",plugins);
-
-//   if (!apiPlugins) return (
-//     <div></div>
-//   );
-//   else {
-//     console.log("plugin", plugin);
-//   }
-
-    
-//   //   if (url.includes("newroom")) {
-//   //     if (url.includes("ringsdb") || url.includes("test")) {
-//   //       var splitUrl = url.split( '/' );
-//   //       const newroomIndex = splitUrl.findIndex((e) => e === "newroom")
-//   //       const ringsDbDomain = splitUrl[newroomIndex + 1]
-//   //       const newRingsDbInfo = [null, null, null, null];
-//   //       var deckIndex = 0;
-//   //       for (var i = newroomIndex + 2; i<splitUrl.length-1; i += 2 ) {
-//   //         const ringsDbType = splitUrl[i];
-//   //         const ringsDbId = splitUrl[i+1];
-//   //         newRingsDbInfo[deckIndex] = {id: ringsDbId, type: ringsDbType, domain: ringsDbDomain};
-//   //         deckIndex = deckIndex + 1;
-//   //       }
-//   //       setRingsDbInfo(newRingsDbInfo);
-//   //     }
-//   //     if (url.includes("replay")) {
-//   //       var splitUrl = url.split( '/' );
-//   //       const newroomIndex = splitUrl.findIndex((e) => e === "newroom")
-//   //       setReplayId(splitUrl[newroomIndex + 2]);
-//   //     }
-//   //     setShowModal("createRoom");
-//   //   }
-//   // }, []);
-
-//   const handleCreateRoomClick = () => {
-//     if (isLoggedIn) {
-//       if (myUser?.email_confirmed_at) setShowModal("createRoom");
-//       else alert("You must confirm your email before you can start a game.")
-//     } else {
-//       history.push("/login")
-//     }
-//   }
-
-//   return (
-//     <>
-//       <div className="text-white text-xl">
-//         {plugin.plugin_name}
-//       </div>
-//       <div className="flex justify-center w-full" style={{maxWidth: "600px"}}>
-//         <div className="w-full h-24 py-2 text-3xl">
-//           <LobbyButton disabled={!plugin?.tutorialUrl} onClick={() => window.open(plugin?.tutorialUrl, '_blank')}>
-//             Tutorial
-//           </LobbyButton>
-//         </div>
-//       </div>
-      
-//       <div className="flex justify-center w-full" style={{maxWidth: "600px"}}>
-//         <div className="w-full h-24 py-2 text-3xl">
-//           <LobbyButton onClick={() => handleCreateRoomClick()}>
-//             {isLoggedIn ? "Create Room" : "Log in to create a room"}
-//           </LobbyButton>
-//         </div>
-//       </div>
-      
-//       <Announcements plugin={plugin}/>
-      
-//       <div className="mb-6 w-full">
-//         <div className="mb-4 w-full">
-//           <LobbyTable plugin={plugin}/>
-//         </div>
-//       </div>
-
-//       <CreateRoomModal
-//         isOpen={showModal === "createRoom"}
-//         isLoggedIn={isLoggedIn}
-//         closeModal={() => setShowModal(null)}
-//         plugin={plugin}
-//       />
-//     </>
-//   );
-// };
