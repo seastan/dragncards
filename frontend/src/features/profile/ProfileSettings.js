@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Button from "../../components/basic/Button";
 import useProfile from "../../hooks/useProfile";
 import useForm from "../../hooks/useForm";
@@ -35,6 +35,15 @@ const subheadingStyle = {
   borderTop: "1px solid rgba(107,114,128,0.4)",
 };
 
+const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const timezoneOptions = (() => {
+  try {
+    return Intl.supportedValuesOf("timeZone");
+  } catch {
+    return [browserTimezone];
+  }
+})();
+
 export const ProfileSettings = () => {
   const user = useProfile();
   const authOptions = useAuthOptions();
@@ -48,6 +57,7 @@ export const ProfileSettings = () => {
         ...user,
         id: user?.id,
         language: inputs.language,
+        timezone: inputs.timezone,
       },
     };
     const res = await axios.post("/be/api/v1/profile/update", updateData, authOptions);
@@ -56,6 +66,7 @@ export const ProfileSettings = () => {
         ...user,
         id: user?.id,
         language: inputs.language,
+        timezone: inputs.timezone,
       }}
     user.setData(newProfileData);
     if (res.status === 200) {
@@ -72,6 +83,7 @@ export const ProfileSettings = () => {
       setInputs((inputs) => ({
         ...inputs,
         language: user.language || "",
+        timezone: user.timezone || browserTimezone,
       }));
     }
   }, [user]);
@@ -158,9 +170,9 @@ export const ProfileSettings = () => {
         )}
       </div>
 
-      {/* Language */}
-      <div style={subheadingStyle}>Language</div>
+      {/* Language & Timezone */}
       <form action="POST" onSubmit={handleSubmit}>
+        <div style={subheadingStyle}>Language</div>
         <select
           name="language"
           onChange={handleInputChange}
@@ -185,8 +197,31 @@ export const ProfileSettings = () => {
           <option value="German">German</option>
           <option value="Chinese">Chinese</option>
         </select>
+
+        <div style={subheadingStyle}>Timezone</div>
+        <select
+          name="timezone"
+          onChange={handleInputChange}
+          value={inputs.timezone || browserTimezone}
+          style={{
+            backgroundColor: "rgba(75, 85, 99, 0.5)",
+            border: "1px solid rgba(107,114,128,0.5)",
+            borderRadius: "6px",
+            padding: "6px 12px",
+            color: "#e5e7eb",
+            fontSize: "0.85rem",
+            width: "100%",
+            marginBottom: "12px",
+            outline: "none",
+          }}
+        >
+          {timezoneOptions.map((tz) => (
+            <option key={tz} value={tz}>{tz}</option>
+          ))}
+        </select>
+
         <Button isSubmit isPrimary>
-          Update Language
+          Save Settings
         </Button>
       </form>
     </div>

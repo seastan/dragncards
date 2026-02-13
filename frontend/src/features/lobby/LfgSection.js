@@ -17,19 +17,19 @@ const experienceLevels = [
   { value: "expert", label: "Expert" },
 ];
 
-const formatDateTime = (utcString) => {
+const formatDateTime = (utcString, tz) => {
   if (!utcString) return "";
   const date = new Date(utcString + (utcString.endsWith("Z") ? "" : "Z"));
-  return date.toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  return date.toLocaleString(undefined, { timeZone: tz, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 };
 
-const formatTimeOnly = (utcString) => {
+const formatTimeOnly = (utcString, tz) => {
   if (!utcString) return "";
   const date = new Date(utcString + (utcString.endsWith("Z") ? "" : "Z"));
-  return date.toLocaleString(undefined, { hour: "numeric", minute: "2-digit" });
+  return date.toLocaleString(undefined, { timeZone: tz, hour: "numeric", minute: "2-digit" });
 };
 
-const formatTimeRange = (fromUtc, toUtc) => {
+const formatTimeRange = (fromUtc, toUtc, tz) => {
   if (!fromUtc || !toUtc) return "";
   const fromDate = new Date(fromUtc + (fromUtc.endsWith("Z") ? "" : "Z"));
   const toDate = new Date(toUtc + (toUtc.endsWith("Z") ? "" : "Z"));
@@ -37,14 +37,14 @@ const formatTimeRange = (fromUtc, toUtc) => {
     fromDate.getMonth() === toDate.getMonth() &&
     fromDate.getDate() === toDate.getDate();
   if (sameDay) {
-    return `${formatDateTime(fromUtc)} – ${formatTimeOnly(toUtc)}`;
+    return `${formatDateTime(fromUtc, tz)} – ${formatTimeOnly(toUtc, tz)}`;
   }
-  return `${formatDateTime(fromUtc)} – ${formatDateTime(toUtc)}`;
+  return `${formatDateTime(fromUtc, tz)} – ${formatDateTime(toUtc, tz)}`;
 };
 
-const getShortTimezoneLabel = () => {
+const getShortTimezoneLabel = (tz) => {
   try {
-    return new Date().toLocaleTimeString(undefined, { timeZoneName: "short" }).split(" ").pop();
+    return new Date().toLocaleTimeString(undefined, { timeZone: tz, timeZoneName: "short" }).split(" ").pop();
   } catch {
     return "";
   }
@@ -60,10 +60,13 @@ const slotToTimeLabel = (slot) => {
 };
 
 // Returns e.g. "America/New_York (UTC-5)"
-const getTimezoneLabel = () => {
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const offsetMin = new Date().getTimezoneOffset();
-  const sign = offsetMin <= 0 ? "+" : "-";
+const getTimezoneLabel = (tz) => {
+  // Compute the UTC offset for the given timezone
+  const now = new Date();
+  const utcStr = now.toLocaleString("en-US", { timeZone: "UTC" });
+  const tzStr = now.toLocaleString("en-US", { timeZone: tz });
+  const offsetMin = (new Date(tzStr) - new Date(utcStr)) / 60000;
+  const sign = offsetMin >= 0 ? "+" : "-";
   const absHours = Math.floor(Math.abs(offsetMin) / 60);
   const absMin = Math.abs(offsetMin) % 60;
   const offsetStr = absMin === 0 ? `UTC${sign}${absHours}` : `UTC${sign}${absHours}:${String(absMin).padStart(2, "0")}`;
@@ -71,23 +74,44 @@ const getTimezoneLabel = () => {
 };
 
 // Combine a date string "YYYY-MM-DD" and slot (0–95) into a UTC ISO string
-const slotsToUtcIso = (dateStr, slot) => {
+// When tz is provided, interpret the date/time as being in that timezone
+const slotsToUtcIso = (dateStr, slot, tz) => {
   const hours = Math.floor(slot / 4);
   const minutes = (slot % 4) * 15;
+  if (tz) {
+    // Compute the offset of the target timezone to convert to UTC
+    const fakeLocal = new Date(`${dateStr}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`);
+    const utcStr = fakeLocal.toLocaleString("en-US", { timeZone: "UTC" });
+    const tzStr = fakeLocal.toLocaleString("en-US", { timeZone: tz });
+    const offsetMs = new Date(tzStr) - new Date(utcStr);
+    // The desired UTC time = local time - offset
+    const utcTime = new Date(fakeLocal.getTime() - offsetMs);
+    return utcTime.toISOString();
+  }
   const d = new Date(`${dateStr}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`);
   return d.toISOString();
 };
 
-// Convert a UTC ISO string to a local slot (0–95), clamped
-const utcToLocalSlot = (utcString) => {
+// Convert a UTC ISO string to a slot (0–95) in the given timezone
+const utcToLocalSlot = (utcString, tz) => {
   if (!utcString) return 0;
   const date = new Date(utcString + (utcString.endsWith("Z") ? "" : "Z"));
+  if (tz) {
+    const parts = new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", minute: "numeric", hour12: false }).formatToParts(date);
+    const hour = parseInt(parts.find(p => p.type === "hour")?.value || "0");
+    const minute = parseInt(parts.find(p => p.type === "minute")?.value || "0");
+    return hour * 4 + Math.floor(minute / 15);
+  }
   return date.getHours() * 4 + Math.floor(date.getMinutes() / 15);
 };
 
-// Get today's date as "YYYY-MM-DD" in local time
-const getTodayDate = () => {
+// Get today's date as "YYYY-MM-DD" in the given timezone (or local)
+const getTodayDate = (tz) => {
   const d = new Date();
+  if (tz) {
+    const parts = new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(d); // en-CA gives YYYY-MM-DD
+    return parts;
+  }
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
@@ -196,12 +220,13 @@ export const LfgSection = ({ plugin }) => {
   const [description, setDescription] = useState("Standard game");
   const [numPlayersWanted, setNumPlayersWanted] = useState(1);
   const [experienceLevel, setExperienceLevel] = useState("any");
-  const [availableDate, setAvailableDate] = useState(getTodayDate);
+  const [availableDate, setAvailableDate] = useState(() => getTodayDate());
   const [startSlot, setStartSlot] = useState(0);
   const [endSlot, setEndSlot] = useState(95);
 
   const pluginId = plugin?.id;
-  const timezoneLabel = useMemo(() => getTimezoneLabel(), []);
+  const tz = myUser?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const timezoneLabel = useMemo(() => getTimezoneLabel(tz), [tz]);
 
   // Fetch posts on mount
   useEffect(() => {
@@ -244,8 +269,8 @@ export const LfgSection = ({ plugin }) => {
 
   const handleCreatePost = async () => {
     setError(null);
-    const fromIso = slotsToUtcIso(availableDate, startSlot);
-    const toIso = slotsToUtcIso(availableDate, endSlot);
+    const fromIso = slotsToUtcIso(availableDate, startSlot, tz);
+    const toIso = slotsToUtcIso(availableDate, endSlot, tz);
     const now = new Date();
     if (new Date(toIso) <= now) {
       setError("The end time is in the past. Please pick a later time or a future date.");
@@ -262,15 +287,15 @@ export const LfgSection = ({ plugin }) => {
           description,
           num_players_wanted: numPlayersWanted,
           experience_level: experienceLevel,
-          available_from: slotsToUtcIso(availableDate, startSlot),
-          available_to: slotsToUtcIso(availableDate, endSlot),
+          available_from: slotsToUtcIso(availableDate, startSlot, tz),
+          available_to: slotsToUtcIso(availableDate, endSlot, tz),
         },
       }, authOptions);
       setShowCreateForm(false);
       setDescription("Standard game");
       setNumPlayersWanted(1);
       setExperienceLevel("any");
-      setAvailableDate(getTodayDate());
+      setAvailableDate(getTodayDate(tz));
       setStartSlot(0);
       setEndSlot(95);
     } catch (err) {
@@ -282,13 +307,13 @@ export const LfgSection = ({ plugin }) => {
     setError(null);
     try {
       const post = posts.find((p) => p.id === postId);
-      const postFromSlot = utcToLocalSlot(post?.available_from);
+      const postFromSlot = utcToLocalSlot(post?.available_from, tz);
       const dateStr = post?.available_from
-        ? (() => { const d = new Date(post.available_from + (post.available_from.endsWith("Z") ? "" : "Z")); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })()
-        : getTodayDate();
+        ? (() => { const d = new Date(post.available_from + (post.available_from.endsWith("Z") ? "" : "Z")); return new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(d); })()
+        : getTodayDate(tz);
       const slotVal = joinSlot != null ? joinSlot : postFromSlot;
       await axios.post(`/be/api/v1/lfg/${postId}/respond`, {
-        earliest_start: slotsToUtcIso(dateStr, slotVal),
+        earliest_start: slotsToUtcIso(dateStr, slotVal, tz),
       }, authOptions);
       setJoinPostId(null);
       setJoinSlot(null);
@@ -338,8 +363,8 @@ export const LfgSection = ({ plugin }) => {
   };
 
   const getJoinSlotBounds = (post) => {
-    const fromSlot = utcToLocalSlot(post.available_from);
-    const toSlot = utcToLocalSlot(post.available_to);
+    const fromSlot = utcToLocalSlot(post.available_from, tz);
+    const toSlot = utcToLocalSlot(post.available_to, tz);
     return { minSlot: fromSlot, maxSlot: toSlot };
   };
 
@@ -387,13 +412,13 @@ export const LfgSection = ({ plugin }) => {
               )}
 
               <div className="text-sm text-white font-bold mt-1">
-                {formatTimeRange(post.available_from, post.available_to)}
-                <span className="font-normal text-gray-400 text-xs ml-1">{getShortTimezoneLabel()}</span>
+                {formatTimeRange(post.available_from, post.available_to, tz)}
+                <span className="font-normal text-gray-400 text-xs ml-1">{getShortTimezoneLabel(tz)}</span>
               </div>
 
               {post.status === "filled" && post.confirmed_start_time && (
                 <div className="text-sm text-green-400 mt-1">
-                  Game confirmed for {formatDateTime(post.confirmed_start_time)}
+                  Game confirmed for {formatDateTime(post.confirmed_start_time, tz)}
                 </div>
               )}
 

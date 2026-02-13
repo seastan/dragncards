@@ -38,6 +38,7 @@ export const Login: React.FC<Props> = () => {
           password: inputs.password,
           password_confirmation: inputs.password_confirmation,
           alias: inputs.alias,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         },
       };
       const res = await axios.post("/be/api/v1/registration", data);

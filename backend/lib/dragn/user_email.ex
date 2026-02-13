@@ -27,6 +27,17 @@ defmodule DragnCards.UserEmail do
   end
 
   def lfg_new_post(user, poster_alias, plugin_name, post) do
+    time_window =
+      if post.available_from && post.available_to do
+        from_str = Calendar.strftime(post.available_from, "%Y-%m-%d %H:%M UTC")
+        to_str = Calendar.strftime(post.available_to, "%Y-%m-%d %H:%M UTC")
+        "#{from_str} – #{to_str}"
+      else
+        "Not specified"
+      end
+
+    plugin_url = "https://dragncards.com/plugin/#{post.plugin_id}"
+
     new()
     |> to({user.alias || "Player", user.email})
     |> from({"DragnCards", "noreply@noreply.dragncards.com"})
@@ -37,7 +48,8 @@ defmodule DragnCards.UserEmail do
     <p>#{post.description || "No description provided."}</p>
     <p><strong>Players wanted:</strong> #{post.num_players_wanted}</p>
     <p><strong>Experience level:</strong> #{post.experience_level}</p>
-    <p><a href="https://dragncards.com">Visit DragnCards to join</a></p>
+    <p><strong>Available window:</strong> #{time_window}</p>
+    <p><a href="#{plugin_url}">Visit DragnCards to join</a></p>
     """)
     |> text_body("""
     New LFG Post for #{plugin_name}
@@ -46,8 +58,9 @@ defmodule DragnCards.UserEmail do
     #{post.description || "No description provided."}
     Players wanted: #{post.num_players_wanted}
     Experience level: #{post.experience_level}
+    Available window: #{time_window}
 
-    Visit https://dragncards.com to join
+    Visit #{plugin_url} to join
     """)
   end
 

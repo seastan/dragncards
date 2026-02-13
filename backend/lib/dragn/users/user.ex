@@ -19,6 +19,7 @@ defmodule DragnCards.Users.User do
     field(:supporter_level, :integer)
     field(:patreon_member_id, :string)
     field(:language, :string, default: "English")
+    field(:timezone, :string)
     field(:plugin_settings, :map, default: %{})
     field(:favorite_plugins, :map, default: %{})
     field(:whats_new_dismissed, :integer, default: 0)
@@ -34,7 +35,7 @@ defmodule DragnCards.Users.User do
       user_or_changeset
       |> pow_changeset(attrs)
       |> pow_extension_changeset(attrs)
-      |> Ecto.Changeset.cast(attrs, [:alias])
+      |> Ecto.Changeset.cast(attrs, [:alias, :timezone])
       |> Ecto.Changeset.validate_required([:alias])
       |> Ecto.Changeset.unique_constraint(:alias)
     end
@@ -58,6 +59,7 @@ defmodule DragnCards.Users.User do
       supporter_level: user.supporter_level,
       patreon_member_id: user.patreon_member_id,
       language: user.language,
+      timezone: user.timezone,
       plugin_settings: user.plugin_settings,
       favorite_plugins: user.favorite_plugins,
       whats_new_dismissed: user.whats_new_dismissed
