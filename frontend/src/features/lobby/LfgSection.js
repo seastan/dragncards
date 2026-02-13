@@ -20,7 +20,34 @@ const experienceLevels = [
 const formatDateTime = (utcString) => {
   if (!utcString) return "";
   const date = new Date(utcString + (utcString.endsWith("Z") ? "" : "Z"));
-  return date.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  return date.toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+};
+
+const formatTimeOnly = (utcString) => {
+  if (!utcString) return "";
+  const date = new Date(utcString + (utcString.endsWith("Z") ? "" : "Z"));
+  return date.toLocaleString(undefined, { hour: "numeric", minute: "2-digit" });
+};
+
+const formatTimeRange = (fromUtc, toUtc) => {
+  if (!fromUtc || !toUtc) return "";
+  const fromDate = new Date(fromUtc + (fromUtc.endsWith("Z") ? "" : "Z"));
+  const toDate = new Date(toUtc + (toUtc.endsWith("Z") ? "" : "Z"));
+  const sameDay = fromDate.getFullYear() === toDate.getFullYear() &&
+    fromDate.getMonth() === toDate.getMonth() &&
+    fromDate.getDate() === toDate.getDate();
+  if (sameDay) {
+    return `${formatDateTime(fromUtc)} – ${formatTimeOnly(toUtc)}`;
+  }
+  return `${formatDateTime(fromUtc)} – ${formatDateTime(toUtc)}`;
+};
+
+const getShortTimezoneLabel = () => {
+  try {
+    return new Date().toLocaleTimeString(undefined, { timeZoneName: "short" }).split(" ").pop();
+  } catch {
+    return "";
+  }
 };
 
 // Convert slot (0–95) to a time label like "12:00 AM", "7:15 PM"
@@ -359,8 +386,9 @@ export const LfgSection = ({ plugin }) => {
                 <div className="text-sm mt-1 text-gray-200">{post.description}</div>
               )}
 
-              <div className="text-xs text-gray-400 mt-1">
-                {formatDateTime(post.available_from)} - {formatDateTime(post.available_to)}
+              <div className="text-sm text-white font-bold mt-1">
+                {formatTimeRange(post.available_from, post.available_to)}
+                <span className="font-normal text-gray-400 text-xs ml-1">{getShortTimezoneLabel()}</span>
               </div>
 
               {post.status === "filled" && post.confirmed_start_time && (
