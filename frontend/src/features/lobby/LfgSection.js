@@ -7,6 +7,7 @@ import useChannel from "../../hooks/useChannel";
 import { useAuthOptions } from "../../hooks/useAuthOptions";
 import { Link } from "react-router-dom";
 import { ToggleSwitch } from "../engine/AutomationModal";
+import Button from "../../components/basic/Button";
 
 ReactModal.setAppElement("#root");
 
@@ -215,6 +216,7 @@ export const LfgSection = ({ plugin }) => {
   const [joinSlot, setJoinSlot] = useState(null);
   const [subscribed, setSubscribed] = useState(false);
   const [error, setError] = useState(null);
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
 
   // Form state
   const [description, setDescription] = useState("Standard game");
@@ -380,6 +382,13 @@ export const LfgSection = ({ plugin }) => {
         )}
       </div>
 
+      <button
+        onClick={() => setShowHowItWorks(true)}
+        className="text-blue-400 hover:text-blue-300 text-sm mb-2"
+      >
+        How does this work?
+      </button>
+
       {error && (
         <div className="bg-red-200 text-red-800 p-2 rounded mb-2 text-sm">
           {error}
@@ -517,7 +526,10 @@ export const LfgSection = ({ plugin }) => {
       </div>
 
       {/* Create post button / form */}
-      {isLoggedIn && !showCreateForm && (
+      {isLoggedIn && !showCreateForm && posts.filter((p) => p.user_id === myUser?.id).length >= 5 && (
+        <div className="text-gray-400 text-sm p-2">You already have 5 active LFG posts.</div>
+      )}
+      {isLoggedIn && !showCreateForm && posts.filter((p) => p.user_id === myUser?.id).length < 5 && (
         <button
           onClick={() => setShowCreateForm(true)}
           className="bg-gray-600-30 hover:bg-red-600-30 text-white px-4 py-2 rounded-lg w-full"
@@ -609,6 +621,42 @@ export const LfgSection = ({ plugin }) => {
           </div>
         </div>
       )}
+
+      {/* How it works modal */}
+      <ReactModal
+        isOpen={showHowItWorks}
+        onRequestClose={() => setShowHowItWorks(false)}
+        contentLabel="How LFG Works"
+        overlayClassName="fixed inset-0 bg-black-50 z-50 overflow-y-scroll"
+        className="insert-auto text-white bg-gray-700 border border-gray-600 mx-auto my-12 rounded-lg outline-none"
+        style={{ content: { width: "600px", maxWidth: "90vw" } }}
+      >
+        <div className="p-6">
+          <h2 className="text-xl font-bold mb-4">How does Looking for Game work?</h2>
+          <div className="space-y-3 text-sm text-gray-200">
+            <p>
+              <strong className="text-white">Post a request:</strong> Click "I'm Looking for a Game" to create a post. Set how many players you need, your experience level, and the time window you're available.
+            </p>
+            <p>
+              <strong className="text-white">Join someone else's post:</strong> See a post that fits your schedule? Click "Join" and pick the earliest time you can start.
+            </p>
+            <p>
+              <strong className="text-white">Automatic room creation:</strong> Once enough players have joined, a confirmation email will be sent out confirming the start time. Then, 5 minutes before the start time, a game room will be automatically created and another email will be sent out with a link to join.
+            </p>
+            <p>
+              <strong className="text-white">New post notifications:</strong> Toggle "Email me new LFG posts" to get notified when someone posts a new LFG for this game. You can unsubscribe at any time.
+            </p>
+            <p>
+              <strong className="text-white">Time windows:</strong> Posts expire automatically once the available window has passed. All times are shown in the time zone listed in your profile settings.
+            </p>
+          </div>
+          <div className="mt-5">
+            <Button isPrimary onClick={() => setShowHowItWorks(false)}>
+              Got it
+            </Button>
+          </div>
+        </div>
+      </ReactModal>
     </div>
   );
 };

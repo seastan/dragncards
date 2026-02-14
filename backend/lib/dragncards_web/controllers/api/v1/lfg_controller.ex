@@ -24,6 +24,11 @@ defmodule DragnCardsWeb.API.V1.LfgController do
             |> put_status(:created)
             |> json(%{success: %{message: "LFG post created", post: post}})
 
+          {:error, :too_many_posts} ->
+            conn
+            |> put_status(422)
+            |> json(%{error: %{message: "You can have at most 5 active LFG posts at a time."}})
+
           {:error, changeset} ->
             conn
             |> put_status(422)
