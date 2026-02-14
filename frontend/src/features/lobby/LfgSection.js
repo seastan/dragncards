@@ -8,6 +8,7 @@ import { useAuthOptions } from "../../hooks/useAuthOptions";
 import { Link } from "react-router-dom";
 import { ToggleSwitch } from "../engine/AutomationModal";
 import Button from "../../components/basic/Button";
+import UserName from "../user/UserName";
 
 ReactModal.setAppElement("#root");
 
@@ -80,13 +81,15 @@ const slotsToUtcIso = (dateStr, slot, tz) => {
   const hours = Math.floor(slot / 4);
   const minutes = (slot % 4) * 15;
   if (tz) {
-    // Compute the offset of the target timezone to convert to UTC
-    const fakeLocal = new Date(`${dateStr}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`);
-    const utcStr = fakeLocal.toLocaleString("en-US", { timeZone: "UTC" });
-    const tzStr = fakeLocal.toLocaleString("en-US", { timeZone: tz });
+    // Create the wall-clock time as a UTC Date (timezone-neutral reference point)
+    const [year, month, day] = dateStr.split("-").map(Number);
+    const fakeUtc = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
+    // Compute the target timezone's offset from UTC at this moment
+    const utcStr = fakeUtc.toLocaleString("en-US", { timeZone: "UTC" });
+    const tzStr = fakeUtc.toLocaleString("en-US", { timeZone: tz });
     const offsetMs = new Date(tzStr) - new Date(utcStr);
-    // The desired UTC time = local time - offset
-    const utcTime = new Date(fakeLocal.getTime() - offsetMs);
+    // The desired UTC time = wall-clock time - offset
+    const utcTime = new Date(fakeUtc.getTime() - offsetMs);
     return utcTime.toISOString();
   }
   const d = new Date(`${dateStr}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`);
@@ -406,7 +409,7 @@ export const LfgSection = ({ plugin }) => {
             <div key={post.id} className="bg-gray-600-30 rounded-lg p-3 text-white">
               <div className="flex justify-between items-start">
                 <div>
-                  <span className="font-semibold">{post.user_alias}</span>
+                  <span className="font-semibold"><UserName userID={post.user_id} defaultName={post.user_alias} /></span>
                   <span className="ml-2 text-sm text-gray-300">
                     {post.experience_level !== "any" && `[${post.experience_level}]`}
                   </span>
@@ -445,7 +448,9 @@ export const LfgSection = ({ plugin }) => {
               {/* Respondents */}
               {post.responses && post.responses.length > 0 && (
                 <div className="text-xs text-gray-400 mt-1">
-                  Joined: {post.responses.map((r) => r.user_alias).join(", ")}
+                  Joined: {post.responses.map((r, i) => (
+                    <span key={r.id}>{i > 0 && ", "}<UserName userID={r.user_id} defaultName={r.user_alias} /></span>
+                  ))}
                 </div>
               )}
 

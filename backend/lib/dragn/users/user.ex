@@ -75,7 +75,8 @@ defmodule DragnCards.Users.User do
   def to_public_profile(%User{} = user) do
     %{
       id: user.id,
-      alias: user.alias
+      alias: user.alias,
+      supporter_level: user.supporter_level
     }
   end
 
