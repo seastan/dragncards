@@ -7,6 +7,8 @@ import useChannel from "../../hooks/useChannel";
 import { useAuthOptions } from "../../hooks/useAuthOptions";
 import { Link } from "react-router-dom";
 import { ToggleSwitch } from "../engine/AutomationModal";
+import Button from "../../components/basic/Button";
+import UserName from "../user/UserName";
 
 ReactModal.setAppElement("#root");
 
@@ -17,19 +19,19 @@ const experienceLevels = [
   { value: "expert", label: "Expert" },
 ];
 
-const formatDateTime = (utcString) => {
+const formatDateTime = (utcString, tz) => {
   if (!utcString) return "";
   const date = new Date(utcString + (utcString.endsWith("Z") ? "" : "Z"));
-  return date.toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  return date.toLocaleString(undefined, { timeZone: tz, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 };
 
-const formatTimeOnly = (utcString) => {
+const formatTimeOnly = (utcString, tz) => {
   if (!utcString) return "";
   const date = new Date(utcString + (utcString.endsWith("Z") ? "" : "Z"));
-  return date.toLocaleString(undefined, { hour: "numeric", minute: "2-digit" });
+  return date.toLocaleString(undefined, { timeZone: tz, hour: "numeric", minute: "2-digit" });
 };
 
-const formatTimeRange = (fromUtc, toUtc) => {
+const formatTimeRange = (fromUtc, toUtc, tz) => {
   if (!fromUtc || !toUtc) return "";
   const fromDate = new Date(fromUtc + (fromUtc.endsWith("Z") ? "" : "Z"));
   const toDate = new Date(toUtc + (toUtc.endsWith("Z") ? "" : "Z"));
@@ -37,14 +39,14 @@ const formatTimeRange = (fromUtc, toUtc) => {
     fromDate.getMonth() === toDate.getMonth() &&
     fromDate.getDate() === toDate.getDate();
   if (sameDay) {
-    return `${formatDateTime(fromUtc)} – ${formatTimeOnly(toUtc)}`;
+    return `${formatDateTime(fromUtc, tz)} – ${formatTimeOnly(toUtc, tz)}`;
   }
-  return `${formatDateTime(fromUtc)} – ${formatDateTime(toUtc)}`;
+  return `${formatDateTime(fromUtc, tz)} – ${formatDateTime(toUtc, tz)}`;
 };
 
-const getShortTimezoneLabel = () => {
+const getShortTimezoneLabel = (tz) => {
   try {
-    return new Date().toLocaleTimeString(undefined, { timeZoneName: "short" }).split(" ").pop();
+    return new Date().toLocaleTimeString(undefined, { timeZone: tz, timeZoneName: "short" }).split(" ").pop();
   } catch {
     return "";
   }
@@ -60,10 +62,13 @@ const slotToTimeLabel = (slot) => {
 };
 
 // Returns e.g. "America/New_York (UTC-5)"
-const getTimezoneLabel = () => {
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const offsetMin = new Date().getTimezoneOffset();
-  const sign = offsetMin <= 0 ? "+" : "-";
+const getTimezoneLabel = (tz) => {
+  // Compute the UTC offset for the given timezone
+  const now = new Date();
+  const utcStr = now.toLocaleString("en-US", { timeZone: "UTC" });
+  const tzStr = now.toLocaleString("en-US", { timeZone: tz });
+  const offsetMin = (new Date(tzStr) - new Date(utcStr)) / 60000;
+  const sign = offsetMin >= 0 ? "+" : "-";
   const absHours = Math.floor(Math.abs(offsetMin) / 60);
   const absMin = Math.abs(offsetMin) % 60;
   const offsetStr = absMin === 0 ? `UTC${sign}${absHours}` : `UTC${sign}${absHours}:${String(absMin).padStart(2, "0")}`;
@@ -71,23 +76,46 @@ const getTimezoneLabel = () => {
 };
 
 // Combine a date string "YYYY-MM-DD" and slot (0–95) into a UTC ISO string
-const slotsToUtcIso = (dateStr, slot) => {
+// When tz is provided, interpret the date/time as being in that timezone
+const slotsToUtcIso = (dateStr, slot, tz) => {
   const hours = Math.floor(slot / 4);
   const minutes = (slot % 4) * 15;
+  if (tz) {
+    // Create the wall-clock time as a UTC Date (timezone-neutral reference point)
+    const [year, month, day] = dateStr.split("-").map(Number);
+    const fakeUtc = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
+    // Compute the target timezone's offset from UTC at this moment
+    const utcStr = fakeUtc.toLocaleString("en-US", { timeZone: "UTC" });
+    const tzStr = fakeUtc.toLocaleString("en-US", { timeZone: tz });
+    const offsetMs = new Date(tzStr) - new Date(utcStr);
+    // The desired UTC time = wall-clock time - offset
+    const utcTime = new Date(fakeUtc.getTime() - offsetMs);
+    return utcTime.toISOString();
+  }
   const d = new Date(`${dateStr}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`);
   return d.toISOString();
 };
 
-// Convert a UTC ISO string to a local slot (0–95), clamped
-const utcToLocalSlot = (utcString) => {
+// Convert a UTC ISO string to a slot (0–95) in the given timezone
+const utcToLocalSlot = (utcString, tz) => {
   if (!utcString) return 0;
   const date = new Date(utcString + (utcString.endsWith("Z") ? "" : "Z"));
+  if (tz) {
+    const parts = new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", minute: "numeric", hour12: false }).formatToParts(date);
+    const hour = parseInt(parts.find(p => p.type === "hour")?.value || "0");
+    const minute = parseInt(parts.find(p => p.type === "minute")?.value || "0");
+    return hour * 4 + Math.floor(minute / 15);
+  }
   return date.getHours() * 4 + Math.floor(date.getMinutes() / 15);
 };
 
-// Get today's date as "YYYY-MM-DD" in local time
-const getTodayDate = () => {
+// Get today's date as "YYYY-MM-DD" in the given timezone (or local)
+const getTodayDate = (tz) => {
   const d = new Date();
+  if (tz) {
+    const parts = new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(d); // en-CA gives YYYY-MM-DD
+    return parts;
+  }
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
@@ -191,17 +219,19 @@ export const LfgSection = ({ plugin }) => {
   const [joinSlot, setJoinSlot] = useState(null);
   const [subscribed, setSubscribed] = useState(false);
   const [error, setError] = useState(null);
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
 
   // Form state
   const [description, setDescription] = useState("Standard game");
   const [numPlayersWanted, setNumPlayersWanted] = useState(1);
   const [experienceLevel, setExperienceLevel] = useState("any");
-  const [availableDate, setAvailableDate] = useState(getTodayDate);
+  const [availableDate, setAvailableDate] = useState(() => getTodayDate());
   const [startSlot, setStartSlot] = useState(0);
   const [endSlot, setEndSlot] = useState(95);
 
   const pluginId = plugin?.id;
-  const timezoneLabel = useMemo(() => getTimezoneLabel(), []);
+  const tz = myUser?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const timezoneLabel = useMemo(() => getTimezoneLabel(tz), [tz]);
 
   // Fetch posts on mount
   useEffect(() => {
@@ -244,8 +274,8 @@ export const LfgSection = ({ plugin }) => {
 
   const handleCreatePost = async () => {
     setError(null);
-    const fromIso = slotsToUtcIso(availableDate, startSlot);
-    const toIso = slotsToUtcIso(availableDate, endSlot);
+    const fromIso = slotsToUtcIso(availableDate, startSlot, tz);
+    const toIso = slotsToUtcIso(availableDate, endSlot, tz);
     const now = new Date();
     if (new Date(toIso) <= now) {
       setError("The end time is in the past. Please pick a later time or a future date.");
@@ -262,15 +292,15 @@ export const LfgSection = ({ plugin }) => {
           description,
           num_players_wanted: numPlayersWanted,
           experience_level: experienceLevel,
-          available_from: slotsToUtcIso(availableDate, startSlot),
-          available_to: slotsToUtcIso(availableDate, endSlot),
+          available_from: slotsToUtcIso(availableDate, startSlot, tz),
+          available_to: slotsToUtcIso(availableDate, endSlot, tz),
         },
       }, authOptions);
       setShowCreateForm(false);
       setDescription("Standard game");
       setNumPlayersWanted(1);
       setExperienceLevel("any");
-      setAvailableDate(getTodayDate());
+      setAvailableDate(getTodayDate(tz));
       setStartSlot(0);
       setEndSlot(95);
     } catch (err) {
@@ -282,13 +312,13 @@ export const LfgSection = ({ plugin }) => {
     setError(null);
     try {
       const post = posts.find((p) => p.id === postId);
-      const postFromSlot = utcToLocalSlot(post?.available_from);
+      const postFromSlot = utcToLocalSlot(post?.available_from, tz);
       const dateStr = post?.available_from
-        ? (() => { const d = new Date(post.available_from + (post.available_from.endsWith("Z") ? "" : "Z")); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })()
-        : getTodayDate();
+        ? (() => { const d = new Date(post.available_from + (post.available_from.endsWith("Z") ? "" : "Z")); return new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(d); })()
+        : getTodayDate(tz);
       const slotVal = joinSlot != null ? joinSlot : postFromSlot;
       await axios.post(`/be/api/v1/lfg/${postId}/respond`, {
-        earliest_start: slotsToUtcIso(dateStr, slotVal),
+        earliest_start: slotsToUtcIso(dateStr, slotVal, tz),
       }, authOptions);
       setJoinPostId(null);
       setJoinSlot(null);
@@ -338,8 +368,8 @@ export const LfgSection = ({ plugin }) => {
   };
 
   const getJoinSlotBounds = (post) => {
-    const fromSlot = utcToLocalSlot(post.available_from);
-    const toSlot = utcToLocalSlot(post.available_to);
+    const fromSlot = utcToLocalSlot(post.available_from, tz);
+    const toSlot = utcToLocalSlot(post.available_to, tz);
     return { minSlot: fromSlot, maxSlot: toSlot };
   };
 
@@ -354,6 +384,13 @@ export const LfgSection = ({ plugin }) => {
           </div>
         )}
       </div>
+
+      <button
+        onClick={() => setShowHowItWorks(true)}
+        className="text-blue-400 hover:text-blue-300 text-sm mb-2"
+      >
+        How does this work?
+      </button>
 
       {error && (
         <div className="bg-red-200 text-red-800 p-2 rounded mb-2 text-sm">
@@ -372,7 +409,7 @@ export const LfgSection = ({ plugin }) => {
             <div key={post.id} className="bg-gray-600-30 rounded-lg p-3 text-white">
               <div className="flex justify-between items-start">
                 <div>
-                  <span className="font-semibold">{post.user_alias}</span>
+                  <span className="font-semibold"><UserName userID={post.user_id} defaultName={post.user_alias} /></span>
                   <span className="ml-2 text-sm text-gray-300">
                     {post.experience_level !== "any" && `[${post.experience_level}]`}
                   </span>
@@ -387,13 +424,13 @@ export const LfgSection = ({ plugin }) => {
               )}
 
               <div className="text-sm text-white font-bold mt-1">
-                {formatTimeRange(post.available_from, post.available_to)}
-                <span className="font-normal text-gray-400 text-xs ml-1">{getShortTimezoneLabel()}</span>
+                {formatTimeRange(post.available_from, post.available_to, tz)}
+                <span className="font-normal text-gray-400 text-xs ml-1">{getShortTimezoneLabel(tz)}</span>
               </div>
 
               {post.status === "filled" && post.confirmed_start_time && (
                 <div className="text-sm text-green-400 mt-1">
-                  Game confirmed for {formatDateTime(post.confirmed_start_time)}
+                  Game confirmed for {formatDateTime(post.confirmed_start_time, tz)}
                 </div>
               )}
 
@@ -411,7 +448,9 @@ export const LfgSection = ({ plugin }) => {
               {/* Respondents */}
               {post.responses && post.responses.length > 0 && (
                 <div className="text-xs text-gray-400 mt-1">
-                  Joined: {post.responses.map((r) => r.user_alias).join(", ")}
+                  Joined: {post.responses.map((r, i) => (
+                    <span key={r.id}>{i > 0 && ", "}<UserName userID={r.user_id} defaultName={r.user_alias} /></span>
+                  ))}
                 </div>
               )}
 
@@ -492,7 +531,10 @@ export const LfgSection = ({ plugin }) => {
       </div>
 
       {/* Create post button / form */}
-      {isLoggedIn && !showCreateForm && (
+      {isLoggedIn && !showCreateForm && posts.filter((p) => p.user_id === myUser?.id).length >= 5 && (
+        <div className="text-gray-400 text-sm p-2">You already have 5 active LFG posts.</div>
+      )}
+      {isLoggedIn && !showCreateForm && posts.filter((p) => p.user_id === myUser?.id).length < 5 && (
         <button
           onClick={() => setShowCreateForm(true)}
           className="bg-gray-600-30 hover:bg-red-600-30 text-white px-4 py-2 rounded-lg w-full"
@@ -584,6 +626,42 @@ export const LfgSection = ({ plugin }) => {
           </div>
         </div>
       )}
+
+      {/* How it works modal */}
+      <ReactModal
+        isOpen={showHowItWorks}
+        onRequestClose={() => setShowHowItWorks(false)}
+        contentLabel="How LFG Works"
+        overlayClassName="fixed inset-0 bg-black-50 z-50 overflow-y-scroll"
+        className="insert-auto text-white bg-gray-700 border border-gray-600 mx-auto my-12 rounded-lg outline-none"
+        style={{ content: { width: "600px", maxWidth: "90vw" } }}
+      >
+        <div className="p-6">
+          <h2 className="text-xl font-bold mb-4">How does Looking for Game work?</h2>
+          <div className="space-y-3 text-sm text-gray-200">
+            <p>
+              <strong className="text-white">Post a request:</strong> Click "I'm Looking for a Game" to create a post. Set how many players you need, your experience level, and the time window you're available.
+            </p>
+            <p>
+              <strong className="text-white">Join someone else's post:</strong> See a post that fits your schedule? Click "Join" and pick the earliest time you can start.
+            </p>
+            <p>
+              <strong className="text-white">Automatic room creation:</strong> Once enough players have joined, a confirmation email will be sent out confirming the start time. Then, 5 minutes before the start time, a game room will be automatically created and another email will be sent out with a link to join.
+            </p>
+            <p>
+              <strong className="text-white">New post notifications:</strong> Toggle "Email me new LFG posts" to get notified when someone posts a new LFG for this game. You can unsubscribe at any time.
+            </p>
+            <p>
+              <strong className="text-white">Time windows:</strong> Posts expire automatically once the available window has passed. All times are shown in the time zone listed in your profile settings.
+            </p>
+          </div>
+          <div className="mt-5">
+            <Button isPrimary onClick={() => setShowHowItWorks(false)}>
+              Got it
+            </Button>
+          </div>
+        </div>
+      </ReactModal>
     </div>
   );
 };

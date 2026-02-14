@@ -89,7 +89,25 @@ defmodule DragnCards.Lfg do
   @doc """
   Create a new LFG post.
   """
+  @max_active_posts_per_user 5
+
   def create_post(user, attrs) do
+    active_count =
+      from(p in LfgPost,
+        where: p.user_id == ^user.id,
+        where: p.status in ["open", "filled"],
+        where: p.available_to > ^DateTime.utc_now()
+      )
+      |> Repo.aggregate(:count)
+
+    if active_count >= @max_active_posts_per_user do
+      {:error, :too_many_posts}
+    else
+      create_post_inner(user, attrs)
+    end
+  end
+
+  defp create_post_inner(user, attrs) do
     changeset =
       %LfgPost{}
       |> LfgPost.changeset(Map.put(attrs, "user_id", user.id))

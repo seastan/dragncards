@@ -11,6 +11,7 @@ import RecaptchaForm from "./RecaptchaForm";
 import { useAuthOptions } from "../../hooks/useAuthOptions";
 import { useSiteL10n } from "../../hooks/useSiteL10n";
 import useAuth from "../../hooks/useAuth";
+import { SupporterBadge } from "../user/UserName";
 
 const columns = [
   {name: "uuid", label: "UUID", options: { filter: false, display: false }},
@@ -146,7 +147,7 @@ export const Profile: React.FC<Props> = () => {
 
       {/* Account Info */}
       <div style={sectionStyle}>
-        <h1 style={headingStyle}>{user.alias}</h1>
+        <h1 style={headingStyle}><SupporterBadge level={user.supporter_level} />{user.alias}</h1>
         <div style={{display: "grid", gridTemplateColumns: "auto 1fr", gap: "6px 16px"}}>
           <span style={labelStyle}>Account created</span>
           <span style={valueStyle}>{insertedAbsolute} ({insertedRelative})</span>

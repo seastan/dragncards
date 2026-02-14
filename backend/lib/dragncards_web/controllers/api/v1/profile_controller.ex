@@ -44,7 +44,8 @@ defmodule DragnCardsWeb.API.V1.ProfileController do
     user_id = user_params["id"]
     u = Repo.get!(User, user_id)
     updates = %{
-      language: user_params["language"]
+      language: user_params["language"],
+      timezone: user_params["timezone"]
     }
     u = Ecto.Changeset.change(u, updates)
     case Repo.update(u) do

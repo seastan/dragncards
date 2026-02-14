@@ -11,7 +11,7 @@ export const WHATS_NEW_VERSION = 1;
 
 const releases = [
   {
-    version: 1,
+    version: 2.1,
     date: "Feb 11, 2026",
     title: "Favorites, Automation Toggles & More",
     sections: [

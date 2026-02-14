@@ -116,6 +116,7 @@ declare module "elixir-backend" {
   export declare class User {
     public id: number;
     public alias: string;
+    public supporter_level: null | number;
   }
 
   export declare class ChatMessage {
