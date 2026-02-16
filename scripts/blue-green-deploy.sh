@@ -67,7 +67,7 @@ sudo systemctl start "$NEW_SERVICE"
 # Wait for it to come up
 echo "==> Waiting for new instance..."
 for i in $(seq 1 30); do
-  if curl -sf "http://127.0.0.1:$NEW_PORT/" > /dev/null 2>&1; then
+  if curl -so /dev/null "http://127.0.0.1:$NEW_PORT/" 2>/dev/null; then
     echo "    New instance is up!"
     break
   fi
