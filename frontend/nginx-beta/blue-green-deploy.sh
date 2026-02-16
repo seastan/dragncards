@@ -34,6 +34,9 @@
 
 set -euo pipefail
 
+# Cache sudo credentials upfront so the script doesn't prompt later
+sudo echo "Starting..."
+
 SKIP_FRONTEND=false
 for arg in "$@"; do
   case $arg in

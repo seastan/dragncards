@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { useSelector, useDispatch } from 'react-redux';
 import RoomProviders from "./RoomProviders";
 import {useSetMessages} from '../../contexts/MessagesContext';
@@ -23,6 +23,7 @@ export const Room = ({ slug }) => {
   const playerN = usePlayerN();
   const sendLocalMessage = useSendLocalMessage();
   const [outOfSync, setOutOfSync] = useState(false);
+  const [roomNotFound, setRoomNotFound] = useState(false);
   const myUserId = myUser?.id;
   const isPluginAuthor = useIsPluginAuthor();
   //const plugin = usePlugin();
@@ -98,13 +99,7 @@ export const Room = ({ slug }) => {
     } else if (event === "users_changed" && payload !== null) {
       dispatch(setSockets(payload));
     } else if (event === "unable_to_get_state_on_join") {
-      dispatch(setAlert({
-        level: "warning",
-        text: "This room has been closed due to inactivity.",
-        action: "room_closed",
-        autoClose: false,
-        timestamp: Date.now()
-      }));
+      setRoomNotFound(true);
     } else if (event === "bad_game_state" && payload !== null) {
       const errors = payload.errors;
       console.error("Bad game state received:", errors);
@@ -189,6 +184,25 @@ export const Room = ({ slug }) => {
   // console.log("plugin room",plugin)
   //if (plugin === null) return (<div className="text-white m-4">Loading...</div>);
 
+  if (roomNotFound) return (
+    <div className="text-white flex flex-col items-center justify-center h-screen p-4">
+      <div className="bg-gray-700 rounded-lg p-6 max-w-md text-center">
+        <h2 className="text-xl font-bold mb-3">Room not found</h2>
+        <p className="text-gray-300 mb-4">
+          This room is no longer available. It may have been closed due to inactivity, or it may be running on an older version of the server that is no longer accepting new connections.
+        </p>
+        <p className="text-gray-300 mb-4">
+          Please ask the room owner to create a new room for you to join.
+        </p>
+        <button
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+          onClick={() => window.history.back()}
+        >
+          Go back
+        </button>
+      </div>
+    </div>
+  );
   if (roomSlug !== slug) return (<div></div>);
   else {
     return (
