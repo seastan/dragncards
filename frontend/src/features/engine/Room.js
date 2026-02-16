@@ -5,7 +5,7 @@ import {useSetMessages} from '../../contexts/MessagesContext';
 import useChannel from "../../hooks/useChannel";
 import { applyDeltaRedo, appendDelta, setGameUi, setPlayerInfo, setSockets, setDeltas, setSpectators } from "../store/gameUiSlice";
 import useProfile from "../../hooks/useProfile";
-import { resetPlayerUi, setAlert, setPluginRepoUpdateGameDef, setReplayStep, setPlayerUiValues, overridePlayerUiValues } from "../store/playerUiSlice";
+import { resetPlayerUi, setAlert, setPluginRepoUpdateGameDef, setReplayStep, setPlayerUiValues, overridePlayerUiValues, setRoomNotFound } from "../store/playerUiSlice";
 import { PluginProvider } from "../../contexts/PluginContext";
 import store from "../../store";
 import { mergeObjects } from "../myplugins/uploadPluginFunctions";
@@ -23,7 +23,7 @@ export const Room = ({ slug }) => {
   const playerN = usePlayerN();
   const sendLocalMessage = useSendLocalMessage();
   const [outOfSync, setOutOfSync] = useState(false);
-  const [roomNotFound, setRoomNotFound] = useState(false);
+  const roomNotFound = useSelector(state => state.playerUi.roomNotFound);
   const myUserId = myUser?.id;
   const isPluginAuthor = useIsPluginAuthor();
   //const plugin = usePlugin();
@@ -99,7 +99,7 @@ export const Room = ({ slug }) => {
     } else if (event === "users_changed" && payload !== null) {
       dispatch(setSockets(payload));
     } else if (event === "unable_to_get_state_on_join") {
-      setRoomNotFound(true);
+      dispatch(setRoomNotFound(true));
     } else if (event === "bad_game_state" && payload !== null) {
       const errors = payload.errors;
       console.error("Bad game state received:", errors);
@@ -196,7 +196,7 @@ export const Room = ({ slug }) => {
         </p>
         <button
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-          onClick={() => window.history.back()}
+          onClick={() => { dispatch(setRoomNotFound(false)); window.history.back(); }}
         >
           Go back
         </button>

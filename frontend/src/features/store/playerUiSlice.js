@@ -78,7 +78,8 @@ const initialState = {
   multiSelect: {
     enabled: false,
     cardIds: [], // This is to keep track of selected card ids for multi-select
-  }
+  },
+  roomNotFound: false,
 };
 
 const playerUiSlice = createSlice({
@@ -282,6 +283,9 @@ const playerUiSlice = createSlice({
     },
     clearMultiSelectCardIds: (state) => {
       state.multiSelect.cardIds = [];
+    },
+    setRoomNotFound: (state, { payload }) => {
+      state.roomNotFound = payload;
     }
   }
 });
@@ -350,6 +354,7 @@ export const {
   addMultiSelectCardId,
   toggleMultiSelectCardId,
   removeMultiSelectCardId,
-  clearMultiSelectCardIds
+  clearMultiSelectCardIds,
+  setRoomNotFound
  } = playerUiSlice.actions;
 export default playerUiSlice.reducer;
