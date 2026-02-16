@@ -8,6 +8,9 @@
 #   3. Swaps nginx to send new connections to the new port
 #   4. Old instance keeps running — existing rooms/websockets stay alive
 #
+# Flags:
+#   --skip-frontend   Skip frontend build (backend-only deploy)
+#
 # Later, when old rooms have ended (days/a week), run:
 #   sudo systemctl stop dragncards-old.service
 #
@@ -18,6 +21,13 @@
 #   4. sudo nginx -t && sudo nginx -s reload
 
 set -euo pipefail
+
+SKIP_FRONTEND=false
+for arg in "$@"; do
+  case $arg in
+    --skip-frontend) SKIP_FRONTEND=true ;;
+  esac
+done
 
 UPSTREAM_FILE="/etc/nginx/dragncards-upstream.conf"
 
@@ -53,12 +63,16 @@ MIX_ENV=prod mix release --overwrite
 cd ..
 
 # Step 2: Build frontend
-echo "==> Building frontend..."
-cd frontend
-npm run build:css
-npm run build
-cp -r /var/www/dragncards.com/dragncards/frontend/build/* /var/www/dragncards.com/html/
-cd ..
+if [ "$SKIP_FRONTEND" = true ]; then
+  echo "==> Skipping frontend build (--skip-frontend)"
+else
+  echo "==> Building frontend..."
+  cd frontend
+  npm run build:css
+  npm run build
+  cp -r /var/www/dragncards.com/dragncards/frontend/build/* /var/www/dragncards.com/html/
+  cd ..
+fi
 
 # Step 3: Start new backend on alternate port
 echo "==> Starting new backend on port $NEW_PORT..."

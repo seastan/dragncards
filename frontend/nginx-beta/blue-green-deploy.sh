@@ -8,6 +8,9 @@
 #   3. Swaps nginx to send new connections to the new port
 #   4. Old instance keeps running — existing rooms/websockets stay alive
 #
+# Flags:
+#   --skip-frontend   Skip frontend build (backend-only deploy)
+#
 # Later, when old rooms have ended, stop the old instance:
 #   sudo systemctl stop dragncards.service       (if old was 4000)
 #   sudo systemctl stop dragncards-4001.service   (if old was 4001)
@@ -30,6 +33,13 @@
 # ============================================================
 
 set -euo pipefail
+
+SKIP_FRONTEND=false
+for arg in "$@"; do
+  case $arg in
+    --skip-frontend) SKIP_FRONTEND=true ;;
+  esac
+done
 
 UPSTREAM_FILE="/etc/nginx/dragncards-upstream.conf"
 
@@ -65,12 +75,16 @@ MIX_ENV=prod mix release --overwrite
 cd ..
 
 # Step 2: Build frontend
-echo "==> Building frontend..."
-cd frontend
-npm run build:css
-npm run build
-cp -r /var/www/dragncards.com/dragncards/frontend/build/* /var/www/dragncards.com/html/
-cd ..
+if [ "$SKIP_FRONTEND" = true ]; then
+  echo "==> Skipping frontend build (--skip-frontend)"
+else
+  echo "==> Building frontend..."
+  cd frontend
+  npm run build:css
+  npm run build
+  cp -r /var/www/dragncards.com/dragncards/frontend/build/* /var/www/dragncards.com/html/
+  cd ..
+fi
 
 # Step 3: Stop the new service if it was still running from a previous deploy
 sudo systemctl stop "$NEW_SERVICE" 2>/dev/null || true
