@@ -69,10 +69,12 @@ defmodule DragnCardsGame.GameRegistry do
   but sometimes the server dies for other reasons.
   """
   def cleanup() do
-    Rooms.list_rooms()
-    |> Enum.filter(fn room -> not GameUIServer.game_exists?(room.name) end)
-    |> Enum.each(fn room ->
-      Rooms.delete_room(room)
-    end)
+    if Application.get_env(:dragncards, :cleanup_enabled, true) do
+      Rooms.list_rooms()
+      |> Enum.filter(fn room -> not GameUIServer.game_exists?(room.name) end)
+      |> Enum.each(fn room ->
+        Rooms.delete_room(room)
+      end)
+    end
   end
 end

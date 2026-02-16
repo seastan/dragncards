@@ -8,6 +8,9 @@
 #   3. Swaps nginx to send new connections to the new port
 #   4. Old instance keeps running — existing rooms/websockets stay alive
 #
+# Flags:
+#   --skip-frontend   Skip frontend build (backend-only deploy)
+#
 # Later, when old rooms have ended (days/a week), run:
 #   sudo systemctl stop dragncards-old.service
 #
@@ -19,7 +22,15 @@
 
 set -euo pipefail
 
+SKIP_FRONTEND=false
+for arg in "$@"; do
+  case $arg in
+    --skip-frontend) SKIP_FRONTEND=true ;;
+  esac
+done
+
 UPSTREAM_FILE="/etc/nginx/dragncards-upstream.conf"
+RELEASE_BIN="/var/www/dragncards.com/dragncards/backend/_build/prod/rel/dragncards/bin/dragncards"
 
 # Determine current active port
 CURRENT_PORT=$(grep -oP '\d{4}' "$UPSTREAM_FILE" | head -1)
@@ -28,10 +39,12 @@ if [ "$CURRENT_PORT" = "4000" ]; then
   NEW_PORT=4001
   NEW_SERVICE="dragncards-4001.service"
   OLD_SERVICE="dragncards.service"
+  OLD_NODE="dragncards@$(hostname)"
 else
   NEW_PORT=4000
   NEW_SERVICE="dragncards.service"
   OLD_SERVICE="dragncards-4001.service"
+  OLD_NODE="dragncards_4001@$(hostname)"
 fi
 
 echo "Current active port: $CURRENT_PORT"
@@ -53,12 +66,16 @@ MIX_ENV=prod mix release --overwrite
 cd ..
 
 # Step 2: Build frontend
-echo "==> Building frontend..."
-cd frontend
-npm run build:css
-npm run build
-cp -r /var/www/dragncards.com/dragncards/frontend/build/* /var/www/dragncards.com/html/
-cd ..
+if [ "$SKIP_FRONTEND" = true ]; then
+  echo "==> Skipping frontend build (--skip-frontend)"
+else
+  echo "==> Building frontend..."
+  cd frontend
+  npm run build:css
+  npm run build
+  cp -r /var/www/dragncards.com/dragncards/frontend/build/* /var/www/dragncards.com/html/
+  cd ..
+fi
 
 # Step 3: Start new backend on alternate port
 echo "==> Starting new backend on port $NEW_PORT..."
@@ -85,6 +102,10 @@ echo "upstream phoenix {
   server 127.0.0.1:$NEW_PORT;
 }" | sudo tee "$UPSTREAM_FILE" > /dev/null
 sudo nginx -t && sudo nginx -s reload
+
+# Step 5: Disable room cleanup on old instance so it doesn't delete the new instance's rooms
+echo "==> Disabling room cleanup on old instance..."
+RELEASE_NODE=$OLD_NODE $RELEASE_BIN rpc "Application.put_env(:dragncards, :cleanup_enabled, false)" 2>/dev/null || echo "    Warning: couldn't reach old instance (may already be stopped)"
 
 echo ""
 echo "==> Deploy complete!"
