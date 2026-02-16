@@ -4,6 +4,31 @@ defmodule DragnCards.UserEmail do
   """
   import Swoosh.Email
 
+  defp format_datetime(utc_datetime, user) do
+    tz = user.timezone
+
+    if tz && tz != "" do
+      case DateTime.shift_zone(utc_datetime, tz) do
+        {:ok, local_dt} ->
+          Calendar.strftime(local_dt, "%a, %b %d, %Y %I:%M %p") <> " #{tz_abbreviation(local_dt, tz)}"
+
+        _ ->
+          Calendar.strftime(utc_datetime, "%a, %b %d, %Y %I:%M %p UTC")
+      end
+    else
+      Calendar.strftime(utc_datetime, "%a, %b %d, %Y %I:%M %p UTC")
+    end
+  end
+
+  defp tz_abbreviation(dt, tz) do
+    case Calendar.strftime(dt, "%Z") do
+      "+" <> _ -> tz
+      "-" <> _ -> tz
+      abbr when abbr != "" -> abbr
+      _ -> tz
+    end
+  end
+
   def welcome(user) do
     new()
     |> to({user.name, user.email})
@@ -29,8 +54,8 @@ defmodule DragnCards.UserEmail do
   def lfg_new_post(user, poster_alias, plugin_name, post) do
     time_window =
       if post.available_from && post.available_to do
-        from_str = Calendar.strftime(post.available_from, "%Y-%m-%d %H:%M UTC")
-        to_str = Calendar.strftime(post.available_to, "%Y-%m-%d %H:%M UTC")
+        from_str = format_datetime(post.available_from, user)
+        to_str = format_datetime(post.available_to, user)
         "#{from_str} – #{to_str}"
       else
         "Not specified"
@@ -67,7 +92,7 @@ defmodule DragnCards.UserEmail do
   def lfg_game_confirmed(user, plugin_name, confirmed_start_time, _post) do
     time_str =
       if confirmed_start_time do
-        Calendar.strftime(confirmed_start_time, "%Y-%m-%d %H:%M UTC")
+        format_datetime(confirmed_start_time, user)
       else
         "TBD (a player left, game is no longer confirmed)"
       end
