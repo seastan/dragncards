@@ -30,6 +30,7 @@ for arg in "$@"; do
 done
 
 UPSTREAM_FILE="/etc/nginx/dragncards-upstream.conf"
+RELEASE_BIN="/var/www/dragncards.com/dragncards/backend/_build/prod/rel/dragncards/bin/dragncards"
 
 # Determine current active port
 CURRENT_PORT=$(grep -oP '\d{4}' "$UPSTREAM_FILE" | head -1)
@@ -38,10 +39,12 @@ if [ "$CURRENT_PORT" = "4000" ]; then
   NEW_PORT=4001
   NEW_SERVICE="dragncards-4001.service"
   OLD_SERVICE="dragncards.service"
+  OLD_NODE="dragncards@$(hostname)"
 else
   NEW_PORT=4000
   NEW_SERVICE="dragncards.service"
   OLD_SERVICE="dragncards-4001.service"
+  OLD_NODE="dragncards_4001@$(hostname)"
 fi
 
 echo "Current active port: $CURRENT_PORT"
@@ -99,6 +102,10 @@ echo "upstream phoenix {
   server 127.0.0.1:$NEW_PORT;
 }" | sudo tee "$UPSTREAM_FILE" > /dev/null
 sudo nginx -t && sudo nginx -s reload
+
+# Step 5: Disable room cleanup on old instance so it doesn't delete the new instance's rooms
+echo "==> Disabling room cleanup on old instance..."
+RELEASE_NODE=$OLD_NODE $RELEASE_BIN rpc "Application.put_env(:dragncards, :cleanup_enabled, false)" 2>/dev/null || echo "    Warning: couldn't reach old instance (may already be stopped)"
 
 echo ""
 echo "==> Deploy complete!"
