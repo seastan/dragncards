@@ -23,6 +23,30 @@ defmodule DragnCards.Application do
        run: &DragnCardsGame.GameRegistry.cleanup/0,
        initial_delay: :timer.seconds(1),
        every: :timer.minutes(5)},
+      # Daily Patreon supporter level reconciliation
+      Supervisor.child_spec(
+        {Periodic,
+         run: &DragnCards.Users.sync_supporter_levels/0,
+         initial_delay: :timer.minutes(5),
+         every: :timer.hours(24)},
+        id: :patreon_sync
+      ),
+      # LFG room creation (every minute)
+      Supervisor.child_spec(
+        {Periodic,
+         run: &DragnCards.Lfg.create_rooms_for_filled_posts/0,
+         initial_delay: :timer.minutes(2),
+         every: :timer.minutes(1)},
+        id: :lfg_room_creation
+      ),
+      # LFG expired post cleanup (every hour)
+      Supervisor.child_spec(
+        {Periodic,
+         run: &DragnCards.Lfg.cleanup_expired_posts/0,
+         initial_delay: :timer.minutes(10),
+         every: :timer.hours(1)},
+        id: :lfg_cleanup
+      ),
       # Phoenix PubSub
       {Phoenix.PubSub, [name: DragnCards.PubSub, adapter: Phoenix.PubSub.PG2]},
       # Start the CardCache as a GenServer

@@ -91,13 +91,17 @@ defmodule DragnCardsWeb.Router do
     get("/profile", ProfileController, :index)
     post("/profile/update", ProfileController, :update)
     post("/profile/update_plugin_user_settings", ProfileController, :update_plugin_user_settings)
+    post("/profile/update_favorite_plugins", ProfileController, :update_favorite_plugins)
+    post("/profile/update_whats_new_dismissed", ProfileController, :update_whats_new_dismissed)
+    delete("/profile", ProfileController, :delete_account)
     get("/profile/:id", ProfileController, :show)
 
     # reCAPTCHA verification
     post("/recaptcha/verify", RecaptchaController, :verify)
 
-    # Admin Contact
+    # Admin
     get("/admin_contact", AdminContactController, :index)
+    post("/admin/update_user_patreon", AdminController, :update_user_patreon)
 
     # Create a game room
     post("/games", GameController, :create)
@@ -112,6 +116,16 @@ defmodule DragnCardsWeb.Router do
 
     # Alerts
     get("/alerts", AlertController, :show)
+
+    # LFG (Looking for Game)
+    post("/lfg", LfgController, :create)
+    get("/lfg/subscribe/:plugin_id", LfgController, :subscription_status)
+    post("/lfg/subscribe/:plugin_id", LfgController, :subscribe)
+    delete("/lfg/subscribe/:plugin_id", LfgController, :unsubscribe)
+    get("/lfg/:plugin_id", LfgController, :index)
+    delete("/lfg/:id", LfgController, :delete)
+    post("/lfg/:post_id/respond", LfgController, :respond)
+    delete("/lfg/:post_id/respond", LfgController, :cancel_response)
 
   end
 

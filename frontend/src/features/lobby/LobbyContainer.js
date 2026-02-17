@@ -13,7 +13,7 @@ import { TermsOfServiceModal } from "./TermsOfServiceModal";
 import { PluginLobby } from "./PluginLobby";
 import { Footer } from "./Footer";
 
-export const LobbyContainer = ({ children }) => {
+export const LobbyContainer = ({ children, maxWidth = "600px" }) => {
   const isLoggedIn = useIsLoggedIn();
   const [showModal, setShowModal] = useState(null);
   const [showTermsOfService, setShowTermsOfService] = useState(false);
@@ -98,7 +98,7 @@ export const LobbyContainer = ({ children }) => {
           </div>
         </div>
 
-        <div className="mx-auto w-full p-2" style={{maxWidth: "600px"}}>
+        <div className="mx-auto w-full p-2" style={{maxWidth}}>
             {children}
         </div>
 
