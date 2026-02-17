@@ -9,7 +9,6 @@ import { parseISO, format, formatDistanceToNow } from "date-fns";
 import axios from "axios";
 import RecaptchaForm from "./RecaptchaForm";
 import { useAuthOptions } from "../../hooks/useAuthOptions";
-import { useSiteL10n } from "../../hooks/useSiteL10n";
 import useAuth from "../../hooks/useAuth";
 import { SupporterBadge } from "../user/UserName";
 
@@ -50,7 +49,6 @@ interface Props {}
 export const Profile: React.FC<Props> = () => {
   const user = useProfile();
   const authOptions = useAuthOptions();
-  const siteL10n = useSiteL10n();
   const history = useHistory();
   const { logOut } = useAuth();
   const [showModal, setShowModal] = useState(false);
@@ -93,13 +91,6 @@ export const Profile: React.FC<Props> = () => {
       const res = await axios.post("/be/api/replays/delete",data);
       setDeletedIndices([...deletedIndices, index]);
     }
-  }
-  const issueDowntimeNotice = async() => {
-    let defMessage = siteL10n("defaultMaintenanceMessage");
-    let text = window.prompt(`Enter the message to send to all users. Leave blank to send default message (${defMessage})`);
-    if (text == null) return;
-    if (text == "") text = defMessage;
-    const res = await axios.post("/be/api/rooms/send_alert", {level: "crash", text: text, autoClose: false}, authOptions);
   }
 
   const options: MUIDataTableOptions = {
@@ -157,16 +148,6 @@ export const Profile: React.FC<Props> = () => {
           <span style={valueStyle}>{user.email_confirmed_at != null ? "Yes" : "No"}</span>
         </div>
         {user.email_confirmed_at == null && <div className="mt-3"><RecaptchaForm/></div>}
-        {user.admin &&
-          <div className="mt-4" style={{borderTop: "1px solid rgba(107,114,128,0.4)", paddingTop: "12px"}}>
-            <span style={{...labelStyle, fontWeight: 600}}>Admin</span>
-            <div className="mt-2">
-              <Button className="bg-gray-600 text-white" onClick={() => issueDowntimeNotice()}>
-                Issue downtime notice
-              </Button>
-            </div>
-          </div>
-        }
       </div>
 
       {/* Settings */}
