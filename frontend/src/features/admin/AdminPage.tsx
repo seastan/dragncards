@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import useProfile from "../../hooks/useProfile";
 import { useAuthOptions } from "../../hooks/useAuthOptions";
+import { useSiteL10n } from "../../hooks/useSiteL10n";
 import axios from "axios";
 
 const sectionStyle = {
@@ -40,6 +41,7 @@ const inputStyle: React.CSSProperties = {
 const AdminPage: React.FC = () => {
   const user = useProfile();
   const authOptions = useAuthOptions();
+  const siteL10n = useSiteL10n();
   const [alias, setAlias] = useState("");
   const [supporterLevel, setSupporterLevel] = useState("");
   const [patreonMemberId, setPatreonMemberId] = useState("");
@@ -55,6 +57,14 @@ const AdminPage: React.FC = () => {
       </div>
     );
   }
+
+  const issueDowntimeNotice = async () => {
+    let defMessage = siteL10n("defaultMaintenanceMessage");
+    let text = window.prompt(`Enter the message to send to all users. Leave blank to send default message (${defMessage})`);
+    if (text == null) return;
+    if (text === "") text = defMessage;
+    await axios.post("/be/api/rooms/send_alert", { level: "crash", text: text, autoClose: false }, authOptions);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,6 +162,25 @@ const AdminPage: React.FC = () => {
               Update User
             </button>
           </form>
+        </div>
+
+        <div style={sectionStyle}>
+          <h2 style={headingStyle}>Downtime Notice</h2>
+          <button
+            onClick={issueDowntimeNotice}
+            style={{
+              backgroundColor: "rgba(220,38,38,0.7)",
+              border: "none",
+              borderRadius: "6px",
+              padding: "8px 16px",
+              color: "white",
+              fontSize: "0.85rem",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Issue downtime notice
+          </button>
         </div>
       </div>
     </div>

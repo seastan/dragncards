@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import ReactModal from "react-modal";
 import Button from "../../components/basic/Button";
 import Axios from "axios";
 import { useAuthOptions } from "../../hooks/useAuthOptions";
+import { PatreonModal } from "../store/support/PatreonModal";
 
 ReactModal.setAppElement("#root");
 
@@ -26,6 +27,7 @@ const releases = [
       },
       {
         heading: "🔒 New Subscriber-Only Features",
+        subscriberOnly: true,
         items: [
           "Favorite prebuilt decks — Mark prebuilt decks as favorites so they appear at the top of the menu.",
           "Favorite URLs — In the 'Load prebuilt deck' menu, add URLs as favorites for quick access.",
@@ -71,6 +73,8 @@ const listItemStyle = {
 
 export const WhatsNewModal = ({ isOpen, closeModal, user }) => {
   const authOptions = useAuthOptions();
+  const [showPatreon, setShowPatreon] = useState(false);
+  const isSupporter = user?.supporter_level;
 
   const handleDismiss = async () => {
     closeModal();
@@ -122,7 +126,17 @@ export const WhatsNewModal = ({ isOpen, closeModal, user }) => {
 
             {release.sections.map((section, si) => (
               <div key={si} style={sectionStyle}>
-                <div style={sectionHeadingStyle}>{section.heading}</div>
+                <div style={sectionHeadingStyle}>
+                  {section.heading}
+                  {section.subscriberOnly && !isSupporter && (
+                    <span
+                      onClick={() => setShowPatreon(true)}
+                      style={{ marginLeft: "8px", fontSize: "0.8rem", color: "#60a5fa", cursor: "pointer" }}
+                    >
+                      Support now
+                    </span>
+                  )}
+                </div>
                 <ul style={listStyle}>
                   {section.items.map((item, ii) => (
                     <li key={ii} style={listItemStyle}>{item}</li>
@@ -137,6 +151,7 @@ export const WhatsNewModal = ({ isOpen, closeModal, user }) => {
           Got it
         </Button>
       </div>
+      <PatreonModal isOpen={showPatreon} closeModal={() => setShowPatreon(false)} />
     </ReactModal>
   );
 };
