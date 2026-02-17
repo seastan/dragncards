@@ -180,7 +180,7 @@ export const Room = ({ slug }) => {
     setOutOfSync(false);
   }
 
-  console.log('Rendering Room',myUserId);
+  console.log('Rendering Room',{myUserId, roomNotFound, roomSlug, slug});
   // console.log("plugin room",plugin)
   //if (plugin === null) return (<div className="text-white m-4">Loading...</div>);
 
