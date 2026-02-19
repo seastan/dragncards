@@ -44,7 +44,8 @@ defmodule DragnCardsWeb.API.V1.ProfileController do
     user_id = user_params["id"]
     u = Repo.get!(User, user_id)
     updates = %{
-      language: user_params["language"]
+      language: user_params["language"],
+      timezone: user_params["timezone"]
     }
     u = Ecto.Changeset.change(u, updates)
     case Repo.update(u) do
@@ -55,6 +56,67 @@ defmodule DragnCardsWeb.API.V1.ProfileController do
       {:error, _changeset} -> # Something went wrong
         conn
         |> json(%{success: %{message: "Failed to update settings"}})
+    end
+  end
+
+  def update_favorite_plugins(conn, %{"favorite_plugins" => favorite_plugins}) do
+    current_user = conn.assigns.current_user
+    if current_user do
+      user = Repo.get!(User, current_user.id)
+      changeset = Ecto.Changeset.change(user, %{favorite_plugins: favorite_plugins})
+
+      case Repo.update(changeset) do
+        {:ok, _user} ->
+          Pow.Plug.update_user(conn, %{})
+          conn
+          |> json(%{success: %{message: "Updated favorite plugins"}})
+        {:error, changeset} ->
+          conn
+          |> json(%{error: %{message: "Failed to update favorite plugins", changeset: changeset}})
+      end
+    else
+      conn
+      |> json(%{error: %{message: "User not authenticated"}})
+    end
+  end
+
+  def update_whats_new_dismissed(conn, %{"version" => version}) do
+    current_user = conn.assigns.current_user
+    if current_user do
+      user = Repo.get!(User, current_user.id)
+      changeset = Ecto.Changeset.change(user, %{whats_new_dismissed: version})
+
+      case Repo.update(changeset) do
+        {:ok, _user} ->
+          Pow.Plug.update_user(conn, %{})
+          conn
+          |> json(%{success: %{message: "Dismissed what's new"}})
+        {:error, changeset} ->
+          conn
+          |> json(%{error: %{message: "Failed to dismiss what's new", changeset: changeset}})
+      end
+    else
+      conn
+      |> json(%{error: %{message: "User not authenticated"}})
+    end
+  end
+
+  def delete_account(conn, _params) do
+    current_user = conn.assigns.current_user
+    if current_user do
+      case Users.delete_user(current_user.id) do
+        {:ok, _result} ->
+          Pow.Plug.delete(conn)
+          conn
+          |> json(%{success: %{message: "Account deleted"}})
+        {:error, reason} ->
+          conn
+          |> put_status(500)
+          |> json(%{error: %{message: "Failed to delete account", reason: inspect(reason)}})
+      end
+    else
+      conn
+      |> json(%{error: %{message: "User not authenticated"}})
     end
   end
 

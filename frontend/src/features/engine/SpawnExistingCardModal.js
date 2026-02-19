@@ -67,7 +67,7 @@ export const SpawnExistingCardModal = React.memo(({}) => {
         }}
         contentLabel="Spawn a card"
         overlayClassName="fixed inset-0 bg-black-50"
-        className="insert-auto overflow-auto p-5 bg-gray-700 border mx-auto my-12 rounded-lg outline-none max-h-3/4"
+        className="insert-auto overflow-auto bg-gray-800 border border-gray-600 mx-auto mt-12 rounded-lg outline-none max-h-3/4"
         style={{
           overlay: {
             zIndex: Z_INDEX.Modal
@@ -77,10 +77,18 @@ export const SpawnExistingCardModal = React.memo(({}) => {
             maxWidth: "62vw",
             minWidth: "43vw",
             maxHeight: "85dvh",
-            overflowY: "scroll",
+            overflowY: "auto",
           }
         }}>
-        <h1 className="mb-2">{gameL10n("Spawn card")}</h1>
+        <div style={{padding: "20px 24px 8px 24px", borderBottom: "1px solid #374151"}}>
+          <h1 style={{margin: 0, fontSize: "1.25rem", fontWeight: 600, color: "white", letterSpacing: "-0.01em"}}>
+            Spawn Card
+          </h1>
+          <p style={{margin: "4px 0 0 0", fontSize: "0.8rem", color: "#9ca3af"}}>
+            Search and add cards to the game
+          </p>
+        </div>
+        <div style={{padding: "12px 24px 20px 24px"}}>
         <div><span className="text-white">Load group: </span>
           <select className="form-control mb-1" style={{width:"35%"}} id={"loadGroupId"} name={"loadGroupId"} onChange={(event) => handleGroupIdChange(event)}>
             {gameDef?.spawnExistingCardModal?.loadGroupIds?.map((groupId,_groupIndex) => (
@@ -135,6 +143,7 @@ export const SpawnExistingCardModal = React.memo(({}) => {
             </table> :
             <div className="text-white">No results</div>
         }
+        </div>
       </ReactModal>
     )
 })

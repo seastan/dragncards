@@ -17,8 +17,12 @@ defmodule DragnCards.Users.User do
     field(:alias, :string)
     field(:admin, :boolean, default: false)
     field(:supporter_level, :integer)
+    field(:patreon_member_id, :string)
     field(:language, :string, default: "English")
+    field(:timezone, :string)
     field(:plugin_settings, :map, default: %{})
+    field(:favorite_plugins, :map, default: %{})
+    field(:whats_new_dismissed, :integer, default: 0)
     timestamps()
   end
 
@@ -31,7 +35,7 @@ defmodule DragnCards.Users.User do
       user_or_changeset
       |> pow_changeset(attrs)
       |> pow_extension_changeset(attrs)
-      |> Ecto.Changeset.cast(attrs, [:alias])
+      |> Ecto.Changeset.cast(attrs, [:alias, :timezone])
       |> Ecto.Changeset.validate_required([:alias])
       |> Ecto.Changeset.unique_constraint(:alias)
     end
@@ -53,8 +57,12 @@ defmodule DragnCards.Users.User do
       inserted_at: user.inserted_at,
       email_confirmed_at: user.email_confirmed_at,
       supporter_level: user.supporter_level,
+      patreon_member_id: user.patreon_member_id,
       language: user.language,
-      plugin_settings: user.plugin_settings
+      timezone: user.timezone,
+      plugin_settings: user.plugin_settings,
+      favorite_plugins: user.favorite_plugins,
+      whats_new_dismissed: user.whats_new_dismissed
     }
   end
 
@@ -67,7 +75,8 @@ defmodule DragnCards.Users.User do
   def to_public_profile(%User{} = user) do
     %{
       id: user.id,
-      alias: user.alias
+      alias: user.alias,
+      supporter_level: user.supporter_level
     }
   end
 

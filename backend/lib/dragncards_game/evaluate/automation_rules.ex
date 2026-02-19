@@ -156,10 +156,14 @@ defmodule DragnCardsGame.AutomationRules do
     |> validate_rule(rule_id)
   end
 
-  def preprocess_card_automation_rules(card_rules, card_id) do
+  def preprocess_card_automation_rules(card_rules, card_id, database_id) do
     Enum.reduce(card_rules, %{}, fn({rule_id, rule}, acc) ->
+      original_rule_id = rule_id
       rule_id = "#{rule_id}_#{card_id}"
-      Map.put(acc, rule_id, preprocess_card_automation_rule(rule_id, rule, card_id))
+      rule = preprocess_card_automation_rule(rule_id, rule, card_id)
+      |> Map.put("originalRuleId", original_rule_id)
+      |> Map.put("databaseId", database_id)
+      Map.put(acc, rule_id, rule)
     end)
   end
 
@@ -177,7 +181,7 @@ defmodule DragnCardsGame.AutomationRules do
     card_automation = get_card_automation(game_def, card["databaseId"])
     card_rules = get_in(card_automation, ["rules"])
     if is_map(card_rules) do
-      preprocess_card_automation_rules(card_rules, card["id"])
+      preprocess_card_automation_rules(card_rules, card["id"], card["databaseId"])
       |> Enum.reduce(game, fn ({rule_id, rule}, acc) ->
         rule = put_in(rule, ["category"], "card")
         acc
@@ -187,6 +191,21 @@ defmodule DragnCardsGame.AutomationRules do
     else
       game
     end
+  end
+
+  def apply_card_rule_defaults(game, card) do
+    defaults = get_in(game, ["automationDefaults", "cardRules"]) || %{}
+    card_defaults = defaults[card["databaseId"]] || %{}
+    rule_ids = get_in(game, ["cardById", card["id"], "ruleIds"]) || []
+    Enum.reduce(rule_ids, game, fn rule_id, acc ->
+      rule = get_in(acc, ["ruleById", rule_id])
+      if rule && card_defaults[rule["originalRuleId"]] == true do
+        acc = put_in(acc, ["ruleById", rule_id, "disabled"], true)
+        Evaluate.evaluate(acc, ["LOG", "[system] Card rule '#{rule["originalRuleId"]}' disabled for card #{card["databaseId"]} by host preferences."])
+      else
+        acc
+      end
+    end)
   end
 
   def add_rule_id_to_card(game, card, rule_id) do
@@ -228,6 +247,14 @@ defmodule DragnCardsGame.AutomationRules do
   end
 
   def apply_automation_rule_wrapper(rule, target_path, game_old, game_new, trace) do
+    if rule["disabled"] == true do
+      game_new
+    else
+      apply_automation_rule_wrapper_inner(rule, target_path, game_old, game_new, trace)
+    end
+  end
+
+  defp apply_automation_rule_wrapper_inner(rule, target_path, game_old, game_new, trace) do
     game_new =
       if rule["this_id"] do
         game_new |>

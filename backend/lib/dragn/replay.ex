@@ -5,6 +5,7 @@ defmodule DragnCards.Replay do
   schema "replays" do
     field :user_id, :integer
     field :uuid, :string
+    field :player_ids, {:array, :integer}
     field :deleted_by, {:array, :integer}
     field :game_json, :map
     field :description, :string
@@ -18,7 +19,7 @@ defmodule DragnCards.Replay do
 
   def changeset(replay, params \\ %{}) do
     replay
-    |> cast(params, [:user_id, :uuid, :deleted_by, :game_json, :description, :outcome, :metadata, :plugin_id, :deltas])
+    |> cast(params, [:user_id, :uuid, :player_ids, :deleted_by, :game_json, :description, :outcome, :metadata, :plugin_id, :deltas])
   end
 
 end

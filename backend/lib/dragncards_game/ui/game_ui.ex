@@ -1175,6 +1175,8 @@ defmodule DragnCardsGame.GameUI do
 
       game = AutomationRules.implement_card_rules(game, game_def, new_card)
 
+      game = AutomationRules.apply_card_rule_defaults(game, new_card)
+
       game = update_card_state(game, new_card["id"], nil, nil, trace)
 
       game = Evaluate.evaluate(

@@ -56,7 +56,8 @@ defmodule DragnCards.MixProject do
       {:hackney, "~> 1.9"},
       {:poison, "~> 5.0"},
       {:luerl, github: "rvirding/luerl"},
-      {:httpoison, "~> 1.8"}
+      {:httpoison, "~> 1.8"},
+      {:tz, "~> 0.28"}
     ]
   end
 
