@@ -138,10 +138,11 @@ const ATTACHMENT_OFFSET_3D = 3.5;
  * @returns {[number, number, number]} - Local offset [x, y, z]
  */
 export const getAttachmentLocalOffset = (cardIndexInStack, cardById, stack) => {
-  if (cardIndexInStack <= 0) return [0, 0, 0];
+  const stackSize = stack?.cardIds?.length || 1;
+  if (cardIndexInStack <= 0) return [0, stackSize * 0.04, 0];
 
   const stackEdges = { top: 0, left: 0, right: 0, bottom: 0 };
-  let offsetX = 0, offsetY = 0, offsetZ = 0;
+  let offsetX = 0, offsetZ = 0;
 
   for (let i = 1; i <= cardIndexInStack; i++) {
     const cId = stack.cardIds[i];
@@ -155,7 +156,6 @@ export const getAttachmentLocalOffset = (cardIndexInStack, cardById, stack) => {
         default: break;
       }
     } else {
-      offsetY = -cardIndexInStack * 0.04;
       switch (dir) {
         case 'left':
           offsetX = stackEdges.left - ATTACHMENT_OFFSET_3D;
@@ -178,7 +178,52 @@ export const getAttachmentLocalOffset = (cardIndexInStack, cardById, stack) => {
     }
   }
 
-  return [offsetX, offsetY, offsetZ];
+  return [offsetX, (stackSize - cardIndexInStack) * 0.04, offsetZ];
+};
+
+/**
+ * Compute the total bounding width and height of a stack including attachment offsets.
+ * Returns { width, height } in world units.
+ *
+ * @param {object} stack - Stack object with cardIds array
+ * @param {object} cardById - Redux cardById map
+ * @param {number} baseCardWidth - Width of a single card (default 7.14)
+ * @param {number} baseCardHeight - Height of a single card (default 10)
+ * @returns {{ width: number, height: number }}
+ */
+export const getStackBounds = (stack, cardById, baseCardWidth = 7.14, baseCardHeight = 10) => {
+  if (!stack || !stack.cardIds || stack.cardIds.length <= 1) {
+    return { width: baseCardWidth, height: baseCardHeight, parentOffsetX: 0, parentOffsetZ: 0 };
+  }
+
+  // Track how far attachments extend in each direction
+  const edges = { left: 0, right: 0, top: 0, bottom: 0 };
+
+  for (let i = 1; i < stack.cardIds.length; i++) {
+    const cId = stack.cardIds[i];
+    const dir = cardById?.[cId]?.attachmentDirection || 'right';
+    switch (dir) {
+      case 'left':   edges.left -= ATTACHMENT_OFFSET_3D; break;
+      case 'right':  edges.right += ATTACHMENT_OFFSET_3D; break;
+      case 'top':    edges.top -= ATTACHMENT_OFFSET_3D; break;
+      case 'bottom': edges.bottom += ATTACHMENT_OFFSET_3D; break;
+      default: break; // 'behind' adds no size
+    }
+  }
+
+  // The parent card center is NOT at the bounding box center when attachments
+  // are asymmetric (e.g., only right attachments). Compute the offset from the
+  // bounding box center to the parent card center.
+  // Bounding box left edge relative to parent: edges.left - cardWidth/2
+  // Bounding box right edge relative to parent: edges.right + cardWidth/2
+  // Bounding box center relative to parent: (edges.left + edges.right) / 2
+  // So parentOffset = -(edges.left + edges.right) / 2
+  return {
+    width: baseCardWidth + edges.right - edges.left,
+    height: baseCardHeight + edges.bottom - edges.top,
+    parentOffsetX: -(edges.left + edges.right) / 2,
+    parentOffsetZ: -(edges.top + edges.bottom) / 2,
+  };
 };
 
 export const isAttachmentAllowed = (draggingStackId, targetStackId, gameDef, playerN, region) => {

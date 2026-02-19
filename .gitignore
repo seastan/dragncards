@@ -20,7 +20,6 @@ backend/lib/dragncards_game/custom_plugin_profile.ex
 backend/lib/dragncards_game/evaluate/functions/SET_PLUGIN_SETTING.ex
 backend/lib/dragncards_web/controllers/api/v1/admin_controller.ex
 backend/lib/dragncards_web/controllers/image_proxy_controller.ex
-backend/priv/repo/migrations/20260211170000_add_patreon_member_id_to_users.exs
 backend/test/dragncards_game/ui/game_ui_supervisor_terminate_test.exs
 backend/test/dragncards_game/wotr_plugin_test.exs
 docker-compose copy.yml

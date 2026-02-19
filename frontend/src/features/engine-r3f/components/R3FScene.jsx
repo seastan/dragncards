@@ -3,7 +3,7 @@
  * Renders stacks based on the game state (stack-based dragging)
  */
 
-import React, { useState, useCallback, createContext, useContext, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useEffect, createContext, useContext, useMemo, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { TableSurface } from './R3FTable';
 import { R3FStack } from './R3FStack';
@@ -11,6 +11,7 @@ import { RegionBoundary, isPointInRegion } from '../R3FDragSystem';
 import { useFormatGroupId } from '../../engine/hooks/useFormatGroupId';
 import { TABLE_WIDTH, TABLE_HEIGHT } from '../utils/cameraUtils';
 import { parsePercent, percentToWorld, regionToWorld, calculateInsertionIndex } from '../utils/regionUtils';
+import { getStackBounds } from '../utils/attachmentUtils';
 
 // Context to share drag-drop functionality with cards
 const DropContext = createContext(null);
@@ -26,11 +27,10 @@ export const useDragStateContext = () => useContext(DragStateContext);
 const R3FGroupCards = ({ groupId, region }) => {
   const group = useSelector(state => state?.gameUi?.game?.groupById?.[groupId]);
   const stackById = useSelector(state => state?.gameUi?.game?.stackById);
+  const cardById = useSelector(state => state?.gameUi?.game?.cardById);
   const layout = useSelector(state => state?.gameUi?.game?.layout);
   const cardSize = layout?.cardSize || 6;
   const dragStateContext = useDragStateContext();
-
-  if (!group || !group.stackIds) return null;
 
   // Get drag state for Trello-style reordering
   const draggedStack = dragStateContext?.draggedStack;
@@ -38,14 +38,28 @@ const R3FGroupCards = ({ groupId, region }) => {
   const hoveredGroupId = dragStateContext?.hoveredGroupId;
   const pendingDrop = dragStateContext?.pendingDrop;
 
+  const pendingDropIsExternal = pendingDrop && pendingDrop.sourceGroupId !== pendingDrop.targetGroupId;
+  const hasPendingDropToThisGroup = pendingDrop?.targetGroupId === groupId;
+  const droppedStackExists = pendingDrop?.stackId && stackById?.[pendingDrop.stackId];
+  const crossRegionDropComplete = hasPendingDropToThisGroup &&
+    pendingDropIsExternal &&
+    (group?.stackIds?.includes(pendingDrop?.stackId) || !droppedStackExists);
+
+  // Clear pendingDrop when the dropped stack was split (e.g., multi-card stack into a fan)
+  useEffect(() => {
+    if (crossRegionDropComplete && !droppedStackExists && dragStateContext?.clearPendingDrop) {
+      dragStateContext.clearPendingDrop();
+    }
+  }, [crossRegionDropComplete, droppedStackExists, dragStateContext]);
+
+  if (!group || !group.stackIds) return null;
+
   const isSourceGroup = draggedStack?.sourceGroupId === groupId;
   const isHoveredGroup = hoveredGroupId === groupId && draggedStack;
   const isExternalTarget = isHoveredGroup && !isSourceGroup;
   const isInternalReorder = isHoveredGroup && isSourceGroup;
 
-  const hasPendingDropToThisGroup = pendingDrop?.targetGroupId === groupId;
   const hasPendingDropFromThisGroup = pendingDrop?.sourceGroupId === groupId;
-  const pendingDropIsExternal = pendingDrop && pendingDrop.sourceGroupId !== pendingDrop.targetGroupId;
   const pendingDropIsInternal = pendingDrop && pendingDrop.sourceGroupId === pendingDrop.targetGroupId;
 
   const activeStackId = draggedStack?.stackId || pendingDrop?.stackId;
@@ -73,38 +87,97 @@ const R3FGroupCards = ({ groupId, region }) => {
     insertionIndex = pendingDrop.insertionIndex;
   }
 
-  const crossRegionDropComplete = hasPendingDropToThisGroup &&
-    pendingDropIsExternal &&
-    group.stackIds.includes(pendingDrop?.stackId);
-
   const shouldMakeRoom = !crossRegionDropComplete && (
     isExternalTarget || isInternalReorder ||
     (hasPendingDropToThisGroup && pendingDropIsExternal) ||
     (hasPendingDropToThisGroup && pendingDropIsInternal)
   );
 
+  // Pre-compute per-stack bounds for row/fan spacing
+  // Build an ordered list of visible stack widths/heights (excluding dragged stack)
+  // to compute cumulative positions. This ensures stacks with attachments take more
+  // room while single-card stacks stay compact.
+  const BASE_CARD_WIDTH = 7.14;
+  const BASE_CARD_HEIGHT = 10;
+  const STACK_GAP = 0.5; // Small gap between stacks in world units
+
+  // Build layout slots: each visible (non-dragged) stack gets a slot based on its actual bounds.
+  // If shouldMakeRoom, an extra slot is inserted at insertionIndex for the incoming card.
+  const layoutSlots = []; // { stackId, width, height, isGap }
+  const stackBoundsMap = {};
+  group.stackIds.forEach((sid) => {
+    const s = stackById?.[sid];
+    if (s) {
+      stackBoundsMap[sid] = getStackBounds(s, cardById, BASE_CARD_WIDTH, BASE_CARD_HEIGHT);
+    }
+  });
+
+  // Build the ordered slots (excluding dragged stack)
+  let slotIndex = 0;
+  group.stackIds.forEach((sid) => {
+    const s = stackById?.[sid];
+    if (!s || !s.cardIds) return;
+    const isDragged = isEffectiveSourceGroup && sid === activeStackId;
+    if (isDragged) return;
+
+    // Insert gap slot for incoming card
+    if (shouldMakeRoom && insertionIndex >= 0 && slotIndex === insertionIndex) {
+      layoutSlots.push({ stackId: '__gap__', width: BASE_CARD_WIDTH, height: BASE_CARD_HEIGHT, parentOffsetX: 0, parentOffsetZ: 0, isGap: true });
+    }
+
+    const bounds = stackBoundsMap[sid] || { width: BASE_CARD_WIDTH, height: BASE_CARD_HEIGHT, parentOffsetX: 0, parentOffsetZ: 0 };
+    layoutSlots.push({ stackId: sid, width: bounds.width, height: bounds.height, parentOffsetX: bounds.parentOffsetX || 0, parentOffsetZ: bounds.parentOffsetZ || 0, isGap: false });
+    slotIndex++;
+  });
+  // Gap at end
+  if (shouldMakeRoom && insertionIndex >= 0 && insertionIndex >= slotIndex) {
+    layoutSlots.push({ stackId: '__gap__', width: BASE_CARD_WIDTH, height: BASE_CARD_HEIGHT, parentOffsetX: 0, parentOffsetZ: 0, isGap: true });
+  }
+
+  // Compute cumulative positions for each slot.
+  // Gaps between stacks expand to fill the available region width (up to a max),
+  // so stacks spread across the region rather than clustering in the center.
+  const computeCumulativePositions = (slots, isVerticalLayout, availableSpace) => {
+    const sizeKey = isVerticalLayout ? 'height' : 'width';
+    const offsetKey = isVerticalLayout ? 'parentOffsetZ' : 'parentOffsetX';
+    const totalContentSize = slots.reduce((sum, s) => sum + s[sizeKey], 0);
+    const numGaps = Math.max(0, slots.length - 1);
+
+    // Dynamic gap: expand to fill available space, capped at a max
+    const MAX_GAP = BASE_CARD_WIDTH * 0.4; // ~4.3 world units max between stacks
+    let gap;
+    if (numGaps === 0) {
+      gap = 0;
+    } else {
+      gap = Math.max(STACK_GAP, Math.min((availableSpace - totalContentSize) / numGaps, MAX_GAP));
+    }
+
+    const totalSpan = totalContentSize + numGaps * gap;
+    let cursor = 0;
+    const centers = {};
+    slots.forEach((slot, i) => {
+      const bboxCenter = cursor + slot[sizeKey] / 2;
+      const parentPos = bboxCenter + (slot[offsetKey] || 0);
+      if (!slot.isGap) {
+        centers[slot.stackId] = parentPos;
+      }
+      cursor += slot[sizeKey] + gap;
+    });
+    return { centers, totalSpan };
+  };
+
   const stacks = [];
   let globalCardIndex = 0;
-  let positionIndex = 0;
 
   group.stackIds.forEach((stackId, stackIndex) => {
     const stack = stackById?.[stackId];
     if (!stack || !stack.cardIds) return;
 
     const isBeingDragged = isEffectiveSourceGroup && stackId === activeStackId;
-    let adjustedStackIndex = positionIndex;
-
-    if (!isBeingDragged) {
-      if (shouldMakeRoom && insertionIndex >= 0 && positionIndex >= insertionIndex) {
-        adjustedStackIndex = positionIndex + 1;
-      }
-      positionIndex++;
-    }
 
     // Calculate parent card position (index 0) — only need one position per stack
     let stackPosition;
     const baseY = 0.1 + globalCardIndex * 0.02;
-    const originalStackIndex = isBeingDragged ? draggedStackIndex : adjustedStackIndex;
 
     if (region.type === 'free') {
       const stackLeft = stack.left || '0%';
@@ -117,46 +190,42 @@ const R3FGroupCards = ({ groupId, region }) => {
       const regionHeight = parsePercent(region.height);
       const isVertical = region.direction === 'vertical';
 
-      const CARD_HEIGHT = 8.4;
-      const landscapeCardWidth = CARD_HEIGHT;
-
-      const baseStackCount = isEffectiveSourceGroup ? nonDraggedStackCount : group.stackIds.length;
-      const effectiveStackCount = shouldMakeRoom ? baseStackCount + 1 : baseStackCount;
-
-      const edgePadding = landscapeCardWidth * 0.5;
+      const { centers, totalSpan } = computeCumulativePositions(layoutSlots, isVertical);
 
       if (isVertical) {
         const regionHeightWorld = (regionHeight / 100) * TABLE_HEIGHT;
         const regionTopWorld = ((regionTop / 100) - 0.5) * TABLE_HEIGHT;
-        const availableHeight = regionHeightWorld - (2 * edgePadding);
-
-        let cardSpacing;
-        if (effectiveStackCount <= 1) {
-          cardSpacing = landscapeCardWidth * 1.02;
-        } else {
-          cardSpacing = Math.min(availableHeight / (effectiveStackCount - 1), landscapeCardWidth * 1.02);
-        }
-
-        const startZ = regionTopWorld + edgePadding;
         const regionCenterX = ((regionLeft / 100) - 0.5) * TABLE_WIDTH + (regionWidth / 100) * TABLE_WIDTH * 0.5;
 
-        stackPosition = [regionCenterX, baseY, startZ + originalStackIndex * cardSpacing];
+        const { centers, totalSpan } = computeCumulativePositions(layoutSlots, true, regionHeightWorld);
+        const scaleFactor = totalSpan > regionHeightWorld ? regionHeightWorld / totalSpan : 1;
+        // Left-align (top-align for vertical): start from region top edge
+        const groupOffset = regionTopWorld;
+
+        if (isBeingDragged) {
+          const draggedBounds = stackBoundsMap[stackId] || { height: BASE_CARD_HEIGHT };
+          stackPosition = [regionCenterX, baseY, groupOffset + draggedBounds.height / 2];
+        } else {
+          const centerPos = centers[stackId] ?? 0;
+          stackPosition = [regionCenterX, baseY, groupOffset + centerPos * scaleFactor];
+        }
       } else {
         const regionWidthWorld = (regionWidth / 100) * TABLE_WIDTH;
         const regionLeftWorld = ((regionLeft / 100) - 0.5) * TABLE_WIDTH;
-        const availableWidth = regionWidthWorld - (2 * edgePadding);
 
-        let cardSpacing;
-        if (effectiveStackCount <= 1) {
-          cardSpacing = landscapeCardWidth * 1.02;
-        } else {
-          cardSpacing = Math.min(availableWidth / (effectiveStackCount - 1), landscapeCardWidth * 1.02);
-        }
-
-        const startX = regionLeftWorld + edgePadding;
+        const { centers, totalSpan } = computeCumulativePositions(layoutSlots, false, regionWidthWorld);
+        const scaleFactor = totalSpan > regionWidthWorld ? regionWidthWorld / totalSpan : 1;
+        // Left-align: start from region left edge
+        const groupOffset = regionLeftWorld;
         const regionCenterZ = ((regionTop / 100) - 0.5) * TABLE_HEIGHT + (regionHeight / 100) * TABLE_HEIGHT * 0.5;
 
-        stackPosition = [startX + originalStackIndex * cardSpacing, baseY, regionCenterZ];
+        if (isBeingDragged) {
+          const draggedBounds = stackBoundsMap[stackId] || { width: BASE_CARD_WIDTH };
+          stackPosition = [groupOffset + draggedBounds.width / 2, baseY, regionCenterZ];
+        } else {
+          const centerPos = centers[stackId] ?? 0;
+          stackPosition = [groupOffset + centerPos * scaleFactor, baseY, regionCenterZ];
+        }
       }
     } else if (region.type === 'pile') {
       const regionLeft = parsePercent(region.left);
@@ -175,12 +244,31 @@ const R3FGroupCards = ({ groupId, region }) => {
       const regionHeight = parsePercent(region.height);
       const isVertical = region.direction === 'vertical';
 
-      const CARD_WIDTH = 6;
-      const portraitCardWidth = CARD_WIDTH;
+      // Fans use uniform spacing based on base card width (attachments rare in fans)
+      const portraitCardWidth = 6;
       const edgePadding = portraitCardWidth * 0.8;
 
       const baseStackCount = isEffectiveSourceGroup ? nonDraggedStackCount : group.stackIds.length;
       const effectiveStackCount = shouldMakeRoom ? baseStackCount + 1 : baseStackCount;
+
+      // For fans, need positionIndex-based layout
+      // Recompute positionIndex for this stack
+      let fanPosIndex = 0;
+      let fanAdjustedIndex = 0;
+      for (let i = 0; i < group.stackIds.length; i++) {
+        const sid = group.stackIds[i];
+        if (sid === stackId) {
+          fanAdjustedIndex = isBeingDragged ? draggedStackIndex : fanPosIndex;
+          if (!isBeingDragged && shouldMakeRoom && insertionIndex >= 0 && fanPosIndex >= insertionIndex) {
+            fanAdjustedIndex = fanPosIndex + 1;
+          }
+          break;
+        }
+        const isDragged = isEffectiveSourceGroup && sid === activeStackId;
+        if (!isDragged) {
+          fanPosIndex++;
+        }
+      }
 
       if (isVertical) {
         const regionHeightWorld = (regionHeight / 100) * TABLE_HEIGHT;
@@ -199,7 +287,7 @@ const R3FGroupCards = ({ groupId, region }) => {
         const startZ = regionTopWorld + edgePadding;
         const regionCenterX = ((regionLeft / 100) - 0.5) * TABLE_WIDTH + (regionWidth / 100) * TABLE_WIDTH * 0.5;
 
-        stackPosition = [regionCenterX, baseY, startZ + originalStackIndex * cardSpacing];
+        stackPosition = [regionCenterX, baseY, startZ + fanAdjustedIndex * cardSpacing];
       } else {
         const regionWidthWorld = (regionWidth / 100) * TABLE_WIDTH;
         const regionLeftWorld = ((regionLeft / 100) - 0.5) * TABLE_WIDTH;
@@ -217,7 +305,7 @@ const R3FGroupCards = ({ groupId, region }) => {
         const startX = regionLeftWorld + edgePadding;
         const regionCenterZ = ((regionTop / 100) - 0.5) * TABLE_HEIGHT + (regionHeight / 100) * TABLE_HEIGHT * 0.5;
 
-        stackPosition = [startX + originalStackIndex * cardSpacing, baseY, regionCenterZ];
+        stackPosition = [startX + fanAdjustedIndex * cardSpacing, baseY, regionCenterZ];
       }
     } else {
       stackPosition = percentToWorld(parsePercent(region.left), parsePercent(region.top), baseY);

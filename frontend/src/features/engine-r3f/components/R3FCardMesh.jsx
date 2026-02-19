@@ -126,6 +126,7 @@ export const R3FCardMesh = ({
 
   // Flip animation refs
   const flipGroupRef = useRef();
+  const flipLiftGroupRef = useRef(); // Lifts card during flip to prevent table clipping
   const prevTextureRef = useRef(null);
   const prevCurrentSideRef = useRef(
     (previousSide != null && previousSide !== currentSide) ? previousSide : currentSide
@@ -188,8 +189,17 @@ export const R3FCardMesh = ({
         const cardRot = rotSpring.rotation.get();
         flipAxisVec.set(-Math.sin(cardRot), 0, -Math.cos(cardRot));
         flipGroupRef.current.quaternion.setFromAxisAngle(flipAxisVec, fp * Math.PI);
+        // Lift the card during flip so edges don't clip through the table.
+        // At 90° the bottom edge extends cardWidth/2 below center; sin curve
+        // peaks at the midpoint to match.
+        if (flipLiftGroupRef.current) {
+          flipLiftGroupRef.current.position.y = Math.sin(fp * Math.PI) * (cardWidth / 2);
+        }
       } else {
         flipGroupRef.current.quaternion.identity();
+        if (flipLiftGroupRef.current) {
+          flipLiftGroupRef.current.position.y = 0;
+        }
       }
     }
 
@@ -375,6 +385,7 @@ export const R3FCardMesh = ({
 
   return (
     <group position={localPosition}>
+      <group ref={flipLiftGroupRef}>
       <group ref={flipGroupRef}>
         <animated.mesh
           ref={meshRef}
@@ -453,6 +464,7 @@ export const R3FCardMesh = ({
             rotation={currentRotation}
           />
         )}
+      </group>
       </group>
     </group>
   );
