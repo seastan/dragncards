@@ -14,7 +14,7 @@ export const PatreonLinkButton = ({patreonClientId, redirectURI}) => {
   return (
     <Button isSubmit isPrimary className="mt-2 flex items-center justify-center" onClick={() => window.open(href, '_blank')}>
       <div>Sync Patreon Account</div>
-      <img className="ml-2" style={{height: "20px"}} src="https://upload.wikimedia.org/wikipedia/commons/9/94/Patreon_logo.svg"/>
+      <img className="ml-2" style={{height: "20px"}} alt="" src="https://upload.wikimedia.org/wikipedia/commons/9/94/Patreon_logo.svg"/>
     </Button>
   );
 }; 

@@ -1,5 +1,4 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { updateValues } from "./updateValues";
 import { uiSettings } from "../engine/SettingsModal";
 import { deepMerge } from "../myplugins/uploadPluginFunctions";
 

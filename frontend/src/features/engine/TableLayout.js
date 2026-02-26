@@ -28,7 +28,7 @@ export const TableLayout = React.memo(({onDragEnd}) => {
           const region = layout.regions[regionId];
           const formattedGroupId = formatGroupId(region.groupId);
           const formattedRegion = {...region, id: regionId, groupId: formattedGroupId};
-          if (formattedRegion?.visible === false) return;
+          if (formattedRegion?.visible === false) return null;
           return(
             <TableRegion
               key={regionIndex}
@@ -42,7 +42,7 @@ export const TableLayout = React.memo(({onDragEnd}) => {
       {layout.tableButtons &&
         Object.keys(layout?.tableButtons).map((tableButtonId, buttonIndex) => {
           const tableButton = layout.tableButtons[tableButtonId];
-          if (tableButton.visible === false) return;
+          if (tableButton.visible === false) return null;
           return(
             <TableButton 
               key={buttonIndex}
@@ -55,7 +55,7 @@ export const TableLayout = React.memo(({onDragEnd}) => {
       {layout.textBoxes &&
         Object.keys(layout.textBoxes).map((textBoxId, _index) => {
           const textBoxLayoutInfo = layout.textBoxes[textBoxId];
-          if (textBoxLayoutInfo.visible === false) return;
+          if (textBoxLayoutInfo.visible === false) return null;
           return(
             <TextBox 
               key={textBoxId}

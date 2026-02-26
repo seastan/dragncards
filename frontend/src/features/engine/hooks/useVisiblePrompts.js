@@ -6,7 +6,9 @@ import { useThisPluginSettings } from "./useThisPluginSettings";
 export const useVisiblePrompts = () => {
     const playerN = usePlayerN();
     const thisPluginSettings = useThisPluginSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const dontShowAgainPromptIds = thisPluginSettings?.game?.dontShowAgainPromptIds || {};
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const prompts = useSelector(state => state?.gameUi?.game?.playerData?.[playerN]?.prompts) || {};
   
     const visiblePrompts = useMemo(() => {

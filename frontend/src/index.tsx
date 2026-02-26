@@ -11,7 +11,7 @@ import * as serviceWorker from "./serviceWorker";
 // From https://redux-toolkit.js.org/tutorials/advanced-tutorial
 const render = () => {
   const App = require("./app/App").default;
-  const Volkhov = require('typeface-roboto');
+  require('typeface-roboto');
 
   ReactDOM.render(
     <Provider store={store}>

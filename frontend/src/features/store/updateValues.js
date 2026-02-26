@@ -9,7 +9,7 @@ export const isString = (item) => {
 export const arraysEqual = (a, b) => {
   /* WARNING: only works for arrays of primitives */
   if (a === b) return true;
-  if (a == null || b == null) return false;
+  if (a === null || b === null) return false;
   if (a.length !== b.length) return false;
   for (var i = 0; i < a.length; ++i) {
     if (a[i] !== b[i]) return false;
@@ -104,33 +104,33 @@ export const deepUpdate = (obj1, obj2) => {
     }
   }
   // The we loop through obj2 properties and update obj1
-  for (var p in obj2) {
+  for (var p2 in obj2) {
     // Ignore prototypes
-    //if (!obj2.hasOwnProperty(p)) continue;
+    //if (!obj2.hasOwnProperty(p2)) continue;
     // If property does not exists in obj1, add it to obj1
-    if (!obj1.hasOwnProperty(p)) {
-      obj1[p] = obj2[p];
+    if (!obj1.hasOwnProperty(p2)) {
+      obj1[p2] = obj2[p2];
       continue;
     }
     // Both objects have the property
     // If they have the same strict value or identity then no need to update
-    if (obj1[p] === obj2[p]) continue;
+    if (obj1[p2] === obj2[p2]) continue;
     // Objects are not equal. We need to examine their data type to decide what to do
-    if (Array.isArray(obj1[p]) && Array.isArray(obj2[p])) {
+    if (Array.isArray(obj1[p2]) && Array.isArray(obj2[p2])) {
       // Both values are arrays
-      if (!arraysEqual(obj1[p],obj2[p])) {
+      if (!arraysEqual(obj1[p2],obj2[p2])) {
         // Arrays are not equal, so update
-        obj1[p] = obj2[p];
+        obj1[p2] = obj2[p2];
       }
-    } else if (isObject(obj1[p]) && isObject(obj2[p])) {
+    } else if (isObject(obj1[p2]) && isObject(obj2[p2])) {
       // Both values are objects
-      deepUpdate(obj1[p], obj2[p]);
-    } else if (p === "sides" && obj2[p] === null) {
+      deepUpdate(obj1[p2], obj2[p2]);
+    } else if (p2 === "sides" && obj2[p2] === null) {
       // Sides are static, they should never change, so most of the time the backend sends them as null
-      continue; 
+      continue;
     } else {
       // One of the values is not an object/array, so it's a basic type and should be updated
-      obj1[p] = obj2[p];
+      obj1[p2] = obj2[p2];
     }
   }
 } 

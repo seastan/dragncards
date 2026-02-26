@@ -5,6 +5,8 @@
 
 import React, { useState, useCallback, useEffect, createContext, useContext, useMemo, useRef } from 'react';
 import { useSelector } from 'react-redux';
+import { useThree } from '@react-three/fiber';
+import * as THREE from 'three';
 import { TableSurface } from './R3FTable';
 import { R3FStack } from './R3FStack';
 import { RegionBoundary, isPointInRegion } from '../R3FDragSystem';
@@ -12,6 +14,9 @@ import { useFormatGroupId } from '../../engine/hooks/useFormatGroupId';
 import { TABLE_WIDTH, TABLE_HEIGHT } from '../utils/cameraUtils';
 import { parsePercent, percentToWorld, regionToWorld, calculateInsertionIndex } from '../utils/regionUtils';
 import { getStackBounds } from '../utils/attachmentUtils';
+import { useBrowseRegion } from '../../engine/Browse';
+import { Html } from '@react-three/drei';
+import { R3FGroupOverlay } from './R3FGroupOverlay';
 
 // Context to share drag-drop functionality with cards
 const DropContext = createContext(null);
@@ -24,12 +29,10 @@ export const useDragStateContext = () => useContext(DragStateContext);
 /**
  * Renders all stacks from a specific group
  */
-const R3FGroupCards = ({ groupId, region }) => {
+const R3FGroupCards = ({ groupId, region, selectedStackIndices }) => {
   const group = useSelector(state => state?.gameUi?.game?.groupById?.[groupId]);
   const stackById = useSelector(state => state?.gameUi?.game?.stackById);
   const cardById = useSelector(state => state?.gameUi?.game?.cardById);
-  const layout = useSelector(state => state?.gameUi?.game?.layout);
-  const cardSize = layout?.cardSize || 6;
   const dragStateContext = useDragStateContext();
 
   // Get drag state for Trello-style reordering
@@ -170,6 +173,8 @@ const R3FGroupCards = ({ groupId, region }) => {
   let globalCardIndex = 0;
 
   group.stackIds.forEach((stackId, stackIndex) => {
+    if (selectedStackIndices && !selectedStackIndices.includes(stackIndex)) return;
+
     const stack = stackById?.[stackId];
     if (!stack || !stack.cardIds) return;
 
@@ -177,7 +182,8 @@ const R3FGroupCards = ({ groupId, region }) => {
 
     // Calculate parent card position (index 0) — only need one position per stack
     let stackPosition;
-    const baseY = 0.1 + globalCardIndex * 0.02;
+    const layerOffset = (region.layerIndex || 0) * 0.5;
+    const baseY = 0.1 + globalCardIndex * 0.02 + layerOffset;
 
     if (region.type === 'free') {
       const stackLeft = stack.left || '0%';
@@ -190,7 +196,6 @@ const R3FGroupCards = ({ groupId, region }) => {
       const regionHeight = parsePercent(region.height);
       const isVertical = region.direction === 'vertical';
 
-      const { centers, totalSpan } = computeCumulativePositions(layoutSlots, isVertical);
 
       if (isVertical) {
         const regionHeightWorld = (regionHeight / 100) * TABLE_HEIGHT;
@@ -320,6 +325,7 @@ const R3FGroupCards = ({ groupId, region }) => {
         position={stackPosition}
         baseZIndex={globalCardIndex}
         isBeingDragged={isBeingDragged}
+        stackIndex={stackIndex}
       />
     );
 
@@ -327,7 +333,100 @@ const R3FGroupCards = ({ groupId, region }) => {
     globalCardIndex += stack.cardIds.length;
   });
 
-  return <>{stacks}</>;
+  // "(Top)" label for the browse region's horizontal fan
+  let topLabel = null;
+  if (region.id === 'browse' && region.type === 'fan' && region.direction !== 'vertical') {
+    const regionLeft = parsePercent(region.left);
+    const regionTop = parsePercent(region.top);
+    const regionHeight = parsePercent(region.height);
+    const portraitCardWidth = 6;
+    const edgePadding = portraitCardWidth * 0.8;
+    const startX = ((regionLeft / 100) - 0.5) * TABLE_WIDTH + edgePadding;
+    const regionCenterZ = ((regionTop / 100) - 0.5) * TABLE_HEIGHT + (regionHeight / 100) * TABLE_HEIGHT * 0.5;
+    const layerOffset = (region.layerIndex || 0) * 0.5;
+    topLabel = (
+      <group position={[startX - portraitCardWidth * 0.6, 0.1 + layerOffset + 0.05, regionCenterZ]}>
+        <Html
+          center
+          style={{ pointerEvents: 'none' }}
+          zIndexRange={[0, 0]}
+        >
+          <div style={{
+            color: '#fff',
+            fontSize: '13px',
+            fontFamily: 'system-ui',
+            fontWeight: 'bold',
+            whiteSpace: 'nowrap',
+            background: 'rgba(0,0,0,0.65)',
+            padding: '3px 7px',
+            borderRadius: '4px',
+            border: '1px solid rgba(255,255,255,0.25)',
+            transform: 'rotate(-90deg)',
+            userSelect: 'none',
+          }}>
+            Top
+          </div>
+        </Html>
+      </group>
+    );
+  }
+
+  return <>{topLabel}{stacks}</>;
+};
+
+/**
+ * Tracks pointer position at the canvas DOM level (not Three.js mesh events) so
+ * region hover is detected even when cards are on top of the region plane.
+ * Intersects the pointer ray with the Y=0 world plane and calls findRegionAtPoint.
+ */
+const RegionPointerTracker = ({ findRegionAtPoint, setPointerHoveredRegionId }) => {
+  const { camera, gl } = useThree();
+  const findRegionRef = useRef(findRegionAtPoint);
+  const leaveTimeoutRef = useRef(null);
+
+  useEffect(() => { findRegionRef.current = findRegionAtPoint; }, [findRegionAtPoint]);
+
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const raycaster = new THREE.Raycaster();
+    const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const intersection = new THREE.Vector3();
+    const ndc = new THREE.Vector2();
+
+    const onPointerMove = (e) => {
+      if (leaveTimeoutRef.current) {
+        clearTimeout(leaveTimeoutRef.current);
+        leaveTimeoutRef.current = null;
+      }
+      const rect = canvas.getBoundingClientRect();
+      ndc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      ndc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(ndc, camera);
+      if (raycaster.ray.intersectPlane(groundPlane, intersection)) {
+        const hit = findRegionRef.current(intersection.x, intersection.z);
+        setPointerHoveredRegionId(hit ? hit.regionId : null);
+      } else {
+        setPointerHoveredRegionId(null);
+      }
+    };
+
+    // Delay clearing on leave so the Html label's onMouseEnter can cancel it
+    const onPointerLeave = () => {
+      leaveTimeoutRef.current = setTimeout(() => {
+        setPointerHoveredRegionId(null);
+      }, 120);
+    };
+
+    canvas.addEventListener('pointermove', onPointerMove);
+    canvas.addEventListener('pointerleave', onPointerLeave);
+    return () => {
+      canvas.removeEventListener('pointermove', onPointerMove);
+      canvas.removeEventListener('pointerleave', onPointerLeave);
+      if (leaveTimeoutRef.current) clearTimeout(leaveTimeoutRef.current);
+    };
+  }, [camera, gl, setPointerHoveredRegionId]);
+
+  return null;
 };
 
 /**
@@ -361,8 +460,9 @@ const R3FRegionBoundaries = ({ regions, hoveredRegionId }) => {
 /**
  * Main scene that renders all regions from layout
  */
-export const R3FSceneFromRedux = ({ showRegionBoundaries = true, onCardDrop }) => {
+export const R3FSceneFromRedux = ({ showRegionBoundaries = true, onCardDrop, browseFilteredStackIndices }) => {
   const [hoveredRegionId, setHoveredRegionId] = useState(null);
+  const [pointerHoveredRegionId, setPointerHoveredRegionId] = useState(null);
   const formatGroupId = useFormatGroupId();
 
   // Drag state for Trello-style reordering
@@ -430,7 +530,11 @@ export const R3FSceneFromRedux = ({ showRegionBoundaries = true, onCardDrop }) =
       : state?.gameUi?.game?.layout;
   });
 
+  // Browse region support
+  const browseRegion = useBrowseRegion();
+
   // Format regions with proper groupIds (replacing playerN placeholders)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const formattedRegions = useMemo(() => {
     if (!layout?.regions) return null;
 
@@ -443,21 +547,43 @@ export const R3FSceneFromRedux = ({ showRegionBoundaries = true, onCardDrop }) =
         groupId: formattedGroupId,
       };
     }
+
+    // Inject browse region when active
+    if (browseRegion.groupId) {
+      result['browse'] = {
+        ...browseRegion,
+        id: 'browse',
+        groupId: formatGroupId(browseRegion.groupId),
+        // Override dvh-based values with percentages suitable for 3D
+        height: '30%',
+        top: '35%',
+        left: '5%',
+        width: '90%',
+      };
+    }
+
     return result;
-  }, [layout?.regions, formatGroupId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layout?.regions, formatGroupId, browseRegion.groupId]);
 
   const groupById = useSelector(state => state?.gameUi?.game?.groupById);
 
   const findRegionAtPoint = useCallback((x, z) => {
     if (!formattedRegions) return null;
 
+    let best = null;
+    let bestLayer = -1;
     for (const [regionId, region] of Object.entries(formattedRegions)) {
       if (region.visible === false) continue;
       if (isPointInRegion(x, z, region)) {
-        return { regionId, region };
+        const layer = region.layerIndex || 0;
+        if (layer > bestLayer) {
+          best = { regionId, region };
+          bestLayer = layer;
+        }
       }
     }
-    return null;
+    return best;
   }, [formattedRegions]);
 
   const getInsertionIndex = useCallback((dropX, targetRegion, sourceGroupId, dropZ = 0) => {
@@ -517,6 +643,12 @@ export const R3FSceneFromRedux = ({ showRegionBoundaries = true, onCardDrop }) =
       <DropContext.Provider value={dropContextValue}>
         <TableSurface />
 
+        {/* Canvas-level pointer tracker for region hover (works through cards) */}
+        <RegionPointerTracker
+          findRegionAtPoint={findRegionAtPoint}
+          setPointerHoveredRegionId={setPointerHoveredRegionId}
+        />
+
         {/* Region boundaries */}
         {showRegionBoundaries && (
           <R3FRegionBoundaries
@@ -524,6 +656,19 @@ export const R3FSceneFromRedux = ({ showRegionBoundaries = true, onCardDrop }) =
             hoveredRegionId={hoveredRegionId}
           />
         )}
+
+        {/* Group overlays (hover-to-reveal labels + eye/menu buttons) */}
+        {Object.entries(formattedRegions).map(([regionId, region]) => {
+          if (region.visible === false || !region.groupId) return null;
+          return (
+            <R3FGroupOverlay
+              key={`overlay-${regionId}`}
+              region={region}
+              groupId={region.groupId}
+              isHovered={pointerHoveredRegionId === regionId}
+            />
+          );
+        })}
 
         {/* Stacks in regions */}
         {Object.entries(formattedRegions).map(([regionId, region]) => {
@@ -533,6 +678,7 @@ export const R3FSceneFromRedux = ({ showRegionBoundaries = true, onCardDrop }) =
               key={regionId}
               groupId={region.groupId}
               region={region}
+              selectedStackIndices={regionId === 'browse' ? browseFilteredStackIndices : undefined}
             />
           );
         })}

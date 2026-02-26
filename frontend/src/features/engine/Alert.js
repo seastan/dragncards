@@ -14,8 +14,7 @@ const promptStyle = {
   boxShadow: '0 0 50px 20px black',
 }
 
-export const Alert = React.memo(({
-}) => {
+export const Alert = React.memo(() => {
   const dispatch = useDispatch();
   const history = useHistory();
   const formatLabelsInText = useFormatLabelsInText();
@@ -30,6 +29,7 @@ export const Alert = React.memo(({
   const [progress, setProgress] = useState(0);
 
   // use effect to clear alert after 8 seconds and update progress bar
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     console.log("alert 1", alert)
 
@@ -57,6 +57,7 @@ export const Alert = React.memo(({
         clearInterval(progressInterval);
       };
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alert]);
 
   if (alert === null || alert.text == null) return null;

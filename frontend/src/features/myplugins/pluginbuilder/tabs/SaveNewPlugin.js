@@ -1,13 +1,8 @@
 import React, { useState } from "react";
-import JSZip from "jszip";
-import { saveAs } from "file-saver";
 import { useSiteL10n } from "../../../../hooks/useSiteL10n";
-import { GameProperties } from "./GameProperties";
-import { PlayerProperties } from "./PlayerProperties";
 import useProfile from "../../../../hooks/useProfile";
 import { useAuthOptions } from "../../../../hooks/useAuthOptions";
 import axios from "axios";
-import { downloadGameDefinitionAsZip } from "../DownloadPlugin";
 
 
 
@@ -628,7 +623,7 @@ export const SaveNewPlugin = ({ inputs }) => {
     };
 
     try {
-      const res = await axios.post("/be/api/myplugins", updateData, authOptions);
+      await axios.post("/be/api/myplugins", updateData, authOptions);
       setLoadingMessage("");
 
       setSuccessMessage("Plugin created.");

@@ -206,7 +206,7 @@ export const nextRoundStep = (stepId) => {
     const steps = phase.steps;
     for (var step of steps) {
       if (stepFound) return {stepId: step.id, phase: phase.name};
-      if (step.id == stepId) stepFound = true;
+      if (step.id === stepId) stepFound = true;
     }
   }
   return null;
@@ -217,7 +217,7 @@ export const prevRoundStep = (stepId) => {
   for (var phase of PHASEINFO) {
     const steps = phase.steps;
     for (var step of steps) {
-      if (step.id == stepId) return prev;
+      if (step.id === stepId) return prev;
       prev = {stepId: step.id, phase: phase.name};
     }
   }
@@ -230,7 +230,7 @@ export const nextPhase = (currPhase) => {
     const steps = phase.steps;
     for (var step of steps) {
       if (phaseFound && phase.name !== currPhase) return {stepId: step.id, phase: phase.name};
-      if (phase.name == currPhase) phaseFound = true;
+      if (phase.name === currPhase) phaseFound = true;
     }
   }
   return null;
@@ -258,6 +258,8 @@ export const playerNum = (playerN) => {
       return 3;
     case 'player4':
       return 4;
+    default:
+      break;
   }
   return null;
 } 
@@ -292,6 +294,8 @@ export const sectionToLoadGroupId = (section, playerN) => {
       return 'sharedActive';
     case 'Second Quest Deck':
       return 'sharedQuestDeck2';
+    default:
+      break;
   }
   return 'sharedOther';
 }
@@ -326,6 +330,8 @@ export const sectionToDeckGroupId = (section, playerN) => {
       return 'sharedEncounterDeck';
     case 'Second Quest Deck':
       return 'sharedQuestDeck2';
+    default:
+      break;
   }
   return 'sharedOther';
 }
@@ -360,6 +366,8 @@ export const sectionToDiscardGroupId = (section, playerN) => {
       return 'sharedEncounterDiscard';
     case 'Second Quest Deck':
       return 'sharedQuestDiscard2';
+    default:
+      break;
   }
   return 'sharedOther';
 }

@@ -1,28 +1,14 @@
 /* The image shown for a pile of cards during  drag over*/
 
 import React from "react";
-import styled from "@emotion/styled";
 import { useSelector } from 'react-redux';
 import useProfile from "../../hooks/useProfile";
 import { useCardScaleFactor } from "./hooks/useCardScaleFactor";
 import { useGameDefinition } from "./hooks/useGameDefinition";
-import { getFirstCardOffset, getVisibleFace, getVisibleFaceSrc } from "./functions/common";
+import { getVisibleFace, getVisibleFaceSrc } from "./functions/common";
 import { Card } from "./Card";
 import { DropZone } from "./DroppableRegion";
 import { StackContainerSorted } from "./StackDraggable";
-
-// Template for the returned element
-const ImageElement = styled.div`
-  background: url(${props => props.src}) no-repeat scroll 0% 0% / contain;
-  borderRadius: 0.6dvh;
-  borderColor: transparent;
-  position: absolute;
-  width: ${props => props.width}dvh;
-  height: ${props => props.height}dvh;
-  left: ${props => props.leftOffset}dvh;
-  top: 50%;
-  transform: translate(0%,-50%);
-`;
 
 // Returns an ImageElement or null
 export const PileImage = React.memo(({

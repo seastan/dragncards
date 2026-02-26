@@ -31,6 +31,8 @@ export const DropdownItem = (props) => {
   }
 
   return (
+    <>
+    {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
     <a href="#" className="menu-item" onClick={(event) => handleDropDownItemClick(event)}>    
       {props.leftIcon && <span className="icon-button">{props.leftIcon}</span>}
       {props.children}
@@ -39,6 +41,7 @@ export const DropdownItem = (props) => {
         <span className="icon-right">{props.rightIcon}</span>
       }
     </a>
+    </>
   );
 }
 

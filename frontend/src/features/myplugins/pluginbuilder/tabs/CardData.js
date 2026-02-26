@@ -1,5 +1,5 @@
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { importCardDbTsv } from "../../uploadPluginFunctions";
 import Button from "../../../../components/basic/Button";
 import { useSiteL10n } from "../../../../hooks/useSiteL10n";
@@ -83,6 +83,7 @@ export const CardData = ({inputs, setInputs}) => {
         setSuccessMessage("");
         setErrorMessages([siteL10n("An unexpected error occurred.")]);
       }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [setInputs, siteL10n]);
 
     const loadFileCardDb = () => {

@@ -15,7 +15,7 @@ const PatreonButton = ({ patreonClientId, amount, redirectURI }) => {
             href={href}
             rel="noreferrer"
             target="_blank">
-            <img className="mx-2" style={{height: "20px"}} src="https://upload.wikimedia.org/wikipedia/commons/9/94/Patreon_logo.svg"/>
+            <img className="mx-2" style={{height: "20px"}} alt="" src="https://upload.wikimedia.org/wikipedia/commons/9/94/Patreon_logo.svg"/>
 
             Support for ${amount / 100}/month
         </a>

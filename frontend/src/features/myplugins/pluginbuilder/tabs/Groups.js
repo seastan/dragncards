@@ -30,6 +30,7 @@ export const Groups = ({ inputs, setInputs }) => {
         groups: defaultGroups
       }));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inputs.groups, setInputs]);
 
   const addGroup = () => {

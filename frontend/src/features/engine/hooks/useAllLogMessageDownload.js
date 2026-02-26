@@ -1,7 +1,4 @@
-import React from "react";
-import { LogMessageDiv } from "../../messages/LogMessageDiv";
 import ReactDOMServer from 'react-dom/server';
-import { useAllLogMessageDivs } from "./useAllLogMessageDivs";
 import { useSelector } from "react-redux";
 import { useMessageTextToHtml } from "../../messages/MessageLine";
 

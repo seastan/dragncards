@@ -36,7 +36,7 @@ export const evaluate = (state, card, code) => {
             }
             return result;
           case "AND":
-            for (var i=1; i< code.length; i++) {
+            for (let i=1; i< code.length; i++) {
               if (!evaluate(state, card, code[i])) return false;
             }
             return true;
@@ -46,7 +46,7 @@ export const evaluate = (state, card, code) => {
             }
             return false;
           case "EQUAL":
-            return evaluate(state, card, code[1]) == evaluate(state, card, code[2])
+            return evaluate(state, card, code[1]) === evaluate(state, card, code[2])
           case "LESS_THAN":
             lhs = evaluate(state, card, code[1]) || 0;
             rhs = evaluate(state, card, code[2]) || 0;
@@ -66,7 +66,7 @@ export const evaluate = (state, card, code) => {
           case "NOT_EQUAL":
             lhs = evaluate(state, card, code[1]) || 0;
             rhs = evaluate(state, card, code[2]) || 0;
-            return lhs != rhs;
+            return lhs !== rhs;
           case "IN_STRING":
             lhs = evaluate(state, card, code[1]) || "";
             rhs = evaluate(state, card, code[2]) || "";
@@ -96,7 +96,7 @@ export const evaluate = (state, card, code) => {
               if (!obj.stackIds) return null;
               const stackIds = obj.stackIds;
               const parentCards = [];
-              for (var stackId of stackIds) {
+              for (let stackId of stackIds) {
                 const cardIds = state.gameUi.game.stackById[stackId].cardIds;
                 if (!cardIds || cardIds.length === 0) continue;
                 parentCards.push(state.gameUi.game.cardById[cardIds[0]]);
@@ -115,6 +115,8 @@ export const evaluate = (state, card, code) => {
               console.log("equal 4",newObj,newPath)
               return evaluate(state, card, ["OBJ_GET_BY_PATH", newObj, newPath])
             }
+          default:
+            break;
         }
       }
     } else { // value

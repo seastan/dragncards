@@ -7,7 +7,7 @@ import BroadcastContext from "../../contexts/BroadcastContext";
 import { PlayersInRoom } from "../engine/PlayersInRoom";
 
 export const ChatDiv = ({ hover }) => {
-  const {gameBroadcast, chatBroadcast} = useContext(BroadcastContext);
+  const {chatBroadcast} = useContext(BroadcastContext);
   const newMessageObjects = useMessages();
   const messageTextToHtml = useMessageTextToHtml();
   const [allChatMessageObjects, setAllChatMessageObjects] = useState([]);
@@ -16,6 +16,7 @@ export const ChatDiv = ({ hover }) => {
   useEffect(() => {
     const filteredNewChatMessageObjects = newMessageObjects?.filter(obj2 => obj2.sent_by !== -1 && !allChatMessageObjects.find(obj1 => obj1.shortcode === obj2.shortcode));
     if (newMessageObjects) setAllChatMessageObjects([...allChatMessageObjects, ...filteredNewChatMessageObjects])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newMessageObjects]);
 
   const allChatMessageDivs = allChatMessageObjects.map((m, i) => {

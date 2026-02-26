@@ -24,5 +24,6 @@ export const usePreloadCardImages = () => {
 
   useEffect(() => {
     preloadImages(imgUrlsWithPrefix);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serializedImgUrls]);
 };

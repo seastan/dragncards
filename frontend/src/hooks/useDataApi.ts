@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { set } from "date-fns";
+import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 async function axiosRetry(
   url: string,
@@ -82,6 +81,7 @@ const useDataApi = <T extends any>(
     };
 
     fetchData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url, hash, initialFetch]); // Added initialFetch dependency
 
   return {

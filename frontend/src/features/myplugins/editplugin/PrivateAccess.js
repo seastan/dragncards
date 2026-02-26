@@ -8,21 +8,16 @@ import axios from "axios";
 
 const PrivateAccess = ({pluginId}) => {
   const [inputValue, setInputValue] = useState('');
-  const [selectedUsers, setSelectedUsers] = useState({});
   const [suggestions, setSuggestions] = useState([]);
   const [allUserPermissionData, setAllUserPermissionData] = useState({});
   const authOptions = useAuthOptions();
 
-  const { data, isLoading, isError, doFetchUrl, doFetchHash, setData } = useDataApi(
+  const { data, isLoading } = useDataApi(
     '/be/api/v1/users/plugin_permission/' + pluginId,
     null
   );
 
-  console.log('Rendering AutocompleteInput', pluginId, data, isLoading, isError, doFetchUrl, doFetchHash, setData)
-
-
-  // User alias list (keys from data object)
-  const allUsers = data?.data; // ? Object.keys(data?.data) : [];
+  console.log('Rendering AutocompleteInput', pluginId, data, isLoading)
 
 
   // After isLoaded, set selectedUsers to the list of users with permission
@@ -30,6 +25,7 @@ const PrivateAccess = ({pluginId}) => {
     if (!data?.data) return;
     if (isLoading) return;
     setAllUserPermissionData(data?.data);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading]);
 
   if (data?.data === null || isLoading) return <div>Loading...</div>;

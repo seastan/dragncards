@@ -10,16 +10,13 @@ export const useFormatLabelsInText = () => {
 
   return (text) => {
     if (!text) return "";
-    return text.replace(/id:([a-zA-Z0-9_\-]+(\.[a-zA-Z0-9_\-]+)*)/g, function(match, p1) {
+    return text.replace(/id:([a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)*)/g, function(match, p1) {
       return gameDef?.labels?.[p1]?.[language] || p1;
     });
   }
 }
 
 export const useMessageTextToHtml = () => {
-  const gameDef = useGameDefinition();
-  const user = useProfile();
-  const language = user?.language || "English";
   const formatLabelsInText = useFormatLabelsInText();
 
   return (text) => {

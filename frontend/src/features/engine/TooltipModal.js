@@ -16,7 +16,7 @@ export const TooltipModal = React.memo(({
     const tooltipIds = useSelector(state => state?.playerUi?.tooltipIds);
 
     const myUser = useProfile();
-    const { authToken, renewToken, setAuthAndRenewToken } = useAuth();
+    const { authToken } = useAuth();
     const authOptions = useMemo(
       () => ({
         headers: {

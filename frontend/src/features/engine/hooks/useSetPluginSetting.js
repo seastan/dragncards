@@ -1,6 +1,4 @@
-import { useSelector } from "react-redux";
 import useProfile from "../../../hooks/useProfile";
-import { useGameDefinition } from "./useGameDefinition";
 import { usePlugin } from "./usePlugin";
 import { useAuthOptions } from "../../../hooks/useAuthOptions";
 import Axios from "axios";
@@ -9,7 +7,6 @@ import { useSiteL10n } from "../../../hooks/useSiteL10n";
 export const useSetPluginSetting = () => {
     const user = useProfile();
     const plugin = usePlugin();
-    const gameDef = useGameDefinition();
     const authOptions = useAuthOptions();
     const siteL10n = useSiteL10n();
 

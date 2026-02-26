@@ -35,7 +35,7 @@ export const PluginProvider = ({ children }) => {
   const pluginId = useSelector(state => state?.gameUi?.game?.pluginId);
   const pluginVersion = useSelector(state => state?.gameUi?.game?.pluginVersion);
   const [plugin, setPlugin] = useState(null); 
-  const { data, isLoading, isError, doFetchUrl, doFetchHash, setData, progressEvent } = useDataApi(
+  const { data, isLoading, doFetchHash, progressEvent } = useDataApi(
     '/be/api/plugins/' + pluginId,
     null,
     false
@@ -56,6 +56,7 @@ export const PluginProvider = ({ children }) => {
       }
     }
     doFetchHash((new Date()).toISOString());
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pluginId, pluginVersion]);
 
   useEffect(() => {
@@ -71,11 +72,12 @@ export const PluginProvider = ({ children }) => {
       }
     }
     setRetrievedFromStorage(false);  // Reset the flag for the next round
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, pluginId, pluginVersion]);
 
   return (
     <PluginContext.Provider value={{ plugin: plugin, isLoading, progressEvent: progressEvent }}>
-      {retrievedFromStorage === false && (isLoading || plugin?.game_def == null) ? (
+      {retrievedFromStorage === false && (isLoading || plugin?.game_def === null) ? (
         <div className="absolute text-white flex h-full w-full items-center justify-center opacity-80 bg-gray-800">
           <RotatingLines height={100} width={100} strokeColor="white" />
           <div className="absolute">{percentLoaded}%</div>

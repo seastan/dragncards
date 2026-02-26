@@ -161,10 +161,8 @@ export const getFirstCardOffset = (width, cardSize) => {
 
 export const getStackDimensions = (stackId, layout, state) => {
   const stack = state?.gameUi?.game?.stackById[stackId];
-  const touchMode = state?.playerUi?.userSettings?.touchMode;
   const zoomFactor = state?.playerUi?.userSettings?.zoomPercent/100;
   const cardSize = layout?.cardSize;
-  var spacingFactor = touchMode ? 1.5 : 1;
   if (!stack) return null;
   const cardIds = stack.cardIds;
   const numCards = cardIds.length;

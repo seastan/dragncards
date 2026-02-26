@@ -15,7 +15,7 @@ export const ConfirmEmail: React.FC<Props> = ({ match }) => {
     params: { confirm_token },
   } = match;
 
-  const { isLatestVersion, emptyCacheStorage } = useClearCache();
+  useClearCache();
 
   // TODO: make useDataApi check for specific error messages
   // coming from the API, the way the login post does.
@@ -24,13 +24,14 @@ export const ConfirmEmail: React.FC<Props> = ({ match }) => {
     null
   );
 
-  const isConfirmed = data != null && data.success != null;
+  const isConfirmed = data !== null && data.success !== null;
 
   useEffect(() => {
     if (isConfirmed) {
       console.log("Email confirmed, logging out.");
       logOut();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConfirmed]);
 
   return (

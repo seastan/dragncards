@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from "react";
+import React, {useEffect, useState} from "react";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { usePlugin } from "./hooks/usePlugin";
 import { keyClass, makeLoadListItem } from "./functions/common";
@@ -152,6 +152,7 @@ export const DeckbuilderTable = React.memo(({currentGroupId, modifyDeckList, set
     });
     console.log("Setting filteredCardIds", filteredCardIds)
     setFilteredCardIds(filteredCardIds);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, sortedCardIds]);
 
   //return;
@@ -230,7 +231,7 @@ export const DeckbuilderTable = React.memo(({currentGroupId, modifyDeckList, set
                 if (!cardDetails) return null;
                 const sideA = selectedDb?.[cardId]?.["A"];
 
-                if (cardDetails) return(
+                return(
                   <tr 
                     key={rowindex} 
                     className="text-white hover:bg-gray-600" 

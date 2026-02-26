@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import Button from "../../components/basic/Button";
 import useProfile from "../../hooks/useProfile";
 import useForm from "../../hooks/useForm";
@@ -86,6 +86,7 @@ export const ProfileSettings = () => {
         timezone: user.timezone || browserTimezone,
       }));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // Patreon
@@ -117,9 +118,10 @@ export const ProfileSettings = () => {
       }
     }
     getAccessToken();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  if (user == null) {
+  if (user === null) {
     return null;
   }
 

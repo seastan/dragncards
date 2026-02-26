@@ -42,6 +42,7 @@ export const MessageBox = ({ hover }) => {
       }
     }
     if (newMessageObjects) setAllLogMessageObjects([...allLogMessageObjects, ...filteredNewLogMessageObjects])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newMessageObjects]);
 
   return (

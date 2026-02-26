@@ -39,11 +39,6 @@ const StyledCard = styled.div`
     `}
 `;
 
-const getRotationFromTransform = (transform) => {
-    const match = transform?.match(/rotate\(([^)]+)\)/);
-    return match ? match[1] : "0deg";
-  };
-
 export const Card = React.memo(({
     cardId,
     cardIndexFromGui,
@@ -64,13 +59,15 @@ export const Card = React.memo(({
     const shouldGlow = triggeredTimestamp !== undefined && triggeredTimestamp !== null;
     const [isGlowing, setIsGlowing] = React.useState(false);
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         if (shouldGlow) {
             setIsGlowing(true);
             setTimeout(() => {
-                setIsGlowing(false); 
+                setIsGlowing(false);
             }, 750);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [triggeredTimestamp]);
 
     if (!cardCurrentSide) return;

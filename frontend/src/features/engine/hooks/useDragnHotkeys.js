@@ -13,7 +13,6 @@ import { useCurrentSide } from "./useCurrentSide";
 import useProfile from "../../../hooks/useProfile";
 import { useRefreshPlugin } from "./useRefreshPlugin";
 import { useIsPluginAuthor } from "./isPluginAuthor";
-import { useSetPluginSetting } from "./useSetPluginSetting";
 
 export const dragnHotkeys = [
   {"key": "T", "actionList": "targetCard", "label": "targetCard"},
@@ -107,7 +106,6 @@ export const useDoDragnHotkey = () => {
   const sendLocalMessage = useSendLocalMessage();
   const refreshPlugin = useRefreshPlugin();
   const isPluginAuthor = useIsPluginAuthor
-  const setPluginSetting = useSetPluginSetting();
   const activeCardId = useActiveCardId();
   const currentSide = useCurrentSide(activeCardId);
   const currentFace = useCurrentFace(activeCardId);
@@ -181,6 +179,8 @@ export const useDoDragnHotkey = () => {
         return doActionList(["NEXT_STEP"], "Move to next game step");
       case "drawArrow":
         return doActionList(dragnActionLists.drawArrow(), "Start/stop drawing arrow");
+      default:
+        break;
       }
   }
 }

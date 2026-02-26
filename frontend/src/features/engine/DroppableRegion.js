@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { useDispatch, useSelector } from 'react-redux';
 import styled from "@emotion/styled";
 import { Droppable } from "@seastan/react-beautiful-dnd";
@@ -43,7 +43,7 @@ const StacksListSorted = React.memo(({
   selectedStackIndices,
   onDragEnd
 }) => {
-  const isPile = region.type == "pile";
+  const isPile = region.type === "pile";
   const getRegionFromId = useGetRegionFromId();
   const isPileAndDragStackNotFromHere = useSelector((state) => {
     const draggingFromDroppableId = state?.playerUi?.dragging?.fromDroppableId;
@@ -99,6 +99,7 @@ export const DroppableRegion = React.memo(({
 
   useEffect(() => {
     dispatch(setDroppableRefs({id: groupId, ref: containerRef.current}));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId]);
 
 

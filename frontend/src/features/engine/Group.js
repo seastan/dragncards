@@ -19,7 +19,7 @@ export const Group = React.memo(({
   const gameL10n = useGameL10n();
   const group = useSelector(state => state?.gameUi?.game?.groupById?.[groupId]);
   const isPile = region.type === "pile";
-  const [isMouseOverPile, setIsMouseOverPile] = useState(false);
+  const [isMouseOverPile] = useState(false);
   const playerN = useSelector(state => state?.playerUi?.playerN);
   const tempDragStack = useSelector(state => state?.playerUi?.tempDragStack);
   const iconsVisible = playerN && (region.showMenu || (isPile && region.showMenu !== false)) ;

@@ -50,7 +50,7 @@ const useChannel = (
   useEffect(() => {
     let doCleanup: () => void = () => null;
     console.log('socket',socket);
-    if (socket != null) {
+    if (socket !== null) {
       doCleanup = joinChannel(socket, channelTopic, onMessage, setBroadcast, myUserId);
     }
     return doCleanup;
@@ -74,9 +74,8 @@ const joinChannel = (
   channel.onMessage = (event, payload) => {
     //console.log("game state payload", payload)
     console.log("RAW channel message received:", event, payload);
-    const userId = payload?.response?.user_id;
     // I don't think the chan_reply_ events are needed - always duplicates of phx_reply?
-    if (event != null && !event.startsWith("chan_reply_")) {
+    if (event !== null && !event.startsWith("chan_reply_")) {
       console.log("Calling onMessage for event:", event);
       onMessage(event, payload);
     } else {
@@ -86,7 +85,7 @@ const joinChannel = (
     // Specific Hack for DragnCards
     // See room_channel.ex for more info
     //console.log("game state userid ",event, userId, myUserId)
-    if (event != null && event === "ask_for_update") { // && userId !== myUserId) {
+    if (event !== null && event === "ask_for_update") { // && userId !== myUserId) {
       console.log("requesting game state")
       channel.push("request_state", {});
     }
@@ -100,7 +99,7 @@ const joinChannel = (
     .join()
     .receive(
       "ok",
-      ({ messages }) => null
+      () => null
       //console.log("successfully joined channel", messages || "")
     )
     .receive("error", ({ reason }) =>

@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { setShowHotkeys } from "../store/playerUiSlice";
 import { useGameL10n } from "./hooks/useGameL10n";
 import { useGameDefinition } from "./hooks/useGameDefinition";
-import { keyDiv, keysDiv, Z_INDEX } from "./functions/common";
+import { keysDiv, Z_INDEX } from "./functions/common";
 import { useSiteL10n } from "../../hooks/useSiteL10n";
 import { dragnHotkeys } from "./hooks/useDragnHotkeys";
 
@@ -68,14 +68,14 @@ export const HotkeyTable = React.memo(({hotkeyList, l10n}) => {
         const keysString = el.key
         const labelList = processLabel(l10n(el.label));
         return (
-          <tr className={elIndex % 2 == 0 ? "bg-gray-500" : "bg-gray-600"}>
+          <tr className={elIndex % 2 === 0 ? "bg-gray-500" : "bg-gray-600"}>
             <td className="p-1 text-center">
               {keysDiv(keysString)}
             </td>
             
             <td className="text-center" style={{fontSize: "1.5dvh"}}>
               {labelList.map((labelEl, _labelElIndex) => {
-                if (labelEl.startsWith("icon(")) return <img className="m-auto h-6 inline-block" src={labelEl.slice(5,-1)}/> 
+                if (labelEl.startsWith("icon(")) return <img alt="" className="m-auto h-6 inline-block" src={labelEl.slice(5,-1)}/>
                 else return labelEl
               })}
             </td>
@@ -86,7 +86,7 @@ export const HotkeyTable = React.memo(({hotkeyList, l10n}) => {
   )
 })
 
-export const Hotkeys = React.memo(({}) => {
+export const Hotkeys = React.memo(() => {
   const dispatch = useDispatch();
   const gameDef = useGameDefinition();
   const gameL10n = useGameL10n();
@@ -105,6 +105,7 @@ export const Hotkeys = React.memo(({}) => {
               className="w-full flex justify-center"
             >
             <img
+              alt=""
               style={{
                 width: "30dvh"
               }}

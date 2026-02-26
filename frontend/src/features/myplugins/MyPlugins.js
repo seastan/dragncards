@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useReducer, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Redirect, useHistory, useLocation } from "react-router-dom";
 import useProfile from "../../hooks/useProfile";
 import useDataApi from "../../hooks/useDataApi";
@@ -6,7 +6,7 @@ import axios from "axios";
 import { EditPluginModal } from "./editplugin/EditPluginModal";
 import * as moment from 'moment';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faDownload, faEdit, faShare, faTrash, faUserPlus, faUpload, faWrench, faThLarge, faPlay } from "@fortawesome/free-solid-svg-icons";
+import { faDownload, faEdit, faTrash, faUserPlus, faUpload, faWrench, faThLarge, faPlay } from "@fortawesome/free-solid-svg-icons";
 import { useSiteL10n } from "../../hooks/useSiteL10n";
 import useAuth from "../../hooks/useAuth";
 import { LobbyButton } from "../../components/basic/LobbyButton";
@@ -47,29 +47,34 @@ const MyPluginEntry = ({plugin, setSelectedPlugin, setShowEditModal, setShowShar
       <div className={plugin.public ? "text-xs text-green-500" : "text-xs text-red-500" }>{plugin.public ? "Public" : "Private"}</div>
 
       <div className="absolute top-0" style={{height: "30px", width: "30px", right: "105px"}}>
+        {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
         <a className={"download-btn " + iconButtonClass} onClick={handleDownloadClick}>
           <FontAwesomeIcon icon={faDownload}/>
         </a>
       </div>
       <div className="absolute top-0" style={{height: "30px", width: "30px", right: "75px"}}>
+        {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
         <a className={"edit-btn " + iconButtonClass} onClick={handleEditClick}>
           <FontAwesomeIcon icon={faEdit}/>
         </a>
       </div>
       <div className="absolute top-0" style={{height: "30px", width: "30px", right: "45px"}}>
+        {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
         <a className={"share-btn " + iconButtonClass} onClick={handleShareClick}>
           <FontAwesomeIcon icon={faUserPlus}/>
         </a>
       </div>
       <div className="absolute top-0" style={{height: "30px", width: "30px", right: "15px"}}>
+        {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
         <a className={"delete-btn text-red-500" + iconButtonClass} onClick={handleDeleteClick}>
           <FontAwesomeIcon className="text-red-500" icon={faTrash}/>
         </a>
       </div>
 
       <div className="absolute" style={{ bottom: "10px", right: "15px", width: "40px", height: "40px" }}>
+        {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
         <a
-          className={"play-btn " + iconButtonClass} 
+          className={"play-btn " + iconButtonClass}
           onClick={handleCreateRoomClick}
         >
           <FontAwesomeIcon icon={faPlay} className="text-2xl" />
@@ -86,14 +91,13 @@ export const MyPlugins = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [selectedPlugin, setSelectedPlugin] = useState(null);
-  const [_, forceUpdate] = useReducer((x) => x + 1, 0);
   const [roomSlugCreated, setRoomSlugCreated] = useState(null);
 
   const queryParams = new URLSearchParams(location.search);
   const showTutorial = queryParams.get("showTutorial") === "true";
   const [runTutorial, setRunTutorial] = useState(false);
 
-  const { data, isLoading, isError, doFetchUrl, doFetchHash } = useDataApi(
+  const { data, doFetchUrl, doFetchHash } = useDataApi(
     "/be/api/myplugins/"+user?.id,
     null
   );
@@ -134,6 +138,7 @@ export const MyPlugins = () => {
 
   useEffect(() => {
     if (user?.id) doFetchUrl("/be/api/myplugins/"+user.id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const tutorialSteps = [
@@ -158,7 +163,7 @@ export const MyPlugins = () => {
 
   if (!user) return null;
 
-  if (roomSlugCreated != null) {
+  if (roomSlugCreated !== null) {
     return <Redirect push to={`/room/${roomSlugCreated}`} />;
   }
 

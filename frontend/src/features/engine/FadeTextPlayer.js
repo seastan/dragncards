@@ -19,6 +19,7 @@ export const FadeTextPlayer = React.memo(() => {
 
   console.log("FadeTextPlayer render", observingPlayerN, playerMessages, activeMessages);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     console.log("FadeTextPlayer useEffect", observingPlayerN, playerMessages, activeMessages);
     // New batch of messages arrived, reset the index.
@@ -43,6 +44,7 @@ export const FadeTextPlayer = React.memo(() => {
 
       processedIndexRef.current = playerMessages.length;
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playerMessages]);
 
   // Count tokens in a message to adjust centering

@@ -1,5 +1,5 @@
 import React from "react";
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { TopBarViewItem } from "./TopBarViewItem";
 import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -9,10 +9,12 @@ import { usePlayerIList } from "./hooks/usePlayerIList";
 import { useSiteL10n } from "../../hooks/useSiteL10n";
 import { keysDiv } from "./functions/common";
 
-export const TopBarView = React.memo(({}) => {
+export const TopBarView = React.memo(() => {
   const siteL10n = useSiteL10n();
   const dispatch = useDispatch();
-  const gameDef = useGameDefinition();  
+  const gameDef = useGameDefinition();
+  const playerIList = usePlayerIList();
+
   return(
     <li>
       <div className="h-full flex items-center justify-center select-none" href="#">{siteL10n("view")}</div>
@@ -34,10 +36,11 @@ export const TopBarView = React.memo(({}) => {
                 if (groupId.startsWith("shared")) return (
                   <TopBarViewItem key={groupId} groupId={groupId}/>
                 )
+                return null;
               })}
             </ul>
           </li>
-          {usePlayerIList().map((playerI, playerIndex) => (
+          {playerIList.map((playerI, playerIndex) => (
           <li key={playerI}>
             {siteL10n("player")+" "+(playerIndex+1)}
               <span className="float-right mr-1"><FontAwesomeIcon icon={faChevronRight}/></span>
@@ -46,6 +49,7 @@ export const TopBarView = React.memo(({}) => {
                 if (groupId.startsWith(playerI)) return (
                   <TopBarViewItem key={groupId} groupId={groupId}/>
                 )
+                return null;
               })}
             </ul>
           </li>

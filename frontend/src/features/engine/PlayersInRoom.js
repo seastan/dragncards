@@ -1,28 +1,12 @@
 import React, { useContext } from "react";
-import { useDispatch, useSelector } from 'react-redux';
-import { faEye, faLines } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import Draggable from 'react-draggable';
-import UserName from "../user/UserName";
-import { setShowPlayersInRoom } from "../store/playerUiSlice";
+import { useSelector } from 'react-redux';
+import { faEye } from "@fortawesome/free-solid-svg-icons";
 import { MessageBoxButton } from "../messages/MessageBoxButton";
 import { useIsHost } from "./hooks/useIsHost";
 import BroadcastContext from "../../contexts/BroadcastContext";
 
-const windowClass = "insert-auto overflow-auto bg-gray-700 border max-w-lg rounded-lg outline-none text-white";
-const windowStyle = {
-  position:"absolute",
-  zIndex: 1e7,
-  right: "30px",
-  top: "200px",
-  width:"300px",
-  opacity: "50%",
-}
-const col1Class = "w-1/ 3";
-const col2Class = "w-2/3";
-
-export const PlayersInRoom = React.memo(({}) => {
-  const {gameBroadcast, chatBroadcast} = useContext(BroadcastContext);
+export const PlayersInRoom = React.memo(() => {
+  const {gameBroadcast} = useContext(BroadcastContext);
   const isHost = useIsHost();
   const sockets = useSelector(state => state?.gameUi?.sockets);
   const spectators = useSelector(state => state?.gameUi?.spectators);

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { CardData } from './tabs/CardData';
 import { CardTypes } from './tabs/CardTypes';
-import { useSiteL10n } from '../../../hooks/useSiteL10n';
 import { CardBacks } from './tabs/CardBacks';
 import { GameBasics } from './tabs/GameBasics';
 import { Groups } from './tabs/Groups';
@@ -41,22 +40,9 @@ const initialInputs = {
 };
 
 export default function PluginBuilder() {
-  const siteL10n = useSiteL10n();
   const [activeTab, setActiveTab] = useState(tabs[0]);
   const [inputs, setInputs] = useState(initialInputs);
   const [maxUnlockedTabIndex, setMaxUnlockedTabIndex] = useState(0); // NEW
-
-  const exportJsonFiles = () => {
-    Object.entries(inputs).forEach(([key, value]) => {
-      const blob = new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${key}.json`;
-      link.click();
-      URL.revokeObjectURL(url);
-    });
-  };
 
   const showTab = (key) => {
     switch (key) {

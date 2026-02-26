@@ -35,11 +35,12 @@ export const Target = React.memo(({
                 }}>
                 {targetString}
             </div>
-            <img 
+            <img
                 className="absolute h-full w-full"
                 style={{
                     animation: "spin 3s infinite linear",
                 }}
+                alt=""
                 src={process.env.PUBLIC_URL + '/images/other/target.png'}/>
         </div>
     )

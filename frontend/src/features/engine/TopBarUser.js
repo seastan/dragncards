@@ -3,8 +3,8 @@ import { useSelector, useDispatch } from 'react-redux';
 import UserName from "../user/UserName";
 import useProfile from "../../hooks/useProfile";
 import useIsLoggedIn from "../../hooks/useIsLoggedIn";
-import { Link, useHistory } from "react-router-dom";
-import { setDropdownMenu, setObservingPlayerN, setTyping } from "../store/playerUiSlice";
+import { useHistory } from "react-router-dom";
+import { setObservingPlayerN } from "../store/playerUiSlice";
 import BroadcastContext from "../../contexts/BroadcastContext";
 import { TopBarUserCounter } from "./TopBarUserCounter";
 import { useGameDefinition } from "./hooks/useGameDefinition";
@@ -34,7 +34,6 @@ export const TopBarUser = React.memo(({
   const siteL10n = useSiteL10n();
   const gameDef = useGameDefinition();
   const history = useHistory();
-  const playerN = useSelector(state => state?.playerUi?.playerN);
   const observingPlayerN = useSelector(state => state?.playerUi?.observingPlayerN);
   const playerInfo = useSelector(state => state?.gameUi?.playerInfo);
   const playerData = useSelector(state => state?.gameUi?.game?.playerData); 

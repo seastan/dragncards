@@ -2,7 +2,6 @@ import { useGameDefinition } from "./useGameDefinition";
 import { usePlayerN } from "./usePlayerN";
 import { useImportLoadList } from "./useImportLoadList";
 import { useDoActionList } from "./useDoActionList";
-import { el } from "date-fns/locale";
 import { useCardDb } from "./useCardDb";
 
 export const useImportViaUrl = () => {
@@ -308,7 +307,7 @@ export const loadMarvelCdb = (importLoadList, doActionList, playerN, dbDomain, d
   const marvelcdbIdTodatabaseId = {};
   Object.keys(cardDb).forEach((databaseId, _databaseIdIndex) => {
     const cardDetails = cardDb[databaseId];
-    for (var [side, details] of Object.entries(cardDetails)) {
+    for (var [, details] of Object.entries(cardDetails)) {
       if (details.marvelcdbId) {
         marvelcdbIdTodatabaseId[details.marvelcdbId] = databaseId;
       }

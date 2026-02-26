@@ -1,11 +1,7 @@
-import React, {useContext, useEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
 import ReactModal from "react-modal";
-import { useForm } from "react-hook-form";
-import Button from "../../components/basic/Button";
-import Select from 'react-select'
 import { setShowModal, setTyping } from "../store/playerUiSlice";
 import { useDispatch, useSelector } from "react-redux";
-import BroadcastContext from "../../contexts/BroadcastContext";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { usePlugin } from "./hooks/usePlugin";
 import useProfile from "../../hooks/useProfile";
@@ -46,14 +42,15 @@ const CardImage = ({url, top, height, leftSide}) => {
   return (
     <img 
       className="fixed"
-      src={srcLanguage || srcDefault} 
+      alt=""
+      src={srcLanguage || srcDefault}
       onError={(e)=>{e.target.onerror = null; e.target.src=srcDefault}}
       style={style}
     />
   );
 }
 
-export const DeckbuilderModal = React.memo(({}) => {
+export const DeckbuilderModal = React.memo(() => {
   const dispatch = useDispatch();
   const user = useProfile();
   const gameDef = useGameDefinition();
@@ -68,13 +65,15 @@ export const DeckbuilderModal = React.memo(({}) => {
   dispatch(setTyping(true));
   const myDecksUrl = `/be/api/v1/decks/${user?.id}/${pluginId}`;
 
-  const { data, isLoading, isError, doFetchUrl, doFetchHash, setData } = useDataApi(
+  const { data, isLoading, doFetchUrl, doFetchHash } = useDataApi(
     myDecksUrl,
     null
   );  
   const myDecks = data?.my_decks;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (user?.id) doFetchUrl(myDecksUrl);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   if (!cardDb) return;

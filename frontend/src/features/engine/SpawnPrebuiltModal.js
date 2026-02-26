@@ -23,7 +23,7 @@ const isStringInDeckName = (str, deckName) => {
   return lowerCaseDeckName.includes(lowerCaseString);
 }
 
-export const SpawnPrebuiltModal = React.memo(({}) => {
+export const SpawnPrebuiltModal = React.memo(() => {
     const dispatch = useDispatch();
     const siteL10n = useSiteL10n();
 
@@ -241,6 +241,8 @@ const DeckRow = ({deckListId, label, favorites, toggleFavorite, onLoad, onLoadNo
   };
 
   return (
+    <>
+    {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
     <a
       href="#"
       className="menu-item"
@@ -273,6 +275,7 @@ const DeckRow = ({deckListId, label, favorites, toggleFavorite, onLoad, onLoadNo
         </span>
       </span>
     </a>
+    </>
   );
 };
 
@@ -540,6 +543,7 @@ const Menu = ({favorites, toggleFavorite, canFavorite, favoriteUrls, addFavorite
         {/* Supporter promo at root menu for non-supporters */}
         {isRootMenu && !canFavorite && (
           <>
+            {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
             <a
               href="#"
               className="menu-item"
@@ -609,6 +613,8 @@ const FavoriteUrlRow = ({urlId, name, url, onRemove, onLoad, onLoadNoClose}) => 
   };
 
   return (
+    <>
+    {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
     <a
       href="#"
       className="menu-item"
@@ -642,5 +648,6 @@ const FavoriteUrlRow = ({urlId, name, url, onRemove, onLoad, onLoadNoClose}) => 
         </span>
       </span>
     </a>
+    </>
   );
 }

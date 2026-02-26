@@ -8,8 +8,7 @@ const promptStyle = {
   boxShadow: '0 0 50px 20px black',
 }
 
-export const Status = React.memo(({
-}) => {
+export const Status = React.memo(() => {
   const formatLabelsInText = useFormatLabelsInText();
   const status = useSelector(state => state?.playerUi?.status);
   var statusText = status?.text;

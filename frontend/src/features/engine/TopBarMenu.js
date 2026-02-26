@@ -4,13 +4,13 @@ import { useHistory } from "react-router-dom";
 import store from "../../store";
 import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { setRandomNumBetween, setShowModal, setShowDeveloper, setAutoLoadedDecks, setDropdownMenu, setActiveCardId } from "../store/playerUiSlice";
+import { setRandomNumBetween, setShowModal, setAutoLoadedDecks, setDropdownMenu, setActiveCardId } from "../store/playerUiSlice";
 import { useGameL10n } from "./hooks/useGameL10n";
 import BroadcastContext from "../../contexts/BroadcastContext";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { useDoActionList } from "./hooks/useDoActionList";
 import { useSiteL10n } from "../../hooks/useSiteL10n";
-import { getBackEndPlayerUi, getRandomIntInclusive, keysDiv } from "./functions/common";
+import { getBackEndPlayerUi, getRandomIntInclusive } from "./functions/common";
 import { useImportLoadList } from "./hooks/useImportLoadList";
 import { loadMarvelCdb, loadRingsDb, useImportViaUrl } from "./hooks/useImportViaUrl";
 import { useIsHost } from "./hooks/useIsHost";
@@ -19,8 +19,8 @@ import { useCardDb } from "./hooks/useCardDb";
 import useProfile from "../../hooks/useProfile";
 
 
-export const TopBarMenu = React.memo(({}) => {
-  const {gameBroadcast, chatBroadcast} = useContext(BroadcastContext);
+export const TopBarMenu = React.memo(() => {
+  const {gameBroadcast} = useContext(BroadcastContext);
   const history = useHistory();
   const gameL10n = useGameL10n();
   const siteL10n = useSiteL10n();
@@ -59,13 +59,13 @@ export const TopBarMenu = React.memo(({}) => {
       
     } else if (data.action === "reset_and_reload") {
       // Reload cards
-      var playerUi = getBackEndPlayerUi(store.getState());
+      let playerUi = getBackEndPlayerUi(store.getState());
       doActionList(data.actionList, `Cleared the table and reloaded cards`);
       gameBroadcast("reset_and_reload", {options: {player_ui: playerUi}});
-      
+
     } else if (data.action === "close_room") {
       // Mark status
-      var playerUi = getBackEndPlayerUi(store.getState());
+      let playerUi = getBackEndPlayerUi(store.getState());
       // Save replay
       doActionList(data.actionList, `Closed the room`);
       // Close room
@@ -127,7 +127,7 @@ export const TopBarMenu = React.memo(({}) => {
       }
       doActionList(actionList, `Changed layout to ${data.value.layoutId} for player ${data.playerI}`);
     } else if (data.action === "set_num_players") {
-      var actionList = [
+      let actionList = [
         ["LOG", "$ALIAS_N", " changed the number of players to "+data.value.numPlayers+"."],
         ["SET", "/numPlayers", data.value.numPlayers],
         ["SET_LAYOUT", "shared", data.value.layoutId]
@@ -278,8 +278,8 @@ export const TopBarMenu = React.memo(({}) => {
 
   const generatePlayerListItems = () => {
     const items = [];
-    for (let i = 0; i < gameDef.playerCountMenu?.length; i++) {
-      const menuOption = gameDef.playerCountMenu[i];
+    for (let i = 0; i < gameDef?.playerCountMenu?.length; i++) {
+      const menuOption = gameDef?.playerCountMenu?.[i];
       items.push(
         <li key={i} onClick={() => handleMenuClick({action:"set_num_players", value: menuOption})}>{gameL10n(menuOption.label)}</li>
       );
@@ -299,7 +299,7 @@ export const TopBarMenu = React.memo(({}) => {
   }, []); // Empty dependency array means this effect runs only on mount and unmount
 
   useEffect(() => {
-    if (autoLoadedDecksGame != true && autoLoadedDecksPlayer != true && gameOptions?.externalData) {
+    if (autoLoadedDecksGame !== true && autoLoadedDecksPlayer !== true && gameOptions?.externalData) {
       const externalData = gameOptions.externalData;
       const domain = externalData.domain;
       const type = externalData.type;
@@ -316,6 +316,7 @@ export const TopBarMenu = React.memo(({}) => {
         loadMarvelCdb(importLoadList, doActionList, playerN, "marvelcdb", type, id, cardDb);
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoLoadedDecksGame]);
 
   return(

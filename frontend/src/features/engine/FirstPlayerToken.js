@@ -1,7 +1,6 @@
 import React from "react";
 import { useSelector, useDispatch } from 'react-redux';
 import { setDropdownMenu} from "../store/playerUiSlice";
-import { useGameDefinition } from "./hooks/useGameDefinition";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
 import { TopBarUserButton } from "./TopBarUser";
@@ -10,7 +9,6 @@ import { TopBarUserButton } from "./TopBarUser";
 
 export const FirstPlayerToken = React.memo(() => {
   const dispatch = useDispatch();
-  const gameDef = useGameDefinition();
   const playerN = useSelector(state => state?.playerUi?.playerN);
 
 

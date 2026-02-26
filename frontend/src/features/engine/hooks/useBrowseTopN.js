@@ -13,18 +13,15 @@ export const useBrowseTopN = () => {
       const stackIds = group["stackIds"];
       const numStacks = stackIds.length;
       const groupName = gameL10n(group.label);
-      var peekStackIds = [];
       var topNint = 0;
       // Set peeking based on topNstr
       var visibility = true;
       var message = ""
       if (topNstr === "All") {
         topNint = -1;
-        peekStackIds = stackIds;
         message = ["LOG", "$ALIAS_N", " is looking at ", groupName, "."];
       } else if (topNstr === "None") {
-        topNint = -1; 
-        peekStackIds = [];
+        topNint = -1;
         visibility = false;
         message = ["LOG", "$ALIAS_N", " stopped looking at ", groupName, "."];
       } else if (topNstr === "X") {
@@ -36,13 +33,11 @@ export const useBrowseTopN = () => {
           topNint = numStacks;
         }
         if (topNint < 0) topNint = 0;
-        peekStackIds = stackIds.slice(0, topNint);
         message = ["LOG", "$ALIAS_N", " is looking at the top ", topNint, " cards of ", groupName, "."]
       } else {
         topNint = parseInt(topNstr) || 0;
         if (topNint > numStacks) topNint = numStacks;
         if (topNint < 0) topNint = 0;
-        peekStackIds = stackIds.slice(0, topNint);
         message = ["LOG", "$ALIAS_N", " is looking at the top ", topNstr, " cards of ", groupName, "."]
       }
       const actionList = [

@@ -476,15 +476,6 @@ export const siteL10n = {
     "German": "Laden",
     "Chinese": "加载"
   },
-  "loadPrebuiltDeck": {
-    "English": "Load prebuilt deck",
-    "French": "Charger un deck préconstruit",
-    "Spanish": "Cargar mazo preconstruido",
-    "Portuguese": "Carregar deck pré-construído",
-    "Italian": "Carica mazzo pre-costruito",
-    "German": "Lade vorgefertigtes Deck",
-    "Chinese": "加载预组牌库"
-  },
   "loadGameJson": {
     "English": "Load game (.json)",
     "French": "Charger le jeu (.json)",
@@ -547,15 +538,6 @@ export const siteL10n = {
     "Italian": "Scarica",
     "German": "Entladen",
     "Chinese": "卸载"
-  },
-  "unloadMyCards": {
-    "English": "Unload my cards",
-    "French": "Décharger mes cartes",
-    "Spanish": "Descargar mis cartas",
-    "Portuguese": "Descarregar minhas cartas",
-    "Italian": "Scarica le mie carte",
-    "German": "Meine Karten entladen",
-    "Chinese": "卸载我的卡牌"
   },
   "unloadMyCards": {
     "English": "Unload my cards",
@@ -655,15 +637,6 @@ export const siteL10n = {
     "Italian": "Dimensione delle carte",
     "German": "Kartengröße",
     "Chinese": "卡牌大小"
-  },
-  "touchMode": {
-    "English": "Touch mode",
-    "French": "Mode tactile",
-    "Spanish": "Modo táctil",
-    "Portuguese": "Modo de toque",
-    "Italian": "Modalità touch",
-    "German": "Berührungsmodus",
-    "Chinese": "触摸模式"
   },
   "use3DView": {
     "English": "3D View (Beta)",
@@ -881,24 +854,6 @@ export const siteL10n = {
     "German": "Bewege die Maus über eine Karte.",
     "Chinese": "将鼠标悬停在一张卡牌上。"
   },
-  "top": {
-    "English": "Top",
-    "French": "Haut",
-    "Spanish": "Arriba",
-    "Portuguese": "Topo",
-    "Italian": "Sopra",
-    "German": "Oben",
-    "Chinese": "顶部"
-  },
-  "bottom": {
-    "English": "Bottom",
-    "French": "Bas",
-    "Spanish": "Abajo",
-    "Portuguese": "Fundo",
-    "Italian": "Sotto",
-    "German": "Unten",
-    "Chinese": "底部"
-  },
   "shuffleIn": {
     "English": "Shuffle in",
     "French": "Mélanger",
@@ -1079,15 +1034,6 @@ export const siteL10n = {
     "German": "Zielkarte",
     "Chinese": "标记卡牌目标"
   },
-  "saveGame": {
-    "English": "Save game",
-    "French": "Sauvegarder la partie",
-    "Spanish": "Guardar juego",
-    "Portuguese": "Salvar jogo",
-    "Italian": "Salva partita",
-    "German": "Spiel speichern",
-    "Chinese": "保存游戏"
-  },
   "clearTargetsArrows": {
     "English": "Clear targets/arrows",
     "French": "Effacer les cibles/flèches",
@@ -1150,24 +1096,6 @@ export const siteL10n = {
     "Italian": "Rifare il turno",
     "German": "Runde wiederherstellen",
     "Chinese": "重做回合"
-  },
-  "moveToPreviousGameStep": {
-    "English": "Move to previous game step",
-    "French": "Passer à l'étape de jeu précédente",
-    "Spanish": "Mover al paso de juego anterior",
-    "Portuguese": "Mover para o passo anterior do jogo",
-    "Italian": "Passa al passaggio precedente del gioco",
-    "German": "Zum vorherigen Spielschritt bewegen",
-    "Chinese": "移动到上一个游戏步骤"
-  },
-  "moveToNextGameStep": {
-    "English": "Move to next game step",
-    "French": "Passer à l'étape suivante du jeu",
-    "Spanish": "Mover al siguiente paso de juego",
-    "Portuguese": "Mover para o próximo passo do jogo",
-    "Italian": "Passa al passaggio successivo del gioco",
-    "German": "Zum nächsten Spielschritt bewegen",
-    "Chinese": "移动到下一个游戏步骤"
   },
   "prevStep": {
     "English": "Previous step",

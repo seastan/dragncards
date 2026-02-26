@@ -34,6 +34,7 @@ export const R3FCardFromRedux = ({
   onPointerDownForDrag = null,
   isAttachmentHover = false,
   attachmentIndicatorDirection = null,
+  stackIndex = 0,
 }) => {
   const dispatch = useDispatch();
 
@@ -150,6 +151,7 @@ export const R3FCardFromRedux = ({
       onHover={handleHover}
       onHoverEnd={handleHoverEnd}
       onPointerDownForDrag={onPointerDownForDrag}
+      stackIndex={stackIndex}
     />
   );
 };

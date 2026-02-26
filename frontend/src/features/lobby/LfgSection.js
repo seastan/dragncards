@@ -259,12 +259,13 @@ export const LfgSection = ({ plugin }) => {
       }
     };
     fetchSub();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pluginId, isLoggedIn]);
 
   // Channel subscription for real-time updates
   const onChannelMessage = useCallback(
     (event, payload) => {
-      if (event === "lfg_update" && payload.posts != null) {
+      if (event === "lfg_update" && payload.posts !== null) {
         setPosts(payload.posts);
       }
     },
@@ -316,7 +317,7 @@ export const LfgSection = ({ plugin }) => {
       const dateStr = post?.available_from
         ? (() => { const d = new Date(post.available_from + (post.available_from.endsWith("Z") ? "" : "Z")); return new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(d); })()
         : getTodayDate(tz);
-      const slotVal = joinSlot != null ? joinSlot : postFromSlot;
+      const slotVal = joinSlot !== null ? joinSlot : postFromSlot;
       await axios.post(`/be/api/v1/lfg/${postId}/respond`, {
         earliest_start: slotsToUtcIso(dateStr, slotVal, tz),
       }, authOptions);
@@ -469,7 +470,7 @@ export const LfgSection = ({ plugin }) => {
                               min={bounds.minSlot}
                               max={bounds.maxSlot}
                               step={1}
-                              value={joinSlot != null ? joinSlot : bounds.minSlot}
+                              value={joinSlot !== null ? joinSlot : bounds.minSlot}
                               onChange={(e) => setJoinSlot(parseInt(e.target.value))}
                               className="lfg-range-thumb flex-1"
                               style={{ accentColor: "#3b82f6" }}
@@ -477,7 +478,7 @@ export const LfgSection = ({ plugin }) => {
                             <span className="text-xs text-gray-400 whitespace-nowrap">{slotToTimeLabel(bounds.maxSlot)}</span>
                           </div>
                           <div className="text-xs text-gray-300 text-center mt-1">
-                            {slotToTimeLabel(joinSlot != null ? joinSlot : bounds.minSlot)}
+                            {slotToTimeLabel(joinSlot !== null ? joinSlot : bounds.minSlot)}
                           </div>
                           <div className="flex gap-2 mt-2">
                             <button

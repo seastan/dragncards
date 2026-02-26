@@ -1,6 +1,5 @@
-import React, { useContext, useState } from "react";
+import React, { useState } from "react";
 import { convertToPercentage, Z_INDEX } from "./functions/common";
-import BroadcastContext from "../../contexts/BroadcastContext";
 import MessageBox from "../messages/MessageBox";
 
 var delayBroadcast;

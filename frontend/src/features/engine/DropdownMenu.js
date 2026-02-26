@@ -5,7 +5,7 @@ import "../../css/custom-dropdown.css";
 import { useSelector } from "react-redux";
 import { useTouchAction } from "./hooks/useTouchAction";
 
-export const DropdownMenu = React.memo(({}) => {
+export const DropdownMenu = React.memo(() => {
   const dropdownMenu = useSelector(state => state?.playerUi?.dropdownMenu);
   const touchMode = useSelector(state => state?.playerUi?.userSettings?.touchMode);
   const touchAction = useTouchAction();
@@ -15,11 +15,13 @@ export const DropdownMenu = React.memo(({}) => {
   const [mouseY, setMouseY] = useState(0); 
   const [isNull, setIsNull] = useState(true);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const xOffset = (touchMode ? 50 : 0);
     setMouseX(mouseXY?.x + xOffset);
     setMouseY(mouseXY?.y);
     setIsNull(dropdownMenu === null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dropdownMenu])
 
 

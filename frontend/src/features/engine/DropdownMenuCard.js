@@ -1,11 +1,10 @@
 import React from "react";
-import { faArrowUp, faArrowDown, faRandom, faChevronRight, faCheck, faExternalLinkAlt } from "@fortawesome/free-solid-svg-icons";
+import { faArrowUp, faArrowDown, faRandom, faChevronRight, faCheck } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { DropdownItem, GoBack } from "./DropdownMenuHelpers";
 import "../../css/custom-dropdown.css";
 import { useDispatch, useSelector } from "react-redux";
 import { useGameDefinition } from "./hooks/useGameDefinition";
-import { useEvaluateCondition } from "../../hooks/useEvaluateCondition";
 import { dragnActionLists } from "./functions/dragnActionLists";
 import { useSiteL10n } from "../../hooks/useSiteL10n";
 import { useGameL10n } from "./hooks/useGameL10n";
@@ -19,7 +18,6 @@ import { useVisibleFace } from "./hooks/useVisibleFace";
 import { setActiveCardId, setDropdownMenu, setShowModal } from "../store/playerUiSlice";
 import { usePlayerIList } from "./hooks/usePlayerIList";
 import { evaluate } from "./hooks/evaluate";
-import store from "../../store";
 import { Z_INDEX } from "./functions/common";
 
 export const DropdownMenuCard = React.memo(({
@@ -39,13 +37,11 @@ export const DropdownMenuCard = React.memo(({
   const authOptions = useAuthOptions();
   const gameDef = useGameDefinition();
   const state = useSelector(state => state);
-  const playerN = useSelector(state => state?.playerUi?.playerN);
   const dropdownMenu = useSelector(state => state?.playerUi?.dropdownMenu);
   const menuCardId = dropdownMenu.cardId;
   const menuCard = useSelector(state => state?.gameUi?.game?.cardById?.[menuCardId]);
   const visibleSide = useVisibleSide(menuCardId);
   const visibleFace = useVisibleFace(menuCardId);
-  const evaluateCondition = useEvaluateCondition();
   const playerIList = usePlayerIList();
 
   console.log("Rendering DropdownMenuCard ",playerIList)
@@ -223,7 +219,7 @@ export const DropdownMenuCard = React.memo(({
             </DropdownItem>
           }
           <DropdownItem
-            rightIcon={user?.supporter_level < 5 ? <img style={{height: "20px"}} src="https://upload.wikimedia.org/wikipedia/commons/9/94/Patreon_logo.svg"/> : null}
+            rightIcon={user?.supporter_level < 5 ? <img alt="" style={{height: "20px"}} src="https://upload.wikimedia.org/wikipedia/commons/9/94/Patreon_logo.svg"/> : null}
             clickCallback={() => setAltArt()}>
             {l10n("Set Alt Art")}
           </DropdownItem>
@@ -287,6 +283,7 @@ export const DropdownMenuCard = React.memo(({
           if (activeMenu === "moveTo"+groupId) return(
             DropdownMoveTo(groupId,handleDropdownClick)
           )
+          return null;
         })}
 
         {activeMenu === "toggleTrigger" &&
@@ -317,8 +314,11 @@ export const DropdownMenuCard = React.memo(({
                   clickCallback={handleDropdownClick}>
                   <div className="text-xs">{gameL10n(stepInfo.label)}</div>
                 </DropdownItem>
-              )})}
+              )
+              return null;
+            })}
           </div>)
+        return null;
       })}
 
 

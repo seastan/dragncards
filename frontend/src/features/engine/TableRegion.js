@@ -16,8 +16,6 @@ export const TableRegion = React.memo(({
   const browseGroupId = useSelector(state => state?.gameUi?.game?.playerData?.[playerN]?.browseGroup?.id);
   const hideGroup = (region.groupId === browseGroupId);
   const draggingStackId = useSelector(state => state?.playerUi?.dragging?.stackId);
-  const droppableId = region.groupId + "--" + region.type + "--" + region.direction; 
-  const draggingFromThisDroppableId = useSelector(state => state?.playerUi?.dragging?.fromDroppableId === droppableId);
   var zIndex = undefined;
   if (region.layerIndex > 0) zIndex = DEFAULT_CARD_Z_INDEX * region.layerIndex + 2;
   // if (draggingFromThisDroppableId == droppableId) zIndex = 10*DEFAULT_CARD_Z_INDEX + 2;

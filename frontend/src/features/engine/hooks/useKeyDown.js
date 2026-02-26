@@ -1,7 +1,7 @@
 import { useContext, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import BroadcastContext from '../../../contexts/BroadcastContext';
-import { defaultKeypress, setKeypress, setKeypressAlt, setKeypressCommand, setKeypressControl, setKeypressShift, setKeypressSpace, setKeypressTab, setPreHotkeyActiveCardGroupId, setShowModal } from '../../store/playerUiSlice';
+import { defaultKeypress, setKeypress, setKeypressSpace, setKeypressTab, setPreHotkeyActiveCardGroupId, setShowModal } from '../../store/playerUiSlice';
 import { useAddToken } from './useAddToken';
 import { useDoActionList } from './useDoActionList';
 import { dragnHotkeys, useDoDragnHotkey } from './useDragnHotkeys';
@@ -30,7 +30,7 @@ export const useKeyDown = () => {
     const activeCardId = useActiveCardId();
     const activeCardGroupId = useSelector(state => state?.gameUi?.game?.cardById?.[activeCardId]?.groupId);
     const visibleFace = useVisibleFace(activeCardId);
-    const {gameBroadcast, chatBroadcast} = useContext(BroadcastContext);
+    const {gameBroadcast} = useContext(BroadcastContext);
     const doActionList = useDoActionList();
     const doDragnHotkey = useDoDragnHotkey()
     const addToken = useAddToken();
@@ -55,6 +55,7 @@ export const useKeyDown = () => {
             window.removeEventListener('focus', handleFocus);
             window.removeEventListener('blur', handleBlur);
         };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return (event) => {
@@ -148,7 +149,7 @@ export const useKeyDown = () => {
             sendLocalMessage(`The selected hotkey attempted to add a token that is not valid for this card type.`);
             return;
         }
-        for (var keyObj of gameDefCardHotkeys) {
+        for (let keyObj of gameDefCardHotkeys) {
             if (keyMatch(keyObj.key, dictKey)) {
                 if (!activeCardId) {
                     sendLocalMessage(`You must hover over a card to use the "${dictKey}" hotkey.`);
@@ -160,13 +161,13 @@ export const useKeyDown = () => {
                 return;
             }
         }
-        for (var keyObj of gameDefGameHotkeys) {
+        for (let keyObj of gameDefGameHotkeys) {
             if (keyMatch(keyObj.key, dictKey)) {
                 doActionList(keyObj.actionList, `Pressed game hotkey "${dictKey}"`);
                 return;
             }
         }
-        for (var keyObj of dragnHotkeys) {
+        for (let keyObj of dragnHotkeys) {
             if (keyMatch(keyObj.key, dictKey)) {
                 doDragnHotkey(keyObj.actionList, `Pressed dragn hotkey "${dictKey}"`);
                 return;

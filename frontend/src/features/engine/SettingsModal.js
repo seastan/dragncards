@@ -47,7 +47,7 @@ export const uiSettings = {
   }
 }
 
-export const SettingsModal = React.memo(({}) => {
+export const SettingsModal = React.memo(() => {
     const dispatch = useDispatch();
 
     return(
@@ -190,6 +190,7 @@ const ModalContent = () => {
     setDefaultGameKeyVals(settableDefaultGameKeyVals);
     setDefaultUiKeyVals(settableDefaultUiKeyVals);
     
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playerN, stateBackgroundUrl]);
 
   const handleSave = async () => {

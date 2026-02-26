@@ -1,8 +1,8 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { usePlugin } from "./hooks/usePlugin";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faChevronLeft, faChevronRight, faDownload, faPlay, faSave, faShare, faTimes, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faChevronLeft, faChevronRight, faDownload, faPlay, faSave, faShare, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { useAuthOptions } from "../../hooks/useAuthOptions";
 import axios from "axios";
 import { useSelector } from "react-redux";
@@ -40,7 +40,7 @@ export const DeckbuilderCurrent = React.memo(({
   const allSpawnGroups = () => {
     const allGroups = [];
     const allKeys = [];
-    for (var [groupId, _value] of Object.entries(gameDef.groups)) {
+    for (var groupId of Object.keys(gameDef.groups)) {
       allKeys.push(groupId);
       allGroups.push({"loadGroupId": groupId, "label": groupId})
       // If the groupId begins with player1, add a playerN version
@@ -59,11 +59,13 @@ export const DeckbuilderCurrent = React.memo(({
 
   const spawnGroups = showAllGroups ? allSpawnGroups() : commonSpawnGroups;
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (numChanges > 10) {
       saveCurrentDeck(false);
       setNumChanges(0);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [numChanges]);
 
   console.log("Rendering DeckbuilderCurrent", currentDeck);
@@ -81,7 +83,7 @@ export const DeckbuilderCurrent = React.memo(({
   const saveCurrentDeck = async() => {
     const updateData = {deck: currentDeck}
     console.log("myDecks writing", updateData)
-    const res = await axios.patch(`/be/api/v1/decks/${currentDeck.id}`, updateData, authOptions);
+    await axios.patch(`/be/api/v1/decks/${currentDeck.id}`, updateData, authOptions);
     setNumChanges(0);
     doFetchHash((new Date()).toISOString());
   }
@@ -90,7 +92,7 @@ export const DeckbuilderCurrent = React.memo(({
     const newDeck = {...currentDeck, public: val}
     const updateData = {deck: newDeck}
     console.log("myDecks writing", updateData)
-    const res = await axios.patch(`/be/api/v1/decks/${currentDeck.id}`, updateData, authOptions);
+    await axios.patch(`/be/api/v1/decks/${currentDeck.id}`, updateData, authOptions);
     setNumChanges(0);
     setCurrentDeck(newDeck);
     doFetchHash((new Date()).toISOString());
@@ -117,7 +119,7 @@ export const DeckbuilderCurrent = React.memo(({
     if (!result) return;
     const updateData = {deck: currentDeck}
     console.log("myDecks writing")
-    const res = await axios.delete(`/be/api/v1/decks/${currentDeck.id}`, updateData, authOptions);
+    await axios.delete(`/be/api/v1/decks/${currentDeck.id}`, updateData, authOptions);
     setNumChanges(0);
     doFetchHash((new Date()).toISOString());
     setCurrentDeck({});
@@ -203,7 +205,7 @@ export const DeckbuilderCurrent = React.memo(({
               </div>
               {currentDeck?.load_list?.map((loadListItem, index) => {
                 const databaseId = loadListItem.databaseId;
-                if (loadListItem.loadGroupId === groupId)
+                if (loadListItem.loadGroupId !== groupId) return null;
                 return(
                   <div className="relative p-1 bg-gray-700 text-white"
                     onMouseMove={() => {setHoverCardDetails({...cardDb[databaseId], leftSide: false})}}

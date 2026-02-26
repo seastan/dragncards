@@ -9,7 +9,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { setPluginRepoUpdateGameDef } from '../../store/playerUiSlice';
 
 export const useRefreshPlugin = () => {
-  const {gameBroadcast, chatBroadcast} = useContext(BroadcastContext);
+  const {gameBroadcast} = useContext(BroadcastContext);
   const dispatch = useDispatch();
   const sendLocalMessage = useSendLocalMessage();
   const authOptions = useAuthOptions();
@@ -20,6 +20,7 @@ export const useRefreshPlugin = () => {
     if (pluginRepoUpdateAutoRefresh && pluginRepoUpdateGameDef) {
       refreshPlugin();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pluginRepoUpdateAutoRefresh, pluginRepoUpdateGameDef]);
 
   const refreshPlugin = async () => {

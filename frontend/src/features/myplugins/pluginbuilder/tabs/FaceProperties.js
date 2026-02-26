@@ -5,6 +5,7 @@ import { faInfoCircle } from "@fortawesome/free-solid-svg-icons";
 
 export const FaceProperties = ({ inputs, setInputs }) => {
   const siteL10n = useSiteL10n();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const cardDb = inputs.cardDb || {};
   const faceProperties = inputs.faceProperties || [];
 
@@ -32,6 +33,7 @@ export const FaceProperties = ({ inputs, setInputs }) => {
         faceProperties: initial,
       }));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cardDb, faceProperties.length, setInputs]);
 
   // Fix: update by propertyId to avoid filter/index mismatch

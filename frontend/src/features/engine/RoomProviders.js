@@ -35,6 +35,7 @@ export const RoomProviders = ({ gameBroadcast, chatBroadcast }) => {
     if (playerN) dispatch(setObservingPlayerN(playerN)); // For a spectator (where playerN is null), leave as the default value
     setPlayerNSet(true);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playerN, myUser])
 
   useEffect(() => {
@@ -45,6 +46,7 @@ export const RoomProviders = ({ gameBroadcast, chatBroadcast }) => {
       const mergedSettings = {...userSettings, ...databaseUiSettings};
       dispatch(setUserSettings(mergedSettings));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const gameBackgroundUrl = gameDef?.backgroundUrl;
@@ -71,7 +73,7 @@ export const RoomProviders = ({ gameBroadcast, chatBroadcast }) => {
           backgroundPositionY: "50%",
         }}>
         <BroadcastContext.Provider value={{gameBroadcast, chatBroadcast}}>
-          {playerNSet && <RoomGame/>}
+          {playerNSet && gameDef && <RoomGame/>}
         </BroadcastContext.Provider>
       </div>
   );

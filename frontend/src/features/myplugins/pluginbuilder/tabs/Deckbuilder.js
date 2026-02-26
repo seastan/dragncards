@@ -73,6 +73,7 @@ export const Deckbuilder = ({ inputs, setInputs }) => {
         }));
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [faceProperties, deckbuilder.searchableColumns?.length]);
 
   return (

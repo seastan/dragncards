@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector } from 'react-redux';
 import { faChevronDown, faChevronUp } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -27,6 +27,7 @@ export const Token = React.memo(({
 
     useEffect(() => {
         if (tokenValue !== amount) setAmount(tokenValue);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tokenValue]);
 
     if (!tokenDef) return;
@@ -142,9 +143,10 @@ export const Token = React.memo(({
                     icon={faChevronUp}
                 />
             </div>
-            <img 
+            <img
                 className="block h-full"
-                src={tokenDef.imageUrl}/> 
+                alt=""
+                src={tokenDef.imageUrl}/>
         </div>
         </Draggable>
     )

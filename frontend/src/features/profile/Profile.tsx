@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useHistory } from "react-router-dom";
 import MUIDataTable, { MUIDataTableOptions } from "mui-datatables";
 import ProfileSettings from "./ProfileSettings";
@@ -51,21 +51,14 @@ export const Profile: React.FC<Props> = () => {
   const authOptions = useAuthOptions();
   const history = useHistory();
   const { logOut } = useAuth();
-  const [showModal, setShowModal] = useState(false);
-  const [shareReplayUrl, setShareReplayUrl] = useState("");
   const [deletedIndices, setDeletedIndices] = useState<Array<number>>([]);
-  const { data, isLoading, isError, doFetchUrl, doFetchHash, setData } = useDataApi<any>(
+  const { data } = useDataApi<any>(
     user?.id ? "/be/api/replays/"+user.id : "",
     null
   );
 
-  useEffect(() => {
-    if (user?.id == null) return;
-    if (user?.id == undefined) return;
-    doFetchUrl("/be/api/replays/"+user?.id);
-  }, [user]);
 
-  if (user == null) {
+  if (user === null) {
     return null;
   }
 
@@ -78,17 +71,13 @@ export const Profile: React.FC<Props> = () => {
   const openReplay = (pluginId: number, uuid: any) => {
     history.push("/plugin/"+pluginId+"/load/"+uuid);
   }
-  const shareReplay = (pluginId: number, uuid: any) => {
-    setShareReplayUrl("/plugin/"+pluginId+"/load/"+uuid);
-    setShowModal(true);
-  }
   const deleteReplay = async(replay: any, index: number, numPlayers: number) => {
     if (window.confirm("Are you sure you want to delete this saved game?")) {
       const data = {
         user: user,
         replay: replay,
       }
-      const res = await axios.post("/be/api/replays/delete",data);
+      await axios.post("/be/api/replays/delete",data);
       setDeletedIndices([...deletedIndices, index]);
     }
   }
@@ -109,7 +98,6 @@ export const Profile: React.FC<Props> = () => {
       const numPlayers = replay.num_players;
       const uuid = replay.uuid;
       const pluginId = replay.plugin_id;
-      const replayId = replay.id;
       const index = i;
       const replayRow = {...replay,
         options: <div>
@@ -118,10 +106,11 @@ export const Profile: React.FC<Props> = () => {
         </div>,
         metadata: <div>
           {Object.keys(replay?.metadata ? replay.metadata : {}).map((key, index) => {
-            if (replay?.metadata?.[key] != null)
+            if (replay?.metadata?.[key] !== null)
               return(
                 <div key={index}><b>{key}:</b> {replay?.metadata?.[key]}</div>
               )
+            return null;
           })}
         </div>
       }
@@ -145,9 +134,9 @@ export const Profile: React.FC<Props> = () => {
           <span style={labelStyle}>Email</span>
           <span style={valueStyle}>{user.email}</span>
           <span style={labelStyle}>Email confirmed</span>
-          <span style={valueStyle}>{user.email_confirmed_at != null ? "Yes" : "No"}</span>
+          <span style={valueStyle}>{user.email_confirmed_at !== null ? "Yes" : "No"}</span>
         </div>
-        {user.email_confirmed_at == null && <div className="mt-3"><RecaptchaForm/></div>}
+        {user.email_confirmed_at === null && <div className="mt-3"><RecaptchaForm/></div>}
       </div>
 
       {/* Settings */}

@@ -1,4 +1,4 @@
-import React, { useEffect, ReactNode } from "react";
+import React, { useEffect, useMemo, ReactNode } from "react";
 import { Socket } from "phoenix";
 
 import SocketContext from "../contexts/SocketContext";
@@ -12,10 +12,11 @@ const SocketProvider = ({
   options: object | (() => object);
   children: ReactNode;
 }) => {
-  const socket = new Socket(wsUrl, { params: options });
+  const socket = useMemo(() => new Socket(wsUrl, { params: options }), [wsUrl, options]);
   useEffect(() => {
     socket.connect();
-  }, [options, socket, wsUrl]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socket]);
 
   return (
     <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>

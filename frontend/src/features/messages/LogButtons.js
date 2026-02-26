@@ -1,13 +1,12 @@
-import React, { useContext, useState } from "react";
+import React, { useContext } from "react";
 import { faCaretLeft, faCaretRight, faDownload, faFastBackward, faFastForward } from "@fortawesome/free-solid-svg-icons";
 import { MessageBoxButton } from "./MessageBoxButton";
 import { useSelector } from "react-redux";
 import BroadcastContext from "../../contexts/BroadcastContext";
-import { useAllLogMessageDivs } from "../engine/hooks/useAllLogMessageDivs";
 import { useAllLogMessageDownload } from "../engine/hooks/useAllLogMessageDownload";
 
-export const LogButtons = React.memo(({}) => {
-  const {gameBroadcast, chatBroadcast} = useContext(BroadcastContext);
+export const LogButtons = React.memo(() => {
+  const {gameBroadcast} = useContext(BroadcastContext);
   const allLogMessageDownload = useAllLogMessageDownload();
   const replayStep = useSelector(state => state?.playerUi?.replayStep);
   const numDeltas = useSelector(state => state?.gameUi?.deltas?.length);

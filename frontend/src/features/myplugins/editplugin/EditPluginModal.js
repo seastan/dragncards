@@ -8,7 +8,7 @@ import useForm from "../../../hooks/useForm";
 import useAuth from "../../../hooks/useAuth";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck } from "@fortawesome/free-solid-svg-icons";
-import { mergeJSONs, processArrayOfRows, readFileAsText, stringTo2DArray, importCardDbTsv } from "../uploadPluginFunctions";
+import { mergeJSONs, importCardDbTsv } from "../uploadPluginFunctions";
 import { validateSchema } from "../validate/validateGameDef";
 import { generateMarkdown, getGameDefSchema } from "../validate/getGameDefSchema";
 import useProfile from "../../../hooks/useProfile";
@@ -21,7 +21,7 @@ ReactModal.setAppElement("#root");
 export const EditPluginModal = ({ plugin, closeModal, doFetchHash}) => {
   console.log("Rendering EditPluginModal", plugin)
   const user = useProfile();
-  const { authToken, renewToken, setAuthAndRenewToken } = useAuth();
+  const { authToken } = useAuth();
   const authOptions = useMemo(
     () => ({
       headers: {
@@ -79,7 +79,7 @@ export const EditPluginModal = ({ plugin, closeModal, doFetchHash}) => {
 
   const { inputs, handleSubmit, handleInputChange, setInputs } = useForm(async () => {
     console.log("inputs", inputs);
-    if (inputs.gameDef && (!inputs.gameDef.pluginName || inputs.gameDef.pluginName.length == 0)) {
+    if (inputs.gameDef && (!inputs.gameDef.pluginName || inputs.gameDef.pluginName.length === 0)) {
       setErrorMessage("Invalid plugin name");
       return;
     }
@@ -141,13 +141,14 @@ export const EditPluginModal = ({ plugin, closeModal, doFetchHash}) => {
 
   useEffect(() => {
     if (inputs && plugin) setInputs({...inputs, public: plugin.public, repoUrl: plugin.repo_url});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   },[])
 
   const schema = getGameDefSchema(inputs?.gameDef);
   const markdownDocs = generateMarkdown(schema);
   console.log("markdownDocs", markdownDocs);
 
-  if (roomSlugCreated != null) {
+  if (roomSlugCreated !== null) {
     return <Redirect push to={`/room/${roomSlugCreated}`} />;
   }
 
@@ -246,7 +247,6 @@ export const EditPluginModal = ({ plugin, closeModal, doFetchHash}) => {
         setInputs({...inputs, gameDef: mergedJSONs});
       } else {
         // Set the error message
-        const labelSchema = "";
         setErrorMessagesGameDef(errors);
         setValidGameDef(false);
       }
@@ -334,17 +334,6 @@ export const EditPluginModal = ({ plugin, closeModal, doFetchHash}) => {
   }
   const loadFileCardDb = () => {
     inputFileCardDb.current.click();
-  }
-
-  const downloadGameDefJson = () => {
-    const exportName = inputs.gameDef.pluginName.replaceAll(" ", "-");
-    var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(inputs.gameDef));
-    var downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href",     dataStr);
-    downloadAnchorNode.setAttribute("download", exportName + ".json");
-    document.body.appendChild(downloadAnchorNode); // required for firefox
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
   }
 
   var changesMade = plugin ? ((inputs.public !== plugin.public) || (inputs.repoUrl !== plugin.repo_url) || inputs.gameDef || inputs.cardDb) : (inputs.gameDef || inputs.cardDb);

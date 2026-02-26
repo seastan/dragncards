@@ -9,17 +9,14 @@ import useAuth from "../../hooks/useAuth";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck } from "@fortawesome/free-solid-svg-icons";
 import { mergeJSONs, readFileAsText } from "./PluginFileImport";
-import { processArrayOfRows, stringTo2DArray, useProcessArrayOfRows } from "./uploadPluginFunctions";
+import { processArrayOfRows, stringTo2DArray } from "./uploadPluginFunctions";
 import { validateSchema } from "./validate/validateGameDef";
 import { getGameDefSchema } from "./validate/getGameDefSchema";
-const { convertCSVToArray } = require('convert-csv-to-array');
-const converter = require('convert-csv-to-array');
-
 ReactModal.setAppElement("#root");
 
 export const NewPluginModal = ({ isOpen, closeModal }) => {
   const user = useProfile();
-  const { authToken, renewToken, setAuthAndRenewToken } = useAuth();
+  const { authToken } = useAuth();
   const authOptions = useMemo(
     () => ({
       headers: {
@@ -28,7 +25,6 @@ export const NewPluginModal = ({ isOpen, closeModal }) => {
     }),
     [authToken]
   );
-  const [checked, setChecked] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [loadingMessage, setLoadingMessage] = useState("");
@@ -45,9 +41,9 @@ export const NewPluginModal = ({ isOpen, closeModal }) => {
   const inputFileGameDef = useRef(null);
   const inputFileCardDb = useRef(null);
 
-  const { inputs, handleSubmit, handleInputChange, setInputs } = useForm(async () => {
+  const { inputs, handleSubmit, setInputs } = useForm(async () => {
     console.log("inputs", inputs);
-    if (!inputs.gameDef.pluginName || inputs.gameDef.pluginName.length == 0) {
+    if (!inputs.gameDef.pluginName || inputs.gameDef.pluginName.length === 0) {
       setErrorMessage("Invalid plugin name");
       return;
     }
@@ -179,17 +175,6 @@ export const NewPluginModal = ({ isOpen, closeModal }) => {
     inputFileCardDb.current.click();
   }
 
-  const downloadGameDefJson = () => {
-    const exportName = inputs.gameDef.pluginName.replaceAll(" ", "-");
-    var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(inputs.gameDef));
-    var downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href",     dataStr);
-    downloadAnchorNode.setAttribute("download", exportName + ".json");
-    document.body.appendChild(downloadAnchorNode); // required for firefox
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
-  }
-  
   return (
     <ReactModal
       closeTimeoutMS={200}

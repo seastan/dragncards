@@ -2,7 +2,7 @@ import React, { useCallback } from "react";
 import UserName from "../user/UserName";
 import useProfile from "../../hooks/useProfile";
 import { Link } from "react-router-dom";
-import MUIDataTable, { MUIDataTableOptions } from "mui-datatables";
+import MUIDataTable from "mui-datatables";
 import useDataApi from "../../hooks/useDataApi";
 import useChannel from "../../hooks/useChannel";
 
@@ -39,17 +39,16 @@ export const LobbyTable = ({ plugin }) => {
 
   const onChannelMessage = useCallback(
     (event, payload) => {
-      if (event === "rooms_update" && payload.rooms != null) {
+      if (event === "rooms_update" && payload.rooms !== null) {
         setData({ data: payload.rooms });
       }
     },
     [setData]
   );
   useChannel("lobby:lobby", onChannelMessage, myUser?.id);
-  const rooms = data != null && data.data != null ? data.data : [];
+  const rooms = data !== null && data.data !== null ? data.data : [];
 
   var filteredRooms = [];
-  var activePrivate = 0;
   var activeRooms = 0;
   var totalRooms = 0;
   if (rooms) {
@@ -61,7 +60,6 @@ export const LobbyTable = ({ plugin }) => {
       const status = (elapsedSeconds < 60 ? "Active" : "Idle");
       if (room.plugin_id !== plugin.id) continue;
       if (status === "Active") activeRooms++;
-      if (status === "Active" && room.privacy_type !== "public") activePrivate++;
       totalRooms++;
       if (room.privacy_type === "public" || myUser?.id === room.created_by || myUser?.admin) {
         filteredRooms.push({

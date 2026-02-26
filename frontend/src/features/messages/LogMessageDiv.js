@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useState } from "react";
 import { useSelector } from "react-redux";
 import { useMessageTextToHtml } from "./MessageLine";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -9,7 +9,7 @@ import BroadcastContext from "../../contexts/BroadcastContext";
 //const shuffleSound = new Audio("https://www.soundjay.com/misc/shuffling-cards-6.mp3");
 
 export const LogMessageDiv = ({ delta, deltaIndex }) => {
-  const { gameBroadcast, chatBroadcast } = useContext(BroadcastContext);
+  const { gameBroadcast } = useContext(BroadcastContext);
   const replayStep = useSelector(state => state?.playerUi?.replayStep);
   const messageTextToHtml = useMessageTextToHtml();
   const [hover, setHover] = useState(false);

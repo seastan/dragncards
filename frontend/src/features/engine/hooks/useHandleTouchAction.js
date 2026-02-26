@@ -7,7 +7,6 @@ import { useDoActionList } from "./useDoActionList";
 import { useGameDefinition } from "./useGameDefinition";
 import { useSetTouchAction } from "./useSetTouchAction";
 import { useTouchAction } from "./useTouchAction";
-import { useDoDragnHotkey } from './useDragnHotkeys';
 import { dragnActionLists } from '../functions/dragnActionLists';
 
 export const useHandleTouchAction = () => {
@@ -17,7 +16,6 @@ export const useHandleTouchAction = () => {
     const touchAction = useTouchAction();
     const setTouchAction = useSetTouchAction();
     const doActionList = useDoActionList();
-    const doDragnHotkey = useDoDragnHotkey();
     console.log("Rendering HandleTouchActions")
     return ((touchedCard) => {
         console.log("handleTouchAction", touchedCard)

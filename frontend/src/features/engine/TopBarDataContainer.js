@@ -3,7 +3,7 @@ import { TopBarUser } from "./TopBarUser";
 import { TopBarShared } from "./TopBarShared";
 import { usePlayerIList } from "./hooks/usePlayerIList";
 
-export const TopBarDataContainer = React.memo(({}) => {
+export const TopBarDataContainer = React.memo(() => {
 
   const playerIList = usePlayerIList();
     console.log("Rendering TopBarDataContainer", playerIList)

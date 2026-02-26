@@ -27,7 +27,7 @@ const PromptInput = React.memo(({
   const multiSelect = useSelector(state => state.playerUi.multiSelect);
   const numSelected = multiSelect?.cardIds?.length || 0;
 
-  if (inputDetails?.type == "text" || inputDetails?.type == "number") {
+  if (inputDetails?.type === "text" || inputDetails?.type === "number") {
     return(
       <input
         type={inputDetails.type || "text"}
@@ -97,16 +97,18 @@ export const Prompt = React.memo(({
 
   const handleOptionClick = (option) => {
     runCode(option.code, gameL10n(option.label));
-    if (option.dontShowAgain == true) {
+    if (option.dontShowAgain === true) {
       setPluginSetting("game", {dontShowAgainPromptIds: {[promptId]: true}});
     }
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     // Reset the promptTextInput when the prompt is re-rendered
-    if (promptIndex === 0 && input && input?.type == "selectCards" && input?.autoSubmit?.numCards == multiSelect?.cardIds?.length) {
+    if (promptIndex === 0 && input && input?.type === "selectCards" && input?.autoSubmit?.numCards === multiSelect?.cardIds?.length) {
       runCode(input.autoSubmit.code, "Autosubmit"); // Automatically run the code if the number of selected cards matches the auto-submit criteria
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [multiSelect]);
 
   return (
@@ -129,8 +131,7 @@ export const Prompt = React.memo(({
   )
 })
 
-export const Prompts = React.memo(({
-}) => {
+export const Prompts = React.memo(() => {
   const dispatch = useDispatch();
   const multiSelect = useSelector(state => state.playerUi.multiSelect);
   const prompts = useVisiblePrompts();
@@ -153,6 +154,7 @@ export const Prompts = React.memo(({
       dispatch(setMultiSelectEnabled(false));
       dispatch(clearMultiSelectCardIds());
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortedPromptIds, prompts]);
   
 

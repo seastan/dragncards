@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React from "react";
 import { useSelector, useDispatch } from 'react-redux';
 import { DroppableRegion } from "./DroppableRegion";
 import { useBrowseTopN } from "./hooks/useBrowseTopN";
@@ -9,23 +9,16 @@ import { setDropdownMenu, setTyping } from "../store/playerUiSlice";
 import { useGameL10n } from "./hooks/useGameL10n";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { useDoActionList } from "./hooks/useDoActionList";
-import { getParentCardsInGroup, Z_INDEX } from "./functions/common";
-import Draggable from "react-draggable";
+import { Z_INDEX } from "./functions/common";
 import { useCardScaleFactor } from "./hooks/useCardScaleFactor";
 import { usePlayerN } from "./hooks/usePlayerN";
-
-const isNormalInteger = (val) => {
-  var n = Math.floor(Number(val));
-  return n !== Infinity && n === val && n >= 0;
-}
+import { useBrowseFiltering } from "./hooks/useBrowseFiltering";
 
 const browseWidth = "98%";
 const browseLeft = "1%";
 
 export const useBrowseRegion = () => {
   const playerN = usePlayerN();
-  const gameDef = useGameDefinition();
-  const cardTypes = gameDef?.cardTypes;
   const maxHeight = 1; //Math.max(...Object.values(cardTypes).map(cardType => cardType?.height || 1));
   const browseGroupId = useSelector(state => state?.gameUi?.game?.playerData?.[playerN]?.browseGroup?.id);
   const cardScaleFactor = useCardScaleFactor();
@@ -44,19 +37,16 @@ export const useBrowseRegion = () => {
 }
 
 
-export const Browse = React.memo(({}) => {
+export const Browse = React.memo(() => {
   const dispatch = useDispatch();
   const gameL10n = useGameL10n();
   const gameDef = useGameDefinition();
   const playerN = useSelector(state => state?.playerUi?.playerN);
   const groupId = useSelector(state => state?.gameUi?.game?.playerData?.[playerN]?.browseGroup?.id);
-  const browseGroupTopN = useSelector(state => state?.gameUi?.game?.playerData?.[playerN]?.browseGroup?.topN);
   const group = useSelector(state => state?.gameUi?.game?.groupById?.[groupId]);
   const region = useBrowseRegion();
   const game = useSelector(state => state?.gameUi?.game);
-  const parentCards = getParentCardsInGroup(game, groupId);
-  const [searchForProperty, setSearchForProperty] = useState('All');
-  const [searchForText, setSearchForText] = useState('');
+  const { filteredStackIndices, searchForProperty, setSearchForProperty, setSearchForText, resetFilters } = useBrowseFiltering();
   const stackIds = group?.["stackIds"] || [];
   const numStacks = stackIds.length;
   const browseTopN = useBrowseTopN();
@@ -71,7 +61,7 @@ export const Browse = React.memo(({}) => {
   }, [])
 
   if (!group) return;
-  console.log("Rendering Browse", groupId, region, browseGroupTopN)
+  console.log("Rendering Browse", groupId, region)
 
   const handleBarsClick = (event) => {
     event.stopPropagation();
@@ -100,8 +90,7 @@ export const Browse = React.memo(({}) => {
       else if (option === "order") closeAndOrder();
       else if (option === "peeking") closeAndPeeking();
     }
-    setSearchForText('');
-    setSearchForProperty('All');
+    resetFilters();
   }
 
   const closeAndShuffle = () => {
@@ -139,47 +128,6 @@ export const Browse = React.memo(({}) => {
 
   const handleInputTyping = (event) => {
     setSearchForText(event.target.value);
-  }
-
-  // If browseGroupTopN not set, or equal to "All" or "None", show all stacks
-  var browseGroupTopNint = isNormalInteger(browseGroupTopN) ? parseInt(browseGroupTopN) : numStacks;
-  if (browseGroupTopNint < 0) browseGroupTopNint = numStacks;
-  if (browseGroupTopNint > numStacks) browseGroupTopNint = numStacks;
-  var filteredStackIndices = [...Array(browseGroupTopNint).keys()];
-  
-  // Filter by selected card type
-  if (searchForProperty === "Other") {
-      filteredStackIndices = filteredStackIndices.filter((stackIndex) => {
-        const stackId = stackIds[stackIndex];
-        const propertyValue = parentCards[stackIndex]?.sides?.A?.[gameDef?.browse?.filterPropertySideA];
-        const isValueOther = !gameDef?.browse?.filterValuesSideA?.includes(propertyValue);
-        const isPeekingOrCurrentSideA = (
-          parentCards[stackIndex].peeking[playerN] || 
-          parentCards[stackIndex].currentSide === "A"
-        );
-        return stackId && isPeekingOrCurrentSideA && isValueOther
-      });
-  } else if (searchForProperty !== "All") 
-    filteredStackIndices = filteredStackIndices.filter((stackIndex) => (
-      stackIds[stackIndex] && 
-      parentCards[stackIndex]?.sides?.A?.[gameDef?.browse?.filterPropertySideA] === searchForProperty &&
-      (parentCards[stackIndex]?.peeking?.[playerN] || parentCards[stackIndex]?.currentSide === "A") 
-  ));  
-
-  if (searchForText) {
-    const properties = gameDef.browse.textPropertiesSideA;
-    filteredStackIndices = filteredStackIndices.filter((stackIndex) => {
-      const stackId = stackIds[stackIndex];
-      const card = parentCards[stackIndex]?.sides?.A;
-      const isCardMatching = properties.some((prop) =>
-        card?.[prop]?.toLowerCase().includes(searchForText.toLowerCase())
-      );
-      const isPeekingOrCurrentSideA = (
-        parentCards[stackIndex].peeking[playerN] || 
-        parentCards[stackIndex].currentSide === "A"
-      );
-      return stackId && isCardMatching && isPeekingOrCurrentSideA;
-    });
   }
 
   return(
@@ -279,8 +227,8 @@ export const Browse = React.memo(({}) => {
             ["Keep order", "order"],
             ["Keep peeking", "peeking"]
             ].map((row, rowIndex) => {
-              if (!playerN && row[1] === "shuffle") return;
-              if (!playerN && row[1] === "peeking") return; 
+              if (!playerN && row[1] === "shuffle") return null;
+              if (!playerN && row[1] === "peeking") return null;
               return(
                 <div className="h-1/4 w-full text-white text-center">
                   <div className="h-full float-left w-full p-0.5">

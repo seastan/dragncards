@@ -1,5 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
-import useProfile from "../../hooks/useProfile";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useVisibleFace } from "./hooks/useVisibleFace";
 import { useVisibleFaceSrc } from "./hooks/useVisibleFaceSrc";
@@ -26,13 +25,15 @@ export const GiantCard = React.memo(() => {
 
   console.log("Rendering GiantCard", visibleFace, visibleFaceSrc);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (activeCard && initialActiveCard && (activeCard.id == initialActiveCard.id) && (activeCard.groupId !== initialActiveCard.groupId)) {
+    if (activeCard && initialActiveCard && (activeCard.id === initialActiveCard.id) && (activeCard.groupId !== initialActiveCard.groupId)) {
       console.log("cardaction giant", activeCard, initialActiveCard);
       dispatch(setActiveCardId(null));
     } else {
       setInitialActiveCard(activeCard);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCard, dispatch]);
 
   if (!visibleFace || !activeCardId || touchAction || (dropdownMenu && !touchMode)) return null;
@@ -44,6 +45,7 @@ export const GiantCard = React.memo(() => {
 
   return (
     <img
+      alt=""
       className="absolute"
       src={visibleFaceSrc.src}
       onError={(e) => {

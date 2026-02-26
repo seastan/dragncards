@@ -1,26 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { useHistory } from "react-router-dom";
-import CreateRoomModal from "./CreateRoomModal";
-import LobbyTable from "./LobbyTable";
 import useDataApi from "../../hooks/useDataApi";
-import useProfile from "../../hooks/useProfile";
 import useIsLoggedIn from "../../hooks/useIsLoggedIn";
-import { Announcements } from "./Announcements";
-import { PluginsTable } from "./PluginsTable";
 import { PatreonModal } from "../store/support/PatreonModal";
 import { LobbyButton } from "../../components/basic/LobbyButton";
 import { TermsOfServiceModal } from "./TermsOfServiceModal";
-import { PluginLobby } from "./PluginLobby";
 import { Footer } from "./Footer";
 
 export const LobbyContainer = ({ children, maxWidth = "600px" }) => {
   const isLoggedIn = useIsLoggedIn();
   const [showModal, setShowModal] = useState(null);
   const [showTermsOfService, setShowTermsOfService] = useState(false);
-  const [replayId, setReplayId] = useState("");
   const [ringsDbInfo, setRingsDbInfo] = useState([null,null,null,null]);
-  const [loadShuffle, setLoadShuffle] = useState(false);
-  const [selectedPlugin, setSelectedPlugin] = useState(null);
   const apiPlugins = useDataApi(
     "/be/api/plugins",
     null
@@ -44,9 +34,7 @@ export const LobbyContainer = ({ children, maxWidth = "600px" }) => {
         setRingsDbInfo(newRingsDbInfo);
       }
       if (url.includes("replay")) {
-        var splitUrl = url.split( '/' );
-        const newroomIndex = splitUrl.findIndex((e) => e === "newroom")
-        setReplayId(splitUrl[newroomIndex + 2]);
+        // replay id handling removed (unused)
       }
       setShowModal("createRoom");
     }
@@ -72,9 +60,10 @@ export const LobbyContainer = ({ children, maxWidth = "600px" }) => {
           <div style={{height: "200px"}}>
             <div className="w-1/2 h-full float-left">
               <div className="w-full h-full flex items-center justify-center">
-                <img 
-                  className="" 
-                  style={{height: "200px"}} 
+                <img
+                  className=""
+                  style={{height: "200px"}}
+                  alt=""
                   src={process.env.PUBLIC_URL + '/logosvg.svg'}/>
               </div>
             </div>

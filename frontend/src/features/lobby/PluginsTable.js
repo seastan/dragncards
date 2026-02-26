@@ -65,7 +65,7 @@ export const PluginsTable = ({ plugins }) => {
 
   return (
         <div className="w-full">
-          {plugins == null ?      
+          {plugins === null ?
             <div className="flex justify-center">
               <RotatingLines
                 height={100}
@@ -103,6 +103,7 @@ export const PluginsTable = ({ plugins }) => {
                     <div className="text-xs">{siteL10n("Games in 24hr/30d:") + " " + plugin.count_24hr + "/" + plugin.count_30d}</div>
                   </div>
                   <div className="absolute right-0 flex items-center p-4">
+                    {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
                     <a className="text-white" target="_blank" onClick={() => {}}>
                       <FontAwesomeIcon size="2x" icon={faChevronRight}/>
                     </a>

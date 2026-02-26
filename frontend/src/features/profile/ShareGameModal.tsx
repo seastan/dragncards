@@ -1,18 +1,6 @@
 import React, { useState } from "react";
-import { Redirect } from "react-router";
-import Select from 'react-select'
-import axios from "axios";
 import ReactModal from "react-modal";
 import Button from "../../components/basic/Button";
-import useProfile from "../../hooks/useProfile";
-import useIsLoggedIn from "../../hooks/useIsLoggedIn";
-import { Link } from "react-router-dom";
-
-const options = [
-  { value: 'public', label: 'Public' },
-  { value: 'private', label: 'Private' },
-  { value: 'playtest', label: 'Playtest' },
-]
 
 interface Props {
   isOpen: boolean;

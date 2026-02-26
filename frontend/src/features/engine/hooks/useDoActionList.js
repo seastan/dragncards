@@ -7,7 +7,7 @@ import { useSendLocalMessage } from './useSendLocalMessage';
 export const useDoActionList = () => {
     const gameDef = useGameDefinition(); 
     const sendLocalMessage = useSendLocalMessage();
-    const {gameBroadcast, chatBroadcast} = useContext(BroadcastContext);
+    const {gameBroadcast} = useContext(BroadcastContext);
 
     return (idOrList, description = null, playerUi = null) => {
         // This fuction can take either an id for an action list, in which case it

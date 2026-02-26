@@ -2,8 +2,6 @@ import React, { useCallback, useEffect } from "react";
 import ProfileContext from "../contexts/ProfileContext";
 import useAuthDataApi from "../hooks/useAuthDataApi";
 import useAuth from "../hooks/useAuth";
-import useInterval from "../hooks/useInterval";
-import { format } from "date-fns";
 
 export const ProfileProvider = ({ children }) => {
   const { setAuthAndRenewToken, authToken } = useAuth();
@@ -46,7 +44,7 @@ export const ProfileProvider = ({ children }) => {
   // }, [doFetchHash]);
   // useInterval(fetchProfileEvery10Mins, 600 * 1000);
   const user =
-    data != null && data.user_profile != null ? data.user_profile : null;
+    data !== null && data.user_profile !== null ? data.user_profile : null;
   if (user) {
     user.setData = setData;
     user.doFetchHash = doFetchHash;

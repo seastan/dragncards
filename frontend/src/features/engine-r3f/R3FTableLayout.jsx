@@ -14,6 +14,8 @@ import { getCameraPosition } from './utils/cameraUtils';
 import { R3FSceneFromRedux } from './components/R3FScene';
 import { useDoActionList } from '../engine/hooks/useDoActionList';
 import { useR3FDragActions } from './R3FDragSystem';
+import { R3FBrowsePanel } from './components/R3FBrowsePanel';
+import { useBrowseFiltering } from '../engine/hooks/useBrowseFiltering';
 
 // Loading fallback for Suspense
 const LoadingFallback = () => (
@@ -57,6 +59,9 @@ export const R3FTableLayout = ({
   const [localZoom, setLocalZoom] = useState(zoom);
   const [showRegionBoundaries, setShowRegionBoundaries] = useState(true);
 
+  // Browse filtering state (shared between 3D scene and browse panel overlay)
+  const { filteredStackIndices, searchForProperty, setSearchForProperty, searchForText, setSearchForText, resetFilters } = useBrowseFiltering();
+
   // Get doActionList hook for executing game actions
   const doActionList = useDoActionList();
 
@@ -83,9 +88,19 @@ export const R3FTableLayout = ({
           <R3FSceneFromRedux
             showRegionBoundaries={showRegionBoundaries}
             onCardDrop={handleDrop}
+            browseFilteredStackIndices={filteredStackIndices}
           />
         </Suspense>
       </Canvas>
+
+      {/* Browse panel overlay */}
+      <R3FBrowsePanel
+        searchForProperty={searchForProperty}
+        setSearchForProperty={setSearchForProperty}
+        searchForText={searchForText}
+        setSearchForText={setSearchForText}
+        resetFilters={resetFilters}
+      />
 
       {/* Info overlay */}
       <div style={{

@@ -1,0 +1,26 @@
+[Unit]
+Description=DragnCards daemon (port 4001)
+
+[Service]
+Type=simple
+User=webhost
+Group=webhost
+Restart=on-failure
+Environment=MIX_ENV=prod
+Environment=LANG=en_US.UTF-8
+Environment=PORT=4001
+Environment=DATABASE_URL=ecto://postgres:postgres@localhost/dragncards_prod
+Environment=DB_USER=postgres
+Environment=DB_PASS=postgress
+Environment=SECRET_KEY_BASE=rKabeZnvcFtU5djXudZVUCkUn8eZHKVaaG41SxM/l+IlqcpEba0HIyxtjLVEc4R
+Environment=MAILGUN_API_KEY=
+Environment=MAILGUN_DOMAIN=
+LimitNOFILE=70000
+
+WorkingDirectory=/var/www/dragncards.com/dragncards/backend/
+
+ExecStart=/var/www/dragncards.com/dragncards/backend/_build/prod/rel/dragncards/bin/dragncards start
+ExecStop=/var/www/dragncards.com/dragncards/backend/_build/prod/rel/dragncards/bin/dragncards stop
+
+[Install]
+WantedBy=multi-user.target

@@ -1,7 +1,6 @@
 import { createSelector } from "@reduxjs/toolkit";
 import { useMemo } from "react";
 import { useSelector, shallowEqual } from "react-redux";
-import { useLayout } from "./useLayout";
 import { ATTACHMENT_OFFSET } from "../functions/common";
 import { useCardScaleFactor } from "./useCardScaleFactor";
 
@@ -27,7 +26,6 @@ export const useOffsetTotalsAndAmounts = (stackId) => {
   const stack = useSelector(state => state?.gameUi?.game?.stackById[stackId], shallowEqual);
   const cardIds = stack?.cardIds || [];
   const lookingUnder = stack?.lookingUnder;
-  const layout = useLayout();
   const cardScaleFactor = useCardScaleFactor();
   // Memoize the selector factory
 

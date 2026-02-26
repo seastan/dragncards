@@ -3,7 +3,7 @@ import { SideBarPhase } from "./SideBarPhase";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { useSelector } from "react-redux";
 
-export const SideBar = React.memo(({}) => {
+export const SideBar = React.memo(() => {
   const gameDef = useGameDefinition();
   const cardById = useSelector(state => state?.gameUi?.game?.cardById);
   const [triggerMap, setTriggerMap] = useState({})

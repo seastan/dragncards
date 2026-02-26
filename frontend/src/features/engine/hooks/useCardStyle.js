@@ -1,7 +1,6 @@
 import { useSelector } from 'react-redux';
 import { useCardScaleFactor } from './useCardScaleFactor';
 import { Z_INDEX } from '../functions/common';
-import { useCardProp } from './useCardProp';
 import { useGameDefinition } from './useGameDefinition';
 import { useVisibleFace } from './useVisibleFace';
 import { useCardRotation } from './useCardRotation';
@@ -13,7 +12,6 @@ export const useCardStyle = (cardId, cardIndexFromGui, isDragging, offset) => {
     const cardScaleFactor = useCardScaleFactor();
     const cardVisibleFace = useVisibleFace(cardId);
     const zIndex = Z_INDEX.Card - cardIndex;
-    const isActive = useSelector(state => {return state?.playerUi?.activeCardId === cardId});
     const cardBorderColor = useSelector(state => state?.gameUi?.game?.cardById[cardId]?.borderColor);
 
     var [height, width] = [cardVisibleFace?.height, cardVisibleFace?.width];
@@ -46,7 +44,6 @@ export const useCardStyle = (cardId, cardIndexFromGui, isDragging, offset) => {
         transitionProperty: "transform",
         MozBoxShadow: isDragging ? '10px 10px 30px 20px rgba(0, 0, 0, 0.3)' : null,
         WebkitBoxShadow: isDragging ? '10px 10px 30px 20px rgba(0, 0, 0, 0.3)': null,
-        boxShadow: isDragging ? '10px 10px 30px 20px rgba(0, 0, 0, 0.3)': null,  
         '--tw-shadow': cardBorderColor ? `0 0 10px ${cardBorderColor}` : null,
         boxShadow: cardBorderColor ? 'var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)' : null,
         //opacity: 0.3

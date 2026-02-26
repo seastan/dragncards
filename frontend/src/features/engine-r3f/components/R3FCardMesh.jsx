@@ -26,7 +26,7 @@ const lastTextureByCard = new Map();
 const R3FLinkIndicator = ({ direction, cardWidth, cardHeight, rotation }) => {
   const halfW = cardWidth / 2;
   const halfH = cardHeight / 2;
-  const indicatorSize = 2.0;
+  const indicatorSize = 4.0;
   const yOffset = 0.3;
 
   let posX = 0, posZ = 0;
@@ -36,6 +36,7 @@ const R3FLinkIndicator = ({ direction, cardWidth, cardHeight, rotation }) => {
     case 'top':    posZ = -halfH; break;
     case 'bottom': posZ = halfH; break;
     case 'center': break;
+    default: break;
   }
 
   return (
@@ -80,7 +81,7 @@ const R3FLinkIndicator = ({ direction, cardWidth, cardHeight, rotation }) => {
           zIndexRange={[0, 0]}
         >
           <div style={{
-            fontSize: '20px',
+            fontSize: '36px',
             color: '#374151',
             userSelect: 'none',
             lineHeight: 1,
@@ -119,6 +120,7 @@ export const R3FCardMesh = ({
   onHover = null,
   onHoverEnd = null,
   onPointerDownForDrag = null,
+  stackIndex = 0,
 }) => {
   const meshRef = useRef();
   const [hovered, setHovered] = useState(false);
@@ -128,6 +130,7 @@ export const R3FCardMesh = ({
   const flipGroupRef = useRef();
   const flipLiftGroupRef = useRef(); // Lifts card during flip to prevent table clipping
   const prevTextureRef = useRef(null);
+  const isFlipPendingRef = useRef(false); // true while a flip is queued or in progress
   const prevCurrentSideRef = useRef(
     (previousSide != null && previousSide !== currentSide) ? previousSide : currentSide
   );
@@ -168,8 +171,13 @@ export const R3FCardMesh = ({
     if (currentSide !== prevCurrentSideRef.current) {
       prevTextureRef.current = lastTextureByCard.get(cardId) || texture;
       prevCurrentSideRef.current = currentSide;
+      isFlipPendingRef.current = true;
       flipSpringApi.set({ progress: 0 });
-      flipSpringApi.start({ progress: 1 });
+      flipSpringApi.start({
+        progress: 1,
+        delay: stackIndex * 10,
+        onRest: () => { isFlipPendingRef.current = false; },
+      });
     }
   }, [currentSide]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -203,11 +211,13 @@ export const R3FCardMesh = ({
       }
     }
 
-    // Update two-sided material textures
+    // Update two-sided material textures.
+    // Use isFlipPendingRef (not isFlipping) so the old face is held during the
+    // delay period (fp=0 but animation hasn't started yet) as well as mid-flip.
     if (meshRef.current?.material?.uniforms?.mapFront) {
-      if (isFlipping) {
+      if (isFlipPendingRef.current) {
         meshRef.current.material.uniforms.mapFront.value = prevTextureRef.current;
-        meshRef.current.material.uniforms.mapBack.value = texture;
+        meshRef.current.material.uniforms.mapBack.value = isFlipping ? texture : prevTextureRef.current;
       } else {
         meshRef.current.material.uniforms.mapFront.value = texture;
         meshRef.current.material.uniforms.mapBack.value = texture;

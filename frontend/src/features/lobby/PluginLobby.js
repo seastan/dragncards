@@ -45,6 +45,7 @@ export const PluginLobby = () => {
   // If user.id changes, reset plugins list
   useEffect(() => {
     getPlugin();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   console.log("Rendering PluginLobby", plugin)
@@ -63,6 +64,7 @@ export const PluginLobby = () => {
       setExternalData({domain: externalDomain, type: externalType, id: externalId})
       setShowModal("createRoom");
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (isLoading) return null;

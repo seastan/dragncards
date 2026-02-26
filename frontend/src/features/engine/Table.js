@@ -13,21 +13,18 @@ import { TouchBarBottom } from "./TouchBarBottom";
 
 import "../../css/custom-dropdown.css";
 import { TooltipModal } from "./TooltipModal";
-import { setMouseXY, setDropdownMenu, setScreenLeftRight, setTouchAction, setActiveCardId, setShowModal } from "../store/playerUiSlice";
+import { setMouseXY, setDropdownMenu, setActiveCardId, setShowModal } from "../store/playerUiSlice";
 import { useDispatch, useSelector } from "react-redux";
 import useProfile from "../../hooks/useProfile";
-import BroadcastContext from "../../contexts/BroadcastContext";
 import { DeckbuilderModal } from "./DeckbuilderModal";
 import { PatreonModal } from "../store/support/PatreonModal";
 import DeveloperModal from "./DeveloperModal";
 import { usePlayerN } from "./hooks/usePlayerN";
-import { pl } from "date-fns/locale";
 import { usePreloadCardImages } from "../../hooks/usePreloadCardImages";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { SettingsModal } from "./SettingsModal";
 import { AutomationModal } from "./AutomationModal";
 import { useIsHost } from "./hooks/useIsHost";
-import { useDoActionList } from "./hooks/useDoActionList";
 import { useSetTouchAction } from "./hooks/useSetTouchAction";
 import { useTouchAction } from "./hooks/useTouchAction";
 import { CustomContentModal } from "./CustomContentModal";
@@ -49,7 +46,6 @@ export const Table = React.memo(({onDragEnd}) => {
   const myUserId = useProfile()?.id;
   const isHost = useIsHost();
   const playerN = usePlayerN();
-  const doActionList = useDoActionList();
   usePreloadCardImages();
   console.log('Rendering Table', playerN, 'use3DView:', use3DView);
 
@@ -57,6 +53,7 @@ export const Table = React.memo(({onDragEnd}) => {
     if (!loadedADeck && isHost && gameDef?.loadPreBuiltOnNewGame) {
       dispatch(setShowModal("prebuilt_deck"));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadedADeck]);
 
   const handleTableClick = (event) => {

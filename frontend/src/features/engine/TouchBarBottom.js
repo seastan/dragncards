@@ -48,7 +48,7 @@ export const TouchButton = React.memo(({buttonObj, displayText}) => {
 
   const img = buttonObj?.actionType === "token" ? 
       <div className={"absolute flex pointer-events-none h-full w-full top-0 items-center justify-center"}>
-        <img className="" style={{opacity: selected ? "30%" : "100%", height: "4dvh", width: "4dvh"}} src={buttonObj.imageUrl}/>
+        <img className="" alt="" style={{opacity: selected ? "30%" : "100%", height: "4dvh", width: "4dvh"}} src={buttonObj.imageUrl}/>
       </div>
     : null
 
@@ -69,7 +69,7 @@ export const TouchButton = React.memo(({buttonObj, displayText}) => {
 })
 
 
-export const TouchBarBottom = React.memo(({}) => {
+export const TouchBarBottom = React.memo(() => {
   const gameDef = useGameDefinition();
   const gameL10n = useGameL10n();
   const siteL10n = useSiteL10n();

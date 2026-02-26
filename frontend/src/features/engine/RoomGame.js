@@ -4,7 +4,7 @@ import { setKeypressAlt, setKeypressControl, setKeypressShift, setKeypressSpace,
 import { DragContainer } from "./DragContainer";
 import { useKeyDown } from "./hooks/useKeyDown";
 
-const RoomGame = React.memo(({}) => {
+const RoomGame = React.memo(() => {
   console.log('Rendering RoomGame');
   const dispatch = useDispatch();
   const typing = useSelector(state => state?.playerUi.typing);
@@ -31,6 +31,7 @@ const RoomGame = React.memo(({}) => {
       document.removeEventListener('keyup', onKeyUp);
       document.removeEventListener('keydown', onKeyDown);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onKeyDown]); //, typing]);
 
   return (

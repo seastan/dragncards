@@ -1,7 +1,6 @@
-import React, {useContext, useEffect, useState} from "react";
+import React, {useContext, useState} from "react";
 import ReactModal from "react-modal";
 import { useDispatch, useSelector } from "react-redux";
-import useProfile from "../../hooks/useProfile";
 import { setShowModal, setTyping } from "../store/playerUiSlice";
 import { useGameL10n } from "./hooks/useGameL10n";
 import BroadcastContext from "../../contexts/BroadcastContext";
@@ -13,11 +12,10 @@ import { Z_INDEX } from "./functions/common";
 
 const RESULTS_LIMIT = 150;
 
-export const SpawnExistingCardModal = React.memo(({}) => {
-  const {gameBroadcast, chatBroadcast} = useContext(BroadcastContext);
+export const SpawnExistingCardModal = React.memo(() => {
+  useContext(BroadcastContext);
     const dispatch = useDispatch();
     const gameL10n = useGameL10n();
-    const myUser = useProfile();
     const playerN = useSelector(state => state?.playerUi?.playerN);
     const plugin = usePlugin();
     const gameDef = useGameDefinition();
@@ -53,6 +51,7 @@ export const SpawnExistingCardModal = React.memo(({}) => {
           const sideA = cardRow["A"]
           const cardName = sideA["name"];
           if (cardName.toLowerCase().includes(filteredName.toLowerCase())) filteredIDs.push(cardID);
+          return null;
         })
         setSpawnFilteredIDs(filteredIDs);
     }
@@ -128,7 +127,6 @@ export const SpawnExistingCardModal = React.memo(({}) => {
                 </tr>
               </thead>
               {spawnFilteredIDs.map((cardId, rowindex) => {
-                const card = cardDb[cardId];
                 const sideA = cardDb[cardId]["A"];
                 return(
                   <tr key={rowindex} className="bg-gray-600 text-white cursor-pointer hover:bg-gray-500 hover:text-black" onClick={() => handleSpawnClick(cardId)}>

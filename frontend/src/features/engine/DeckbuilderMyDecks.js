@@ -1,13 +1,12 @@
-import React, {useRef, useState} from "react";
+import React, {useRef} from "react";
 import { useSelector } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus, faShare, faUpload } from "@fortawesome/free-solid-svg-icons";
+import { faPlus, faUpload } from "@fortawesome/free-solid-svg-icons";
 import useProfile from "../../hooks/useProfile";
 import { useAuthOptions } from "../../hooks/useAuthOptions";
 import axios from "axios";
-import { keyClass, keyStyleL, keyStyleXL } from "./functions/common";
+import { keyClass, keyStyleXL } from "./functions/common";
 import { keyStyle } from "./functions/common";
-import { siteL10n } from "../definitions/localization";
 import { useSiteL10n } from "../../hooks/useSiteL10n";
 
 export const DeckbuilderMyDecks = React.memo(({doFetchHash, myDecks, currentDeck, setCurrentDeck}) => {
@@ -28,7 +27,7 @@ export const DeckbuilderMyDecks = React.memo(({doFetchHash, myDecks, currentDeck
     }}
     const res = await axios.post("/be/api/v1/decks", updateData, authOptions);
     console.log("myDecks 2", res)
-    if (res.status == 200) {
+    if (res.status === 200) {
       setCurrentDeck(res.data.success.deck);
     }
     doFetchHash((new Date()).toISOString());

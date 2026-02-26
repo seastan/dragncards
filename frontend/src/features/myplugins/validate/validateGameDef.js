@@ -1,4 +1,3 @@
-import { sub } from "date-fns"
 
 export const gameDefTypeError = (path, expected, actual) => {
   return `Invalid type for ${path}. Expected ${expected}, got ${actual}`
@@ -131,7 +130,7 @@ export const validateSchema = (gameDef, path, data, schema, errors) => {
   }
 
   // Check type mismatch
-  if (doesTypeMatch(expectedType, mytypeof(data)) == false) {
+  if (doesTypeMatch(expectedType, mytypeof(data)) === false) {
  
       // Check if nullable
       if (schema._nullable_ && data === null) {
@@ -199,14 +198,14 @@ export const validateSchema = (gameDef, path, data, schema, errors) => {
     }
 
     // Check if all required keys are present
-    for (var [key, item] of Object.entries(schema)) {
+    for (var [schemaKey, schemaItem] of Object.entries(schema)) {
 
       // Ignore underscore keys
-      if (key.startsWith("_")) continue;
+      if (schemaKey.startsWith("_")) continue;
 
-      //console.log(key, item);
-      if (item._required_ && data[key] === undefined) {
-          errors.push(`Missing required key in ${path}: ${key}`);
+      //console.log(schemaKey, schemaItem);
+      if (schemaItem._required_ && data[schemaKey] === undefined) {
+          errors.push(`Missing required key in ${path}: ${schemaKey}`);
       }
     }
   }

@@ -1,18 +1,17 @@
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useCallback, useState } from "react";
 import { useSelector, useDispatch } from 'react-redux';
 import RoomProviders from "./RoomProviders";
 import {useSetMessages} from '../../contexts/MessagesContext';
 import useChannel from "../../hooks/useChannel";
 import { applyDeltaRedo, appendDelta, setGameUi, setPlayerInfo, setSockets, setDeltas, setSpectators } from "../store/gameUiSlice";
 import useProfile from "../../hooks/useProfile";
-import { resetPlayerUi, setAlert, setPluginRepoUpdateGameDef, setReplayStep, setPlayerUiValues, overridePlayerUiValues, setRoomNotFound } from "../store/playerUiSlice";
+import { resetPlayerUi, setAlert, setPluginRepoUpdateGameDef, setReplayStep, overridePlayerUiValues, setRoomNotFound } from "../store/playerUiSlice";
 import { PluginProvider } from "../../contexts/PluginContext";
 import store from "../../store";
 import { mergeObjects } from "../myplugins/uploadPluginFunctions";
 import { getGameDefSchema } from "../myplugins/validate/getGameDefSchema";
 import { useSendLocalMessage } from "./hooks/useSendLocalMessage";
 import { validateSchema } from "../myplugins/validate/validateGameDef";
-import { useIsPluginAuthor } from "./hooks/isPluginAuthor";
 import { usePlayerN } from "./hooks/usePlayerN";
 
 export const Room = ({ slug }) => {
@@ -25,9 +24,9 @@ export const Room = ({ slug }) => {
   const [outOfSync, setOutOfSync] = useState(false);
   const roomNotFound = useSelector(state => state.playerUi.roomNotFound);
   const myUserId = myUser?.id;
-  const isPluginAuthor = useIsPluginAuthor();
   //const plugin = usePlugin();
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const onChannelMessage = useCallback((event, payload) => {
     console.log("onChannelMessage: Got new payload: ", event, payload);
     if (event === "state_update" && payload.delta !== null) {
@@ -112,17 +111,14 @@ export const Room = ({ slug }) => {
     } else if (event === "unable_to_get_state_on_request") {
       dispatch(setAlert({
         level: "crash",
-        text: "The room has crashed. Please go to the Menu and download the game state file. \
-          Then, create a new room and upload that file to continue where you left off.",
+        text: "The room has crashed. Please go to the Menu and download the game state file. Then, create a new room and upload that file to continue where you left off.",
         timestamp: Date.now()
       }));
       //setRoomClosed(true);
     } else if (event === "phx_error") {
       dispatch(setAlert({
         level: "crash",
-        text: "Unknown error. \
-          If this issue persists, please go to the Menu and download the game state file. \
-          Then, create a new room and upload that file to continue where you left off.",
+        text: "Unknown error. If this issue persists, please go to the Menu and download the game state file. Then, create a new room and upload that file to continue where you left off.",
         timestamp: Date.now()
       }));
       //setRoomClosed(true);
@@ -148,11 +144,11 @@ export const Room = ({ slug }) => {
       }
     } else if (event === "gui_update" && payload !== null) {
       // Handle GUI updates sent specifically to this player
-      if (playerN != null && playerN != undefined && playerN == payload.targetPlayerN) {
+      if (playerN !== null && playerN !== undefined && playerN === payload.targetPlayerN) {
         dispatch(overridePlayerUiValues(payload.updates));
       }
     }
-
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomSlug]);
 
   const onChatMessage = useCallback((event, payload) => {
@@ -167,6 +163,7 @@ export const Room = ({ slug }) => {
       console.log("setmessages3", incomingMessage)
       setMessages([incomingMessage])
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const gameBroadcast = useChannel(`room:${slug}`, onChannelMessage, myUserId);

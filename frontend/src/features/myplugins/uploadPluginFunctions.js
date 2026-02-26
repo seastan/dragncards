@@ -1,4 +1,3 @@
-import { validateSchema } from "./validate/validateGameDef";
 import { isObject } from "../store/updateValues";
 
 

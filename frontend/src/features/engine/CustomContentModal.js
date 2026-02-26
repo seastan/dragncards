@@ -1,4 +1,4 @@
-import React, {useContext, useEffect, useRef, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import ReactModal from "react-modal";
 import Button from "../../components/basic/Button";
 import { setShowModal, setTyping } from "../store/playerUiSlice";
@@ -6,7 +6,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { usePlugin } from "./hooks/usePlugin";
 import useProfile from "../../hooks/useProfile";
-import useDataApi from "../../hooks/useDataApi";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faDownload, faUpload } from "@fortawesome/free-solid-svg-icons";
 import { importCardDbTsv } from "../myplugins/uploadPluginFunctions";
@@ -52,7 +51,7 @@ const CustomCardList = ({cardDb}) => {
             <div style={{width:"200px"}}>{cardIdDisplay}</div>
             <div style={{width:"200px"}}>{cardDetails.A.name}</div>
             <div style={{width:"200px"}}>{cardDetails.A.type}</div>
-            <div style={{width:"70px"}}><a href={cardDetails.A.imageUrl} target="_blank" rel="noreferrer"><img src={cardDetails.A.imageUrl} style={{width:"50px"}}/></a></div>
+            <div style={{width:"70px"}}><a href={cardDetails.A.imageUrl} target="_blank" rel="noreferrer"><img alt="" src={cardDetails.A.imageUrl} style={{width:"50px"}}/></a></div>
           </div>
         )
       })}
@@ -94,7 +93,7 @@ const createTsv = (gameDef, cardDb) => {
     
     totalCount += 1;
     const typeCount = cardTypeCount[sideAType];
-    for (var columnName of columnNames) {
+    for (const columnName of columnNames) {
       if (columnName === "databaseId") cardTsv += `exampledatabaseid${totalCount}\t`;
       else if (columnName === "name") cardTsv += `Example ${sideAType} ${typeCount}\t`;
       else if (columnName === "imageUrl") cardTsv += `https://some-site-where-i-uploated-my-card-image.com/example-suffix-${totalCount}.jpg\t`;
@@ -104,7 +103,7 @@ const createTsv = (gameDef, cardDb) => {
     cardTsv += "\n";
 
     if (sideBType) {
-      for (var columnName of columnNames) {
+      for (const columnName of columnNames) {
         if (columnName === "databaseId") cardTsv += `exampledatabaseid${totalCount}\t`;
         else if (columnName === "name") cardTsv += `Example ${sideBType} ${typeCount} B\t`;
         else if (columnName === "imageUrl") cardTsv += `https://some-site-where-i-uploated-my-card-image.com/example-suffix-${totalCount}.jpg\t`;
@@ -122,7 +121,7 @@ const createTsv = (gameDef, cardDb) => {
   return fullTsv;
 }
 
-export const CustomContentModal = React.memo(({}) => {
+export const CustomContentModal = React.memo(() => {
   const dispatch = useDispatch();
   const user = useProfile();
   const authOptions = useAuthOptions();
@@ -152,6 +151,7 @@ export const CustomContentModal = React.memo(({}) => {
       setLoading(false);
     }
     if (user?.id && pluginId) fetchCustomContent();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, pluginId]);
 
   dispatch(setTyping(true));
@@ -192,7 +192,6 @@ export const CustomContentModal = React.memo(({}) => {
     const setError = mode === "private" ? setErrorMessageCardDbPrivate : setErrorMessageCardDbPublic;
     const setSuccess = mode === "private" ? setSuccessMessageCardDbPrivate : setSuccessMessageCardDbPublic;
     const setCustomCardDb = mode === "private" ? setCustomCardDbPrivate : setCustomCardDbPublic;
-    const customCardDb = mode === "private" ? customCardDbPrivate : customCardDbPublic;
     setError([]);
     const files = event.target.files;
     console.log("custom content 1", files)
@@ -302,7 +301,7 @@ export const CustomContentModal = React.memo(({}) => {
           <Button onClick={() => dispatch(setShowModal("patreon"))}>
             <div className="flex w-full justify-center">
               <div>Unlock</div>
-              <img className="pl-2" style={{height: "20px"}} src="https://upload.wikimedia.org/wikipedia/commons/9/94/Patreon_logo.svg"/>
+              <img alt="" className="pl-2" style={{height: "20px"}} src="https://upload.wikimedia.org/wikipedia/commons/9/94/Patreon_logo.svg"/>
             </div>
           </Button>
         </div>

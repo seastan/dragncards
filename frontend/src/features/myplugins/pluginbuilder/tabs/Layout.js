@@ -240,6 +240,7 @@ export default function Layout({ inputs, setInputs }) {
     updateGridSnap();
     window.addEventListener("resize", updateGridSnap);
     return () => window.removeEventListener("resize", updateGridSnap);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [numRows]);
 
   const addRectangle = () => {

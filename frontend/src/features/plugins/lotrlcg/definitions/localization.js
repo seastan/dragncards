@@ -226,8 +226,6 @@ export const gameL10n = {
     "All": "Todas",
     "Ally": "Aliado",
     "Attachment": "Vinculada",
-    "Event": "Evento",
-    "Other": "Otra",
     "Easy": "Fácil",
     "Normal": "Normal",
     "Nightmare": "Pesadilla",
@@ -239,8 +237,6 @@ export const gameL10n = {
     "Display all tokens": "Mostrar todas las fichas",
     "Remove all tokens": "Retirar todas las fichas",
     "Exhaust / ready. If location, make active.": "Agotar / preparar. Si es un Lugar, lo convierte en Lugar Activo",
-    "Detach": "Desvincular",
-    "Flip": "Voltear",
     "Shuffle into owner's deck": "Barajar en el mazo de su propietario",
     "Commit / uncommit from quest": "Asignar / retirar de la misión",
     "Commit / uncommit from quest without exhausting / readying": "Asignar / retirar de la misión sin agotar / preparar",
@@ -248,7 +244,6 @@ export const gameL10n = {
     "Target card": "Marcar carta",
     "Add to victory display": "Añadir a la zona de victoria",
     "Start/stop drawing arrow": "Dibujar/borrar flecha hacia la carta",
-    "Discard": "Descartar",
     "Discard all other cards in this card's stack": "Descartar el resto de cartas de la pila de esta carta",
     "Send attachment to back of stack": "Mostrar Vinculada detrás",
     "Trigger ability (only available for select cards).": "Disparar habilidad (sólo disponible para cartas seleccionadas)",
@@ -291,36 +286,20 @@ export const gameL10n = {
     "Multiplayer hotkeys": "Atajos en multijugador",
     "Useful for two-handed play.": "Útil para juego a dos manos",
     "Game hotkeys": "Atajos de partida",
-    "Tokens": "Fichas",
-    "Hover over the top/bottom half of the card when pressing the key to add/remove tokens.": "Mantener el cursor sobre la mitad superior/inferior de la carta al presionar la tecla para añadir/retirar fichas",
-    "Card hotkeys": "Atajos de carta",
-    "Hover over a card.": "Mantener el cursor sobre una carta",
-    "Game hotkeys": "Atajos de partida",
-    "Multiplayer hotkeys": "Atajos en multijugador",
-    "Useful for two-handed play.": "Útil para juego a dos manos",
 
     //Encounter Deck window
 
-    "Encounter Deck": "Mazo de Encuentros",
     "Discard until Enemy": "Descartar hasta Enemigo",
     "Discard until Location": "Descartar hasta Lugar",
     "Choose Random": "Elegir aleatoriamente",
-    "Go Back": "Atrás",
     "My Deck": "Mi mazo",
 
     //Encounter Discard window
 
-    "Encounter Discard": "Descarte de Encuentros",
     "Shuffle into deck": "Barajar en el mazo",
-    "Choose Random": "Elegir aleatoriamente",
-    "Go Back": "Atrás",
-    "My Deck": "Mi mazo",
 
     //Set Aside window
 
-    "Choose Random": "Elegir aleatoriamente",
-    "Go Back": "Atrás",
-    "My Deck": "Mi mazo",
 
     //Player card window
 
@@ -333,13 +312,9 @@ export const gameL10n = {
     "Player 2 hand": "Mano del jugador 2",
     "Player 3 hand": "Mano del jugador 3",
     "Player 4 hand": "Mano del jugador 4",
-    "Choose Random": "Elegir aleatoriamente",
-    "Go Back": "Atrás",
-    "My Deck": "Mi mazo",
 
     //Load quest window
 
-    "Go Back": "Atrás",
     "Core Set & Shadows of Mirkwood": "Caja Básica y Sombras del Bosque Negro",
     "Khazad-dûm & Dwarrowdelf": "Khazad-dûm y La Mina del Enano",
     "Heirs of Númenor & Against the Shadow": "Herederos de Númenor y Contra la Sombra",
@@ -468,8 +443,6 @@ export const gameL10n = {
     "The Massing at Osgiliath": "Concentración en Osgiliath",
     "The Battle of Lake Town": "La Batalla de la Ciudad del Lago",
     "The Stone of Erech": "La Piedra de Erech",
-    "The Old Forest": "El Bosque Viejo",
-    "Fog on the Barrow downs": "Niebla en las Quebradas de los Túmulos",
     "The Ruins of Belegost": "Las Ruinas de Belegost",
     "Murder at the Prancing Pony": "Asesinato en el Poney Pisador",
     "Standard The Siege of Annuminas": "El Sitio de Annúminas Estándar",
@@ -480,7 +453,6 @@ export const gameL10n = {
     "The Mines of Moria": "Las Minas de Moria",
     "Escape from Khazad dûm": "Huida de Khazad-dûm",
     "The Hunt for the Dreadnaught": "La Caza del Dreadnaught",
-    "ALeP The Scouring of the Shire": "ALeP El Saneamiento de la Comarca",
     "ALeP Ambush at Erelas": "ALeP Emboscada en Erelas",
     "ALeP The Battle for the Beacon": "ALeP La Batalla por la Almenara",
     "ALeP The Horse Lord s Ire": "ALeP La Ira del Señor de los Caballos",
@@ -714,8 +686,6 @@ export const gameL10n = {
     "All": "Tout",
     "Ally": "Allié",
     "Attachment": "Attachement",
-    "Event": "Événement",
-    "Other": "Autre",
     "Easy": "Facile",
     "Normal": "Normal",
     "Nightmare": "Cauchemar",
@@ -727,8 +697,6 @@ export const gameL10n = {
     "Display all tokens": "Afficher tous les marqueurs",
     "Remove all tokens": "Retirer tous les marqueurs",
     "Exhaust / ready. If location, make active.": " Incliner / redresser. Rendre un lieu actif",
-    "Detach": "Détacher",
-    "Flip": "Retourner",
     "Shuffle into owner's deck": "Mélanger dans le deck du contrôleur",
     "Commit / uncommit from quest": "S'engager / se désengager de la quête",
     "Commit / uncommit from quest without exhausting / readying": "S'engager / se désengager de la quête sans s'incliner / se redresser",
@@ -736,7 +704,6 @@ export const gameL10n = {
     "Target card": "Cibler une carte",
     "Add to victory display": "Ajouter à la pile de victoire",
     "Start/stop drawing arrow": "Dessiner une flèche",
-    "Discard": "Défausser",
     "Discard all other cards in this card's stack": "Défausser toutes les autres cartes attachées",
     "Send attachment to back of stack": "Envoyer l'attachement à la suite de la pile",
     "Trigger ability (only available for select cards).": "Déclencher un trait (disponible que pour certaines cartes).",
@@ -779,37 +746,21 @@ export const gameL10n = {
     "Multiplayer hotkeys": "Raccourci multijoueur",
     "Useful for two-handed play.": "Utile pour le jeu à deux mains.",
     "Game hotkeys": "Raccourcis de jeu",
-    "Tokens": "Marqueurs",
-    "Hover over the top/bottom half of the card when pressing the key to add/remove tokens.": "Passez la souris sur la moitié supérieure/inférieure d'une carte lorsque vous appuyez sur la touche pour ajouter/retirer des marqueurs.",
-    "Card hotkeys": "Raccourcis de carte",
-    "Hover over a card.": "Passez la souris sur une carte.",
-    "Game hotkeys": "Raccourci de jeu",
-    "Multiplayer hotkeys": "Raccourcis multijoueur",
-    "Useful for two-handed play.": "Utile pour le jeu à deux mains.",
 	  
 	  
 	 //Encounter Deck window
 
- "Encounter Deck": "Deck de rencontre",
  "Discard until Enemy": "Défausser jusqu'à un Ennemi",
  "Discard until Location": "Défausser jusqu'à un Lieu",
  "Choose Random": "Choisir aléatoirement",
- "Go Back": "Retour",
  "My Deck": "Mon Deck",
 
     //Encounter Discard window
 
-"Encounter Discard": "Pile de défausse du deck de rencontre",
 "Shuffle into deck": "Remélanger dans le deck",
-"Choose Random": "Choisir aléatoirement",
-"Go Back": "Retour",
-"My Deck": "Mon Deck",
 
     //Set Aside window
 
-"Choose Random": "Choisir aléatoirement",
-"Go Back": "Retour",
-"My Deck": "Mon Deck",
 
     //Player card window
 
@@ -822,13 +773,9 @@ export const gameL10n = {
 "Player 2 hand": "Main du joueur 2",
 "Player 3 hand": "Main du joueur 3",
 "Player 4 hand": "Main du joueur 4",
-"Choose Random": "Choisir aléatoirement",
-"Go Back": "Retour",
-"My Deck": "Mon Deck",
 
     //Load quest window
 
-"Go Back": "Retour",
 "Core Set & Shadows of Mirkwood": "Boîte de base et Ombres de la Forêt Noire",
 "Khazad-dûm & Dwarrowdelf": "Khazad-dûm et Royaume de Cavenain",
 "Heirs of Númenor & Against the Shadow": "Les Héritiers de Númenor et Face à l'Ombre",
@@ -957,8 +904,6 @@ export const gameL10n = {
 "The Massing at Osgiliath": "Rassemblement à Osgiliath",
 "The Battle of Lake Town": "La Bataille de la Ville du Lac",
 "The Stone of Erech": "La Pierre d'Erech",
-"The Old Forest": "La Vieille Forêt",
-"Fog on the Barrow downs": "Brouillard sur les Hauts des Galgals",
 "The Ruins of Belegost": "Las Ruinas de Belegost",
 "Murder at the Prancing Pony": "Meurtre au Poney Fringant",
 "Standard The Siege of Annuminas": "Le Siège d'Annúminas - Standard",
@@ -969,7 +914,6 @@ export const gameL10n = {
 "The Mines of Moria": "Las Minas de Moria",
 "Escape from Khazad dûm": "Huida de Khazad-dûm",
 "The Hunt for the Dreadnaught": "La Caza del Dreadnaught",
-"ALeP The Scouring of the Shire": "ALeP Le Nettoyage de la Comté",
 "ALeP Ambush at Erelas": "ALeP Embuscade à Erelas",
 "ALeP The Battle for the Beacon": "ALeP La Bataille pour le Feu d'Alarme",
 "ALeP The Horse Lord s Ire": "ALeP La Colère des Seigneurs des Chevaux",

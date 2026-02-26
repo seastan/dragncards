@@ -12,9 +12,9 @@ import { useGameL10n } from "./hooks/useGameL10n";
 import { useImportLoadList } from "./hooks/useImportLoadList";
 import { Z_INDEX } from "./functions/common";
 
-export const SpawnCustomCardModal = React.memo(({}) => {
+export const SpawnCustomCardModal = React.memo(() => {
   const dispatch = useDispatch();
-  const {gameBroadcast, chatBroadcast} = useContext(BroadcastContext);
+  useContext(BroadcastContext);
   const gameDef = useGameDefinition();    
   const cardDb = usePlugin()?.card_db;
   const gameL10n = useGameL10n();
@@ -102,6 +102,7 @@ export const SpawnCustomCardModal = React.memo(({}) => {
         </select>
         {faceProperties.map((faceProperty,_propertyIndex) => {
           if (faceProperty !== "type") return(lineInput(sideX+faceProperty, faceProperty));
+          return null;
         })}
       </>)
     }

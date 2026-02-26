@@ -13,9 +13,9 @@ export const Lobby = () => {
     if (user?.id && (user.whats_new_dismissed || 0) < WHATS_NEW_VERSION) {
       setShowWhatsNew(true);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
-  const [replayId, setReplayId] = useState("");
-  const [ringsDbInfo, setRingsDbInfo] = useState([null,null,null,null]);
+  const [ringsDbInfo] = useState([null,null,null,null]);
   const [pluginsType, setPluginsType] = useState("public");
   const apiPlugins = useDataApi(
     "/be/api/plugins/visible/" + (user?.id ? user.id : 0),
@@ -25,6 +25,7 @@ export const Lobby = () => {
   // If user.id changes, reset plugins list
   useEffect(() => {
     if (user?.id) apiPlugins.doFetchUrl("/be/api/plugins/visible/" + user.id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   console.log("Rendering Lobby", ringsDbInfo)

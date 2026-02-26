@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Redirect } from "react-router";
-import Select from 'react-select'
 import axios from "axios";
 import ReactModal from "react-modal";
 import Button from "../../components/basic/Button";
@@ -66,7 +65,7 @@ export const CreateRoomModal = ({
     }
   };
 
-  if (roomSlugCreated != null) {
+  if (roomSlugCreated !== null) {
     return <Redirect push to={`/room/${roomSlugCreated}`} />;
   }
 

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useSelector } from 'react-redux';
 import { Card } from "./Card";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowDown, faArrowUp, faChevronDown, faEye, faLink } from "@fortawesome/free-solid-svg-icons";
+import { faArrowDown, faArrowUp, faLink } from "@fortawesome/free-solid-svg-icons";
 import { useOffsetTotalsAndAmounts } from "./hooks/useOffsetTotalsAndAmounts";
 import { DEFAULT_CARD_Z_INDEX, Z_INDEX } from "./functions/common";
 import { useDoActionList } from "./hooks/useDoActionList";
@@ -41,7 +41,7 @@ export const Stack = React.memo(({
   const doActionList = useDoActionList();
   const cardIds = stack?.cardIds;
 
-  const {offsetTotals, offsetAmounts, stackEdges} = useOffsetTotalsAndAmounts(stackId);
+  const {offsetTotals, offsetAmounts} = useOffsetTotalsAndAmounts(stackId);
   if (!stack) return null;
 
   console.log('Rendering StackId hover ', isHoveredOver, hoverOverDirection, layout)
@@ -75,11 +75,11 @@ export const Stack = React.memo(({
       }
 
       
-      {isHoveredOver && hoverOverAttachmentAllowed && hoverOverDirection == "center" && <LinkIcon top="0" left="0" width="100%" height="6dvh"  transform="translate(0%, 0%)"/>}
-      {isHoveredOver && hoverOverAttachmentAllowed && hoverOverDirection == "top" && <LinkIcon top="0" left="0" width="100%" height="6dvh"  transform="translate(0%, -50%)"/>}
-      {isHoveredOver && hoverOverAttachmentAllowed && hoverOverDirection == "left" && <LinkIcon top="0" left="0" width="6dvh"  height="100%" transform="translate(-50%, 0%)"/>}
-      {isHoveredOver && hoverOverAttachmentAllowed && hoverOverDirection == "right" && <LinkIcon top="0" left="100%" width="6dvh"  height="100%" transform="translate(-50%, 0%)"/>}
-      {isHoveredOver && hoverOverAttachmentAllowed && hoverOverDirection == "bottom" && <LinkIcon top="100%" left="0" width="100%" height="6dvh"  transform="translate(0%, -50%)"/>}
+      {isHoveredOver && hoverOverAttachmentAllowed && hoverOverDirection === "center" && <LinkIcon top="0" left="0" width="100%" height="6dvh"  transform="translate(0%, 0%)"/>}
+      {isHoveredOver && hoverOverAttachmentAllowed && hoverOverDirection === "top" && <LinkIcon top="0" left="0" width="100%" height="6dvh"  transform="translate(0%, -50%)"/>}
+      {isHoveredOver && hoverOverAttachmentAllowed && hoverOverDirection === "left" && <LinkIcon top="0" left="0" width="6dvh"  height="100%" transform="translate(-50%, 0%)"/>}
+      {isHoveredOver && hoverOverAttachmentAllowed && hoverOverDirection === "right" && <LinkIcon top="0" left="100%" width="6dvh"  height="100%" transform="translate(-50%, 0%)"/>}
+      {isHoveredOver && hoverOverAttachmentAllowed && hoverOverDirection === "bottom" && <LinkIcon top="100%" left="0" width="100%" height="6dvh"  transform="translate(0%, -50%)"/>}
       {cardIds.map((cardId, cardIndex) => {
         return(
           <Card

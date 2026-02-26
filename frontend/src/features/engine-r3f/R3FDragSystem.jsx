@@ -142,7 +142,8 @@ export const DragProvider = ({ children, onDrop }) => {
  */
 export const RegionBoundary = ({ region, isHovered = false, showLabel = true, stackCount = 0 }) => {
   const bounds = getRegionBounds(region);
-  const y = 0.01; // Slightly above the table
+  const layerIndex = region.layerIndex || 0;
+  const y = layerIndex > 0 ? layerIndex * 0.5 - 0.01 : 0.01; // Elevated regions sit just below their cards
 
   // Colors based on region type
   const colors = {
@@ -154,7 +155,8 @@ export const RegionBoundary = ({ region, isHovered = false, showLabel = true, st
   };
 
   const color = colors[region.type] || colors.default;
-  const opacity = isHovered ? 0.4 : 0.15;
+  const isElevated = layerIndex > 0;
+  const opacity = isElevated ? 1.0 : (isHovered ? 0.4 : 0.15);
   const borderOpacity = isHovered ? 0.8 : 0.4;
 
   // Import Html from drei for text labels
@@ -165,7 +167,13 @@ export const RegionBoundary = ({ region, isHovered = false, showLabel = true, st
       {/* Region fill */}
       <mesh>
         <planeGeometry args={[bounds.width, bounds.height]} />
-        <meshBasicMaterial color={color} transparent opacity={opacity} side={THREE.DoubleSide} depthWrite={false} />
+        <meshBasicMaterial
+          color={isElevated ? '#1a1a2e' : color}
+          transparent={!isElevated}
+          opacity={opacity}
+          side={THREE.DoubleSide}
+          depthWrite={isElevated}
+        />
       </mesh>
 
       {/* Region border */}
@@ -210,13 +218,19 @@ export const useDropTargetDetection = (regions) => {
   const findRegionAtPoint = useCallback((x, z) => {
     if (!regions) return null;
 
+    let best = null;
+    let bestLayer = -1;
     for (const [regionId, region] of Object.entries(regions)) {
       if (region.visible === false) continue;
       if (isPointInRegion(x, z, region)) {
-        return { regionId, region };
+        const layer = region.layerIndex || 0;
+        if (layer > bestLayer) {
+          best = { regionId, region };
+          bestLayer = layer;
+        }
       }
     }
-    return null;
+    return best;
   }, [regions]);
 
   return { findRegionAtPoint };
@@ -282,7 +296,6 @@ export const useR3FDragActions = (doActionList) => {
 
     if (targetRegion?.type === 'free' && position) {
       // Convert 3D position to percentage within the region
-      const regionBounds = getRegionBounds(targetRegion);
       const regionLeft = parsePercent(targetRegion.left);
       const regionTop = parsePercent(targetRegion.top);
       const regionWidth = parsePercent(targetRegion.width);

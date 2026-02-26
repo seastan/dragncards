@@ -19,9 +19,8 @@ export const TopBarUserCounter = React.memo(({
   const backEndValue = useSelector(state => state?.gameUi?.game?.playerData?.[playerI]?.[playerProperty]);
   const [value, setValue] = useState( backEndValue || 0);
   const [previousValue, setPreviousValue] = useState(value);
-  const playerN = useSelector(state => state?.playerUi?.playerN);  
+  const playerN = useSelector(state => state?.playerUi?.playerN);
   const [inputRef, setInputFocus] = useFocus();
-  const playerIAlias = useSelector(state => state?.gameUi?.playerInfo?.[playerI]?.alias);
   const touchMode = useSelector(state => state?.playerUi?.touchMode);
 
   const handleValueChange = (event) => {
@@ -48,7 +47,7 @@ export const TopBarUserCounter = React.memo(({
 
   return(
     <div className="h-full w-full flex justify-center">
-      <img className="h-full w-1/3 object-contain ml-1" src={imageUrl}></img>
+      <img className="h-full w-1/3 object-contain ml-1" alt="" src={imageUrl}></img>
       <input 
         className="h-full w-2/3 float-left text-center bg-transparent" 
         value={value}

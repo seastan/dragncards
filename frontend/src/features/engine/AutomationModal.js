@@ -139,6 +139,7 @@ const AutomationModalContent = () => {
     setCurrentCardRuleDisabled(currentCardDisabled);
     setOnRenderCardRuleDisabled(currentCardDisabled);
     setDefaultCardRuleDisabled(defaultCardDisabled);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSave = async () => {

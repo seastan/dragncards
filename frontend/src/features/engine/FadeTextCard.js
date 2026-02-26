@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
 import { FadeText } from "./FadeText";
-import { setValues } from "../store/gameUiSlice";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 
 /**
@@ -11,9 +10,8 @@ import { useGameDefinition } from "./hooks/useGameDefinition";
  * @param {string} cardId - The ID of the card to display text on
  */
 export const FadeTextCard = React.memo(({ cardId }) => {
-  const dispatch = useDispatch();
   const gameDef = useGameDefinition();
-  const fadeText = useSelector(state => state.gameUi?.game?.fadeText);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const cardMessages = useSelector(state => state?.gameUi?.game?.fadeText?.card?.[cardId]) || [];
   const [activeMessages, setActiveMessages] = useState([]);
   const nextMessageIdRef = useRef(0);

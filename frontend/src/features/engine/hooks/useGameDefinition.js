@@ -1,4 +1,3 @@
-import { useSelector } from 'react-redux';
 import { usePlugin } from './usePlugin';
 
 export const useGameDefinition = () => {

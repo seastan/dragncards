@@ -18,7 +18,7 @@ const isStringMatch = (searchStr, target) => {
     .includes(searchStr.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, ""));
 };
 
-export const SpawnPublicDeckModal = React.memo(({}) => {
+export const SpawnPublicDeckModal = React.memo(() => {
     const dispatch = useDispatch();
 
     dispatch(setTyping(true));
@@ -77,6 +77,7 @@ const ModalContent = () => {
       setLoading(false);
     }
     if (plugin?.id) fetchDecks();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plugin?.id]);
 
   if (loading) {

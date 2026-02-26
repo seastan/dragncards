@@ -1,5 +1,4 @@
 import { useSelector } from "react-redux";
-import store from "../store";
 
 export const useEvaluateCondition = () => {
   const state = useSelector(state => state);
@@ -82,9 +81,9 @@ export const useEvaluateCondition = () => {
       console.log("eval rhs", rhs)
       switch (operator) {
         case "==":
-          return lhs == rhs;
+          return lhs == rhs; // eslint-disable-line eqeqeq
         case "!=":
-          return lhs != rhs;
+          return lhs != rhs; // eslint-disable-line eqeqeq
         case ">":
           return (typeof lhs === "number") && (typeof rhs === "number") && lhs > rhs;
         case "<":

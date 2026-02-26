@@ -1,10 +1,7 @@
 import React from 'react';
-import { useSiteL10n } from '../../../../hooks/useSiteL10n';
 
 
 export const Instructions = () => {
-    const siteL10n = useSiteL10n();
-
   return (
     <div className="max-w-3xl p-6 m-4 bg-gray-800 rounded-lg">
       This page will guide you through the creation of a basic DragnCards plugin for a card game. Not all features available in DragnCards will be available here, as this is just to get you started.

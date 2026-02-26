@@ -33,14 +33,15 @@ export const R3FStack = ({
   position = [0, 0, 0],
   baseZIndex = 0,
   isBeingDragged: isBeingDraggedProp = false,
+  stackIndex = 0,
 }) => {
   const dispatch = useDispatch();
   const groupRef = useRef();
   const shadowRef = useRef();
   const [isDragging, setIsDragging] = useState(false);
   const [isLifted, setIsLifted] = useState(false);
-  const [hovered, setHovered] = useState(false);
-  const [zIndex, setZIndex] = useState(baseZIndex);
+  const [hovered] = useState(false);
+  const [, setZIndex] = useState(baseZIndex);
   const dragOffsetRef = useRef({ x: 0, z: 0 });
   const isDraggingRef = useRef(false);
 
@@ -223,7 +224,7 @@ export const R3FStack = ({
         justDroppedRef.current = false;
 
         const savedDropPos = [...dropPositionRef.current];
-        const fallbackTimeout = setTimeout(() => {
+        setTimeout(() => {
           if (waitingForPositionUpdateRef.current && !animationInProgressRef.current) {
             animationInProgressRef.current = true;
             waitingForPositionUpdateRef.current = false;
@@ -308,7 +309,6 @@ export const R3FStack = ({
   const handlePointerDown = useCallback((event) => {
     event.stopPropagation();
 
-    const rect = gl.domElement.getBoundingClientRect();
     let clientX, clientY;
     if (event.touches?.length > 0) {
       clientX = event.touches[0].clientX;
@@ -719,6 +719,7 @@ export const R3FStack = ({
               onPointerDownForDrag={idx === 0 ? handlePointerDown : undefined}
               isAttachmentHover={isAttachmentHover}
               attachmentIndicatorDirection={idx === 0 ? attachmentIndicatorDirection : null}
+              stackIndex={stackIndex}
             />
           );
         })}

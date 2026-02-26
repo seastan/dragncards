@@ -1,18 +1,17 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { useDispatch, useSelector } from 'react-redux';
 import { Draggable } from "@seastan/react-beautiful-dnd";
 //import { Draggable } from "seastan-react-beautiful-dnd";
 import { useLayout } from "./hooks/useLayout";
 import useWindowDimensions from "../../hooks/useWindowDimensions";
 import store from "../../store";
-import { ATTACHMENT_OFFSET, convertToPercentage } from "./functions/common";
+import { convertToPercentage } from "./functions/common";
 import NaturalDragAnimation from 'natural-drag-animation-rbdnd';
 import styled from "@emotion/styled";
 import { Stack } from "./Stack";
-import { getGroupIdAndRegionType } from "./Reorder";
 import { useOffsetTotalsAndAmounts } from "./hooks/useOffsetTotalsAndAmounts";
 import { usePlayerN } from "./hooks/usePlayerN";
-import { setDraggingDefault, setDraggingEndDelay, setDraggingStarted, setDragStep, setStatusText, setTempDragStack } from "../store/playerUiSlice";
+import { setDraggingDefault, setDragStep, setTempDragStack } from "../store/playerUiSlice";
 import { useGetRegionFromId } from "./hooks/useGetRegionFromId";
 
 const StackContainerFree = styled.div`
@@ -74,8 +73,6 @@ export const StackDraggable = React.memo(({
 
     const dispatch = useDispatch();
     const stack = useSelector(state => state?.gameUi?.game?.stackById[stackId]);
-    const touchMode = useSelector(state => state?.playerUi?.userSettings?.touchMode);
-
     const isInPileAndAnotherStackIsActive = useSelector((state) => {
       const activeCardId = state?.playerUi?.activeCardId;
       const activeCard = state?.gameUi?.game?.cardById?.[activeCardId];
@@ -100,13 +97,12 @@ export const StackDraggable = React.memo(({
     var rowSpacing = layout?.rowSpacing;
     const cardSize = layout?.cardSize;
     if (stackId === store.getState().playerUi?.dragging?.stackId) console.log('Changed props dragStep ', dragStep);
-    var spacingFactor = touchMode ? 1.5 : 1;
     const { height, width } = useWindowDimensions();
     const aspectRatio = width/height;
     const cardIds = stack?.cardIds || [];
     const card0 = store.getState().gameUi.game.cardById[cardIds[0]];
     // Calculate size of stack for proper spacing. Changes base on group type and number of stack in group.
-    const {offsetTotals, offsetAmounts, stackEdges} = useOffsetTotalsAndAmounts(stackId);
+    const {stackEdges} = useOffsetTotalsAndAmounts(stackId);
 
     const handlePositionChange = () => {
       if (dragStep !== null) {
@@ -193,7 +189,7 @@ export const StackDraggable = React.memo(({
               }
               onDragEnd(result);
               dispatch(setDraggingDefault());
-            } else if (toRegionType == "free") {
+            } else if (toRegionType === "free") {
               // const result = {
               //   "draggableId": stackId,
               //   "type": "MANUAL",
@@ -297,8 +293,8 @@ export const StackDraggable = React.memo(({
                       ref={dragProvided.innerRef}
                       {...dragProvided.draggableProps}
                       {...dragProvided.dragHandleProps}
-                      stackWidth={(region.type === "fan" && region.direction == "horizontal") ? stackWidthFan : stackWidth}
-                      stackHeight={(region.type === "fan" && region.direction == "vertical") ? stackHeightFan : stackHeight}
+                      stackWidth={(region.type === "fan" && region.direction === "horizontal") ? stackWidthFan : stackWidth}
+                      stackHeight={(region.type === "fan" && region.direction === "vertical") ? stackHeightFan : stackHeight}
                       margin={region.type === "row" ? rowSpacing*zoomFactor : 0}
                       style={updatedStyle}
                     >

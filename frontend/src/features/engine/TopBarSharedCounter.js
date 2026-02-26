@@ -47,7 +47,7 @@ export const TopBarSharedCounter = React.memo(({
   return(<>
       <div className="h-1/2 w-full flex justify-center">{gameL10n(label)}</div>
       <div className="h-1/2 w-full flex justify-center">
-        <img className="h-full ml-1" src={imageUrl}></img>
+        <img className="h-full ml-1" alt="" src={imageUrl}></img>
         <input 
           className="h-full w-1/2 float-left text-center bg-transparent" 
           value={value ? value : 0}

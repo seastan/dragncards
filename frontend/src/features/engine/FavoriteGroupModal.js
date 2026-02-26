@@ -4,14 +4,9 @@ import ReactModal from "react-modal";
 import { useDispatch } from "react-redux";
 import { setFavoriteGroupId, setShowModal, setSideGroupId } from "../store/playerUiSlice";
 import { useGameDefinition } from "./hooks/useGameDefinition";
+import { Z_INDEX } from "./functions/common";
 
-const options = [
-  { value: 'public', label: 'Public' },
-  { value: 'private', label: 'Private' },
-  { value: 'playtest', label: 'Playtest' },
-]
-
-export const FavoriteGroupModal = ({}) => {
+export const FavoriteGroupModal = () => {
   const dispatch = useDispatch();
   const gameDef = useGameDefinition();
   const [selected, setSelected] = useState(null);

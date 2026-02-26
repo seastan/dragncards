@@ -1,12 +1,8 @@
-import { useState, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { setActiveCardId } from '../../store/playerUiSlice';
+import { useSelector } from 'react-redux';
 import { useActiveCardId } from './useActiveCardId';
 
 export const useActiveCard = () => {
     const activeCardId = useActiveCardId();
-    const dispatch = useDispatch();
-    const [previousActiveCardId, setPreviousActiveCardId] = useState(null);
 
     const cardFromState = useSelector(state => state?.gameUi?.game?.cardById?.[activeCardId]);
     // useEffect(() => {

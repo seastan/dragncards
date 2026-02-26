@@ -1,11 +1,11 @@
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { DragDropContext } from "@seastan/react-beautiful-dnd";
-import { useSelector, useDispatch } from 'react-redux';
-import { setStackIds, setCardIds, setGroupById } from "../store/gameUiSlice";
-import { getGroupIdAndRegionType, reorderGroupStackIds } from "./Reorder";
+import { useDispatch } from 'react-redux';
+import { setGroupById } from "../store/gameUiSlice";
+import { reorderGroupStackIds } from "./Reorder";
 import store from "../../store";
-import { setDraggingEnd, setDraggingEndDelay, setDraggingStackId, setTempDragStack, setDraggingMouseCurrentX, setDraggingMouseCurrentY, setDraggingMouseDownX, setDraggingMouseDownY, setDraggingStackRectangles, setDraggingGroupRectangle, setDraggingDefault, setDraggingHoverOverStackId, setDraggingHoverOverDirection, setDraggingHoverOverDroppableId, setDraggingFromDroppableId, setStatusText, setDraggingPrevStackId, setDragStep, setDraggingHoverOverAttachmentAllowed } from "../store/playerUiSlice";
+import { setDraggingStackId, setTempDragStack, setDraggingMouseCurrentX, setDraggingMouseCurrentY, setDraggingMouseDownX, setDraggingMouseDownY, setDraggingStackRectangles, setDraggingGroupRectangle, setDraggingHoverOverStackId, setDraggingHoverOverDirection, setDraggingHoverOverDroppableId, setDraggingFromDroppableId, setDragStep, setDraggingHoverOverAttachmentAllowed } from "../store/playerUiSlice";
 import { Table } from "./Table";
 import { useDoActionList } from "./hooks/useDoActionList";
 import { ArcherContainer } from 'react-archer';
@@ -14,8 +14,6 @@ import { useGameDefinition } from "./hooks/useGameDefinition";
 import { usePlayerN } from "./hooks/usePlayerN";
 import { useHoverStackIdAndDirection } from "./hooks/useHoverStackIdAndDirection";
 import { useGetRegionFromId } from "./hooks/useGetRegionFromId";
-
-let draggableClientRect = null;
 
 const getAfterDragName = (game, stackId, destGroupId, allowFlip) => {
   const stack = game.stackById[stackId];
@@ -48,7 +46,7 @@ const getXY = (e) => {
 }
 
 
-export const DragContainer = React.memo(({}) => {
+export const DragContainer = React.memo(() => {
   console.log("Rendering DragContainer");
   const dispatch = useDispatch();
   const gameDef = useGameDefinition();
@@ -171,6 +169,7 @@ export const DragContainer = React.memo(({}) => {
     updateDraggingUi(result.draggableId, result.destination.droppableId);
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (isDragging) {
       document.addEventListener("mousemove", updateMousePosition);
@@ -183,8 +182,10 @@ export const DragContainer = React.memo(({}) => {
         document.removeEventListener('touchmove', updateMousePosition);
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDragging]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     document.addEventListener("mousedown", updateMouseDown);
     document.addEventListener('touchstart', updateMouseDown);
@@ -193,6 +194,7 @@ export const DragContainer = React.memo(({}) => {
       document.removeEventListener("mousedown", updateMouseDown);
       document.removeEventListener('touchstart', updateMouseDown);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const onDragEnd = (result) => {
