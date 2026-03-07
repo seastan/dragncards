@@ -1,15 +1,15 @@
 # build environment
-FROM node:13-alpine as build
+FROM node:20-alpine AS build
 WORKDIR /app
-ENV PATH /app/node_modules/.bin:$PATH
+ENV PATH=/app/node_modules/.bin:$PATH
 COPY package.json /app/package.json
-RUN npm install --silent
-#RUN npm install react-scripts@3.2.0 -g --silent
+RUN npm install --legacy-peer-deps --silent
 COPY . /app
-RUN npm run build
+# compile tailwind CSS then build JS bundle
+RUN npm run build:css && npm run build
 
 # production environment
-FROM nginx:1.17-alpine
+FROM nginx:1.25-alpine
 COPY --from=build /app/build /usr/share/nginx/html
 RUN rm /etc/nginx/conf.d/default.conf
 COPY nginx/nginx.conf /etc/nginx/conf.d
