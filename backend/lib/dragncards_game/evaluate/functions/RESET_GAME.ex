@@ -32,7 +32,7 @@ defmodule DragnCardsGame.Evaluate.Functions.RESET_GAME do
 
   A new game state created with the same configuration as the current game.
   """
-  def execute(game, code, trace) do
+  def execute(game, _code, trace) do
     try do
       # Extract required parameters from current game
       room_slug = game["roomSlug"]
@@ -69,7 +69,7 @@ defmodule DragnCardsGame.Evaluate.Functions.RESET_GAME do
       end
 
       if game_def["automation"]["postNewGameActionList"] != nil do
-        new_game = Evaluate.evaluate(new_game, game_def["automation"]["postNewGameActionList"], trace ++ ["postNewGameActionList"])
+        _new_game = Evaluate.evaluate(new_game, game_def["automation"]["postNewGameActionList"], trace ++ ["postNewGameActionList"])
       else
         new_game
       end

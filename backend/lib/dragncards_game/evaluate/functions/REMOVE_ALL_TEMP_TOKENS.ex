@@ -1,5 +1,5 @@
 defmodule DragnCardsGame.Evaluate.Functions.REMOVE_ALL_TEMP_TOKENS do
-  alias DragnCardsGame.{Evaluate, GameUI, TempTokens}
+  alias DragnCardsGame.{Evaluate, TempTokens}
   @moduledoc """
   *Arguments*:
   1. `timing` ('step'|'phase'|'round')
@@ -29,7 +29,7 @@ defmodule DragnCardsGame.Evaluate.Functions.REMOVE_ALL_TEMP_TOKENS do
   """
   def execute(game, code, trace) do
 
-    argc = Evaluate.argc(code, 1)
+    _argc = Evaluate.argc(code, 1)
     timing = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["timing"])
 
     TempTokens.remove_all_for_timing(game, timing)

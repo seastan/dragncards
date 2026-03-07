@@ -1,6 +1,5 @@
 defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
   alias DragnCardsGame.{Evaluate, GameUI, PluginCache}
-  alias DragnCards.Plugins
   alias DragnCards.Plugins.CustomCardDb
   @moduledoc """
   *Arguments*:
@@ -29,7 +28,7 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
   ```
   """
 
-  def add_load_code_to_history(game, load_code, player_n, trace) do
+  def add_load_code_to_history(game, load_code, player_n, _trace) do
 
     new_entry = %{
       "loadCode" => load_code,
@@ -130,7 +129,6 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
               case card_details do
                 {:ok, nil} -> raise "Card with databaseId #{database_id} not found."
                 {:ok, card_details} -> card_details
-                :error -> raise "Card with databaseId #{database_id} not found."
               end
 
             true ->
@@ -154,7 +152,7 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
           raise "Tried to load a card into a group that doesn't exist: #{loadGroupId}"
         end
 
-        load_list_item_processed = %{
+        _load_list_item_processed = %{
           "databaseId" => database_id,
           "cardDetails" => cardDetails,
           "quantity" => quantity,
@@ -209,7 +207,7 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
         end)
         IO.puts("Enum.reduce (load_list processing) execution time: #{reduce_load_list_time} microseconds")
 
-        game = GameUI.shuffle_changed_decks(game, old_game, game_def)
+        _game = GameUI.shuffle_changed_decks(game, old_game, game_def)
 
       rescue
         e ->

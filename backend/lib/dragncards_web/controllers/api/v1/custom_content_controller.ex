@@ -3,7 +3,7 @@ defmodule DragnCardsWeb.CustomContentController do
   use DragnCardsWeb, :controller
   import Ecto.Query
 
-  alias DragnCards.{Plugins, Plugins.Plugin, Repo, Users}
+  alias DragnCards.{Plugins.Plugin, Repo, Users}
 
   action_fallback DragnCardsWeb.FallbackController
 
@@ -15,7 +15,7 @@ defmodule DragnCardsWeb.CustomContentController do
       nil ->
         conn |> json(%{error: %{message: "User not found"}})
       _ ->
-        {public_card_db, private_card_db} = CustomCardDb.get_custom_card_db(plugin_id, user.id)
+        {public_card_db, private_card_db} = CustomCardDb.get_my_public_and_private_card_dbs(user.id, plugin_id)
         IO.puts("Public card db")
         IO.inspect(public_card_db)
         IO.puts("Private card db")
@@ -58,7 +58,7 @@ defmodule DragnCardsWeb.CustomContentController do
     author_alias = Users.get_alias(author_id)
     public = attrs["public"]
     card_db = attrs["card_db"]
-    public_bool = if public do 1 else 0 end
+    _public_bool = if public do 1 else 0 end
 
     # Prepend "custom-{author_id} to each key in card_db
     card_db = Enum.reduce(card_db, %{}, fn({database_id, card_details}, acc) ->

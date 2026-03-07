@@ -3,8 +3,7 @@ defmodule DragnCardsGame.PutByPath do
   Module that defines and evaluates the LISP-like language used to modify the game state.
   """
   require Logger
-  alias DragnCardsGame.{GameUI, AutomationRules, RuleMap}
-  alias DragnCards.{Rooms, Plugins}
+  alias DragnCardsGame.{AutomationRules}
 
   def put_by_path(game_old, path, val_new, trace) do
     # Get current time in ms

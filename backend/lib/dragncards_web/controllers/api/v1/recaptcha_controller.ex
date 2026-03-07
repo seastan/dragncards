@@ -1,12 +1,11 @@
 defmodule DragnCardsWeb.API.V1.RecaptchaController do
   use DragnCardsWeb, :controller
   import Ecto.Query
-  alias Plug.Conn
   alias DragnCards.Repo
   alias DragnCards.Users.User
 
   def verify(conn, %{"token" => token}) do
-    recaptcha_response = verify_recaptcha_v3(token)
+    _recaptcha_response = verify_recaptcha_v3(token)
     # Captcha is broken, so just return verified
     recaptcha_response = {:ok, "verified"}
 

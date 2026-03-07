@@ -1,5 +1,4 @@
 defmodule DragnCardsUtil.StringMath do
-  alias DragnCardsUtil.{ConvertType}
   @doc """
   Evaluates a mathematical expression represented as a string.
 

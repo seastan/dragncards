@@ -1,5 +1,5 @@
 defmodule DragnCardsGame.Evaluate.Functions.GET_LOAD_LIST do
-  alias DragnCardsGame.{Evaluate, GameUI}
+  alias DragnCardsGame.Evaluate
   alias DragnCards.Plugins
   @moduledoc """
   *Arguments*:

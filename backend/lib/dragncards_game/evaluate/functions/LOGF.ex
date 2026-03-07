@@ -1,5 +1,4 @@
 defmodule DragnCardsGame.Evaluate.Functions.LOGF do
-  alias DragnCardsGame.Evaluate
   @moduledoc """
   *Arguments*:
   1. `formatString` (string)

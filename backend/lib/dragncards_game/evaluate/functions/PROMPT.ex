@@ -1,6 +1,5 @@
 defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
   alias DragnCardsGame.{Evaluate, PluginCache}
-  alias DragnCards.Plugins
   @moduledoc """
   *Arguments*:
   1. `targetPlayerI` (string like "player1") or `targetPlayerList` (list of such strings)
@@ -127,7 +126,7 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
         end
 
       # Add the prompt to the player's prompts
-      acc = try do
+      _acc = try do
         put_in(acc, ["playerData", target_player_n, "prompts", prompt_uuid], new_prompt)
         |> put_in(["playerData", target_player_n, "mostRecentPromptId"], prompt_uuid)
       rescue

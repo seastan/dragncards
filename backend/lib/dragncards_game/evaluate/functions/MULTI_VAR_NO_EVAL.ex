@@ -1,5 +1,4 @@
   defmodule DragnCardsGame.Evaluate.Functions.MULTI_VAR_NO_EVAL do
-  alias DragnCardsGame.Evaluate
   @moduledoc """
   *Arguments*:
   Any number of pairs of variable names and values
@@ -37,7 +36,7 @@
 
   The result of the 'MULTI_VAR_NO_EVAL' operation.
   """
-  def execute(game, code, trace) do
+  def execute(game, code, _trace) do
     # var_names are at index 1, 3, 5, ...
     var_names = code |> Enum.drop(1) |> Enum.take_every(2)
     var_values_unprocessed = code |> Enum.drop(2) |> Enum.take_every(2)

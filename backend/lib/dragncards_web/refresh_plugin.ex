@@ -56,8 +56,4 @@ defmodule DragnCardsWeb.RefreshPlugin do
     end
   end
 
-  defp remove_comments(content) do
-    Regex.replace(~r/(?<!http:|https:)\/\/.*(?=\n|\r)/, content, "")
-  end
-
 end

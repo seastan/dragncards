@@ -30,7 +30,7 @@ defmodule DragnCardsGame.Evaluate.Functions.ADVANCE_TO_STEP do
       raise "Tried to advance the game to a unknown step: #{inspect(step_id)}"
     end
     # Make a while loop that calls NEXT_STEP until game["stepId"] is equal to step_id
-    Enum.reduce_while(0..Enum.count(step_order), game, fn i, acc ->
+    Enum.reduce_while(0..Enum.count(step_order), game, fn _i, acc ->
       acc = Evaluate.evaluate(acc, ["NEXT_STEP"], trace ++ ["next_step"])
       if acc["stepId"] == step_id do
         {:halt, acc}

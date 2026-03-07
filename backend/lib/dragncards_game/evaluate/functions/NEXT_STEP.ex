@@ -21,7 +21,7 @@ defmodule DragnCardsGame.Evaluate.Functions.NEXT_STEP do
 
   The result of the 'NEXT_STEP' operation.
   """
-  def execute(game, code, trace) do
+  def execute(game, _code, trace) do
     game_old = game
     game_def = PluginCache.get_game_def_cached(game["pluginId"])
     next_step_action_list = [

@@ -32,7 +32,7 @@ defmodule DragnCardsGame.Evaluate.Functions.SAVE_GAME do
 
   The unchanged game state after saving to database.
   """
-  def execute(game, code, trace) do
+  def execute(game, _code, trace) do
     try do
       # Get the current player's user_id
       player_n = Evaluate.evaluate(game, "$PLAYER_N", trace ++ ["player_n"])

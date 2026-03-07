@@ -6,11 +6,10 @@ defmodule DragnCardsGame.GameUI do
 
   require Logger
   alias DragnCards.Plugins.CustomCardDb
-  alias ElixirSense.Providers.Eval
   alias DragnCardsGame.GameVariables
   alias DragnCardsGame.{Game, GameUI, Stack, Card, PlayerInfo, Evaluate, GameVariables, Evaluate.Variables.ALIAS_N, AutomationRules, RuleMap, PluginCache, TempTokens}
 
-  alias DragnCards.{Repo, Replay, Plugins, Plugins.CustomCardDb, Users}
+  alias DragnCards.{Repo, Plugins, Plugins.CustomCardDb, Users}
   alias DragnCards.Rooms.Room
 
   @type t :: Map.t()
@@ -327,7 +326,7 @@ defmodule DragnCardsGame.GameUI do
       try do
         gsc(game, card_id)
       rescue
-        e in MatchError ->
+        _e in MatchError ->
           raise "Failed to find card #{card_id} in any group/stack. Card may not be on the table."
       end
 
@@ -457,7 +456,7 @@ defmodule DragnCardsGame.GameUI do
       # Remove temp tokens
       game = TempTokens.remove_card_from_temp_tokens(game, card_id)
       # Remove tokens
-      game = Enum.reduce(card["tokens"], {game, []}, fn {key, _val}, {acc_game, acc_paths} ->
+      _game = Enum.reduce(card["tokens"], {game, []}, fn {key, _val}, {acc_game, acc_paths} ->
         new_game = put_in(acc_game, ["cardById", card_id, "tokens", key], 0)
         new_paths = acc_paths ++ ["/cardById/#{card_id}/tokens/#{key}"]
         {new_game, new_paths}
@@ -505,7 +504,7 @@ defmodule DragnCardsGame.GameUI do
 
       {game, cardenter_pathstrings} = ucs_apply_dict(game, card_id, dest_group["onCardEnter"], allow_flip)
 
-      {game, attachment_dir_pathstrings} = ucs_apply_attachment_dir(game, card_id, move_options)
+      {game, _attachment_dir_pathstrings} = ucs_apply_attachment_dir(game, card_id, move_options)
 
       {game, token_pathstrings} = ucs_remove_tokens(game, card_id, old_card, orig_group, dest_group)
 
@@ -647,7 +646,7 @@ defmodule DragnCardsGame.GameUI do
     move_card(game, card_id, group_id, stack_index + 1, 0)
   end
 
-  def move_stack(game, stack_id, dest_group_id, dest_stack_index, options \\ nil, trace \\ []) do
+  def move_stack(game, stack_id, dest_group_id, dest_stack_index, options \\ nil, _trace \\ []) do
     if dest_group_id not in Map.keys(game["groupById"]) do
       raise "Group not found: #{dest_group_id}"
     end
@@ -739,7 +738,7 @@ defmodule DragnCardsGame.GameUI do
     |> update_stack_ids(group_id, new_stack_ids)
   end
 
-  def insert_stack_in_group(game, group_id, stack_id, index, trace \\ []) do
+  def insert_stack_in_group(game, group_id, stack_id, index, _trace \\ []) do
     try do
       old_stack_ids = get_stack_ids(game, group_id)
       new_stack_ids = List.insert_at(old_stack_ids, index, stack_id)
@@ -750,9 +749,9 @@ defmodule DragnCardsGame.GameUI do
     end
   end
 
-  def set_stack_left_top(game, stack_id, left, top, trace \\ []) do
+  def set_stack_left_top(game, stack_id, left, top, _trace \\ []) do
     try do
-      game = game
+      _game = game
       |> put_in(["stackById", stack_id, "left"], left)
       |> put_in(["stackById", stack_id, "top"], top)
     rescue
@@ -810,7 +809,7 @@ defmodule DragnCardsGame.GameUI do
     gameui
   end
 
-  def resolve_action_type(game, type, options, user_id) do
+  def resolve_action_type(game, type, options, _user_id) do
     case type do
       "evaluate" ->
         Evaluate.evaluate_with_timeout(game, options["action_list"], options["description"])
@@ -854,7 +853,7 @@ defmodule DragnCardsGame.GameUI do
     game |> put_in(["cardById"], card_by_id)
   end
 
-  def update_log(gameui, messages) do
+  def update_log(gameui, _messages) do
     gameui
   end
 
@@ -1128,14 +1127,14 @@ defmodule DragnCardsGame.GameUI do
   end
 
   def reset_game(game, user_id, action_list) do
-    game_old = game
+    _game_old = game
     game_def = PluginCache.get_game_def_cached(game["pluginId"])
     game = Evaluate.evaluate_with_timeout(game, action_list)
     #game = save_replay(game, user_id)
-    game = Game.new(game["roomSlug"], user_id, game_def, game["options"])
+    _game = Game.new(game["roomSlug"], user_id, game_def, game["options"])
   end
 
-  def close_room(game, user_id, action_list) do
+  def close_room(game, _user_id, action_list) do
     game_old = game
     game = Evaluate.evaluate_with_timeout(game, action_list)
     #game = save_replay(game, user_id)
@@ -1218,7 +1217,7 @@ defmodule DragnCardsGame.GameUI do
     # Run postLoadActionList if it exists
     game_def = PluginCache.get_game_def_cached(game["pluginId"])
     automation_action_list = game_def["automation"][action_list_id]
-    game = if automation_action_list do
+    _game = if automation_action_list do
       if game["automationEnabled"] == true do
         Evaluate.evaluate(game, automation_action_list, trace ++ ["action_list_id"])
       else
@@ -1324,7 +1323,6 @@ defmodule DragnCardsGame.GameUI do
             case card_details do
               {:ok, nil} -> raise "Card with databaseId #{database_id} not found."
               {:ok, card_details} -> card_details
-              :error -> raise "Card with databaseId #{database_id} not found."
             end
 
           true ->
@@ -1348,7 +1346,7 @@ defmodule DragnCardsGame.GameUI do
         raise "Tried to load a card into a group that doesn't exist: #{loadGroupId}"
       end
 
-      load_list_item_processed = %{
+      _load_list_item_processed = %{
         "databaseId" => database_id,
         "cardDetails" => cardDetails,
         "quantity" => quantity,

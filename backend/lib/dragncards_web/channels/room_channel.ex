@@ -4,9 +4,8 @@ defmodule DragnCardsWeb.RoomChannel do
   """
   use DragnCardsWeb, :channel
   alias DragnCardsGame.{GameUIServer, GameUI}
-  alias DragnCardsChat.{ChatMessage}
   alias DragnCards.Users
-  intercept ["send_update", "send_state", "gui_update"]
+  intercept ["send_update", "send_state", "gui_update", "go_to_replay_step"]
 
   require Logger
 
@@ -46,11 +45,11 @@ defmodule DragnCardsWeb.RoomChannel do
   end
 
   def handle_info(msg, socket) do
-    Logger.warn("Unexpected message received in handle_info: #{inspect(msg)}")
+    Logger.warning("Unexpected message received in handle_info: #{inspect(msg)}")
     {:noreply, socket}
   end
 
-  def handle_in("request_state", _payload, %{assigns: %{room_slug: room_slug}} = socket) do
+  def handle_in("request_state", _payload, %{assigns: %{room_slug: _room_slug}} = socket) do
     client_state = client_state(socket)
 
     if client_state == nil do
@@ -71,7 +70,7 @@ defmodule DragnCardsWeb.RoomChannel do
         %{assigns: %{room_slug: room_slug, user_id: user_id}} = socket
       ) do
     old_state = GameUIServer.state(room_slug)
-    old_replay_step = old_state["replayStep"]
+    _old_replay_step = old_state["replayStep"]
     GameUIServer.game_action(room_slug, user_id, action, options)
 
     new_state = GameUIServer.state(room_slug)
@@ -120,21 +119,21 @@ defmodule DragnCardsWeb.RoomChannel do
     %{assigns: %{room_slug: room_slug, user_id: user_id}} = socket
   ) do
     old_state = GameUIServer.state(room_slug)
-    old_replay_step = old_state["replayStep"]
-    old_game = old_state["game"]
+    _old_replay_step = old_state["replayStep"]
+    _old_game = old_state["game"]
     GameUIServer.step_through(room_slug, options)
     new_state = GameUIServer.state(room_slug)
-    new_replay_step = new_state["replayStep"]
+    _new_replay_step = new_state["replayStep"]
     new_game = new_state["game"]
     cond do
-      old_game == nil ->
+      old_state["game"] == nil ->
         Logger.error("Old game is nil in step_through for room #{room_slug} by user #{user_id}")
         broadcast!(socket, "bad_game_state", %{})
       new_game == nil ->
         Logger.error("New game is nil in step_through for room #{room_slug} by user #{user_id}")
         broadcast!(socket, "bad_game_state", %{})
       true ->
-        delta = GameUI.get_delta(old_game, new_game)
+        delta = GameUI.get_delta(old_state["game"], new_game)
         payload = %{
           "oldReplayStep" => old_state["replayStep"],
           "newReplayStep" => new_state["replayStep"],
@@ -165,8 +164,8 @@ defmodule DragnCardsWeb.RoomChannel do
   ) do
 
     old_state = GameUIServer.state(room_slug)
-    old_replay_step = old_state["replayStep"]
-    old_game = old_state["game"]
+    _old_replay_step = old_state["replayStep"]
+    _old_game = old_state["game"]
     GameUIServer.set_seat(room_slug, user_id, player_i, new_user_id)
     new_state = GameUIServer.state(room_slug)
     IO.puts("New state messages")
@@ -397,15 +396,15 @@ defmodule DragnCardsWeb.RoomChannel do
 
   end
 
-  defp notify_state(socket, room_slug, user_id) do
+  defp notify_state(socket, _room_slug, user_id) do
 
-    triggered_by = user_id
-    broadcast!(socket, "send_state", triggered_by)
+    _triggered_by = user_id
+    broadcast!(socket, "send_state", user_id)
 
     {:noreply, socket}
   end
 
-  defp notify_alert(socket, room_slug, user_id, payload) do
+  defp notify_alert(socket, _room_slug, _user_id, payload) do
 
     broadcast!(socket, "send_alert", payload)
 
@@ -418,7 +417,7 @@ defmodule DragnCardsWeb.RoomChannel do
   end
 
   # Define the handle_out function for the intercepted event
-  def handle_out("send_state", triggered_by, socket) do
+  def handle_out("send_state", _triggered_by, socket) do
     new_client_state = client_state(socket)
     if new_client_state != nil do
       push(socket, "current_state", new_client_state)
@@ -468,6 +467,6 @@ defmodule DragnCardsWeb.RoomChannel do
   # This is what part of the state gets sent to the client.
   # It can be used to transform or hide it before they get it.
   defp client_state(socket) do
-    state = GameUIServer.state(socket.assigns[:room_slug])
+    _state = GameUIServer.state(socket.assigns[:room_slug])
   end
 end

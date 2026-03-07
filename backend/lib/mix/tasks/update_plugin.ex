@@ -14,7 +14,6 @@ end
 defmodule DragnCardsGame.UpdatePluginScript do
   alias DragnCards.{Repo, Plugins, Plugins.Plugin}
   alias DragnCards.Users.User
-  alias Ecto.Multi
   import Ecto.Query
   # Import helper functions
   alias DragnCardsUtil.{Merger}
@@ -23,7 +22,7 @@ defmodule DragnCardsGame.UpdatePluginScript do
 
   defp get_existing_user(user_alias) do
     # Get all users
-    all = Repo.all(from u in User, select: u.alias)
+    _all = Repo.all(from u in User, select: u.alias)
     case Repo.get_by(User, alias: user_alias) do
       nil -> {:error, "User not found"}
       user -> {:ok, user}

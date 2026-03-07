@@ -72,8 +72,8 @@ defmodule DragnCardsWeb.MyPluginsController do
   @spec delete(Conn.t(), map()) :: Conn.t()
   def delete(conn, %{"id" => plugin_id}) do
     user = Pow.Plug.current_user(conn)
-    user_id = user.id
-    res = Repo.get(Plugin, plugin_id)
+    _user_id = user.id
+    _res = Repo.get(Plugin, plugin_id)
 
     # Fetch plugin and check it exists
     case Repo.get(Plugin, plugin_id) do
@@ -97,7 +97,7 @@ defmodule DragnCardsWeb.MyPluginsController do
         conn
         |> json(%{success: %{message: "Plugin deleted"}})
 
-      %Plugin{author_id: other_user_id} ->
+      %Plugin{author_id: _other_user_id} ->
         conn
         |> put_status(:forbidden)
         |> json(%{error: "You are not authorized to delete this plugin"})

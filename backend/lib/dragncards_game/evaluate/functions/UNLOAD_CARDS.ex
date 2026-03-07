@@ -1,6 +1,5 @@
 defmodule DragnCardsGame.Evaluate.Functions.UNLOAD_CARDS do
-  alias DragnCardsGame.{Evaluate, GameUI, PluginCache}
-  alias DragnCards.Plugins
+  alias DragnCardsGame.Evaluate
   @moduledoc """
   *Arguments*:
   1. `playerI` (string like "shared" or "player1")
@@ -13,7 +12,7 @@ defmodule DragnCardsGame.Evaluate.Functions.UNLOAD_CARDS do
 
   """
 
-  def add_load_code_to_history(game, load_code, player_n, trace) do
+  def add_load_code_to_history(game, load_code, player_n, _trace) do
 
     new_entry = %{
       "loadCode" => load_code,
@@ -70,7 +69,7 @@ defmodule DragnCardsGame.Evaluate.Functions.UNLOAD_CARDS do
     end
 
     game = Evaluate.evaluate(game, unload_code, trace ++ ["unload_code"])
-    game = add_load_code_to_history(game, unload_code, player_i, trace)
+    _game = add_load_code_to_history(game, unload_code, player_i, trace)
 
   end
 

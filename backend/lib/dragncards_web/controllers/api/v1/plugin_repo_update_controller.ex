@@ -2,10 +2,9 @@ defmodule DragnCardsWeb.PluginRepoUpdateController do
   use DragnCardsWeb, :controller
   import Ecto.Query
 
-  alias DragnCards.{Plugins, Plugins.Plugin, Repo}
+  alias DragnCards.{Plugins.Plugin, Repo}
   alias DragnCardsWeb.RefreshPlugin
   alias DragnCards.Rooms
-  alias Phoenix.PubSub
 
   def update(conn, %{"repo_url" => repo_url, "file" => %Plug.Upload{path: path}}) do
     IO.puts(
@@ -76,24 +75,4 @@ defmodule DragnCardsWeb.PluginRepoUpdateController do
     |> json(%{error: "Invalid parameters"})
   end
 
-
-
-
-
-  # alias DragnCards.Rooms
-  # alias DragnCards.Rooms.Room
-
-  # # alias DragnCardsUtil.{NameGenerator, Slugify}
-  # # alias DragnCardsGame.GameSupervisor
-
-  # action_fallback DragnCardsWeb.FallbackController
-
-  # def update(conn, _params) do
-  #   IO.puts("----------------------------------------------------- open_rooms a")
-  #   rooms = Rooms.list_rooms()
-  #   IO.puts("----------------------------------------------------- open_rooms b")
-  #   IO.inspect(rooms)
-  #   IO.puts("----------------------------------------------------- open_rooms c")
-  #   render(conn, "index.json", rooms: rooms)
-  # end
 end

@@ -21,7 +21,7 @@ defmodule DragnCardsGame.Evaluate.Functions.PREV_STEP do
 
   The result of the 'PREV_STEP' operation.
   """
-  def execute(game, code, trace) do
+  def execute(game, _code, trace) do
     prev_step_action_list = [
       ["VAR", "$STEP_ID", "$GAME.stepId"],
       ["VAR", "$OLD_STEP_INDEX", ["GET_INDEX", "$GAME_DEF.stepOrder", "$GAME.stepId"]],

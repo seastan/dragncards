@@ -1,6 +1,5 @@
 defmodule DragnCardsGame.Evaluate.Functions.LOG do
   alias DragnCardsGame.Evaluate
-  alias DragnCardsChat.{ChatMessage}
   @moduledoc """
   *Arguments*:
   Any number of string arguments.

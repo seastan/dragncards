@@ -1,8 +1,6 @@
 defmodule DragnCardsWeb.PatreonController do
-  alias DBConnection.App
   use DragnCardsWeb, :controller
-  alias DragnCards.{Users, Repo, Users.User}
-  alias Plug.Conn
+  alias DragnCards.{Repo, Users.User}
 
   # def patreon_callback(conn, params) do
   #   IO.puts("here =============================================================================================================")
@@ -23,7 +21,7 @@ defmodule DragnCardsWeb.PatreonController do
         IO.puts("----------------------------- patreon callback 2")
         IO.inspect(profile)
         case get_level_from_profile(profile) do
-          {:error, reason} ->
+          {:error, _reason} ->
             conn
             |> json(%{error: %{message: "Failed to get supporter level"}})
           {:ok, {supporter_level, member_id}} ->
@@ -103,7 +101,7 @@ defmodule DragnCardsWeb.PatreonController do
 
   def get_level_and_member_id_from_profile(profile, member_map) do
     included = Map.get(profile, "included", [])
-    Enum.reduce(included, {0, nil}, fn x, {best_level, best_id} = acc ->
+    Enum.reduce(included, {0, nil}, fn x, {best_level, _best_id} = acc ->
       id = Map.get(x, "id")
       member = Map.get(member_map, id)
       IO.puts("id = #{id}, member = #{inspect member}")

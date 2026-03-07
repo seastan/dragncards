@@ -1,7 +1,6 @@
 defmodule DragnCardsWeb.API.V1.RegistrationController do
   use DragnCardsWeb, :controller
 
-  alias Ecto.Changeset
   alias Plug.Conn
 
   @spec create(Conn.t(), map()) :: Conn.t()
@@ -19,7 +18,7 @@ defmodule DragnCardsWeb.API.V1.RegistrationController do
           }
         })
 
-      {:error, changeset, conn} ->
+      {:error, _changeset, conn} ->
 
         conn
         |> put_status(500)

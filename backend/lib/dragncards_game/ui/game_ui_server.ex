@@ -6,8 +6,8 @@ defmodule DragnCardsGame.GameUIServer do
   @timeout :timer.minutes(60)
 
   require Logger
-  alias DragnCardsGame.{GameUI, GameRegistry, User, PlayerInfo, Evaluate}
-  alias DragnCards.{Rooms.RoomLog, Users}
+  alias DragnCardsGame.{GameUI, GameRegistry, User, Evaluate}
+  alias DragnCards.{Users}
 
   def is_player(gameui, user_id) do
     ids = gameui["playerInfo"]
@@ -332,7 +332,7 @@ defmodule DragnCardsGame.GameUIServer do
       end
 
     rescue
-      e in RuntimeError ->
+      _e in RuntimeError ->
         put_in(gameui["error"],true)
     end
     |> save_and_reply()
@@ -347,7 +347,7 @@ defmodule DragnCardsGame.GameUIServer do
         raise RuntimeError, "User not found in room"
       end
     rescue
-      e in RuntimeError ->
+      _e in RuntimeError ->
         put_in(gameui["error"],true)
     end
     |> save_and_reply()

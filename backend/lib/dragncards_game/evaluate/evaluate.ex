@@ -3,12 +3,10 @@ defmodule DragnCardsGame.Evaluate do
   Module that defines and evaluates the LISP-like language used to modify the game state.
   """
   require Logger
-  alias DragnCardsGame.{GameUI, AutomationRules, RuleMap}
-  alias DragnCards.{Rooms, Plugins}
 
   def print_card_status(game) do
     IO.puts("Card status:")
-    Enum.reduce(game["cardById"], nil, fn {card_id, card}, _acc ->
+    Enum.reduce(game["cardById"], nil, fn {_card_id, card}, _acc ->
       IO.puts('Card #{card["sides"]["A"]["name"]}: #{card["inPlay"]}')
     end)
   end

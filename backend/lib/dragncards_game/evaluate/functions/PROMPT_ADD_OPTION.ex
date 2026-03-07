@@ -1,6 +1,5 @@
 defmodule DragnCardsGame.Evaluate.Functions.PROMPT_ADD_OPTION do
   alias DragnCardsGame.Evaluate
-  alias DragnCards.Plugins
   @moduledoc """
   *Arguments*:
   1. `targetPlayerI` (string like "player1") or `targetPlayerList` (list of such strings)
@@ -55,7 +54,7 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT_ADD_OPTION do
       if not is_list(prompt_code) do
         raise "Code given to prompt option is not a list. Remember to use the \"LIST\" function to create a list. For example, [\"LIST\", \"SET\", \"/playerData/player1/health\", 10] will result in the action list [\"SET\", \"/playerData/player1/health\", 10] being assigned to the prompt option."
       end
-      prompt_code = if is_list(Enum.at(prompt_code, 0)) do
+      _prompt_code = if is_list(Enum.at(prompt_code, 0)) do
         prompt_code
       else
         [prompt_code]

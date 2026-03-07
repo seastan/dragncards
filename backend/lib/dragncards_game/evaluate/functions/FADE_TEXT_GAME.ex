@@ -1,5 +1,4 @@
 defmodule DragnCardsGame.Evaluate.Functions.FADE_TEXT_GAME do
-  alias DragnCardsGame.Evaluate
   alias DragnCardsGame.Evaluate.Functions.FADE_TEXT_PLAYER
   @moduledoc """
   *Arguments*:

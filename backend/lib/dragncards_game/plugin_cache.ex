@@ -18,7 +18,7 @@ defmodule DragnCardsGame.PluginCache do
 
   # Public function to get cached card_db, or fetch if not present or expired
   def get_plugin_cached(plugin_id, ttl_ms \\ @cache_ttl) do
-    t0 = :erlang.monotonic_time(:millisecond)
+    _t0 = :erlang.monotonic_time(:millisecond)
     case :ets.lookup(@table_name, plugin_id) do
       [{^plugin_id, timestamp}] ->
         if fresh?(timestamp, ttl_ms) do
@@ -59,7 +59,7 @@ defmodule DragnCardsGame.PluginCache do
   end
 
   # Helper function to check if the cache is still fresh
-  defp fresh?(timestamp, ttl_ms \\ @cache_ttl) do
+  defp fresh?(timestamp, ttl_ms) do
     current_timestamp() - timestamp < ttl_ms
   end
 

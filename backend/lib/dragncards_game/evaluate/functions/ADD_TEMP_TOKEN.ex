@@ -1,5 +1,5 @@
 defmodule DragnCardsGame.Evaluate.Functions.ADD_TEMP_TOKEN do
-  alias DragnCardsGame.{Evaluate, GameUI, TempTokens}
+  alias DragnCardsGame.{Evaluate, TempTokens}
   @moduledoc """
   *Arguments*:
   1. `timing` ('step'|'phase'|'round')
@@ -34,7 +34,7 @@ defmodule DragnCardsGame.Evaluate.Functions.ADD_TEMP_TOKEN do
   """
   def execute(game, code, trace) do
 
-    argc = Evaluate.argc(code, 4)
+    _argc = Evaluate.argc(code, 4)
     timing = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["timing"])
     card_id = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["card_id"])
     token_id = Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["token_id"])
@@ -42,7 +42,7 @@ defmodule DragnCardsGame.Evaluate.Functions.ADD_TEMP_TOKEN do
 
     game = TempTokens.add(game, timing, card_id, token_id, amount)
 
-    game = Evaluate.evaluate(game, [
+    _game = Evaluate.evaluate(game, [
       ["INCREASE_VAL", "/cardById/#{card_id}/tokens/#{token_id}", amount]
     ], trace ++ ["increase tokens"])
   end

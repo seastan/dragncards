@@ -1,5 +1,4 @@
 defmodule DragnCardsGame.Evaluate.Functions.CURRENT_TIME do
-  alias DragnCardsGame.Evaluate
   @moduledoc """
   *Arguments*:
   none
@@ -15,7 +14,7 @@ defmodule DragnCardsGame.Evaluate.Functions.CURRENT_TIME do
   ## Returns
   The result of the 'CURRENT_TIME' operation.
   """
-  def execute(game, code, trace) do
+  def execute(_game, _code, _trace) do
     :os.system_time(:millisecond)
   end
 end

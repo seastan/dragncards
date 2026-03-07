@@ -3,7 +3,6 @@ defmodule DragnCardsGame.Evaluate.ArgumentSanitizer do
   Provides argument validation for game evaluation functions.
   """
 
-  alias DragnCardsGame.Evaluate
 
   @doc """
   Validates a list of arguments based on their expected types.

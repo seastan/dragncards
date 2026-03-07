@@ -4,11 +4,10 @@ defmodule DragnCardsWeb.API.V1.UsersController do
   alias DragnCards.Repo
   alias DragnCards.Users.User
   alias DragnCards.UserPluginPermission
-  alias DragnCards.Replay
 
   import Ecto.Query
 
-  def fetch_all(conn, %{"user" => user_params}) do
+  def fetch_all(conn, %{"user" => _user_params}) do
     # Return a list of all users in the form of id, alias tuples
     query = from u in User, select: %{id: u.id, alias: u.alias}
     result = Repo.all(query)

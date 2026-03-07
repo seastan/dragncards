@@ -2,8 +2,7 @@ defmodule DragnCardsGame.AutomationRules do
   @moduledoc """
   """
   require Logger
-  alias DragnCardsGame.{GameUI, Evaluate, RuleMap}
-  alias DragnCards.{Rooms, Plugins}
+  alias DragnCardsGame.{Evaluate, RuleMap}
 
   def split_path_string(path_string) do
     path_string
@@ -89,7 +88,7 @@ defmodule DragnCardsGame.AutomationRules do
 
   def get_in_play_condition(side) do
     curr_condition = "$THIS.inPlay"
-    curr_condition = if side != nil do
+    _curr_condition = if side != nil do
       ["AND", curr_condition, ["EQUAL", "$THIS.currentSide", side]]
     else
       curr_condition
@@ -377,7 +376,7 @@ defmodule DragnCardsGame.AutomationRules do
               #["TARGET_PLAYER_I", "$THIS_ID", promptPlayerI, false],
               ["SET", "/ruleById/#{rule["id"]}/autoRun/status", "never"]
             ]]
-            prompt_id = if status == "promptYN" do
+            _prompt_id = if status == "promptYN" do
               Evaluate.evaluate(game, ["PROMPT", promptPlayerI, "confirmAutomationYN", promptMessage, yes_code, no_code])
             else
               Evaluate.evaluate(game, ["PROMPT", promptPlayerI, "confirmAutomationAYNN", promptMessage, always_code, yes_code, no_code, never_code])
@@ -387,7 +386,7 @@ defmodule DragnCardsGame.AutomationRules do
         game
       true ->
         game = Evaluate.evaluate(game, rule_code, trace ++ ["run_rule_code"])
-        game = if rule["category"] == "card" do
+        _game = if rule["category"] == "card" do
           unix_ms = DateTime.to_unix(DateTime.utc_now(), :millisecond)
           put_in(game, ["cardById", rule["this_id"], "triggeredTimestamp"], unix_ms)
         else

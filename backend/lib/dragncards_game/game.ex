@@ -5,8 +5,6 @@
   some toy game used to test everything around it.
   """
   require Logger
-  import Ecto.Query
-  alias ElixirSense.Log
   alias DragnCardsGame.{Groups, Game, PlayerData, GameVariables, Evaluate, AutomationRules, TempTokens, PluginCache}
   alias DragnCards.{Repo, Replay, Users, Plugins}
 

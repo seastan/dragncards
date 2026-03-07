@@ -36,7 +36,7 @@ defmodule DragnCardsGame.Evaluate.Functions.ROUND_TO_INT do
   def execute(game, code, trace) do
     val = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["val"])
     int_val = ConvertType.convert_to_integer(val)
-    round_val = round(int_val)
+    _round_val = round(int_val)
   end
 
 end

@@ -1,6 +1,5 @@
 defmodule DragnCardsGame.Evaluate.Functions.MOVE_STACK do
-  alias DragnCardsGame.{Evaluate, GameUI, PluginCache}
-  alias DragnCards.Plugins
+  alias DragnCardsGame.{Evaluate, GameUI}
   @moduledoc """
   *Arguments*:
   1. `stackId` (string)
@@ -74,7 +73,7 @@ defmodule DragnCardsGame.Evaluate.Functions.MOVE_STACK do
     options = if argc >= 4 do Evaluate.evaluate(game, Enum.at(code, 4), trace ++ ["options"] ) else nil end
 
     # Save variables for postMoveStackActionList
-    orig_group_id = GameUI.get_group_by_stack_id(game, stack_id)["id"]
+    _orig_group_id = GameUI.get_group_by_stack_id(game, stack_id)["id"]
     orig_parent_card_id = get_parent_card(game, stack_id, trace)["id"]
 
     #try do
@@ -82,7 +81,7 @@ defmodule DragnCardsGame.Evaluate.Functions.MOVE_STACK do
 
     # Run postMoveStackActionList if it exists
     post_move_stack_action_list = game["automationActionLists"]["postMoveStackActionList"]
-    game = if post_move_stack_action_list do
+    _game = if post_move_stack_action_list do
       if game["automationEnabled"] == false do
         Evaluate.evaluate(game, ["LOG_DEV", "Skipping automation action list postMoveStackActionList because automation is disabled."], trace)
       else

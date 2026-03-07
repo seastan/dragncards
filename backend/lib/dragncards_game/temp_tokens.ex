@@ -3,7 +3,7 @@ defmodule DragnCardsGame.TempTokens do
   Represents the temporary tokens used in the game.
   """
   require Logger
-  alias DragnCardsGame.{Evaluate, Tokens}
+  alias DragnCardsGame.{Evaluate}
 
   @type t :: map()
 

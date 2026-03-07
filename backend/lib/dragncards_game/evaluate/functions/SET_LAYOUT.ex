@@ -1,6 +1,5 @@
 defmodule DragnCardsGame.Evaluate.Functions.SET_LAYOUT do
   alias DragnCardsGame.{Evaluate, PluginCache}
-  alias DragnCards.Plugins
   @moduledoc """
   *Arguments*:
   1. `playerI` (string like "player1")
