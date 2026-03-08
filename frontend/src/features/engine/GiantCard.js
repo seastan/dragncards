@@ -8,6 +8,8 @@ import { useGameDefinition } from "./hooks/useGameDefinition";
 import { useTouchAction } from "./hooks/useTouchAction";
 import { setActiveCardId } from "../store/playerUiSlice";
 import { useActiveCard } from "./hooks/useActiveCard";
+import { useLayout } from "./hooks/useLayout";
+import { useCardRotation } from "./hooks/useCardRotation";
 import { Z_INDEX } from "./functions/common";
 
 
@@ -35,6 +37,13 @@ export const GiantCard = React.memo(() => {
     }
   }, [activeCard, dispatch]);
 
+  const layout = useLayout();
+  const cardRotation = useCardRotation(activeCardId);
+  const showRotationOfActiveCard = layout?.showRotationOfActiveCard || [];
+  const rotationStyle = showRotationOfActiveCard.includes(cardRotation)
+    ? { transform: `rotate(${cardRotation}deg)` }
+    : {};
+
   if (!visibleFace || !activeCardId || touchAction || (dropdownMenu && !touchMode)) return null;
   const cardType = visibleFace?.type;
   const zoomFactor = gameDef?.cardTypes?.[cardType]?.zoomFactor;
@@ -58,6 +67,7 @@ export const GiantCard = React.memo(() => {
         boxShadow: "0 0 50px 20px black",
         zIndex: Z_INDEX.GiantCard,
         height: height,
+        ...rotationStyle,
       }}
     />
   )
