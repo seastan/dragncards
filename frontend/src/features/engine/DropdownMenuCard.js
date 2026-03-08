@@ -239,13 +239,14 @@ export const DropdownMenuCard = React.memo(({
             {l10n("deckOfOrigin")}
           </DropdownItem>
           {gameDef?.cardMenu?.moveToGroupIds?.map((groupId, index) => {
+            const resolvedGroupId = groupId.replace("playerN", playerN);
             return (
               <DropdownItem
                 key={index}
                 rightIcon={<FontAwesomeIcon icon={faChevronRight}/>}
-                goToMenu={"moveTo"+groupId}
+                goToMenu={"moveTo"+resolvedGroupId}
                 clickCallback={handleDropdownClick}>
-                {gameL10n(gameDef?.groups?.[groupId]?.label)}
+                {gameL10n(gameDef?.groups?.[resolvedGroupId]?.label)}
               </DropdownItem>
             )
           })}
@@ -284,8 +285,9 @@ export const DropdownMenuCard = React.memo(({
           DropdownMoveTo(menuCard?.deckGroupId,handleDropdownClick)
         :
         gameDef?.cardMenu?.moveToGroupIds?.map((groupId, _index) => {
-          if (activeMenu === "moveTo"+groupId) return(
-            DropdownMoveTo(groupId,handleDropdownClick)
+          const resolvedGroupId = groupId.replace("playerN", playerN);
+          if (activeMenu === "moveTo"+resolvedGroupId) return(
+            DropdownMoveTo(resolvedGroupId,handleDropdownClick)
           )
         })}
 

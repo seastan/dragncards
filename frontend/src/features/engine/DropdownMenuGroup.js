@@ -146,14 +146,17 @@ export const DropdownMenuGroup = React.memo(({
               clickCallback={handleDropdownClick}>
               {siteL10n("My Deck")}
             </DropdownItem>
-            {gameDef.groupMenu?.moveToGroupIds?.map((moveToGroupId, _moveToGroupIndex) => (
-              <DropdownItem
-                rightIcon={<FontAwesomeIcon icon={faChevronRight}/>}
-                goToMenu={"moveTo"+moveToGroupId}
-                clickCallback={handleDropdownClick}>
-                {gameL10n(gameDef?.groups?.[moveToGroupId]?.label)}
-              </DropdownItem>
-              ))}
+            {gameDef.groupMenu?.moveToGroupIds?.map((moveToGroupId, _moveToGroupIndex) => {
+              const resolvedGroupId = moveToGroupId.replace("playerN", playerN);
+              return (
+                <DropdownItem
+                  rightIcon={<FontAwesomeIcon icon={faChevronRight}/>}
+                  goToMenu={"moveTo"+resolvedGroupId}
+                  clickCallback={handleDropdownClick}>
+                  {gameL10n(gameDef?.groups?.[resolvedGroupId]?.label)}
+                </DropdownItem>
+              )
+            })}
         </div>
         }
         {activeMenu === "setVisibility" &&
@@ -186,9 +189,10 @@ export const DropdownMenuGroup = React.memo(({
         }
         {activeMenu === "moveToMy" &&
         <DropdownMoveTo destGroupId={playerN+"Deck"}/>}
-        {gameDef?.groupMenu?.moveToGroupIds?.map((moveToGroupId, _moveToGroupIndex) => (
-          (activeMenu === "moveTo" + moveToGroupId) && <DropdownMoveTo destGroupId={moveToGroupId}/>
-        ))}
+        {gameDef?.groupMenu?.moveToGroupIds?.map((moveToGroupId, _moveToGroupIndex) => {
+          const resolvedGroupId = moveToGroupId.replace("playerN", playerN);
+          return (activeMenu === "moveTo" + resolvedGroupId) && <DropdownMoveTo destGroupId={resolvedGroupId}/>;
+        })}
     </div>
   );
 })
