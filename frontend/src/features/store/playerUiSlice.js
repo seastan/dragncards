@@ -282,7 +282,7 @@ const playerUiSlice = createSlice({
       }
     },
     clearMultiSelectCardIds: (state) => {
-      //state.multiSelect.cardIds = []; FIXME: Re-enable
+      state.multiSelect.cardIds = [];
     },
     setRoomNotFound: (state, { payload }) => {
       state.roomNotFound = payload;
