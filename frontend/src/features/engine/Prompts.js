@@ -87,6 +87,7 @@ export const Prompt = React.memo(({
       );
     }
     const defineInput = ["DEFINE", "$PROMPT_INPUT", promptInput];
+    console.warn("Clearing multi-select card ids because code was run for prompt");
     dispatch(clearMultiSelectCardIds()); // Clear multi-select after the prompt is handled
 
     // Compile the action list
@@ -147,11 +148,9 @@ export const Prompts = React.memo(({
         dispatch(setMultiSelectEnabled(true));
       } else if (topPrompt && topPrompt.input && topPrompt.input.type !== "selectCards" && multiSelect.enabled) {
         dispatch(setMultiSelectEnabled(false));
+        console.log("Clearing multi-select card ids because the top prompt does not have a selectCards input");
         dispatch(clearMultiSelectCardIds());
       }
-    } else if (multiSelect.enabled) {
-      dispatch(setMultiSelectEnabled(false));
-      dispatch(clearMultiSelectCardIds());
     }
   }, [sortedPromptIds, prompts]);
   
