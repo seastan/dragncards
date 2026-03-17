@@ -149,7 +149,6 @@ export const Room = ({ slug }) => {
     } else if (event === "gui_update" && payload !== null) {
       // Handle GUI updates sent specifically to this player
       if (playerN != null && playerN != undefined && playerN == payload.targetPlayerN) {
-        alert("Received GUI update: " + JSON.stringify(payload.updates));
         dispatch(overridePlayerUiValues(payload.updates));
       }
     }
