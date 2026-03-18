@@ -7,7 +7,7 @@ defmodule DragnCardsGame.Evaluate.Functions.TYPE_OF do
   Returns the type of `input`.
 
   *Returns*:
-  (string) Type of `input` as string, one of: `null`, `boolean`, `integer`, `float`, `cardId`, `groupId`, `playerId`, `string`, `list`, `face`, `card`, `group`, `player`, `game`, `object`, `unknown`.
+  (string) Type of `input` as string, one of: `null`, `boolean`, `integer`, `float`, `cardId`, `groupId`, `playerId`, `string`, `list`, `set`, `face`, `card`, `group`, `player`, `game`, `object`, `unknown`.
   """
 
   @doc """
@@ -40,6 +40,7 @@ defmodule DragnCardsGame.Evaluate.Functions.TYPE_OF do
           true -> "string"
         end
       is_list(input) -> "list"
+      is_struct(input, MapSet) -> "set"
       is_map(input) ->
         cond do
           Map.has_key?(input, "imageUrl") -> "face"

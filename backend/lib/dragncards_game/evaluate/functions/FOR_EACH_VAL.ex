@@ -3,7 +3,7 @@ defmodule DragnCardsGame.Evaluate.Functions.FOR_EACH_VAL do
   @moduledoc """
   *Arguments*:
   1. `valName` (string starting with $)
-  2. `list` (list)
+  2. `list` (list | set)
   3. `function` (DragnLang code)
 
   Iterates over the values in `list`, assigning each value to `valName`.
@@ -36,7 +36,9 @@ defmodule DragnCardsGame.Evaluate.Functions.FOR_EACH_VAL do
     val_name = Enum.at(code, 1)
     Evaluate.argt("FOR_EACH_VAL", 0, "variable", val_name)
     list = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["list"])
-    Evaluate.argt("FOR_EACH_VAL", 1, "list", list)
+    if !is_list(list) and !is_struct(list, MapSet) do
+      raise "FOR_EACH_VAL: list must be a list or set"
+    end
     function = Enum.at(code, 3)
     Evaluate.argt("FOR_EACH_VAL", 2, "code", function)
     if !is_list(function) do

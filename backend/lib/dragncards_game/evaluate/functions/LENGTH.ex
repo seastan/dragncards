@@ -2,10 +2,10 @@ defmodule DragnCardsGame.Evaluate.Functions.LENGTH do
   alias DragnCardsGame.Evaluate
   @moduledoc """
   *Arguments*:
-  1. `stringOrList` (string | list | object)
+  1. `stringOrList` (string | list | set | object)
 
   *Returns*:
-  (number) The length of the string, list, or object.
+  (number) The length of the string, list, set, or object.
 
   """
 
@@ -25,8 +25,9 @@ defmodule DragnCardsGame.Evaluate.Functions.LENGTH do
     cond do
       is_binary(value) -> String.length(value)
       is_list(value) -> Enum.count(value)
+      is_struct(value, MapSet) -> MapSet.size(value)
       is_map(value) -> Enum.count(value)
-      true -> raise("LENGTH: Expected a string, list, or object, got #{inspect(value)}.")
+      true -> raise("LENGTH: Expected a string, list, set, or object, got #{inspect(value)}.")
     end
   end
 

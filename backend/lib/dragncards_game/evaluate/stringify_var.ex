@@ -1,6 +1,6 @@
 defmodule DragnCardsGame.StringifyVar do
   def stringify_var(var) do
-    if is_map(var) do
+    if is_map(var) and !is_struct(var, MapSet) do
       if "roomSlug" in Map.keys(var) do
         "<game state>"
       else
