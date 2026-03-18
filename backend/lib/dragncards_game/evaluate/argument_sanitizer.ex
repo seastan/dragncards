@@ -16,7 +16,7 @@ defmodule DragnCardsGame.Evaluate.ArgumentSanitizer do
       where:
       - `name` is the argument name (string)
       - `value` is the argument value to validate
-      - `type` is one of: `:player`, `:group`, `:integer`, `:boolean`, `:string`, `:number`, `:list`, `:map`
+      - `type` is one of: `:player`, `:group`, `:integer`, `:boolean`, `:string`, `:number`, `:list`, `:map`, `:set`
 
   ## Returns
 
@@ -91,8 +91,14 @@ defmodule DragnCardsGame.Evaluate.ArgumentSanitizer do
   end
 
   defp validate_arg(function_name, _game, name, value, :map) do
-    if !is_map(value) do
+    if !is_map(value) or is_struct(value, MapSet) do
       raise "#{function_name} expected a map for argument #{name}. Got #{inspect(value)} instead."
+    end
+  end
+
+  defp validate_arg(function_name, _game, name, value, :set) do
+    if !is_struct(value, MapSet) do
+      raise "#{function_name} expected a set for argument #{name}. Got #{inspect(value)} instead."
     end
   end
 end

@@ -38,7 +38,7 @@ defmodule DragnCardsGame.Evaluate.Functions.ERROR do
     error_dir = "/tmp/plugin_errors"
     File.mkdir_p!(error_dir)
 
-    if is_map(game) and Map.has_key?(game, "pluginName") do
+    if is_map(game) and !is_struct(game, MapSet) and Map.has_key?(game, "pluginName") do
       plugin_name = game["pluginName"]
       plugin_id = game["pluginId"]
       current_ms = :os.system_time(:millisecond)

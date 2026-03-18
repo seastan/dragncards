@@ -24,7 +24,7 @@ defmodule DragnCardsGame.Evaluate.Functions.MAP_KEYS_TO_LIST do
   def execute(game, code, trace) do
     Evaluate.argc(code, 1)
     object = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["object"])
-    if !is_map(object) do
+    if !is_map(object) or is_struct(object, MapSet) do
       raise "MAP_KEYS_TO_LIST: object must be an object"
     end
     Map.keys(object)
