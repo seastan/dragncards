@@ -33,7 +33,7 @@ defmodule DragnCardsGame.Evaluate.Functions.MAP_GET do
       nil
     end
     if !is_map(object) or is_struct(object, MapSet) do
-      raise "MAP_GET: object must be a object"
+      raise "MAP_GET: object must be an object"
     end
     Map.get(object, key, default)
   end

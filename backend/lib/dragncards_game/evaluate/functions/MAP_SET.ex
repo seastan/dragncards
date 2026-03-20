@@ -9,7 +9,7 @@ defmodule DragnCardsGame.Evaluate.Functions.MAP_SET do
   If there is only one argument and it's a list, then the set is initialized with elements of that list (duplicate values will be discarded). If it's a set, then the set is initialized with elements of that set. If it's an object, then the set is initialized with keys of that object.
 
   *Returns*:
-  (list) A set containing the results of evaluating each argument.
+  (set) A set containing the results of evaluating each argument.
   """
 
   @doc """

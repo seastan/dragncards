@@ -27,7 +27,7 @@ defmodule DragnCardsGame.Evaluate.Functions.MAP_HAS_KEY do
     object = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["object"])
     key = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["key"])
     if !is_map(object) or is_struct(object, MapSet) do
-      raise "MAP_HAS_KEY: object must be a object"
+      raise "MAP_HAS_KEY: object must be an object"
     end
     Map.has_key?(object, key)
   end

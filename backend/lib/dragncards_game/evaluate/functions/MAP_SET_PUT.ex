@@ -8,7 +8,7 @@ defmodule DragnCardsGame.Evaluate.Functions.MAP_SET_PUT do
   Inserts `value` into `set` if `set` doesn't already contain it.
 
   *Returns*:
-  (object) The updated set.
+  (set) The updated set.
   """
 
   @doc """

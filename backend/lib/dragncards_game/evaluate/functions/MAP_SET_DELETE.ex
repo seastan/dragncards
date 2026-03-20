@@ -8,7 +8,7 @@ defmodule DragnCardsGame.Evaluate.Functions.MAP_SET_DELETE do
   Deletes `value` from `set`. If the `value` does not exist, returns `set` unchanged.
 
   *Returns*:
-  (object) The updated set.
+  (set) The updated set.
   """
 
   @doc """
