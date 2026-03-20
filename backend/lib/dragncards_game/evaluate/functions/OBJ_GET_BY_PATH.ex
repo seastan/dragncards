@@ -123,7 +123,7 @@ defmodule DragnCardsGame.Evaluate.Functions.OBJ_GET_BY_PATH do
           end
         acc == nil ->
           nil
-        not is_map(acc) ->
+        not is_map(acc) or is_struct(acc, MapSet) ->
           raise "Tried to access key '#{pathi}' of a non-object: #{inspect(acc)}."
         Map.has_key?(acc, pathi) ->
           Map.get(acc, Evaluate.evaluate(game, pathi, trace ++ ["key #{index}"]))

@@ -62,10 +62,10 @@ defmodule DragnCardsGame.Evaluate.Functions.REQUEST_POST do
     if !is_binary(url) do
       raise "REQUEST_POST: url must be a string"
     end
-    if !is_map(body) do
+    if !is_map(body) or is_struct(body, MapSet) do
       raise "REQUEST_POST: body must be a map"
     end
-    if !is_map(custom_headers) do
+    if !is_map(custom_headers) or is_struct(custom_headers, MapSet) do
       raise "REQUEST_POST: headers must be a map"
     end
 
