@@ -33,8 +33,12 @@ defmodule DragnCardsGame.Evaluate.Functions.LOG do
   |-------|---------|------------|
   | `img:<url>` | `img:https://example.com/icon.png` | Inline image at default height (2dvh) |
   | `img:<url>:<size>` | `img:https://example.com/icon.png:5` | Inline image at 5dvh height |
-  | `img:card:<dbId>` | `img:card:01001` | Card image from the card DB at default height |
-  | `img:card:<dbId>:<size>` | `img:card:01001:4` | Card image at 4dvh height |
+  | `img:cardDbId:<dbId>` | `img:cardDbId:01001` | Card image from the card DB, side A, default height |
+  | `img:cardDbId:<dbId>:<side>` | `img:cardDbId:01001:B` | Card image from the card DB, specified side |
+  | `img:cardDbId:<dbId>:<side>:<size>` | `img:cardDbId:01001:A:4` | Card image from the card DB, specified side and height |
+  | `img:cardId:<id>` | `img:cardId:{{$ACTIVE_CARD_ID}}` | Card image from the game state, side A, default height |
+  | `img:cardId:<id>:<side>` | `img:cardId:{{$ACTIVE_CARD_ID}}:B` | Card image from the game state, specified side |
+  | `img:cardId:<id>:<side>:<size>` | `img:cardId:{{$ACTIVE_CARD_ID}}:A:4` | Card image from the game state, specified side and height |
   | `link:<url>` | `link:https://ringsdb.com` | Clickable hyperlink (URL as label) |
   | `link:<url>:<label>` | `link:https://ringsdb.com:RingsDB` | Clickable hyperlink with custom label |
   | `link:cardId:<id>` | `link:cardId:{{$ACTIVE_CARD_ID}}` | Card name as hoverable link; hover shows card image (side A) |

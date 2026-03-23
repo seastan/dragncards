@@ -83,13 +83,26 @@ const renderToken = (token, key, { cardDb, cardById, urlPrefix, defaultImgHeight
   if (token.startsWith("img:")) {
     const rest = token.slice(4);
 
-    if (rest.startsWith("card:")) {
-      const cardPart = rest.slice(5);
-      const sizeMatch = cardPart.match(/^(.+):(\d+)$/);
-      const cardId = sizeMatch ? sizeMatch[1] : cardPart;
-      const height = sizeMatch ? `${sizeMatch[2]}dvh` : defaultImgHeight;
+    // img:cardDbId:<dbId>:<side?>:<size?> — card DB lookup
+    // img:cardId:<gameCardId>:<side?>:<size?> — in-game card lookup
+    if (rest.startsWith("cardDbId:") || rest.startsWith("cardId:")) {
+      const isGameCard = rest.startsWith("cardId:");
+      const cardPart = rest.startsWith("cardDbId:") ? rest.slice(9) : rest.slice(7);
+      const parts = cardPart.split(":");
+      // Last part is size if numeric, second-to-last is side if present and non-numeric
+      const hasSize = parts.length >= 2 && /^\d+$/.test(parts[parts.length - 1]);
+      const height = hasSize ? `${parts[parts.length - 1]}dvh` : defaultImgHeight;
+      const remaining = hasSize ? parts.slice(0, -1) : parts;
+      const hasSide = remaining.length >= 2;
+      const cardId = remaining[0];
+      const side = hasSide ? remaining[1] : "A";
 
-      const imageUrl = cardDb?.[cardId]?.A?.imageUrl;
+      let imageUrl;
+      if (isGameCard) {
+        imageUrl = cardById?.[cardId]?.sides?.[side]?.imageUrl;
+      } else {
+        imageUrl = cardDb?.[cardId]?.[side]?.imageUrl;
+      }
       if (!imageUrl) {
         return <span key={key}>[unknown card]</span>;
       }
