@@ -9,7 +9,7 @@ defmodule DragnCardsGame.Evaluate.Functions.INSPECT do
 
   Recognizes the same types as `TYPE_OF` operation.
 
-  For faces returns their `name`. For cards/cardIds returns the `name` of their `currentFace` (or side A `name`, if `currentFace` is not set). For groups/groupIds returns their `label`. For players/playerIds returns their alias obtained using `GET_ALIAS`. For the game returns its `pluginName` alongside `pluginId` and `pluginVersion`. Lists are enclosed in `()`, their individual elements are also converted using this method and separated using `, `.
+  For faces returns their `name`. For cards/cardIds returns the `name` of their `currentFace` (or side A `name`, if `currentFace` is not set). For groups/groupIds returns their `label`. For players/playerIds returns their alias obtained using `GET_ALIAS`. For the game returns its `pluginName` alongside `pluginId` and `pluginVersion`. Lists are enclosed in `()`, their individual elements are also converted using this method and separated using `, `. Sets are enclosed in `<()>`, their individual elements are also converted using this method and separated using `, `.
 
   Uses the following labels for default/missing values: `id:null`, `id:true`, `id:false`, `id:face`, `id:card`, `id:group`, `id:player`, `id:plugin`, `id:object`, `id:unknown`.
 
@@ -49,6 +49,7 @@ defmodule DragnCardsGame.Evaluate.Functions.INSPECT do
           true -> v
         end
       is_list(v) -> "(" <> Enum.join(Enum.map(v, fn vv -> to_string(game, vv, h, trace ++ ["vv"]) end), ", ") <> ")"
+      is_struct(v, MapSet) -> "<(" <> Enum.join(Enum.map(v, fn vv -> to_string(game, vv, h, trace ++ ["vv"]) end), ", ") <> ")>"
       is_map(v) ->
         cond do
           Map.has_key?(v, "imageUrl") -> Map.get(v, "name", "id:face")

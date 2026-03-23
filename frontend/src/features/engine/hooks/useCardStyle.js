@@ -1,4 +1,5 @@
 import { useSelector } from 'react-redux';
+import { useRef } from 'react';
 import { useCardScaleFactor } from './useCardScaleFactor';
 import { Z_INDEX } from '../functions/common';
 import { useCardProp } from './useCardProp';
@@ -8,7 +9,13 @@ import { useCardRotation } from './useCardRotation';
 
 export const useCardStyle = (cardId, cardIndexFromGui, isDragging, offset) => {
     const gameDef = useGameDefinition();
-    const cardRotation = useCardRotation(cardId);
+    const rawRotation = useCardRotation(cardId);
+    const displayRotationRef = useRef(rawRotation);
+    // Compute shortest-path delta so CSS transitions don't go the long way around
+    let delta = ((rawRotation - displayRotationRef.current) % 360 + 360) % 360;
+    if (delta > 180) delta -= 360;
+    const cardRotation = displayRotationRef.current + delta;
+    displayRotationRef.current = cardRotation;
     const cardIndex = cardIndexFromGui || 0;
     const cardScaleFactor = useCardScaleFactor();
     const cardVisibleFace = useVisibleFace(cardId);

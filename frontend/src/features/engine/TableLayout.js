@@ -21,7 +21,7 @@ export const TableLayout = React.memo(({onDragEnd}) => {
 
   return (
     <>
-      <Browse/>
+      <Browse onDragEnd={onDragEnd}/>
       {/* Table Regions */}
       {layout.regions &&
         Object.keys(layout?.regions).map((regionId, regionIndex) => {
