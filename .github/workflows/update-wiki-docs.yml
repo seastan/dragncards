@@ -16,11 +16,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
       - uses: erlef/setup-beam@v1
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         with:
           otp-version: '26.x'
-          elixir-version: '1.16.x'
+          elixir-version: '1.15.x'
 
       - name: Install dependencies
         run: mix deps.get
