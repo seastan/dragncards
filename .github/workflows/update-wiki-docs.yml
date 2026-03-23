@@ -16,27 +16,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        env:
-          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
-      - uses: erlef/setup-beam@v1
-        env:
-          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-        with:
-          otp-version: '26.x'
-          elixir-version: '1.15.x'
+      - name: Generate docs
+        run: |
+          mkdir -p backend/doc
+          python3 .github/scripts/generate_docs.py functions backend/lib/dragncards_game/evaluate/functions backend/doc/Functions.md
 
-      - name: Install dependencies
-        run: mix deps.get
-        working-directory: ./backend
-
-      - name: Generate function docs
-        run: mix generate_function_docs lib/dragncards_game/evaluate/functions
-        working-directory: ./backend
-
-      - name: Generate variable docs
-        run: mix generate_variable_docs lib/dragncards_game/evaluate/variables
-        working-directory: ./backend
+          python3 .github/scripts/generate_docs.py variables backend/lib/dragncards_game/evaluate/variables backend/doc/Variables.md
 
       - name: Push to wiki
         run: |
