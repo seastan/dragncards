@@ -45,7 +45,7 @@ def generate_docs(directory, mode):
         else:
             heading = f'### `${name}`'
             separator = '----'
-        entries.append(f'{heading}\n\n{doc}\n{separator}')
+        entries.append(f'{heading}\n\n{doc}\n\n{separator}')
     return '\n\n'.join(entries)
 
 
