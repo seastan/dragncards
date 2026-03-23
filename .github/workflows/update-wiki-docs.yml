@@ -1,0 +1,46 @@
+name: Update Wiki Docs
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/lib/dragncards_game/evaluate/functions/**'
+      - 'backend/lib/dragncards_game/evaluate/variables/**'
+      - 'backend/lib/mix/tasks/generate_function_docs.ex'
+      - 'backend/lib/mix/tasks/generate_variable_docs.ex'
+
+jobs:
+  update-wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: '26.x'
+          elixir-version: '1.16.x'
+
+      - name: Install dependencies
+        run: mix deps.get
+        working-directory: ./backend
+
+      - name: Generate function docs
+        run: mix generate_function_docs lib/dragncards_game/evaluate/functions
+        working-directory: ./backend
+
+      - name: Generate variable docs
+        run: mix generate_variable_docs lib/dragncards_game/evaluate/variables
+        working-directory: ./backend
+
+      - name: Push to wiki
+        run: |
+          git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git wiki
+          cp backend/doc/Functions.md wiki/Functions.md
+          cp backend/doc/Variables.md wiki/Variables.md
+          cd wiki
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Functions.md Variables.md
+          git diff --cached --quiet || git commit -m "Update function and variable docs from ${{ github.sha }}"
+          git push
