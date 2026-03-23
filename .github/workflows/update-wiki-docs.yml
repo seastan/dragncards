@@ -36,11 +36,11 @@ jobs:
       - name: Push to wiki
         run: |
           git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git wiki
-          cp backend/doc/Functions.md wiki/Functions.md
-          cp backend/doc/Variables.md wiki/Variables.md
+          cp backend/doc/Functions.md "wiki/Built‐in-Functions.md"
+          cp backend/doc/Variables.md "wiki/Built‐in-Variables.md"
           cd wiki
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Functions.md Variables.md
+          git add "Built‐in-Functions.md" "Built‐in-Variables.md"
           git diff --cached --quiet || git commit -m "Update function and variable docs from ${{ github.sha }}"
           git push
