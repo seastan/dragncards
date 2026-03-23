@@ -25,6 +25,9 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
   ```
   ["PROMPT", "$PLAYER_ORDER", "chooseTargetPlayer"]
   ```
+
+  The `message` field and option `label` fields in the prompt definition support the same rich text tokens as LOG (inline images, card hover links, hyperlinks). See the LOG documentation for the full token reference.
+
   """
 
   @doc """

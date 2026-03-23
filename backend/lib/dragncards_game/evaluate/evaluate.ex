@@ -402,6 +402,9 @@ defmodule DragnCardsGame.Evaluate do
                 "$ACTIVE_FACE" ->
                   evaluate(game, "$ACTIVE_CARD.currentFace", trace)
 
+                "$ACTIVE_SIDE" ->
+                  evaluate(game, "$ACTIVE_CARD.currentSide", trace)
+
                 "$ACTIVE_TOKENS" ->
                   evaluate(game, "$ACTIVE_CARD.tokens", trace)
 

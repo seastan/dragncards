@@ -25,6 +25,29 @@ defmodule DragnCardsGame.Evaluate.Functions.LOG do
   ]
   ```
 
+  *Rich text tokens*:
+
+  Log messages support inline images, card hover links, and hyperlinks via embedded tokens. Tokens are separated from surrounding text by whitespace. All URLs must use `http` or `https`.
+
+  | Token | Example | Renders as |
+  |-------|---------|------------|
+  | `img:<url>` | `img:https://example.com/icon.png` | Inline image at default height (2dvh) |
+  | `img:<url>:<size>` | `img:https://example.com/icon.png:5` | Inline image at 5dvh height |
+  | `img:card:<dbId>` | `img:card:01001` | Card image from the card DB at default height |
+  | `img:card:<dbId>:<size>` | `img:card:01001:4` | Card image at 4dvh height |
+  | `link:<url>` | `link:https://ringsdb.com` | Clickable hyperlink (URL as label) |
+  | `link:<url>:<label>` | `link:https://ringsdb.com:RingsDB` | Clickable hyperlink with custom label |
+  | `link:cardId:<id>` | `link:cardId:{{$ACTIVE_CARD_ID}}` | Card name as hoverable link; hover shows card image (side A) |
+  | `link:cardId:<id>:<side>` | `link:cardId:{{$ACTIVE_CARD_ID}}:B` | Same but shows the specified side |
+  | `link:cardDbId:<dbId>` | `link:cardDbId:01001` | Same as `link:cardId` but looks up by card DB id |
+  | `link:cardDbId:<dbId>:<side>` | `link:cardDbId:01001:B` | Same with explicit side |
+
+  *Example*:
+  ```
+  ["LOG", "{{$ALIAS_N}} played link:cardId:{{$ACTIVE_CARD_ID}} from their hand."]
+  ```
+
+  These tokens also work in prompt messages and option labels (see PROMPT).
 
   """
 
