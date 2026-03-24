@@ -29,6 +29,8 @@ import { useSetTouchAction } from "./hooks/useSetTouchAction";
 import { useTouchAction } from "./hooks/useTouchAction";
 import { CustomContentModal } from "./CustomContentModal";
 import { SpawnPublicDeckModal } from "./SpawnPublicDeckModal";
+import { TableChat } from "./TableChat";
+import { useLayout } from "./hooks/useLayout";
 
 // Lazy load the R3F table layout to avoid loading Three.js when not needed
 const R3FTableLayout = lazy(() => import("../engine-r3f/R3FTableLayout"));
@@ -46,6 +48,7 @@ export const Table = React.memo(({onDragEnd}) => {
   const myUserId = useProfile()?.id;
   const isHost = useIsHost();
   const playerN = usePlayerN();
+  const layout = useLayout();
   usePreloadCardImages();
   console.log('Rendering Table', playerN, 'use3DView:', use3DView);
 
@@ -106,6 +109,7 @@ export const Table = React.memo(({onDragEnd}) => {
             ) : (
               <TableLayout onDragEnd={onDragEnd}/>
             )}
+            {use3DView && layout?.chat && <TableChat region={layout.chat} />}
             <FadeTextPlayer/>
           </div>
           {/* Touch Bar */}

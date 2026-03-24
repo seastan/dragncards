@@ -13,7 +13,7 @@ import * as THREE from 'three';
 import { useSelector, useDispatch } from 'react-redux';
 import { R3FCardFromRedux } from './R3FCardFromRedux';
 import { useDropContext, useDragStateContext } from './R3FScene';
-import { findAttachmentTarget, isAttachmentAllowed, getAttachmentLocalOffset } from '../utils/attachmentUtils';
+import { findAttachmentTarget, isAttachmentAllowed, getAttachmentLocalOffset, getStackBounds } from '../utils/attachmentUtils';
 import { useGameDefinition } from '../../engine/hooks/useGameDefinition';
 import { setActiveCardId } from '../../store/playerUiSlice';
 
@@ -145,9 +145,11 @@ export const R3FStack = ({
     dragStateContext?.hoverOverStackId != null &&
     dragStateContext?.hoverOverAttachmentAllowed === true;
 
-  // Attachment indicator: this stack is the hover target
+  // Attachment indicator: this stack is the hover target (not allowed in browse region)
   const attachmentIndicatorDirection =
-    (dragStateContext?.hoverOverStackId === stackId && dragStateContext?.hoverOverAttachmentAllowed === true)
+    (dragStateContext?.hoverOverStackId === stackId &&
+      dragStateContext?.hoverOverAttachmentAllowed === true &&
+      region?.id !== 'browse')
       ? dragStateContext?.hoverOverDirection
       : null;
 
@@ -457,13 +459,9 @@ export const R3FStack = ({
       setPointerIsDown(false);
 
       if (wasPointerDown && !wasDragging) {
-        // Prevent canvas click from clearing dropdown
-        const preventNextClick = (e) => {
-          e.stopPropagation();
-          canvas.removeEventListener('click', preventNextClick, true);
-        };
-        canvas.addEventListener('click', preventNextClick, true);
-        setTimeout(() => canvas.removeEventListener('click', preventNextClick, true), 100);
+        // Non-drag click: R3F will fire onClick on the mesh → handleMeshClick,
+        // which dispatches the card menu and calls e.nativeEvent.stopPropagation()
+        // to prevent Table.js from clearing the dropdown. Nothing to do here.
         return;
       }
 
@@ -546,6 +544,16 @@ export const R3FStack = ({
       }
 
       document.body.style.cursor = 'default';
+
+      // Suppress the DOM click that browsers fire after pointerup so that R3F
+      // does not deliver a spurious onClick to whatever card is under the cursor
+      // (e.g. the attachment target after a combine drop).
+      const suppressClick = (e) => {
+        e.stopPropagation();
+        canvas.removeEventListener('click', suppressClick, true);
+      };
+      canvas.addEventListener('click', suppressClick, true);
+      setTimeout(() => canvas.removeEventListener('click', suppressClick, true), 200);
 
       event.preventDefault();
     };
@@ -676,6 +684,9 @@ export const R3FStack = ({
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Compute stack bounds (includes attachment edges) for zone detection + indicator positioning
+  const stackBounds = useMemo(() => getStackBounds(stack, cardById), [stack, cardById]);
+
   // Register stack position for attachment detection
   const registerStackPosition = dragStateContext?.registerStackPosition;
   const unregisterStackPosition = dragStateContext?.unregisterStackPosition;
@@ -688,6 +699,7 @@ export const R3FStack = ({
       cardWidth: 7.14,
       cardHeight: 10,
       groupId,
+      edges: stackBounds.edges,
     });
     return () => {
       if (unregisterStackPosition) {
@@ -719,6 +731,7 @@ export const R3FStack = ({
               onPointerDownForDrag={idx === 0 ? handlePointerDown : undefined}
               isAttachmentHover={isAttachmentHover}
               attachmentIndicatorDirection={idx === 0 ? attachmentIndicatorDirection : null}
+              attachmentEdges={idx === 0 ? stackBounds.edges : undefined}
               stackIndex={stackIndex}
             />
           );

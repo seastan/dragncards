@@ -46,7 +46,7 @@ export const MessageBox = ({ hover }) => {
   }, [newMessageObjects]);
 
   return (
-    <div className="overflow-hidden h-full bg-gray-900">
+    <div className="overflow-hidden h-full" style={{background: "rgba(10,12,20,0.82)", backdropFilter: "blur(8px)"}}>
       <div className="overflow-y-auto" style={{height: `calc(100% - 3dvh)`}}>
         {showingLog && <LogDiv hover={hover}/>}
         {!showingLog && <ChatDiv hover={hover}/>}

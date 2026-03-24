@@ -29,9 +29,19 @@ export const TableChat = React.memo(({
         width: convertToPercentage(region.width), 
         height: convertToPercentage(region.height)
       }}>
-    <div 
-      className="absolute bottom-0 left-0" 
-      style={{height: chatHover ? "100dvh" : "100%", width:'100%', zIndex: chatHover ? Z_INDEX.ChatHover : 0}}
+    <div
+      className="absolute bottom-0 left-0"
+      style={{
+        height: chatHover ? "100dvh" : "100%",
+        width: '100%',
+        zIndex: chatHover ? Z_INDEX.ChatHover : 0,
+        transition: "height 0.3s ease",
+        borderRadius: chatHover ? "0" : "8px 8px 0 0",
+        overflow: "hidden",
+        boxShadow: "0 -4px 20px rgba(0,0,0,0.5), -2px 0 12px rgba(0,0,0,0.3)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        borderBottom: "none",
+      }}
       onMouseEnter={() => handleStartChatHover()}
       onMouseLeave={() => handleStopChatHover()}>
       <MessageBox hover={chatHover}/>

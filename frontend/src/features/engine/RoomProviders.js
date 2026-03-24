@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from 'react-redux';
 import RoomGame from "./RoomGame";
 import useProfile from "../../hooks/useProfile";
@@ -29,6 +29,7 @@ export const RoomProviders = ({ gameBroadcast, chatBroadcast }) => {
   const gameDef = useGameDefinition();
   const pluginId = usePlugin()?.id;
   const [playerNSet, setPlayerNSet] = useState(true);
+  const uiSettingsLoadedRef = useRef(false);
 
   useEffect(() => {
     dispatch(setPlayerN(playerN));
@@ -39,15 +40,16 @@ export const RoomProviders = ({ gameBroadcast, chatBroadcast }) => {
   }, [playerN, myUser])
 
   useEffect(() => {
-
+    if (uiSettingsLoadedRef.current) return;
+    if (!myUser || !pluginId) return;
     const databaseUiSettings = myUser?.plugin_settings?.[pluginId]?.ui;
     if (databaseUiSettings) {
-      console.log("Setting user settings from database", userSettings, databaseUiSettings)
-      const mergedSettings = {...userSettings, ...databaseUiSettings};
-      dispatch(setUserSettings(mergedSettings));
+      console.log("Setting user settings from database", databaseUiSettings)
+      uiSettingsLoadedRef.current = true;
+      dispatch(setUserSettings({...userSettings, ...databaseUiSettings}));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [myUser, pluginId])
 
   const gameBackgroundUrl = gameDef?.backgroundUrl;
   const playerUiBackgroundUrl = useSelector(state => state?.playerUi?.userSettings?.backgroundUrl);
@@ -66,7 +68,9 @@ export const RoomProviders = ({ gameBroadcast, chatBroadcast }) => {
         key={backgroundUrl}
         className="background"
         style={{
-          height: "97dvh",
+          flex: 1,
+          minHeight: 0,
+          overflow: "hidden",
           background: backgroundUrl ? `url(${backgroundUrl})` : "",
           backgroundRepeat: "no-repeat",
           backgroundSize: "cover",

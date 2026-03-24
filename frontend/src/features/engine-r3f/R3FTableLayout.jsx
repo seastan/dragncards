@@ -16,6 +16,9 @@ import { useDoActionList } from '../engine/hooks/useDoActionList';
 import { useR3FDragActions } from './R3FDragSystem';
 import { R3FBrowsePanel } from './components/R3FBrowsePanel';
 import { useBrowseFiltering } from '../engine/hooks/useBrowseFiltering';
+import { useLayout } from '../engine/hooks/useLayout';
+import { useGameL10n } from '../engine/hooks/useGameL10n';
+import { convertToPercentage } from '../engine/functions/common';
 
 // Loading fallback for Suspense
 const LoadingFallback = () => (
@@ -59,6 +62,9 @@ export const R3FTableLayout = ({
   const [localZoom, setLocalZoom] = useState(zoom);
   const [showRegionBoundaries, setShowRegionBoundaries] = useState(true);
 
+  const layout = useLayout();
+  const gameL10n = useGameL10n();
+
   // Browse filtering state (shared between 3D scene and browse panel overlay)
   const { filteredStackIndices, searchForProperty, setSearchForProperty, searchForText, setSearchForText, resetFilters } = useBrowseFiltering();
 
@@ -92,6 +98,32 @@ export const R3FTableLayout = ({
           />
         </Suspense>
       </Canvas>
+
+      {/* Hover TextBox overlays — screen-space, positioned relative to this container */}
+      {layout?.textBoxes && Object.entries(layout.textBoxes).map(([id, tb]) => {
+        if (tb.visible === false || !tb.hover) return null;
+        const customStyle = tb.style || {};
+        return (
+          <div key={id} style={{
+            position: 'absolute',
+            left: convertToPercentage(tb.left),
+            top: convertToPercentage(tb.top),
+            width: convertToPercentage(tb.width),
+            height: convertToPercentage(tb.height),
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            border: '1px solid #6b7280',
+            color: '#9ca3af',
+            backgroundColor: '#374151',
+            pointerEvents: 'none',
+            zIndex: 50,
+            ...customStyle,
+          }}>
+            {gameL10n(tb.label)}
+          </div>
+        );
+      })}
 
       {/* Browse panel overlay */}
       <R3FBrowsePanel

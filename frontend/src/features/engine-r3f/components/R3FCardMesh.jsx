@@ -23,18 +23,19 @@ const lastTextureByCard = new Map();
  * R3FLinkIndicator - Shows a circular link icon at the edge of a card
  * indicating where an attachment will be placed.
  */
-const R3FLinkIndicator = ({ direction, cardWidth, cardHeight, rotation }) => {
+const R3FLinkIndicator = ({ direction, cardWidth, cardHeight, rotation, attachmentEdges }) => {
   const halfW = cardWidth / 2;
   const halfH = cardHeight / 2;
   const indicatorSize = 4.0;
   const yOffset = 0.3;
+  const e = attachmentEdges || { left: 0, right: 0, top: 0, bottom: 0 };
 
   let posX = 0, posZ = 0;
   switch (direction) {
-    case 'left':   posX = -halfW; break;
-    case 'right':  posX = halfW; break;
-    case 'top':    posZ = -halfH; break;
-    case 'bottom': posZ = halfH; break;
+    case 'left':   posX = e.left  - halfW; break;
+    case 'right':  posX = e.right + halfW; break;
+    case 'top':    posZ = e.top   - halfH; break;
+    case 'bottom': posZ = e.bottom + halfH; break;
     case 'center': break;
     default: break;
   }
@@ -45,17 +46,18 @@ const R3FLinkIndicator = ({ direction, cardWidth, cardHeight, rotation }) => {
       position={[0, yOffset, 0]}
     >
       <group position={[posX, -posZ, 0.01]}>
-        <mesh>
+        <mesh renderOrder={9999}>
           <circleGeometry args={[indicatorSize / 2, 32]} />
           <meshBasicMaterial
             color="#d1d5db"
             transparent
-            opacity={0.85}
+            opacity={.2}
             side={THREE.DoubleSide}
             depthWrite={false}
+            depthTest={false}
           />
         </mesh>
-        <lineLoop>
+        <lineLoop renderOrder={10000}>
           <bufferGeometry>
             <bufferAttribute
               attach="attributes-position"
@@ -73,7 +75,7 @@ const R3FLinkIndicator = ({ direction, cardWidth, cardHeight, rotation }) => {
               itemSize={3}
             />
           </bufferGeometry>
-          <lineBasicMaterial color="#374151" linewidth={2} />
+          <lineBasicMaterial color="#374151" linewidth={2} depthTest={false} />
         </lineLoop>
         <Html
           center
@@ -116,6 +118,7 @@ export const R3FCardMesh = ({
   cardHeight = 10,
   isAttachmentHover = false,
   attachmentIndicatorDirection = null,
+  attachmentEdges = null,
   onClick = null,
   onHover = null,
   onHoverEnd = null,
@@ -283,7 +286,8 @@ export const R3FCardMesh = ({
   // For attachment cards, onClick fires directly from R3F's event system.
   const handleMeshClick = (e) => {
     if (onClick) {
-      e.stopPropagation();
+      e.stopPropagation();           // Stop R3F scene propagation
+      e.nativeEvent?.stopPropagation(); // Stop DOM event from reaching Table.js handleTableClick
       onClick(cardId, e);
     }
   };
@@ -472,6 +476,7 @@ export const R3FCardMesh = ({
             cardWidth={cardWidth}
             cardHeight={cardHeight}
             rotation={currentRotation}
+            attachmentEdges={attachmentEdges}
           />
         )}
       </group>

@@ -1292,7 +1292,19 @@ export const getGameDefSchema = (gameDef) => {
               "visible": {
                 "_description_": "Whether the text box is visible",
                 "_type_": "boolean",
-              }
+              },
+              "hover": {
+                "_description_": "If true, the text box is positioned relative to the screen (not the table angle in 3D)",
+                "_type_": "boolean",
+              },
+              "style": {
+                "_description_": "CSS style object applied to the text box. Example: {backgroundColor: 'rgba(0,0,0,0.7)', padding: '4px'}",
+                "_type_": "object",
+                "_itemSchema_": {
+                  "_description_": "A CSS style property value",
+                  "_type_": "string",
+                }
+              },
             }
 
           }

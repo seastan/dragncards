@@ -9,6 +9,7 @@ import React, { useCallback, useMemo, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { R3FCardMesh } from './R3FCardMesh';
 import { useVisibleFaceSrc } from '../../engine/hooks/useVisibleFaceSrc';
+import { useVisibleFace } from '../../engine/hooks/useVisibleFace';
 import { useVisibleSide } from '../../engine/hooks/useVisibleSide';
 import { useCardRotation } from '../../engine/hooks/useCardRotation';
 import { useGameDefinition } from '../../engine/hooks/useGameDefinition';
@@ -34,6 +35,7 @@ export const R3FCardFromRedux = ({
   onPointerDownForDrag = null,
   isAttachmentHover = false,
   attachmentIndicatorDirection = null,
+  attachmentEdges = null,
   stackIndex = 0,
 }) => {
   const dispatch = useDispatch();
@@ -41,7 +43,8 @@ export const R3FCardFromRedux = ({
   // Redux selectors for card data
   const visibleFaceSrc = useVisibleFaceSrc(cardId);
   const imageSrc = getProxiedImageUrl(visibleFaceSrc?.src);
-  const visibleFaceName = visibleFaceSrc?.name;
+  const visibleFace = useVisibleFace(cardId);
+  const visibleFaceName = visibleFace?.name;
   const cardRotation = useCardRotation(cardId);
   const currentSide = useVisibleSide(cardId);
   const previousSide = prevSideMap.get(cardId);
@@ -147,6 +150,7 @@ export const R3FCardFromRedux = ({
       cardHeight={10}
       isAttachmentHover={isAttachmentHover}
       attachmentIndicatorDirection={attachmentIndicatorDirection}
+      attachmentEdges={attachmentEdges}
       onClick={handleClick}
       onHover={handleHover}
       onHoverEnd={handleHoverEnd}

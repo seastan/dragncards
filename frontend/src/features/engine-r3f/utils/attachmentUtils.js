@@ -49,41 +49,52 @@ export const findAttachmentTarget = (dragX, dragZ, stackPositions, draggingCardW
   const combineZoneWidth = COMBINE_ZONE_FACTOR * draggingCardWidth;
 
   for (const sp of stackPositions) {
-    const { stackId, x: sx, z: sz, cardWidth: cw, cardHeight: ch } = sp;
+    const { stackId, x: sx, z: sz, cardWidth: cw, cardHeight: ch, edges } = sp;
     const halfW = cw / 2;
     const halfH = ch / 2;
+    const e = edges || { left: 0, right: 0, top: 0, bottom: 0 };
+
+    // Outer edges of the stack (accounting for attachments)
+    const rightEdge  = sx + e.right + halfW;
+    const leftEdge   = sx + e.left  - halfW;
+    const topEdge    = sz + e.top   - halfH;
+    const bottomEdge = sz + e.bottom + halfH;
 
     // Define the 5 zones (left, right, top, bottom, center) in world coords
-    // "left" zone: extends from left edge outward
+    // "left" zone: centered on the leftmost card's left edge.
+    // Clamp the right boundary so the zone doesn't bleed into the attachment
+    // area on the right side (i.e. no further right than the parent center).
     const leftZone = {
-      minX: sx - halfW - combineZoneWidth,
-      maxX: sx - halfW + combineZoneWidth,
+      minX: leftEdge - combineZoneWidth,
+      maxX: Math.min(leftEdge + combineZoneWidth, sx),
       minZ: sz - halfH * 0.5,
       maxZ: sz + halfH * 0.5,
     };
 
-    // "right" zone: extends from right edge outward
+    // "right" zone: centered on the rightmost card's right edge.
+    // Clamp the left boundary so the zone doesn't bleed into the attachment
+    // area on the left side (i.e. no further left than the parent center).
     const rightZone = {
-      minX: sx + halfW - combineZoneWidth,
-      maxX: sx + halfW + combineZoneWidth,
+      minX: Math.max(rightEdge - combineZoneWidth, sx),
+      maxX: rightEdge + combineZoneWidth,
       minZ: sz - halfH * 0.5,
       maxZ: sz + halfH * 0.5,
     };
 
-    // "top" zone: extends from top edge outward (negative Z direction)
+    // "top" zone: centered on the topmost card's top edge
     const topZone = {
       minX: sx - halfW - combineZoneWidth,
       maxX: sx + halfW + combineZoneWidth,
-      minZ: sz - halfH - halfH * 0.25,
-      maxZ: sz - halfH + halfH * 0.25,
+      minZ: topEdge - halfH * 0.25,
+      maxZ: topEdge + halfH * 0.25,
     };
 
-    // "bottom" zone: extends from bottom edge outward (positive Z direction)
+    // "bottom" zone: centered on the bottommost card's bottom edge
     const bottomZone = {
       minX: sx - halfW - combineZoneWidth,
       maxX: sx + halfW + combineZoneWidth,
-      minZ: sz + halfH - halfH * 0.25,
-      maxZ: sz + halfH + halfH * 0.25,
+      minZ: bottomEdge - halfH * 0.25,
+      maxZ: bottomEdge + halfH * 0.25,
     };
 
     // Check directional zones first (they take priority over center)
@@ -104,11 +115,6 @@ export const findAttachmentTarget = (dragX, dragZ, stackPositions, draggingCardW
       return { stackId, direction: 'bottom' };
     }
 
-    // Center zone: inside the card bounds
-    if (dragX >= sx - halfW && dragX <= sx + halfW &&
-      dragZ >= sz - halfH && dragZ <= sz + halfH) {
-      return { stackId, direction: 'center' };
-    }
   }
 
   return { stackId: null, direction: null };
@@ -223,6 +229,7 @@ export const getStackBounds = (stack, cardById, baseCardWidth = 7.14, baseCardHe
     height: baseCardHeight + edges.bottom - edges.top,
     parentOffsetX: -(edges.left + edges.right) / 2,
     parentOffsetZ: -(edges.top + edges.bottom) / 2,
+    edges,
   };
 };
 
