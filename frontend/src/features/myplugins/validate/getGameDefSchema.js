@@ -1080,6 +1080,14 @@ export const getGameDefSchema = (gameDef) => {
             "_description_": "If set to true, the layout will display borders around the regions to help with layout testing",
             "_type_": "boolean",
           },
+          "showRotationOfActiveCard": {
+            "_description_": "List of rotation values (in degrees) for which the GiantCard will match the active card's rotation",
+            "_type_": "array",
+            "_itemSchema_": {
+              "_description_": "A rotation value in degrees",
+              "_type_": "integer",
+            }
+          },
           "stackStyleWhenHoveredOver": {
             "_description_": "The CSS style of a stack overlay that appears when a stack is hovered over. Must be formatted in JSX. Example: {'backgroundColor': 'rgba(255, 0, 0, 0.5)'} will give stacks a transparent red overlay when hovered over.",
             "_type_": "object",

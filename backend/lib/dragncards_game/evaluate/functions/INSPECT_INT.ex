@@ -8,7 +8,7 @@ defmodule DragnCardsGame.Evaluate.Functions.INSPECT_INT do
 
   Recognizes the same types as `TYPE_OF` operation.
 
-  For `null`, `false`, or unknowns returns 0. For `true`, cardIds, playerIds, or objects (except groups) returns 1. For floats returns their rounded and truncated value. For strings tries to interpret them as floats or integers, otherwise returns their length. For groups/groupIds returns the length of their `stackIds` list. For lists returns their length. Integer values are returned as-is.
+  For `null`, `false`, or unknowns returns 0. For `true`, cardIds, playerIds, or objects (except groups) returns 1. For floats returns their rounded and truncated value. For strings tries to interpret them as floats or integers, otherwise returns their length. For groups/groupIds returns the length of their `stackIds` list. For lists and sets returns their length. Integer values are returned as-is.
 
   *Returns*:
   (integer) The result of the operation.
@@ -52,6 +52,7 @@ defmodule DragnCardsGame.Evaluate.Functions.INSPECT_INT do
             end
         end
       is_list(v) -> Enum.count(v)
+      is_struct(v, MapSet) -> MapSet.size(v)
       is_map(v) ->
         cond do
           Map.has_key?(v, "stackIds") -> Enum.count(Map.get(v, "stackIds"))

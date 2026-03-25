@@ -24,6 +24,9 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
   ```
   ["PROMPT", "$PLAYER_ORDER", "chooseTargetPlayer"]
   ```
+
+  The `message` field and option `label` fields in the prompt definition support the same rich text tokens as LOG (inline images, card hover links, hyperlinks). See the LOG documentation for the full token reference.
+
   """
 
   @doc """
@@ -70,14 +73,14 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
     multi_var_command = Enum.reduce(Enum.with_index(orig_args), ["MULTI_VAR_NO_EVAL"], fn({arg, index}, acc) ->
       [{arg_name, arg_val}] = cond do
         index >= Enum.count(arg_vals) -> # If we are beyond the range of input arguments, look for default arguments
-          if is_map(arg) do
+          if is_map(arg) and !is_struct(arg, MapSet) do
             Map.to_list(arg)
           else
             raise "Prompt #{prompt_id} expects #{Enum.count(orig_args)} arguments, but got #{Enum.count(arg_vals)}."
           end
         true -> # We are within the range of input arguments, so use the input argument
           arg_val = Evaluate.evaluate(game, Enum.at(arg_vals, index), trace ++ ["arg_val #{index}"]) # We evaluate the arguments now rather than when the prompt is triggered
-          if is_map(arg) do
+          if is_map(arg) and !is_struct(arg, MapSet) do
             arg_name = Enum.at(Map.keys(arg), 0)
             [{arg_name, arg_val}]
           else

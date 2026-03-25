@@ -9,10 +9,10 @@ export const Target = React.memo(({
     const cardScaleFactor = useCardScaleFactor();
     if (!targeting) return null;
     var targetString = "";
-    if (targeting.player1) targetString += "1";
-    if (targeting.player2) targetString += "2";
-    if (targeting.player3) targetString += "3";
-    if (targeting.player4) targetString += "4";
+    Object.keys(targeting).forEach(key => {
+        const match = key.match(/^player(\d+)$/);
+        if (match && targeting[key]) targetString += match[1];
+    });
     if (targetString === "") return null;
 
     return (

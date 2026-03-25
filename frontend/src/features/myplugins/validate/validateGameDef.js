@@ -145,9 +145,9 @@ export const validateSchema = (gameDef, path, data, schema, errors) => {
   // TODO: Check for memberOf
   if (schema._memberOf_ && !schema._memberOf_.includes(data)) {
       
-    // Special exception for loadGroupIds - you can start a group with "playerN" 
+    // Special exception for loadGroupIds and moveToGroupIds - you can start a group with "playerN"
     // even if it is not in gameDef.groups, and it will be resolved at load time.
-    if (path.includes("loadGroupId") && data.startsWith("playerN"))
+    if ((path.includes("loadGroupId") || path.includes("moveToGroupIds")) && data.startsWith("playerN"))
       return;
 
     errors.push(`Invalid key in ${path}: "${data}". Key must be present in ${schema._memberOfPath_}.`);

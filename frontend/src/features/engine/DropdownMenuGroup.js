@@ -63,7 +63,8 @@ export const DropdownMenuGroup = React.memo(({
 
   const windowHeight = window.innerHeight;
   const left = mouseX < (window.innerWidth/2)  ? mouseX + windowHeight * 0.01 : mouseX - windowHeight * 0.36;
-  const top = mouseY < (window.innerHeight/2) ? mouseY - windowHeight * 0.1 : mouseY - windowHeight * 0.5;
+  const rawTop = mouseY < (window.innerHeight/2) ? mouseY - windowHeight * 0.1 : mouseY - windowHeight * 0.5;
+  const top = Math.min(rawTop, window.innerHeight - (menuHeight || 0) - 8);
 
   const actionListShuffle = [
     ["SHUFFLE_GROUP", menuGroup.id],
@@ -146,14 +147,17 @@ export const DropdownMenuGroup = React.memo(({
               clickCallback={handleDropdownClick}>
               {siteL10n("My Deck")}
             </DropdownItem>
-            {gameDef.groupMenu?.moveToGroupIds?.map((moveToGroupId, _moveToGroupIndex) => (
-              <DropdownItem
-                rightIcon={<FontAwesomeIcon icon={faChevronRight}/>}
-                goToMenu={"moveTo"+moveToGroupId}
-                clickCallback={handleDropdownClick}>
-                {gameL10n(gameDef?.groups?.[moveToGroupId]?.label)}
-              </DropdownItem>
-              ))}
+            {gameDef.groupMenu?.moveToGroupIds?.map((moveToGroupId, _moveToGroupIndex) => {
+              const resolvedGroupId = moveToGroupId.replace("playerN", playerN);
+              return (
+                <DropdownItem
+                  rightIcon={<FontAwesomeIcon icon={faChevronRight}/>}
+                  goToMenu={"moveTo"+resolvedGroupId}
+                  clickCallback={handleDropdownClick}>
+                  {gameL10n(gameDef?.groups?.[resolvedGroupId]?.label)}
+                </DropdownItem>
+              )
+            })}
         </div>
         }
         {activeMenu === "setVisibility" &&
@@ -186,9 +190,10 @@ export const DropdownMenuGroup = React.memo(({
         }
         {activeMenu === "moveToMy" &&
         <DropdownMoveTo destGroupId={playerN+"Deck"}/>}
-        {gameDef?.groupMenu?.moveToGroupIds?.map((moveToGroupId, _moveToGroupIndex) => (
-          (activeMenu === "moveTo" + moveToGroupId) && <DropdownMoveTo destGroupId={moveToGroupId}/>
-        ))}
+        {gameDef?.groupMenu?.moveToGroupIds?.map((moveToGroupId, _moveToGroupIndex) => {
+          const resolvedGroupId = moveToGroupId.replace("playerN", playerN);
+          return (activeMenu === "moveTo" + resolvedGroupId) && <DropdownMoveTo destGroupId={resolvedGroupId}/>;
+        })}
     </div>
   );
 })

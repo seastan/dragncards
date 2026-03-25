@@ -217,6 +217,10 @@ defmodule DragnCardsGame.GameUIServer do
 
   def handle_call({:game_action, user_id, action, options}, _from, gameui) do
     Logger.debug("handle game_action #{user_id} #{action}")
+    gameui = case Users.get_user(user_id) do
+      nil -> gameui
+      user -> put_in(gameui, ["options", "language"], user.language)
+    end
     gameui = case Application.get_env(:dragncards, :env_mode) do
       :prod ->
         try do

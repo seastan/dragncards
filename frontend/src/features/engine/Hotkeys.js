@@ -133,16 +133,16 @@ export const Hotkeys = React.memo(() => {
   }
   else {
     return(
-      <Draggable>
+      <Draggable handle=".drag-handle">
         <div className={windowClass} style={windowStyle}>
-          <div className="w-full bg-gray-500" style={{height: "25px"}}>
-            <FontAwesomeIcon 
-              className="ml-2" 
-              icon={faTimes} 
-              onMouseUp={() => dispatch(setShowHotkeys(false))} 
+          <div className="drag-handle w-full bg-gray-500 cursor-move" style={{height: "25px"}}>
+            <FontAwesomeIcon
+              className="ml-2"
+              icon={faTimes}
+              onMouseUp={() => dispatch(setShowHotkeys(false))}
               onTouchStart={() => dispatch(setShowHotkeys(false))}/>
           </div>
-          <div className="w-full p-3 overflow-y-scroll" style={{height: "523px"}}>
+          <div className="w-full p-3 overflow-y-scroll" style={{height: "523px", touchAction: "pan-y"}}>
             <h2 className="mb-2">{siteL10n("tokenHotkeys")}</h2>
             {siteL10n("hoverOverTopBottom")}
             <HotkeyTable hotkeyList={gameDef?.hotkeys?.token} l10n={gameL10n}/>

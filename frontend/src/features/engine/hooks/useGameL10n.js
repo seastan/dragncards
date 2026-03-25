@@ -1,5 +1,6 @@
 import { useGameDefinition } from "./useGameDefinition";
 import useProfile from "../../../hooks/useProfile";
+import { useRichText } from "../../messages/useRichText";
 
 export const useGameL10n = () => {
     const user = useProfile();
@@ -15,4 +16,10 @@ export const useGameL10n = () => {
         }
         else return label;
     }
+}
+
+export const useGameL10nRich = () => {
+    const gameL10n = useGameL10n();
+    const richText = useRichText();
+    return (label) => richText(gameL10n(label), { context: "prompt" });
 }

@@ -29,7 +29,7 @@ defmodule DragnCardsGame.PutByPath do
 
           val_old ->
             # Check if val_old is a map
-            if is_map(val_old) do
+            if is_map(val_old) and !is_struct(val_old, MapSet) do
               #IO.puts("Changing #{inspect(path)} from #{inspect(val_old[key])} to #{inspect(val_new)}")
               put_in(game_old, path, val_new)
             else

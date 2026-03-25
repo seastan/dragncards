@@ -37,7 +37,10 @@ export const useBrowseRegion = () => {
 }
 
 
-export const Browse = React.memo(() => {
+export const Browse = React.memo(({onDragEnd}) => {
+=======
+export const Browse = React.memo(({onDragEnd}) => {
+>>>>>>> origin/main
   const dispatch = useDispatch();
   const gameL10n = useGameL10n();
   const gameDef = useGameDefinition();
@@ -164,6 +167,7 @@ export const Browse = React.memo(() => {
               groupId={groupId}
               region={region}
               selectedStackIndices={filteredStackIndices}
+              onDragEnd={onDragEnd}
             />
           </div>
         </div>

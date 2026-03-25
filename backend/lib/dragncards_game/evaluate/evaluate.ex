@@ -77,7 +77,8 @@ defmodule DragnCardsGame.Evaluate do
       arg_type == "number" and is_number(val) -> true
       arg_type == "boolean" and is_boolean(val) -> true
       arg_type == "list" and is_list(val) -> true
-      arg_type == "map" and is_map(val) -> true
+      arg_type == "map" and is_map(val) and !is_struct(val, MapSet) -> true
+      arg_type == "set" and is_struct(val, MapSet) -> true
       arg_type == "code" and is_list(val) -> true
       true -> false
     end
@@ -170,7 +171,7 @@ defmodule DragnCardsGame.Evaluate do
   end
 
   def is_game(val) do
-    is_map(val) and Map.has_key?(val, "roomSlug") and Map.has_key?(val, "pluginId") and Map.has_key?(val, "groupById") and Map.has_key?(val, "playerData") and Map.has_key?(val, "cardById")
+    is_map(val) and !is_struct(val, MapSet) and Map.has_key?(val, "roomSlug") and Map.has_key?(val, "pluginId") and Map.has_key?(val, "groupById") and Map.has_key?(val, "playerData") and Map.has_key?(val, "cardById")
   end
 
   def evaluate(game, code, trace \\ []) do
@@ -217,7 +218,7 @@ defmodule DragnCardsGame.Evaluate do
         raise RecursiveEvaluationError, message: e.message
       e ->
         # Check if e has a message
-        message = if is_map(e) and Map.has_key?(e, :message) do
+        message = if is_map(e) and !is_struct(e, MapSet) and Map.has_key?(e, :message) do
           e.message
         else
           inspect(e)
@@ -277,14 +278,14 @@ defmodule DragnCardsGame.Evaluate do
           multi_var_command = Enum.reduce(Enum.with_index(func_args), ["MULTI_VAR"], fn({func_arg, index}, acc) ->
             [{func_arg_name, input_arg}] = cond do
               index >= Enum.count(input_args) -> # If we are beyond the range of input arguments, look for default arguments
-                if is_map(func_arg) do
+                if is_map(func_arg) and !is_struct(func_arg, MapSet) do
                   Map.to_list(func_arg)
                 else
                   raise "Function #{function_name} expects #{Enum.count(func_args)} arguments, but got #{Enum.count(input_args)}."
                 end
               true -> # We are within the range of input arguments, so use the input argument
                 input_arg = Enum.at(input_args, index)
-                if is_map(func_arg) do
+                if is_map(func_arg) and !is_struct(func_arg, MapSet) do
                   func_arg_name = Enum.at(Map.keys(func_arg), 0)
                   [{func_arg_name, input_arg}]
                 else
@@ -398,6 +399,9 @@ defmodule DragnCardsGame.Evaluate do
 
                 "$ACTIVE_FACE" ->
                   evaluate(game, "$ACTIVE_CARD.currentFace", trace)
+
+                "$ACTIVE_SIDE" ->
+                  evaluate(game, "$ACTIVE_CARD.currentSide", trace)
 
                 "$ACTIVE_TOKENS" ->
                   evaluate(game, "$ACTIVE_CARD.tokens", trace)

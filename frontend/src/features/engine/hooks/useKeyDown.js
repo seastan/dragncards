@@ -1,7 +1,7 @@
 import { useContext, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import BroadcastContext from '../../../contexts/BroadcastContext';
-import { defaultKeypress, setKeypress, setKeypressSpace, setKeypressTab, setPreHotkeyActiveCardGroupId, setShowModal } from '../../store/playerUiSlice';
+import { clearMultiSelectCardIds, defaultKeypress, setKeypress, setKeypressAlt, setKeypressCommand, setKeypressControl, setKeypressShift, setKeypressSpace, setKeypressTab, setPreHotkeyActiveCardGroupId, setShowModal } from '../../store/playerUiSlice';
 import { useAddToken } from './useAddToken';
 import { useDoActionList } from './useDoActionList';
 import { dragnHotkeys, useDoDragnHotkey } from './useDragnHotkeys';
@@ -116,7 +116,14 @@ export const useKeyDown = () => {
             for (var option of prompt.options) {
                 if (keyMatch(option.hotkey, dictKey)) {
                     dispatch(setPromptVisible({playerI: playerN, promptUuid: prompt.uuid, visible: false}));
-                    doActionList(option.code, `Prompt response: ${option.label} of prompt ${prompt.uuid}`);
+                    const input = prompt.input;
+                    var promptInput = null;
+                    if (input && input.type === "selectCards") {
+                        promptInput = ["LIST"].concat(store.getState().playerUi.multiSelect.cardIds || []);
+                    }
+                    dispatch(clearMultiSelectCardIds());
+                    const defineInput = ["DEFINE", "$PROMPT_INPUT", promptInput];
+                    doActionList([defineInput, option.code || []], `Prompt response: ${option.label} of prompt ${prompt.uuid}`);
                     return;
                 }
             }

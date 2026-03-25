@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { DragDropContext } from "@seastan/react-beautiful-dnd";
 import { useDispatch } from 'react-redux';
 import { setGroupById } from "../store/gameUiSlice";
@@ -55,6 +55,17 @@ export const DragContainer = React.memo(() => {
   const [isDragging, setIsDragging] = useState(false);
   const getRegionFromId = useGetRegionFromId();
   const hoverStackIdAndDirection = useHoverStackIdAndDirection();
+  const archerContainerRef = useRef(null);
+  const draggingStackId = useSelector(state => state?.playerUi?.dragging?.stackId);
+
+  // Refresh arrow positions whenever a drag completes and card positions settle.
+  // react-archer uses ResizeObserver which only fires on size changes, not position
+  // changes, so absolutely-positioned free-region cards never trigger auto-refresh.
+  useEffect(() => {
+    if (!draggingStackId) {
+      archerContainerRef.current?.refreshScreen();
+    }
+  }, [draggingStackId]);
 
   const updateMousePosition = (e) => {
     const draggingStackId = store.getState()?.playerUi?.dragging?.stackId;  
@@ -279,9 +290,10 @@ export const DragContainer = React.memo(() => {
 
   return(
 
-      <ArcherContainer 
-        className="h-full w-full" 
-        strokeColor="rgba(255,0,0,0.6)" 
+      <ArcherContainer
+        ref={archerContainerRef}
+        className="h-full w-full"
+        strokeColor="rgba(255,0,0,0.6)"
         strokeWidth="15"
         svgContainerStyle={{ 
           zIndex: Z_INDEX.Arrows,

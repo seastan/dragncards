@@ -103,7 +103,7 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
       end
 
       Enum.with_index(load_list, fn item, index ->
-        if !is_map(item) or !Map.has_key?(item, "databaseId") or !Map.has_key?(item, "loadGroupId") or !Map.has_key?(item, "quantity") do
+        if !is_map(item) or is_struct(item, MapSet) or !Map.has_key?(item, "databaseId") or !Map.has_key?(item, "loadGroupId") or !Map.has_key?(item, "quantity") do
           raise("LOAD_CARDS failed: Card at index #{index} in load list must be a map with keys: databaseId, loadGroupId, and quantity. Got: #{inspect(item)}")
         end
       end)

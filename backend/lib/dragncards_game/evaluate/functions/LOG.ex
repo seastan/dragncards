@@ -24,6 +24,33 @@ defmodule DragnCardsGame.Evaluate.Functions.LOG do
   ]
   ```
 
+  *Rich text tokens*:
+
+  Log messages support inline images, card hover links, and hyperlinks via embedded tokens. Tokens are separated from surrounding text by whitespace. All URLs must use `http` or `https`.
+
+  | Token | Example | Renders as |
+  |-------|---------|------------|
+  | `img:<url>` | `img:https://example.com/icon.png` | Inline image at default height (2dvh) |
+  | `img:<url>:<size>` | `img:https://example.com/icon.png:5` | Inline image at 5dvh height |
+  | `img:cardDbId:<dbId>` | `img:cardDbId:01001` | Card image from the card DB, side A, default height |
+  | `img:cardDbId:<dbId>:<side>` | `img:cardDbId:01001:B` | Card image from the card DB, specified side |
+  | `img:cardDbId:<dbId>:<side>:<size>` | `img:cardDbId:01001:A:4` | Card image from the card DB, specified side and height |
+  | `img:cardId:<id>` | `img:cardId:{{$ACTIVE_CARD_ID}}` | Card image from the game state, side A, default height |
+  | `img:cardId:<id>:<side>` | `img:cardId:{{$ACTIVE_CARD_ID}}:B` | Card image from the game state, specified side |
+  | `img:cardId:<id>:<side>:<size>` | `img:cardId:{{$ACTIVE_CARD_ID}}:A:4` | Card image from the game state, specified side and height |
+  | `link:<url>` | `link:https://ringsdb.com` | Clickable hyperlink (URL as label) |
+  | `link:<url>:<label>` | `link:https://ringsdb.com:RingsDB` | Clickable hyperlink with custom label |
+  | `link:cardId:<id>` | `link:cardId:{{$ACTIVE_CARD_ID}}` | Card name as hoverable link; hover shows card image (side A) |
+  | `link:cardId:<id>:<side>` | `link:cardId:{{$ACTIVE_CARD_ID}}:B` | Same but shows the specified side |
+  | `link:cardDbId:<dbId>` | `link:cardDbId:01001` | Same as `link:cardId` but looks up by card DB id |
+  | `link:cardDbId:<dbId>:<side>` | `link:cardDbId:01001:B` | Same with explicit side |
+
+  *Example*:
+  ```
+  ["LOG", "{{$ALIAS_N}} played link:cardId:{{$ACTIVE_CARD_ID}} from their hand."]
+  ```
+
+  These tokens also work in prompt messages and option labels (see PROMPT).
 
   """
 
