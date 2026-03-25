@@ -47,9 +47,9 @@ export const parsePercent = (value) => {
  * @param {number} baseY - Y position (height above table)
  * @returns {[number, number, number]} - World coordinates [x, y, z]
  */
-export const percentToWorld = (leftPercent, topPercent, baseY = 0.1) => {
-  const x = ((leftPercent / 100) - 0.5) * TABLE_WIDTH;
-  const z = ((topPercent / 100) - 0.5) * TABLE_HEIGHT;
+export const percentToWorld = (leftPercent, topPercent, baseY = 0.1, tw = TABLE_WIDTH, th = TABLE_HEIGHT) => {
+  const x = ((leftPercent / 100) - 0.5) * tw;
+  const z = ((topPercent / 100) - 0.5) * th;
   return [x, baseY, z];
 };
 
@@ -59,9 +59,9 @@ export const percentToWorld = (leftPercent, topPercent, baseY = 0.1) => {
  * @param {number} z - World Z coordinate
  * @returns {{left: number, top: number}} - Percentage position
  */
-export const worldToPercent = (x, z) => {
-  const leftPercent = ((x / TABLE_WIDTH) + 0.5) * 100;
-  const topPercent = ((z / TABLE_HEIGHT) + 0.5) * 100;
+export const worldToPercent = (x, z, tw = TABLE_WIDTH, th = TABLE_HEIGHT) => {
+  const leftPercent = ((x / tw) + 0.5) * 100;
+  const topPercent = ((z / th) + 0.5) * 100;
   return { left: leftPercent, top: topPercent };
 };
 
@@ -74,7 +74,7 @@ export const worldToPercent = (x, z) => {
  * @param {number} baseY - Y position
  * @returns {[number, number, number]} - World coordinates
  */
-export const regionToWorld = (region, stackLeftPercent, stackTopPercent, baseY = 0.1) => {
+export const regionToWorld = (region, stackLeftPercent, stackTopPercent, baseY = 0.1, tw = TABLE_WIDTH, th = TABLE_HEIGHT) => {
   // Get region bounds in percentages
   const regionLeft = parsePercent(region.left);
   const regionTop = parsePercent(region.top);
@@ -86,7 +86,7 @@ export const regionToWorld = (region, stackLeftPercent, stackTopPercent, baseY =
   const absoluteLeft = regionLeft + (parsePercent(stackLeftPercent) / 100) * regionWidth;
   const absoluteTop = regionTop + (parsePercent(stackTopPercent) / 100) * regionHeight;
 
-  return percentToWorld(absoluteLeft, absoluteTop, baseY);
+  return percentToWorld(absoluteLeft, absoluteTop, baseY, tw, th);
 };
 
 /**
@@ -99,7 +99,7 @@ export const regionToWorld = (region, stackLeftPercent, stackTopPercent, baseY =
  * @param {number} dragZ - Drag Z position in world coordinates (for vertical regions)
  * @returns {number} - Insertion index
  */
-export const calculateInsertionIndex = (dragX, region, stackCount, regionType, dragZ = 0) => {
+export const calculateInsertionIndex = (dragX, region, stackCount, regionType, dragZ = 0, tw = TABLE_WIDTH, th = TABLE_HEIGHT) => {
   if (stackCount === 0) return 0;
 
   const isVertical = region.direction === 'vertical';
@@ -118,8 +118,8 @@ export const calculateInsertionIndex = (dragX, region, stackCount, regionType, d
 
     if (isVertical) {
       // Vertical row: cards arranged along Z axis
-      const regionHeightWorld = (regionHeight / 100) * TABLE_HEIGHT;
-      const regionTopWorld = ((regionTop / 100) - 0.5) * TABLE_HEIGHT;
+      const regionHeightWorld = (regionHeight / 100) * th;
+      const regionTopWorld = ((regionTop / 100) - 0.5) * th;
       const availableHeight = regionHeightWorld - (2 * edgePadding);
 
       let cardSpacing;
@@ -135,8 +135,8 @@ export const calculateInsertionIndex = (dragX, region, stackCount, regionType, d
       return Math.max(0, Math.min(stackCount, insertIndex));
     } else {
       // Horizontal row: cards arranged along X axis
-      const regionWidthWorld = (regionWidth / 100) * TABLE_WIDTH;
-      const regionLeftWorld = ((regionLeft / 100) - 0.5) * TABLE_WIDTH;
+      const regionWidthWorld = (regionWidth / 100) * tw;
+      const regionLeftWorld = ((regionLeft / 100) - 0.5) * tw;
       const availableWidth = regionWidthWorld - (2 * edgePadding);
 
       let cardSpacing;
@@ -157,8 +157,8 @@ export const calculateInsertionIndex = (dragX, region, stackCount, regionType, d
 
     if (isVertical) {
       // Vertical fan: cards arranged along Z axis
-      const regionHeightWorld = (regionHeight / 100) * TABLE_HEIGHT;
-      const regionTopWorld = ((regionTop / 100) - 0.5) * TABLE_HEIGHT;
+      const regionHeightWorld = (regionHeight / 100) * th;
+      const regionTopWorld = ((regionTop / 100) - 0.5) * th;
       const availableHeight = regionHeightWorld - (2 * edgePadding);
 
       let cardSpacing;
@@ -174,8 +174,8 @@ export const calculateInsertionIndex = (dragX, region, stackCount, regionType, d
       return Math.max(0, Math.min(stackCount, insertIndex));
     } else {
       // Horizontal fan: cards arranged along X axis
-      const regionWidthWorld = (regionWidth / 100) * TABLE_WIDTH;
-      const regionLeftWorld = ((regionLeft / 100) - 0.5) * TABLE_WIDTH;
+      const regionWidthWorld = (regionWidth / 100) * tw;
+      const regionLeftWorld = ((regionLeft / 100) - 0.5) * tw;
       const availableWidth = regionWidthWorld - (2 * edgePadding);
 
       let cardSpacing;

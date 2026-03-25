@@ -10,6 +10,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { faBars, faEye } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { getRegionBounds } from '../R3FDragSystem';
+import { useTableDimensions } from '../contexts/TableDimensionsContext';
 import { useBrowseTopN } from '../../engine/hooks/useBrowseTopN';
 import { useGameL10n } from '../../engine/hooks/useGameL10n';
 import { setDropdownMenu } from '../../store/playerUiSlice';
@@ -35,9 +36,11 @@ export const R3FGroupOverlay = ({ region, groupId, isHovered }) => {
   const gameL10n = useGameL10n();
   const browseTopN = useBrowseTopN();
 
+  const { tableWidth, tableHeight } = useTableDimensions();
+
   if (!group || region.hideTitle || region.id === 'browse') return null;
 
-  const bounds = getRegionBounds(region);
+  const bounds = getRegionBounds(region, tableWidth, tableHeight);
   const layerIndex = region.layerIndex || 0;
   // Sit just above the region background, below cards
   const y = layerIndex * 0.5 + 0.05;

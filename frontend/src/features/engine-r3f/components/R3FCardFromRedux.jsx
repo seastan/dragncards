@@ -130,6 +130,18 @@ export const R3FCardFromRedux = ({
 
   const isActive = activeCardId === cardId;
 
+  // Compute 3D card dimensions from the card side's width/height ratio.
+  // The longer dimension is always BASE_CARD_SIZE (10) world units so all
+  // cards fit the same visual footprint regardless of orientation.
+  const BASE_CARD_SIZE = 10;
+  const sideData = card?.sides?.[currentSide];
+  const rawW = sideData?.width;
+  const rawH = sideData?.height;
+  const cardAspect = rawW && rawH ? rawW / rawH : 0.714;
+  const isLandscape = cardAspect > 1;
+  const r3fCardWidth = isLandscape ? BASE_CARD_SIZE : BASE_CARD_SIZE * cardAspect;
+  const r3fCardHeight = isLandscape ? BASE_CARD_SIZE / cardAspect : BASE_CARD_SIZE;
+
   return (
     <R3FCardMesh
       cardId={cardId}
@@ -146,8 +158,8 @@ export const R3FCardFromRedux = ({
       tokenDefinitions={tokenDefinitions}
       isActive={isActive}
       isDragging={isDragging}
-      cardWidth={7.14}
-      cardHeight={10}
+      cardWidth={r3fCardWidth}
+      cardHeight={r3fCardHeight}
       isAttachmentHover={isAttachmentHover}
       attachmentIndicatorDirection={attachmentIndicatorDirection}
       attachmentEdges={attachmentEdges}

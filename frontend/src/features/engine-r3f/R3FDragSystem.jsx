@@ -10,6 +10,7 @@ import * as THREE from 'three';
 import store from '../../store';
 import { TABLE_WIDTH, TABLE_HEIGHT } from './utils/cameraUtils';
 import { parsePercent, worldToPercent } from './utils/regionUtils';
+import { useTableDimensions } from './contexts/TableDimensionsContext';
 
 // Context to share drag state across components
 const DragContext = createContext(null);
@@ -19,16 +20,16 @@ export const useDragContext = () => useContext(DragContext);
 /**
  * Get region bounds in 3D world coordinates
  */
-export const getRegionBounds = (region) => {
+export const getRegionBounds = (region, tw = TABLE_WIDTH, th = TABLE_HEIGHT) => {
   const left = parsePercent(region.left);
   const top = parsePercent(region.top);
   const width = parsePercent(region.width);
   const height = parsePercent(region.height);
 
-  const minX = ((left / 100) - 0.5) * TABLE_WIDTH;
-  const maxX = (((left + width) / 100) - 0.5) * TABLE_WIDTH;
-  const minZ = ((top / 100) - 0.5) * TABLE_HEIGHT;
-  const maxZ = (((top + height) / 100) - 0.5) * TABLE_HEIGHT;
+  const minX = ((left / 100) - 0.5) * tw;
+  const maxX = (((left + width) / 100) - 0.5) * tw;
+  const minZ = ((top / 100) - 0.5) * th;
+  const maxZ = (((top + height) / 100) - 0.5) * th;
 
   return {
     minX, maxX, minZ, maxZ,
@@ -42,8 +43,8 @@ export const getRegionBounds = (region) => {
 /**
  * Check if a 3D point is inside a region
  */
-export const isPointInRegion = (x, z, region) => {
-  const bounds = getRegionBounds(region);
+export const isPointInRegion = (x, z, region, tw = TABLE_WIDTH, th = TABLE_HEIGHT) => {
+  const bounds = getRegionBounds(region, tw, th);
   return x >= bounds.minX && x <= bounds.maxX && z >= bounds.minZ && z <= bounds.maxZ;
 };
 
@@ -141,7 +142,8 @@ export const DragProvider = ({ children, onDrop }) => {
  * RegionBoundary - Visual representation of a region's boundaries
  */
 export const RegionBoundary = ({ region, isHovered = false, showLabel = true, stackCount = 0 }) => {
-  const bounds = getRegionBounds(region);
+  const { tableWidth, tableHeight } = useTableDimensions();
+  const bounds = getRegionBounds(region, tableWidth, tableHeight);
   const layerIndex = region.layerIndex || 0;
   const y = layerIndex > 0 ? layerIndex * 0.5 - 0.01 : 0.01; // Elevated regions sit just below their cards
 

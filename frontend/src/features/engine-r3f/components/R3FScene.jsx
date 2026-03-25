@@ -11,7 +11,7 @@ import { TableSurface } from './R3FTable';
 import { R3FStack } from './R3FStack';
 import { RegionBoundary, isPointInRegion } from '../R3FDragSystem';
 import { useFormatGroupId } from '../../engine/hooks/useFormatGroupId';
-import { TABLE_WIDTH, TABLE_HEIGHT } from '../utils/cameraUtils';
+import { useTableDimensions } from '../contexts/TableDimensionsContext';
 import { parsePercent, percentToWorld, regionToWorld, calculateInsertionIndex } from '../utils/regionUtils';
 import { getStackBounds } from '../utils/attachmentUtils';
 import { useBrowseRegion } from '../../engine/Browse';
@@ -30,6 +30,7 @@ export const useDragStateContext = () => useContext(DragStateContext);
  * Renders all stacks from a specific group
  */
 const R3FGroupCards = ({ groupId, region, selectedStackIndices }) => {
+  const { tableWidth, tableHeight } = useTableDimensions();
   const group = useSelector(state => state?.gameUi?.game?.groupById?.[groupId]);
   const stackById = useSelector(state => state?.gameUi?.game?.stackById);
   const cardById = useSelector(state => state?.gameUi?.game?.cardById);
@@ -100,9 +101,24 @@ const R3FGroupCards = ({ groupId, region, selectedStackIndices }) => {
   // Build an ordered list of visible stack widths/heights (excluding dragged stack)
   // to compute cumulative positions. This ensures stacks with attachments take more
   // room while single-card stacks stay compact.
-  const BASE_CARD_WIDTH = 7.14;
-  const BASE_CARD_HEIGHT = 10;
+  const BASE_CARD_SIZE = 10;
   const STACK_GAP = 0.5; // Small gap between stacks in world units
+
+  // Helper: compute rendered card dimensions for a given stack's top card.
+  // Mirrors the same aspect-ratio logic used in R3FCardFromRedux / R3FStack.
+  const getStackCardDims = (sid) => {
+    const s = stackById?.[sid];
+    const card = cardById?.[s?.cardIds?.[0]];
+    const sideData = card?.sides?.[card?.currentSide];
+    const rawW = sideData?.width;
+    const rawH = sideData?.height;
+    const aspect = rawW && rawH ? rawW / rawH : 0.714;
+    const landscape = aspect > 1;
+    return {
+      cardWidth:  landscape ? BASE_CARD_SIZE : BASE_CARD_SIZE * aspect,
+      cardHeight: landscape ? BASE_CARD_SIZE / aspect : BASE_CARD_SIZE,
+    };
+  };
 
   // Build layout slots: each visible (non-dragged) stack gets a slot based on its actual bounds.
   // If shouldMakeRoom, an extra slot is inserted at insertionIndex for the incoming card.
@@ -111,9 +127,15 @@ const R3FGroupCards = ({ groupId, region, selectedStackIndices }) => {
   group.stackIds.forEach((sid) => {
     const s = stackById?.[sid];
     if (s) {
-      stackBoundsMap[sid] = getStackBounds(s, cardById, BASE_CARD_WIDTH, BASE_CARD_HEIGHT);
+      const { cardWidth, cardHeight } = getStackCardDims(sid);
+      stackBoundsMap[sid] = getStackBounds(s, cardById, cardWidth, cardHeight);
     }
   });
+
+  // Gap slot uses the dimensions of the card being dragged in
+  const gapDims = activeStackId
+    ? getStackCardDims(activeStackId)
+    : { cardWidth: BASE_CARD_SIZE * 0.714, cardHeight: BASE_CARD_SIZE };
 
   // Build the ordered slots (excluding dragged stack)
   let slotIndex = 0;
@@ -125,16 +147,16 @@ const R3FGroupCards = ({ groupId, region, selectedStackIndices }) => {
 
     // Insert gap slot for incoming card
     if (shouldMakeRoom && insertionIndex >= 0 && slotIndex === insertionIndex) {
-      layoutSlots.push({ stackId: '__gap__', width: BASE_CARD_WIDTH, height: BASE_CARD_HEIGHT, parentOffsetX: 0, parentOffsetZ: 0, isGap: true });
+      layoutSlots.push({ stackId: '__gap__', width: gapDims.cardWidth, height: gapDims.cardHeight, parentOffsetX: 0, parentOffsetZ: 0, isGap: true });
     }
 
-    const bounds = stackBoundsMap[sid] || { width: BASE_CARD_WIDTH, height: BASE_CARD_HEIGHT, parentOffsetX: 0, parentOffsetZ: 0 };
+    const bounds = stackBoundsMap[sid] || { width: gapDims.cardWidth, height: gapDims.cardHeight, parentOffsetX: 0, parentOffsetZ: 0 };
     layoutSlots.push({ stackId: sid, width: bounds.width, height: bounds.height, parentOffsetX: bounds.parentOffsetX || 0, parentOffsetZ: bounds.parentOffsetZ || 0, isGap: false });
     slotIndex++;
   });
   // Gap at end
   if (shouldMakeRoom && insertionIndex >= 0 && insertionIndex >= slotIndex) {
-    layoutSlots.push({ stackId: '__gap__', width: BASE_CARD_WIDTH, height: BASE_CARD_HEIGHT, parentOffsetX: 0, parentOffsetZ: 0, isGap: true });
+    layoutSlots.push({ stackId: '__gap__', width: gapDims.cardWidth, height: gapDims.cardHeight, parentOffsetX: 0, parentOffsetZ: 0, isGap: true });
   }
 
   // Compute cumulative positions for each slot.
@@ -147,7 +169,7 @@ const R3FGroupCards = ({ groupId, region, selectedStackIndices }) => {
     const numGaps = Math.max(0, slots.length - 1);
 
     // Dynamic gap: expand to fill available space, capped at a max
-    const MAX_GAP = BASE_CARD_WIDTH * 0.4; // ~4.3 world units max between stacks
+    const MAX_GAP = 3.0; // world units max between stacks
     let gap;
     if (numGaps === 0) {
       gap = 0;
@@ -188,7 +210,7 @@ const R3FGroupCards = ({ groupId, region, selectedStackIndices }) => {
     if (region.type === 'free') {
       const stackLeft = stack.left || '0%';
       const stackTop = stack.top || '0%';
-      stackPosition = regionToWorld(region, stackLeft, stackTop, baseY);
+      stackPosition = regionToWorld(region, stackLeft, stackTop, baseY, tableWidth, tableHeight);
     } else if (region.type === 'row') {
       const regionLeft = parsePercent(region.left);
       const regionTop = parsePercent(region.top);
@@ -198,9 +220,9 @@ const R3FGroupCards = ({ groupId, region, selectedStackIndices }) => {
 
 
       if (isVertical) {
-        const regionHeightWorld = (regionHeight / 100) * TABLE_HEIGHT;
-        const regionTopWorld = ((regionTop / 100) - 0.5) * TABLE_HEIGHT;
-        const regionCenterX = ((regionLeft / 100) - 0.5) * TABLE_WIDTH + (regionWidth / 100) * TABLE_WIDTH * 0.5;
+        const regionHeightWorld = (regionHeight / 100) * tableHeight;
+        const regionTopWorld = ((regionTop / 100) - 0.5) * tableHeight;
+        const regionCenterX = ((regionLeft / 100) - 0.5) * tableWidth + (regionWidth / 100) * tableWidth * 0.5;
 
         const { centers, totalSpan } = computeCumulativePositions(layoutSlots, true, regionHeightWorld);
         const scaleFactor = totalSpan > regionHeightWorld ? regionHeightWorld / totalSpan : 1;
@@ -208,24 +230,24 @@ const R3FGroupCards = ({ groupId, region, selectedStackIndices }) => {
         const groupOffset = regionTopWorld;
 
         if (isBeingDragged) {
-          const draggedBounds = stackBoundsMap[stackId] || { height: BASE_CARD_HEIGHT };
+          const draggedBounds = stackBoundsMap[stackId] || { height: getStackCardDims(stackId).cardHeight };
           stackPosition = [regionCenterX, baseY, groupOffset + draggedBounds.height / 2];
         } else {
           const centerPos = centers[stackId] ?? 0;
           stackPosition = [regionCenterX, baseY, groupOffset + centerPos * scaleFactor];
         }
       } else {
-        const regionWidthWorld = (regionWidth / 100) * TABLE_WIDTH;
-        const regionLeftWorld = ((regionLeft / 100) - 0.5) * TABLE_WIDTH;
+        const regionWidthWorld = (regionWidth / 100) * tableWidth;
+        const regionLeftWorld = ((regionLeft / 100) - 0.5) * tableWidth;
 
         const { centers, totalSpan } = computeCumulativePositions(layoutSlots, false, regionWidthWorld);
         const scaleFactor = totalSpan > regionWidthWorld ? regionWidthWorld / totalSpan : 1;
         // Left-align: start from region left edge
         const groupOffset = regionLeftWorld;
-        const regionCenterZ = ((regionTop / 100) - 0.5) * TABLE_HEIGHT + (regionHeight / 100) * TABLE_HEIGHT * 0.5;
+        const regionCenterZ = ((regionTop / 100) - 0.5) * tableHeight + (regionHeight / 100) * tableHeight * 0.5;
 
         if (isBeingDragged) {
-          const draggedBounds = stackBoundsMap[stackId] || { width: BASE_CARD_WIDTH };
+          const draggedBounds = stackBoundsMap[stackId] || { width: getStackCardDims(stackId).cardWidth };
           stackPosition = [groupOffset + draggedBounds.width / 2, baseY, regionCenterZ];
         } else {
           const centerPos = centers[stackId] ?? 0;
@@ -238,8 +260,8 @@ const R3FGroupCards = ({ groupId, region, selectedStackIndices }) => {
       const regionWidth = parsePercent(region.width);
       const regionHeight = parsePercent(region.height);
 
-      const centerX = ((regionLeft + regionWidth / 2) / 100 - 0.5) * TABLE_WIDTH;
-      const centerZ = ((regionTop + regionHeight / 2) / 100 - 0.5) * TABLE_HEIGHT;
+      const centerX = ((regionLeft + regionWidth / 2) / 100 - 0.5) * tableWidth;
+      const centerZ = ((regionTop + regionHeight / 2) / 100 - 0.5) * tableHeight;
 
       stackPosition = [centerX, baseY, centerZ];
     } else if (region.type === 'fan') {
@@ -276,8 +298,8 @@ const R3FGroupCards = ({ groupId, region, selectedStackIndices }) => {
       }
 
       if (isVertical) {
-        const regionHeightWorld = (regionHeight / 100) * TABLE_HEIGHT;
-        const regionTopWorld = ((regionTop / 100) - 0.5) * TABLE_HEIGHT;
+        const regionHeightWorld = (regionHeight / 100) * tableHeight;
+        const regionTopWorld = ((regionTop / 100) - 0.5) * tableHeight;
         const availableHeight = regionHeightWorld - (2 * edgePadding);
 
         let cardSpacing;
@@ -290,12 +312,12 @@ const R3FGroupCards = ({ groupId, region, selectedStackIndices }) => {
         }
 
         const startZ = regionTopWorld + edgePadding;
-        const regionCenterX = ((regionLeft / 100) - 0.5) * TABLE_WIDTH + (regionWidth / 100) * TABLE_WIDTH * 0.5;
+        const regionCenterX = ((regionLeft / 100) - 0.5) * tableWidth + (regionWidth / 100) * tableWidth * 0.5;
 
         stackPosition = [regionCenterX, baseY, startZ + fanAdjustedIndex * cardSpacing];
       } else {
-        const regionWidthWorld = (regionWidth / 100) * TABLE_WIDTH;
-        const regionLeftWorld = ((regionLeft / 100) - 0.5) * TABLE_WIDTH;
+        const regionWidthWorld = (regionWidth / 100) * tableWidth;
+        const regionLeftWorld = ((regionLeft / 100) - 0.5) * tableWidth;
         const availableWidth = regionWidthWorld - (2 * edgePadding);
 
         let cardSpacing;
@@ -308,12 +330,12 @@ const R3FGroupCards = ({ groupId, region, selectedStackIndices }) => {
         }
 
         const startX = regionLeftWorld + edgePadding;
-        const regionCenterZ = ((regionTop / 100) - 0.5) * TABLE_HEIGHT + (regionHeight / 100) * TABLE_HEIGHT * 0.5;
+        const regionCenterZ = ((regionTop / 100) - 0.5) * tableHeight + (regionHeight / 100) * tableHeight * 0.5;
 
         stackPosition = [startX + fanAdjustedIndex * cardSpacing, baseY, regionCenterZ];
       }
     } else {
-      stackPosition = percentToWorld(parsePercent(region.left), parsePercent(region.top), baseY);
+      stackPosition = percentToWorld(parsePercent(region.left), parsePercent(region.top), baseY, tableWidth, tableHeight);
     }
 
     stacks.push(
@@ -341,8 +363,8 @@ const R3FGroupCards = ({ groupId, region, selectedStackIndices }) => {
     const regionHeight = parsePercent(region.height);
     const portraitCardWidth = 6;
     const edgePadding = portraitCardWidth * 0.8;
-    const startX = ((regionLeft / 100) - 0.5) * TABLE_WIDTH + edgePadding;
-    const regionCenterZ = ((regionTop / 100) - 0.5) * TABLE_HEIGHT + (regionHeight / 100) * TABLE_HEIGHT * 0.5;
+    const startX = ((regionLeft / 100) - 0.5) * tableWidth + edgePadding;
+    const regionCenterZ = ((regionTop / 100) - 0.5) * tableHeight + (regionHeight / 100) * tableHeight * 0.5;
     const layerOffset = (region.layerIndex || 0) * 0.5;
     topLabel = (
       <group position={[startX - portraitCardWidth * 0.6, 0.1 + layerOffset + 0.05, regionCenterZ]}>
@@ -461,6 +483,7 @@ const R3FRegionBoundaries = ({ regions, hoveredRegionId }) => {
  * Main scene that renders all regions from layout
  */
 export const R3FSceneFromRedux = ({ showRegionBoundaries = true, onCardDrop, browseFilteredStackIndices }) => {
+  const { tableWidth, tableHeight } = useTableDimensions();
   const [hoveredRegionId, setHoveredRegionId] = useState(null);
   const [pointerHoveredRegionId, setPointerHoveredRegionId] = useState(null);
   const formatGroupId = useFormatGroupId();
@@ -575,7 +598,7 @@ export const R3FSceneFromRedux = ({ showRegionBoundaries = true, onCardDrop, bro
     let bestLayer = -1;
     for (const [regionId, region] of Object.entries(formattedRegions)) {
       if (region.visible === false) continue;
-      if (isPointInRegion(x, z, region)) {
+      if (isPointInRegion(x, z, region, tableWidth, tableHeight)) {
         const layer = region.layerIndex || 0;
         if (layer > bestLayer) {
           best = { regionId, region };
@@ -584,7 +607,7 @@ export const R3FSceneFromRedux = ({ showRegionBoundaries = true, onCardDrop, bro
       }
     }
     return best;
-  }, [formattedRegions]);
+  }, [formattedRegions, tableWidth, tableHeight]);
 
   const getInsertionIndex = useCallback((dropX, targetRegion, sourceGroupId, dropZ = 0) => {
     if (!targetRegion || (targetRegion.type !== 'row' && targetRegion.type !== 'fan')) {
@@ -599,8 +622,8 @@ export const R3FSceneFromRedux = ({ showRegionBoundaries = true, onCardDrop, bro
       stackCount = Math.max(0, stackCount - 1);
     }
 
-    return calculateInsertionIndex(dropX, targetRegion, stackCount, targetRegion.type, dropZ);
-  }, [groupById, draggedStack]);
+    return calculateInsertionIndex(dropX, targetRegion, stackCount, targetRegion.type, dropZ, tableWidth, tableHeight);
+  }, [groupById, draggedStack, tableWidth, tableHeight]);
 
   const dropContextValue = useMemo(() => ({
     findRegionAtPoint,

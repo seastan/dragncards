@@ -10,12 +10,11 @@ import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react'
 import { useFrame, useThree } from '@react-three/fiber';
 import { useSpring, animated } from '@react-spring/three';
 import * as THREE from 'three';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { R3FCardFromRedux } from './R3FCardFromRedux';
 import { useDropContext, useDragStateContext } from './R3FScene';
 import { findAttachmentTarget, isAttachmentAllowed, getAttachmentLocalOffset, getStackBounds } from '../utils/attachmentUtils';
 import { useGameDefinition } from '../../engine/hooks/useGameDefinition';
-import { setActiveCardId } from '../../store/playerUiSlice';
 
 // Global counter to track drag order for z-indexing
 let globalDragCounter = 0;
@@ -35,7 +34,6 @@ export const R3FStack = ({
   isBeingDragged: isBeingDraggedProp = false,
   stackIndex = 0,
 }) => {
-  const dispatch = useDispatch();
   const groupRef = useRef();
   const shadowRef = useRef();
   const [isDragging, setIsDragging] = useState(false);
@@ -44,6 +42,9 @@ export const R3FStack = ({
   const [, setZIndex] = useState(baseZIndex);
   const dragOffsetRef = useRef({ x: 0, z: 0 });
   const isDraggingRef = useRef(false);
+  const stackIndexRef = useRef(stackIndex);
+  const lastPointerClientRef = useRef({ x: 0, y: 0 });
+  const glRef = useRef(null);
 
   // For distinguishing click vs drag
   const pointerDownRef = useRef(false);
@@ -94,6 +95,9 @@ export const R3FStack = ({
   const currentStackIndex = currentGroup?.stackIds?.indexOf(stackId) ?? -1;
   const originalStackIndex = useRef(currentStackIndex);
 
+  useEffect(() => { stackIndexRef.current = stackIndex; }, [stackIndex]);
+  useEffect(() => { glRef.current = gl; }, [gl]);
+
   useEffect(() => {
     if (hasPendingDrop) {
       originalStackIndex.current = currentStackIndex;
@@ -120,13 +124,12 @@ export const R3FStack = ({
       }
 
       if (shouldClear) {
-        dispatch(setActiveCardId(topCardId));
         if (dragStateContext?.clearPendingDrop) {
           dragStateContext.clearPendingDrop();
         }
       }
     }
-  }, [hasPendingDrop, pendingDrop, groupId, currentStackIndex, dragStateContext, dispatch, topCardId]);
+  }, [hasPendingDrop, pendingDrop, groupId, currentStackIndex, dragStateContext]);
 
   // Fallback timeout to clear pending drop
   useEffect(() => {
@@ -152,6 +155,20 @@ export const R3FStack = ({
       region?.id !== 'browse')
       ? dragStateContext?.hoverOverDirection
       : null;
+
+  // After a drop animation settles, re-evaluate pointer intersections so that
+  // onPointerOver fires naturally if the mouse is still over the card.
+  const triggerPointerCheck = useCallback(() => {
+    const { x, y } = lastPointerClientRef.current;
+    if (!x && !y) return;
+    glRef.current?.domElement?.dispatchEvent(new PointerEvent('pointermove', {
+      clientX: x,
+      clientY: y,
+      bubbles: true,
+      cancelable: true,
+      pointerType: 'mouse',
+    }));
+  }, []);
 
   // Spring for scale
   const [springProps, springApi] = useSpring(() => ({
@@ -206,6 +223,7 @@ export const R3FStack = ({
             y: newBaseY,
             onRest: () => {
               animationInProgressRef.current = false;
+              triggerPointerCheck();
             },
           });
         },
@@ -242,6 +260,7 @@ export const R3FStack = ({
                   y: restingY,
                   onRest: () => {
                     animationInProgressRef.current = false;
+                    triggerPointerCheck();
                   },
                 });
               },
@@ -282,6 +301,7 @@ export const R3FStack = ({
               y: restingY,
               onRest: () => {
                 animationInProgressRef.current = false;
+                triggerPointerCheck();
               },
             });
           },
@@ -376,6 +396,7 @@ export const R3FStack = ({
       if (!pointerDownRef.current || !groupRef.current) return;
 
       const { x: clientX, y: clientY } = getClientCoords(event);
+      lastPointerClientRef.current = { x: clientX, y: clientY };
 
       if (!dragStartedRef.current) {
         const dx = clientX - pointerStartRef.current.x;
@@ -429,7 +450,7 @@ export const R3FStack = ({
         if (targetGroupId && dragStateContext?.getStackPositionsForGroup) {
           const stackPositions = dragStateContext.getStackPositionsForGroup(targetGroupId, stackId);
           const { stackId: hoverStackId, direction } = findAttachmentTarget(
-            currentPosition[0], currentPosition[2], stackPositions, 7.14, targetRegion
+            currentPosition[0], currentPosition[2], stackPositions, cardWidth, targetRegion
           );
           if (hoverStackId) {
             const allowed = isAttachmentAllowed(stackId, hoverStackId, gameDef, playerN, targetRegion);
@@ -488,6 +509,33 @@ export const R3FStack = ({
           y: liftedY,
           z: dropZ,
         });
+
+        // Fallback: if position never changes (same-group same-index drop),
+        // the position useEffect won't fire and the card would freeze lifted.
+        // Animate back directly after a short delay in that case.
+        const savedDropPos = [dropX, liftedY, dropZ];
+        setTimeout(() => {
+          if (!justDroppedRef.current || animationInProgressRef.current) return;
+          justDroppedRef.current = false;
+          waitingForPositionUpdateRef.current = false;
+          dropPositionRef.current = null;
+          animationInProgressRef.current = true;
+          posSpringApi.start({
+            x: position[0],
+            y: savedDropPos[1],
+            z: position[2],
+            onRest: () => {
+              setIsLifted(false);
+              posSpringApi.start({
+                y: position[1],
+                onRest: () => {
+                  animationInProgressRef.current = false;
+                  triggerPointerCheck();
+                },
+              });
+            },
+          });
+        }, 200);
       }
 
       setIsDragging(false);
@@ -514,7 +562,14 @@ export const R3FStack = ({
         }
 
         if (targetInfo && onCardDrop) {
-          if (dragStateContext?.setPendingDropState) {
+          // Skip pendingDrop for same-group same-index (no-op) drops — Redux state
+          // won't change so the clearPendingDrop useEffect would never fire.
+          const curIdx = stackIndexRef.current;
+          const isNoOp = !isCombineDrop &&
+            targetInfo.region?.groupId === groupId &&
+            (insertionIndex === curIdx || insertionIndex === curIdx + 1);
+
+          if (!isNoOp && dragStateContext?.setPendingDropState) {
             dragStateContext.setPendingDropState({
               stackId,
               cardId: topCardId,
@@ -574,10 +629,20 @@ export const R3FStack = ({
     };
   }, [pointerIsDown, camera, gl, raycaster, tablePlane, posSpringApi, dragStateContext, dropContext, stackId, topCardId, groupId, region, gameDef, playerN]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Derive card dimensions from top card's side data.
+  // The longer dimension is always BASE_CARD_SIZE (10) world units.
+  const topCard = cardById?.[topCardId];
+  const topCardSide = topCard?.sides?.[topCard?.currentSide];
+  const BASE_CARD_SIZE = 10;
+  const rawW = topCardSide?.width;
+  const rawH = topCardSide?.height;
+  const cardAspect = rawW && rawH ? rawW / rawH : 0.714;
+  const isLandscape = cardAspect > 1;
+  const cardWidth = isLandscape ? BASE_CARD_SIZE : BASE_CARD_SIZE * cardAspect;
+  const cardHeight = isLandscape ? BASE_CARD_SIZE / cardAspect : BASE_CARD_SIZE;
+
   // Shadow material
   const cornerRadius = 0.3;
-  const cardWidth = 7.14;
-  const cardHeight = 10;
   const shadowSpread = 1.0;
 
   const shadowGeometry = useMemo(() => {
@@ -685,7 +750,7 @@ export const R3FStack = ({
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Compute stack bounds (includes attachment edges) for zone detection + indicator positioning
-  const stackBounds = useMemo(() => getStackBounds(stack, cardById), [stack, cardById]);
+  const stackBounds = useMemo(() => getStackBounds(stack, cardById, cardWidth, cardHeight), [stack, cardById, cardWidth, cardHeight]);
 
   // Register stack position for attachment detection
   const registerStackPosition = dragStateContext?.registerStackPosition;
@@ -696,8 +761,8 @@ export const R3FStack = ({
     registerStackPosition(stackId, {
       x: position[0],
       z: position[2],
-      cardWidth: 7.14,
-      cardHeight: 10,
+      cardWidth,
+      cardHeight,
       groupId,
       edges: stackBounds.edges,
     });

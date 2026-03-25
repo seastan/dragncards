@@ -5,12 +5,13 @@
  * It reads from the same Redux state as the 2D TableLayout but renders in 3D.
  */
 
-import React, { Suspense, useMemo, useState } from 'react';
+import React, { Suspense, useMemo, useState, useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
 import { useRef } from 'react';
 import { getCameraPosition } from './utils/cameraUtils';
+import { TableDimensionsProvider } from './contexts/TableDimensionsContext';
 import { R3FSceneFromRedux } from './components/R3FScene';
 import { useDoActionList } from '../engine/hooks/useDoActionList';
 import { useR3FDragActions } from './R3FDragSystem';
@@ -89,13 +90,15 @@ export const R3FTableLayout = ({
         <Suspense fallback={<LoadingFallback />}>
           <RendererConfig />
           <CameraWithTarget position={cameraPosition} yOffset={localYOffset} />
-          <ambientLight intensity={0.4} />
-          <directionalLight position={[0, 100, 0]} intensity={0.9} />
-          <R3FSceneFromRedux
-            showRegionBoundaries={showRegionBoundaries}
-            onCardDrop={handleDrop}
-            browseFilteredStackIndices={filteredStackIndices}
-          />
+          <TableDimensionsProvider>
+            <ambientLight intensity={0.4} />
+            <directionalLight position={[0, 100, 0]} intensity={0.9} />
+            <R3FSceneFromRedux
+              showRegionBoundaries={showRegionBoundaries}
+              onCardDrop={handleDrop}
+              browseFilteredStackIndices={filteredStackIndices}
+            />
+          </TableDimensionsProvider>
         </Suspense>
       </Canvas>
 
