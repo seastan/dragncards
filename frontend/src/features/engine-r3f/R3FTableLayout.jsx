@@ -7,6 +7,7 @@
 
 import React, { Suspense, useMemo, useState, useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useSelector } from 'react-redux';
 import { PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
 import { useRef } from 'react';
@@ -20,6 +21,14 @@ import { useBrowseFiltering } from '../engine/hooks/useBrowseFiltering';
 import { useLayout } from '../engine/hooks/useLayout';
 import { useGameL10n } from '../engine/hooks/useGameL10n';
 import { convertToPercentage } from '../engine/functions/common';
+
+// Triggers a render whenever Redux game state changes
+const ReduxInvalidator = () => {
+  const { invalidate } = useThree();
+  const gameUi = useSelector(state => state?.gameUi);
+  useEffect(() => { invalidate(); }, [gameUi, invalidate]);
+  return null;
+};
 
 // Loading fallback for Suspense
 const LoadingFallback = () => (
@@ -86,8 +95,10 @@ export const R3FTableLayout = ({
         dpr={window.devicePixelRatio}
         gl={{ antialias: true, alpha: false, stencil: true, powerPreference: 'high-performance' }}
         style={{ touchAction: 'none' }}
+        frameloop="demand"
       >
         <Suspense fallback={<LoadingFallback />}>
+          <ReduxInvalidator />
           <RendererConfig />
           <CameraWithTarget position={cameraPosition} yOffset={localYOffset} />
           <TableDimensionsProvider>

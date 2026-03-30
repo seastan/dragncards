@@ -1217,9 +1217,14 @@ defmodule DragnCardsGame.GameUI do
     # Run postLoadActionList if it exists
     game_def = PluginCache.get_game_def_cached(game["pluginId"])
     automation_action_list = game_def["automation"][action_list_id]
-    _game = if automation_action_list do
+    if automation_action_list do
       if game["automationEnabled"] == true do
-        Evaluate.evaluate(game, automation_action_list, trace ++ ["action_list_id"])
+        result = Evaluate.evaluate(game, automation_action_list, trace ++ ["action_list_id"])
+        if is_map(result) and Map.has_key?(result, "cardById") do
+          result
+        else
+          raise "Action list '#{action_list_id}' did not return a game state. Got: #{inspect(result)}"
+        end
       else
         Evaluate.evaluate(game, ["LOG", "Skipping automation action list ", action_list_id, " because automation is disabled."], trace ++ ["action_list_id"])
       end

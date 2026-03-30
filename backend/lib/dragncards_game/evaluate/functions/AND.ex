@@ -26,10 +26,7 @@ defmodule DragnCardsGame.Evaluate.Functions.AND do
     # end
     Enum.all?(Enum.with_index(statements), fn {statement, index} ->
       if Enum.count(statements) > 3 do
-
-        IO.puts("AND evaluating statement #{index + 1}/#{Enum.count(statements)}: #{Jason.encode!(statement)}")
         res = Evaluate.evaluate(game, statement, trace ++ ["index #{index}"])
-        IO.puts("  result: #{res}")
       end
       Evaluate.evaluate(game, statement, trace ++ ["index #{index}"])
     end)

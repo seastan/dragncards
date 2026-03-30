@@ -33,6 +33,7 @@ export const R3FStack = ({
   baseZIndex = 0,
   isBeingDragged: isBeingDraggedProp = false,
   stackIndex = 0,
+  isNonInteractive = false,
 }) => {
   const groupRef = useRef();
   const shadowRef = useRef();
@@ -57,7 +58,7 @@ export const R3FStack = ({
   const waitingForPositionUpdateRef = useRef(false);
   const animationInProgressRef = useRef(false);
 
-  const { camera, gl } = useThree();
+  const { camera, gl, invalidate } = useThree();
   const raycaster = useMemo(() => new THREE.Raycaster(), []);
   const tablePlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), []);
 
@@ -187,7 +188,8 @@ export const R3FStack = ({
   // Update scale on drag or lift state change
   useEffect(() => {
     springApi.start({ scale: (isDragging || isLifted) ? 1.1 : 1 });
-  }, [isDragging, isLifted, springApi]);
+    invalidate();
+  }, [isDragging, isLifted, springApi]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle cross-region drops
   React.useLayoutEffect(() => {
@@ -228,6 +230,7 @@ export const R3FStack = ({
           });
         },
       });
+      invalidate();
     }
   }, [pendingDropPosition, position[0], position[2], posSpringApi]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -265,6 +268,7 @@ export const R3FStack = ({
                 });
               },
             });
+            invalidate();
           }
         }, 100);
 
@@ -696,8 +700,14 @@ export const R3FStack = ({
   }, [cardWidth, cardHeight, cornerRadius]);
 
   // useFrame: position, floating, shadow
-  useFrame(({ clock }, delta) => {
+  useFrame(({ clock, invalidate }, delta) => {
     if (!groupRef.current) return;
+
+    // Keep rendering while springs are settling (required for frameloop="demand")
+    if (posSpring.x.isAnimating || posSpring.y.isAnimating || posSpring.z.isAnimating ||
+        springProps.scale.isAnimating) {
+      invalidate();
+    }
 
     if (!isDraggingRef.current && crossRegionInitializedRef.current) {
       groupRef.current.position.x = posSpring.x.get();
@@ -793,7 +803,7 @@ export const R3FStack = ({
               cardIndexInStack={idx}
               baseZIndex={baseZIndex + (cardCount - idx)}
               isDragging={isDragging}
-              onPointerDownForDrag={idx === 0 ? handlePointerDown : undefined}
+              onPointerDownForDrag={!isNonInteractive && idx === 0 ? handlePointerDown : undefined}
               isAttachmentHover={isAttachmentHover}
               attachmentIndicatorDirection={idx === 0 ? attachmentIndicatorDirection : null}
               attachmentEdges={idx === 0 ? stackBounds.edges : undefined}

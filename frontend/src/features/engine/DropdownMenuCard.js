@@ -17,6 +17,7 @@ import { useVisibleSide } from "./hooks/useVisibleSide";
 import { useVisibleFace } from "./hooks/useVisibleFace";
 import { setActiveCardId, setDropdownMenu, setShowModal } from "../store/playerUiSlice";
 import { usePlayerIList } from "./hooks/usePlayerIList";
+import { usePlayerN } from "./hooks/usePlayerN";
 import { evaluate } from "./hooks/evaluate";
 import { Z_INDEX } from "./functions/common";
 
@@ -43,6 +44,7 @@ export const DropdownMenuCard = React.memo(({
   const visibleSide = useVisibleSide(menuCardId);
   const visibleFace = useVisibleFace(menuCardId);
   const playerIList = usePlayerIList();
+  const playerN = usePlayerN();
 
   console.log("Rendering DropdownMenuCard ",playerIList)
 

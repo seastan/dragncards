@@ -46,7 +46,10 @@ export const R3FCardFromRedux = ({
   const visibleFace = useVisibleFace(cardId);
   const visibleFaceName = visibleFace?.name;
   const cardRotation = useCardRotation(cardId);
-  const currentSide = useVisibleSide(cardId);
+  // visibleSide accounts for peeking; currentSide is the card's actual flipped state.
+  // The flip animation should only trigger on actual side changes, not peeking changes.
+  const visibleSide = useVisibleSide(cardId);
+  const currentSide = useSelector(state => state?.gameUi?.game?.cardById?.[cardId]?.currentSide);
   const previousSide = prevSideMap.get(cardId);
 
   useEffect(() => {
@@ -134,7 +137,7 @@ export const R3FCardFromRedux = ({
   // The longer dimension is always BASE_CARD_SIZE (10) world units so all
   // cards fit the same visual footprint regardless of orientation.
   const BASE_CARD_SIZE = 10;
-  const sideData = card?.sides?.[currentSide];
+  const sideData = card?.sides?.[visibleSide];
   const rawW = sideData?.width;
   const rawH = sideData?.height;
   const cardAspect = rawW && rawH ? rawW / rawH : 0.714;

@@ -7,13 +7,16 @@
  */
 
 import React, { useRef, useState, useEffect, useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { Provider } from 'react-redux';
+import store from '../../../store';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { useSpring, animated } from '@react-spring/three';
 import * as THREE from 'three';
 import { useCardTexture } from '../hooks/useCardTexture';
 import { createRoundedRectShape } from '../utils/geometry';
 import { Token3D } from './R3FToken';
+import { PeekingSymbol } from '../../engine/PeekingSymbol';
 
 // Cache the last stable texture per card so cross-region remounts can show
 // the old face during the flip animation
@@ -138,6 +141,7 @@ export const R3FCardMesh = ({
     (previousSide != null && previousSide !== currentSide) ? previousSide : currentSide
   );
   const flipAxisVec = useMemo(() => new THREE.Vector3(), []);
+  const { invalidate } = useThree();
 
   // Load texture
   const { texture } = useCardTexture(imageSrc);
@@ -163,7 +167,8 @@ export const R3FCardMesh = ({
   // Drive opacity from isAttachmentHover prop
   useEffect(() => {
     opacitySpringApi.start({ opacity: isAttachmentHover ? 0.4 : 1.0 });
-  }, [isAttachmentHover, opacitySpringApi]);
+    invalidate();
+  }, [isAttachmentHover, opacitySpringApi]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Detect side change and start flip animation
   useEffect(() => {
@@ -181,6 +186,7 @@ export const R3FCardMesh = ({
         delay: stackIndex * 10,
         onRest: () => { isFlipPendingRef.current = false; },
       });
+      invalidate();
     }
   }, [currentSide]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -188,10 +194,19 @@ export const R3FCardMesh = ({
   useEffect(() => {
     const targetRotation = -(rotation * Math.PI) / 180;
     rotSpringApi.start({ rotation: targetRotation });
-  }, [rotation, rotSpringApi]);
+    invalidate();
+  }, [rotation, rotSpringApi]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Per-card useFrame: flip animation, opacity uniform, stencil write, texture swap
-  useFrame(() => {
+  useFrame(({ invalidate }) => {
+    // Keep rendering while springs are settling (required for frameloop="demand")
+    // Use isFlipPendingRef for the flip (set synchronously) rather than isAnimating
+    // which may not be true yet on the first frame after flipSpringApi.start()
+    if (rotSpring.rotation.isAnimating || isFlipPendingRef.current ||
+        opacitySpring.opacity.isAnimating) {
+      invalidate();
+    }
+
     // Flip animation
     const fp = flipSpring.progress.get();
     const isFlipping = fp > 0.001 && fp < 0.999;
@@ -424,7 +439,7 @@ export const R3FCardMesh = ({
         </animated.mesh>
 
         {/* Tokens rendered as 3D planes that lay flat on the card */}
-        <animated.group rotation={currentRotation.to(r => [-Math.PI / 2, 0, r])} position={[0, 0.15, 0]}>
+        <animated.group rotation={currentRotation.to(r => [-Math.PI / 2, 0, r])} position={[0, 0, 0]}>
           {Object.entries(tokens).map(([tokenType, tokenValue]) => {
             if (!tokenValue || tokenValue === 0) return null;
             const tokenDef = tokenDefinitions[tokenType];
@@ -468,6 +483,17 @@ export const R3FCardMesh = ({
             <mesh geometry={glowGeometry} material={glowMaterial} />
           </animated.group>
         )}
+
+        {/* Peeking symbol - top-right corner of card face */}
+        <animated.group rotation={currentRotation.to(r => [-Math.PI / 2, 0, r])} position={[0, 0.16, 0]}>
+          <group position={[cardWidth / 2, cardHeight / 2, 0]}>
+            <Html style={{ pointerEvents: 'none' }} zIndexRange={[0, 0]}>
+              <Provider store={store}>
+                <PeekingSymbol cardId={cardId} />
+              </Provider>
+            </Html>
+          </group>
+        </animated.group>
 
         {/* Attachment link indicator */}
         {attachmentIndicatorDirection && (

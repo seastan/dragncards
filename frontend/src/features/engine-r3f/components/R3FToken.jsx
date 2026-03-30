@@ -50,7 +50,7 @@ export const Token3D = ({ position, size, imageUrl, label }) => {
       {/* Label text */}
       {label && (
         <Text
-          position={[0, 0, 0.01]}
+          position={[0, 0, 0.005]}
           fontSize={size * 0.4}
           color="white"
           anchorX="center"

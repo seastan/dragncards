@@ -194,8 +194,17 @@ const R3FGroupCards = ({ groupId, region, selectedStackIndices }) => {
   const stacks = [];
   let globalCardIndex = 0;
 
+  const isPileGroup = region.type === 'pile';
+  const isDraggingTopStack = isPileGroup && isEffectiveSourceGroup && activeStackId === group.stackIds[0];
+
   group.stackIds.forEach((stackId, stackIndex) => {
     if (selectedStackIndices && !selectedStackIndices.includes(stackIndex)) return;
+
+    // For piles, only render the top stack. When the top stack is being dragged,
+    // also show the second stack as a non-interactive peek.
+    if (isPileGroup && stackIndex > 0) {
+      if (stackIndex > 1 || !isDraggingTopStack) return;
+    }
 
     const stack = stackById?.[stackId];
     if (!stack || !stack.cardIds) return;
@@ -348,6 +357,7 @@ const R3FGroupCards = ({ groupId, region, selectedStackIndices }) => {
         baseZIndex={globalCardIndex}
         isBeingDragged={isBeingDragged}
         stackIndex={stackIndex}
+        isNonInteractive={isPileGroup && stackIndex === 1}
       />
     );
 

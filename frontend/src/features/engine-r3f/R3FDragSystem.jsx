@@ -6,6 +6,8 @@
  */
 
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faLayerGroup } from '@fortawesome/free-solid-svg-icons';
 import * as THREE from 'three';
 import store from '../../store';
 import { TABLE_WIDTH, TABLE_HEIGHT } from './utils/cameraUtils';
@@ -184,8 +186,8 @@ export const RegionBoundary = ({ region, isHovered = false, showLabel = true, st
         <lineBasicMaterial color={color} transparent opacity={borderOpacity} linewidth={2} />
       </lineSegments>
 
-      {/* Region label - positioned at center, always faces camera */}
-      {showLabel && (
+      {/* Region label - only shown for pile regions */}
+      {showLabel && region.type === 'pile' && (
         <Html
           position={[0, 0.5, 0]}
           center
@@ -204,8 +206,7 @@ export const RegionBoundary = ({ region, isHovered = false, showLabel = true, st
             padding: '2px 6px',
             borderRadius: '4px',
           }}>
-            <div style={{ fontWeight: 'bold', color: color }}>{region.label || region.id || 'Region'}</div>
-            <div style={{ fontSize: '9px', opacity: 0.8 }}>{region.type} | {stackCount} stacks</div>
+            {stackCount} <FontAwesomeIcon icon={faLayerGroup} />
           </div>
         </Html>
       )}
