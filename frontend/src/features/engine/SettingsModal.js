@@ -44,6 +44,12 @@ export const uiSettings = {
     "label": "use3DView",
     "type": "boolean",
     "default": false
+  },
+  "usePixiView": {
+    "id": "usePixiView",
+    "label": "usePixiView",
+    "type": "boolean",
+    "default": false
   }
 }
 

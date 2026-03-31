@@ -34,6 +34,8 @@ import { useLayout } from "./hooks/useLayout";
 
 // Lazy load the R3F table layout to avoid loading Three.js when not needed
 const R3FTableLayout = lazy(() => import("../engine-r3f/R3FTableLayout"));
+// Lazy load the PixiJS table layout to avoid loading Pixi when not needed
+const PixiTableLayout = lazy(() => import("../engine-pixi/PixiTableLayout"));
 
 export const Table = React.memo(({onDragEnd}) => {
   const gameDef = useGameDefinition();
@@ -41,6 +43,7 @@ export const Table = React.memo(({onDragEnd}) => {
   const tooltipIds = useSelector(state => state?.playerUi?.tooltipIds);
   const touchMode = useSelector(state => state?.playerUi?.userSettings?.touchMode);
   const use3DView = useSelector(state => state?.playerUi?.userSettings?.use3DView);
+  const usePixiView = useSelector(state => state?.playerUi?.userSettings?.usePixiView);
   const touchAction = useTouchAction();
   const setTouchAction = useSetTouchAction();
   const showModal = useSelector(state => state?.playerUi?.showModal);
@@ -102,14 +105,18 @@ export const Table = React.memo(({onDragEnd}) => {
           </div>
           {/* Table */}
           <div className="relative w-full" style={{height: touchMode ? "82%" : "94%"}}>
-            {use3DView ? (
+            {usePixiView ? (
+              <Suspense fallback={<div className="h-full w-full bg-gray-900 flex items-center justify-center text-white">Loading PixiJS View...</div>}>
+                <PixiTableLayout showControls={true} />
+              </Suspense>
+            ) : use3DView ? (
               <Suspense fallback={<div className="h-full w-full bg-gray-900 flex items-center justify-center text-white">Loading 3D View...</div>}>
                 <R3FTableLayout showControls={true} />
               </Suspense>
             ) : (
               <TableLayout onDragEnd={onDragEnd}/>
             )}
-            {use3DView && layout?.chat && <TableChat region={layout.chat} />}
+            {(use3DView || usePixiView) && layout?.chat && <TableChat region={layout.chat} />}
             <FadeTextPlayer/>
           </div>
           {/* Touch Bar */}

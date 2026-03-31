@@ -647,6 +647,15 @@ export const siteL10n = {
     "German": "3D-Ansicht (Beta)",
     "Chinese": "3D 视图（测试版）"
   },
+  "usePixiView": {
+    "English": "PixiJS View (Beta)",
+    "French": "Vue PixiJS (Bêta)",
+    "Spanish": "Vista PixiJS (Beta)",
+    "Portuguese": "Visão PixiJS (Beta)",
+    "Italian": "Vista PixiJS (Beta)",
+    "German": "PixiJS-Ansicht (Beta)",
+    "Chinese": "PixiJS 视图（测试版）"
+  },
   "pluginOptions": {
     "English": "Plugin Options",
     "French": "Options du plugin",
