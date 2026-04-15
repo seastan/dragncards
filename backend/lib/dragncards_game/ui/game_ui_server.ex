@@ -207,8 +207,10 @@ defmodule DragnCardsGame.GameUIServer do
     # IO.inspect(path)
     # IO.inspect(:code.priv_dir(:dragncards))
     # gameui = put_in(gameui["pypid"], :erlang.pid_to_list(pypid))
+    cached_timeout = timeout_for_supporter_level(gameui["createdBy"])
+    gameui = Map.put(gameui, "cachedTimeout", cached_timeout)
     GameRegistry.add(gameui["roomSlug"], gameui)
-    {:ok, gameui, timeout(gameui)}
+    {:ok, gameui, cached_timeout}
   end
 
   def handle_call(:state, _from, state) do
@@ -398,26 +400,22 @@ defmodule DragnCardsGame.GameUIServer do
   end
 
   defp save_and_reply(new_gameui) do
-    # Async GameRegistry.update Should improve performance,
-    # but causes tests to fail.  Not sure it's a real failure
-    # spawn_link(fn ->
-
-    GameRegistry.update(new_gameui["roomSlug"], new_gameui)
-    # end)
+    Task.start(fn ->
+      GameRegistry.update(new_gameui["roomSlug"], new_gameui)
+    end)
 
     spawn_link(fn ->
       :ets.insert(:game_uis, {new_gameui["roomSlug"], new_gameui})
     end)
 
-    {:reply, new_gameui, new_gameui, timeout(new_gameui)}
+    {:reply, new_gameui, new_gameui, new_gameui["cachedTimeout"] || @timeout}
   end
 
   # timeout/1
   # Given the current state of the game, what should the
   # GenServer timeout be? Depends on room creator's supporter level.
   defp timeout(state) do
-    creator_id = state["createdBy"]
-    timeout_for_supporter_level(creator_id)
+    state["cachedTimeout"] || @timeout
   end
 
   defp timeout_for_supporter_level(nil), do: @timeout
