@@ -1,0 +1,37 @@
+name: Update Wiki Docs
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/lib/dragncards_game/evaluate/functions/**'
+      - 'backend/lib/dragncards_game/evaluate/variables/**'
+      - 'backend/lib/mix/tasks/generate_function_docs.ex'
+      - 'backend/lib/mix/tasks/generate_variable_docs.ex'
+
+jobs:
+  update-wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate docs
+        run: |
+          mkdir -p backend/doc
+          python3 .github/scripts/generate_docs.py functions backend/lib/dragncards_game/evaluate/functions backend/doc/Functions.md
+
+          python3 .github/scripts/generate_docs.py variables backend/lib/dragncards_game/evaluate/variables backend/doc/Variables.md
+
+      - name: Push to wiki
+        run: |
+          git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git wiki
+          cp backend/doc/Functions.md "wiki/Built‐in-Functions.md"
+          cp backend/doc/Variables.md "wiki/Built‐in-Variables.md"
+          cd wiki
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "Built‐in-Functions.md" "Built‐in-Variables.md"
+          git diff --cached --quiet || git commit -m "Update function and variable docs from ${{ github.sha }}"
+          git push

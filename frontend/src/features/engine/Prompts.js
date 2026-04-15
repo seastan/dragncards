@@ -3,7 +3,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { usePlayerN } from "./hooks/usePlayerN";
 import { keysDiv, Z_INDEX } from "./functions/common";
 import { useDoActionList } from "./hooks/useDoActionList";
-import { useGameL10n } from "./hooks/useGameL10n";
+import { useGameL10n, useGameL10nRich } from "./hooks/useGameL10n";
+import { useRichText } from "../messages/useRichText";
 import Draggable from "react-draggable";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGripLines } from "@fortawesome/free-solid-svg-icons";
@@ -68,6 +69,8 @@ export const Prompt = React.memo(({
   const dispatch = useDispatch();
   const doActionList = useDoActionList();
   const gameL10n = useGameL10n();
+  const gameL10nRich = useGameL10nRich();
+  const richText = useRichText();
   const setPluginSetting = useSetPluginSetting();
   const multiSelect = useSelector(state => state.playerUi.multiSelect);
   const [promptTextInput, setPromptTextInput] = useState(null);
@@ -87,6 +90,7 @@ export const Prompt = React.memo(({
       );
     }
     const defineInput = ["DEFINE", "$PROMPT_INPUT", promptInput];
+    console.warn("Clearing multi-select card ids because code was run for prompt");
     dispatch(clearMultiSelectCardIds()); // Clear multi-select after the prompt is handled
 
     // Compile the action list
@@ -111,7 +115,7 @@ export const Prompt = React.memo(({
 
   return (
     <div className="p-2 bg-gray-600-90" style={{borderBottom: "1px solid black"}}>
-      <div className="mb-2">{message}</div>
+      <div className="mb-2">{typeof message === "string" ? richText(message, { context: "prompt" }) : message}</div>
         {input && <PromptInput inputDetails={input} setPromptTextInput={setPromptTextInput} />}
         {options &&
           <div className="">
@@ -119,7 +123,7 @@ export const Prompt = React.memo(({
               return(
                 <div key={index} className="m-1 p-1 rounded-lg bg-gray-800 hover:bg-red-800 cursor-default" onClick={() => handleOptionClick(option)}>
                   {promptIndex === 0 && option.hotkey && <span>{keysDiv(option.hotkey, "hover:bg-gray-500")}</span>}
-                  <span className="pl-2">{gameL10n(option.label)}</span>
+                  <span className="pl-2">{gameL10nRich(option.label)}</span>
                 </div>
               )
             })}
@@ -147,11 +151,9 @@ export const Prompts = React.memo(({
         dispatch(setMultiSelectEnabled(true));
       } else if (topPrompt && topPrompt.input && topPrompt.input.type !== "selectCards" && multiSelect.enabled) {
         dispatch(setMultiSelectEnabled(false));
+        console.log("Clearing multi-select card ids because the top prompt does not have a selectCards input");
         dispatch(clearMultiSelectCardIds());
       }
-    } else if (multiSelect.enabled) {
-      dispatch(setMultiSelectEnabled(false));
-      dispatch(clearMultiSelectCardIds());
     }
   }, [sortedPromptIds, prompts]);
   

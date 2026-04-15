@@ -5,13 +5,13 @@ defmodule DragnCardsGame.Evaluate.Functions.MAX do
   1. `list` (list of numbers)
 
   *Returns*:
-  (number) The lowest number in the list. Non-numbers are removed from the list.
+  (number) The highest number in the list. Non-numbers are removed from the list.
 
   *Examples*:
   ```
-  ["MAX", ["LIST", 5, 4, 6]] => 4
-  ["MAX", ["LIST", 5, 4, 6, null]] => 4
-  ["MAX", ["LIST", null, 5, -1, 6]] => -1
+  ["MAX", ["LIST", 5, 4, 6]] => 6
+  ["MAX", ["LIST", 5, 4, 6, null]] => 6
+  ["MAX", ["LIST", null, 5, -1, 6]] => 6
   ["MAX", ["LIST", null, null, null]] => error
   ```
   """

@@ -115,7 +115,11 @@ export const DeckbuilderTable = React.memo(({currentGroupId, modifyDeckList, set
 
   useEffect(() => {
     console.log("jkl selectedDb", selectedDb)
-    setSortedCardIds(Object.keys(selectedDb));
+    const cardIds = Object.keys(selectedDb).filter(cardId => {
+      const qty = selectedDb[cardId]?.A?.deckbuilderQuantity;
+      return qty === undefined || qty === null || (parseInt(qty) !== 0);
+    });
+    setSortedCardIds(cardIds);
   }, [selectedDb]);
 
   useEffect(() => {
