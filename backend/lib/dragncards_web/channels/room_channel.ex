@@ -22,12 +22,17 @@ defmodule DragnCardsWeb.RoomChannel do
     {:ok, socket}
   end
 
+  def handle_info(:after_join, %{assigns: %{auth_failed: true}} = socket) do
+    push_room_unavailable(socket)
+    {:noreply, socket}
+  end
+
   def handle_info(:after_join, %{assigns: %{room_slug: room_slug, user_id: user_id}, transport_pid: pid} = socket) do
     GameUIServer.add_player_to_room(room_slug, user_id, pid)
     state = GameUIServer.state(room_slug)
     client_state = client_state(socket)
     if client_state == nil do
-      push(socket, "unable_to_get_state_on_join", %{})
+      push_room_unavailable(socket)
     end
 
     if state["sockets"] != nil do
@@ -54,11 +59,20 @@ defmodule DragnCardsWeb.RoomChannel do
     client_state = client_state(socket)
 
     if client_state == nil do
-      push(socket, "unable_to_get_state_on_request", %{})
+      push_room_unavailable(socket)
     else
       push(socket, "current_state", client_state)
     end
     {:reply, {:ok, "request_state"}, socket}
+  end
+
+  def handle_in(
+        "game_action",
+        _payload,
+        %{assigns: %{auth_failed: true}} = socket
+      ) do
+    push_room_unavailable(socket)
+    {:reply, {:error, "room_unavailable"}, socket}
   end
 
   def handle_in(
@@ -410,6 +424,12 @@ defmodule DragnCardsWeb.RoomChannel do
     broadcast!(socket, "send_alert", payload)
 
     {:noreply, socket}
+  end
+
+  defp push_room_unavailable(socket) do
+    push(socket, "room_unavailable", %{
+      "reason" => "missing_server_state"
+    })
   end
 
   def send_gui_message_to_player(socket, gui_update) do

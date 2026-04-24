@@ -28,7 +28,8 @@ defmodule DragnCardsWeb.UserSocket do
   # See `Phoenix.Token` documentation for examples in
   # performing token verification on connect.
   def connect(params, socket, _connect_info) do
-    user = get_user_from_auth_token(params["authToken"])
+    auth_token = params["authToken"]
+    user = get_user_from_auth_token(auth_token)
     # Logger.info("Socket Join")
     # params |> IO.inspect(label: "UserSocket Params")
     # user |> IO.inspect(label: "User from token")
@@ -37,12 +38,15 @@ defmodule DragnCardsWeb.UserSocket do
     ## but we mark their user_id as nil
     case user do
       %User{} ->
-        {:ok, assign(socket, :user_id, user.id)}
+        {:ok, socket |> assign(:user_id, user.id) |> assign(:auth_failed, false)}
 
       _ ->
-        {:ok, assign(socket, :user_id, nil)}
+        {:ok, socket |> assign(:user_id, nil) |> assign(:auth_failed, present_token?(auth_token))}
     end
   end
+
+  defp present_token?(token) when is_binary(token), do: String.trim(token) != ""
+  defp present_token?(_token), do: false
 
   defp get_user_from_auth_token(token) do
     ## Warning: Hardcoded Config for Plug
