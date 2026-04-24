@@ -11,9 +11,9 @@ import Config
 # before starting your production server.
 config :dragncards, DragnCardsWeb.Endpoint,
   http: [port: 4000],
-  url: [host: "beta.dragncards.com", port: 4000],
+  url: [host: "dragncards.com", port: 4000],
   cache_static_manifest: "priv/static/cache_manifest.json",
-  check_origin: ["//localhost", "//beta.dragncards", "//beta.dragncards.com", "//www.beta.dragncards.com"],
+  check_origin: ["//localhost", "//dragncards", "//dragncards.com", "//www.dragncards.com"],
   # check_origin: [
   #   "//dragncards.com",
   #   "//api.dragncards.com",
@@ -27,8 +27,8 @@ config :dragncards, DragnCardsWeb.Endpoint,
   #   "//172.22.2.32:31232",
   #   "//172.22.2.33:31232"
   # ],
-  front_end_email_confirm_url: "http://beta.dragncards.com/confirm-email/{token}",
-  front_end_reset_password_url: "http://beta.dragncards.com/reset-password/{token}"
+  front_end_email_confirm_url: "http://dragncards.com/confirm-email/{token}",
+  front_end_reset_password_url: "http://dragncards.com/reset-password/{token}"
 
 # Do not print debug messages in production
 config :logger, level: :info

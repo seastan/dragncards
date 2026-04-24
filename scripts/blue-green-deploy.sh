@@ -68,7 +68,7 @@ echo ""
 
 # Step 1: Pull and build
 echo "==> Pulling latest code..."
-git pull
+#git pull
 
 echo "==> Building backend..."
 cd backend
@@ -124,6 +124,10 @@ sudo nginx -t && sudo nginx -s reload
 # Step 6: Disable room cleanup on old instance so it doesn't delete the new instance's rooms
 echo "==> Disabling room cleanup on old instance..."
 RELEASE_NODE=$OLD_NODE $RELEASE_BIN rpc "Application.put_env(:dragncards, :cleanup_enabled, false)" 2>/dev/null || echo "    Warning: couldn't reach old instance (may already be stopped)"
+
+# Step 7: Ensure cleanup is enabled on the new instance
+echo "==> Ensuring room cleanup is enabled on new instance..."
+$RELEASE_BIN rpc "Application.put_env(:dragncards, :cleanup_enabled, true)" 2>/dev/null || echo "    Warning: couldn't reach new instance to enable cleanup"
 
 echo ""
 echo "=========================================="
