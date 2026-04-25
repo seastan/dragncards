@@ -171,10 +171,12 @@ export const Room = ({ slug }) => {
   const chatBroadcast = useChannel(`chat:${slug}`, onChatMessage, myUserId);
 
   // If game goes out of sync, send a "request_state" message to the server
-  if (outOfSync) {
-    gameBroadcast("request_state", {});
-    setOutOfSync(false);
-  }
+  useEffect(() => {
+    if (outOfSync) {
+      gameBroadcast("request_state", {});
+      setOutOfSync(false);
+    }
+  }, [outOfSync, gameBroadcast]);
 
   console.log('Rendering Room',{myUserId, roomNotFound, roomSlug, slug});
   // console.log("plugin room",plugin)
