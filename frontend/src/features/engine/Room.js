@@ -149,7 +149,7 @@ export const Room = ({ slug }) => {
       }
     }
 
-  }, [roomSlug]);
+  }, [dispatch, history, playerN, roomSlug, sendLocalMessage]);
 
   const onChatMessage = useCallback((event, payload) => {
     if (
