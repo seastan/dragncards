@@ -10,16 +10,50 @@ defmodule DragnCardsWeb.RoomChannel do
 
   require Logger
 
+  @join_window_ms 10_000
+  @max_joins_per_window 5
 
-  def join("room:" <> room_slug, _payload, %{assigns: %{user_id: _user_id}} = socket) do
+  def join("room:" <> room_slug, _payload, %{assigns: %{user_id: user_id}} = socket) do
+    if rate_limited_join?(room_slug, user_id) do
+      {:error, %{reason: "rate_limited"}}
+    else
+      socket =
+        socket
+        |> assign(:room_slug, room_slug)
 
-    socket =
-      socket
-      |> assign(:room_slug, room_slug)
+      send(self(), :after_join)
+      {:ok, socket}
+    end
+  end
 
+  defp rate_limited_join?(room_slug, user_id) do
+    table = ensure_join_rate_table()
+    now = System.monotonic_time(:millisecond)
+    key = {room_slug, user_id || :anonymous}
 
-    send(self(), :after_join)
-    {:ok, socket}
+    case :ets.lookup(table, key) do
+      [{^key, window_started_at, count}] when now - window_started_at < @join_window_ms ->
+        :ets.insert(table, {key, window_started_at, count + 1})
+        count >= @max_joins_per_window
+
+      _ ->
+        :ets.insert(table, {key, now, 1})
+        false
+    end
+  end
+
+  defp ensure_join_rate_table do
+    case :ets.whereis(:room_channel_join_rate) do
+      :undefined ->
+        try do
+          :ets.new(:room_channel_join_rate, [:named_table, :public, read_concurrency: true, write_concurrency: true])
+        rescue
+          ArgumentError -> :room_channel_join_rate
+        end
+
+      table ->
+        table
+    end
   end
 
   def handle_info(:after_join, %{assigns: %{auth_failed: true}} = socket) do
