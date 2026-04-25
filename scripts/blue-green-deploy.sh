@@ -53,11 +53,13 @@ CURRENT_PORT=$(grep -oP '\d{4}' "$UPSTREAM_FILE" | head -1)
 if [ "$CURRENT_PORT" = "4000" ]; then
   NEW_PORT=4001
   NEW_SERVICE="dragncards-4001.service"
+  NEW_NODE="dragncards_4001@$(hostname)"
   OLD_SERVICE="dragncards.service"
   OLD_NODE="dragncards@$(hostname)"
 else
   NEW_PORT=4000
   NEW_SERVICE="dragncards.service"
+  NEW_NODE="dragncards@$(hostname)"
   OLD_SERVICE="dragncards-4001.service"
   OLD_NODE="dragncards_4001@$(hostname)"
 fi
@@ -127,7 +129,7 @@ RELEASE_NODE=$OLD_NODE $RELEASE_BIN rpc "Application.put_env(:dragncards, :clean
 
 # Step 7: Ensure cleanup is enabled on the new instance
 echo "==> Ensuring room cleanup is enabled on new instance..."
-$RELEASE_BIN rpc "Application.put_env(:dragncards, :cleanup_enabled, true)" 2>/dev/null || echo "    Warning: couldn't reach new instance to enable cleanup"
+RELEASE_NODE=$NEW_NODE $RELEASE_BIN rpc "Application.put_env(:dragncards, :cleanup_enabled, true)" 2>/dev/null || echo "    Warning: couldn't reach new instance to enable cleanup"
 
 echo ""
 echo "=========================================="
