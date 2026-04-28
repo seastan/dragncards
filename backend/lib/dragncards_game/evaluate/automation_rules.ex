@@ -305,7 +305,7 @@ defmodule DragnCardsGame.AutomationRules do
   end
 
   def apply_trigger_rule(rule, _game_old, game_new, trace) do
-    if Evaluate.evaluate(game_new, rule["condition"], trace ++ [Jason.encode!(rule["condition"])]) do
+    if Evaluate.evaluate(game_new, rule["condition"], trace) do
       run_rule_code(game_new, rule, rule["then"], trace ++ ["then"])
       #Evaluate.evaluate(game_new, rule["then"], trace ++ [Jason.encode!("THEN")])
     else
@@ -314,8 +314,8 @@ defmodule DragnCardsGame.AutomationRules do
   end
 
   def apply_passive_rule(rule, game_old, game_new, trace) do
-    onBefore = Evaluate.evaluate(game_old, rule["condition"], trace ++ ["game_old", Jason.encode!(rule["condition"])])
-    onAfter = Evaluate.evaluate(game_new, rule["condition"], trace ++ ["game_new", Jason.encode!(rule["condition"])])
+    onBefore = Evaluate.evaluate(game_old, rule["condition"], trace ++ ["game_old"])
+    onAfter = Evaluate.evaluate(game_new, rule["condition"], trace ++ ["game_new"])
 
     onDo = rule["onDo"]
     offDo = rule["offDo"]

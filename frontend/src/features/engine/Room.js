@@ -1,5 +1,6 @@
 import React, { useCallback, useState, useEffect, useRef, useContext } from "react";
 import { useSelector, useDispatch } from 'react-redux';
+import { useHistory } from "react-router-dom";
 import RoomProviders from "./RoomProviders";
 import {useSetMessages} from '../../contexts/MessagesContext';
 import useChannel from "../../hooks/useChannel";
@@ -18,6 +19,7 @@ import { usePlayerN } from "./hooks/usePlayerN";
 
 export const Room = ({ slug }) => {
   const dispatch = useDispatch();
+  const history = useHistory();
   const roomSlug = useSelector(state => state.gameUi.roomSlug);
   const setMessages = useSetMessages();
   const myUser = useProfile();
@@ -137,13 +139,7 @@ export const Room = ({ slug }) => {
       }));
       setOutOfSync(true);
     } else if (event === "unable_to_get_state_on_request") {
-      dispatch(setAlert({
-        level: "crash",
-        text: "The room has crashed. Please go to the Menu and download the game state file. \
-          Then, create a new room and upload that file to continue where you left off.",
-        timestamp: Date.now()
-      }));
-      //setRoomClosed(true);
+      dispatch(setRoomNotFound(true));
     } else if (event === "phx_error") {
       dispatch(setAlert({
         level: "crash",
@@ -180,7 +176,7 @@ export const Room = ({ slug }) => {
       }
     }
 
-  }, [roomSlug]);
+  }, [dispatch, history, playerN, roomSlug, sendLocalMessage]);
 
   const onChatMessage = useCallback((event, payload) => {
     if (
@@ -202,10 +198,12 @@ export const Room = ({ slug }) => {
   const chatBroadcast = useChannel(`chat:${slug}`, onChatMessage, myUserId);
 
   // If game goes out of sync, send a "request_state" message to the server
-  if (outOfSync) {
-    gameBroadcast("request_state", {});
-    setOutOfSync(false);
-  }
+  useEffect(() => {
+    if (outOfSync) {
+      gameBroadcast("request_state", {});
+      setOutOfSync(false);
+    }
+  }, [outOfSync, gameBroadcast]);
 
   console.log('Rendering Room',{myUserId, roomNotFound, roomSlug, slug});
   // console.log("plugin room",plugin)
@@ -223,25 +221,25 @@ export const Room = ({ slug }) => {
   if (roomNotFound) return (
     <div className="text-white flex flex-col items-center justify-center h-screen p-4">
       <div className="bg-gray-700 rounded-lg p-6 max-w-md text-center">
-        <h2 className="text-xl font-bold mb-3">Room not found</h2>
+        <h2 className="text-xl font-bold mb-3">Room no longer accessible</h2>
         <p className="text-gray-300 mb-4">
-          This room is no longer available. It may have been closed due to inactivity,
-          or the server may have been updated while you were connected.
+          This room can no longer be reached from this browser session. It may have closed, timed out, or stayed on an older server during a deployment.
         </p>
-        <div className="flex gap-3 justify-center">
-          <button
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-            onClick={() => window.location.reload()}
-          >
-            Reload page
-          </button>
-          <button
-            className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
-            onClick={() => { dispatch(setRoomNotFound(false)); window.history.back(); }}
-          >
-            Go back
-          </button>
-        </div>
+        <p className="text-gray-300 mb-4">
+          If the game was saved, continue from your saved games in your profile.
+        </p>
+        <button
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mr-2"
+          onClick={() => { dispatch(setRoomNotFound(false)); history.push(myUser ? "/profile" : "/login"); }}
+        >
+          {myUser ? "Go to profile" : "Log in"}
+        </button>
+        <button
+          className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded"
+          onClick={() => { dispatch(setRoomNotFound(false)); history.push("/lobby"); }}
+        >
+          Go to lobby
+        </button>
       </div>
     </div>
   );

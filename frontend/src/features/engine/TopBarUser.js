@@ -46,7 +46,6 @@ export const TopBarUser = React.memo(({
   const borderColor = getPlayerIColor(playerI);
 
 
-  console.log("Rendering TopBarUser ", playerI, playerInfo, playerData, playerDataPlayerN);
   if (!playerInfo) return null;
   if (!playerDataPlayerN) return null;
 
@@ -119,12 +118,16 @@ export const TopBarUser = React.memo(({
   
   return(
     <div className="w-full h-full pr-1 border-t" style={{borderLeft: "1px solid lightgrey", borderTopColor: borderColor}}>
-      <div className="float-left h-full w-2/3">
-        <div className="h-1/2 w-full flex justify-center">
-          {/* Show First player token */}
-          {(firstPlayer === playerI) ? <FirstPlayerToken/> : null}
-          {playerDataPlayerN?.label ? <div className="pr-1">{playerDataPlayerN.label}:</div> : null}
-          <UserName userID={sittingUserId} defaultName="Empty seat"/>
+      <div className="float-left h-full w-2/3 flex flex-col">
+        <div className="h-1/2 w-full flex items-center justify-center min-w-0 overflow-hidden">
+          {(firstPlayer === playerI) ? <div className="flex-shrink-0"><FirstPlayerToken/></div> : null}
+          <div
+            className="truncate min-w-0"
+            title={[playerDataPlayerN?.label, playerInfo[playerI]?.alias || (sittingUserId ? `#${sittingUserId}` : "Empty seat")].filter(Boolean).join(": ")}
+          >
+            {playerDataPlayerN?.label ? <span className="pr-1">{playerDataPlayerN.label}:</span> : null}
+            <UserName userID={sittingUserId} defaultName="Empty seat"/>
+          </div>
         </div>
 
         <div className="h-1/2 w-full cursor-default">

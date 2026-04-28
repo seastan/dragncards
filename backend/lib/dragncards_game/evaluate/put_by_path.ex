@@ -7,7 +7,6 @@ defmodule DragnCardsGame.PutByPath do
   alias DragnCards.{Rooms, Plugins}
 
   def put_by_path(game_old, path, val_new, trace) do
-    # Get current time in ms
     path_minus_key = try do
       Enum.slice(path, 0, Enum.count(path)-1)
     rescue
@@ -29,20 +28,29 @@ defmodule DragnCardsGame.PutByPath do
             end
 
           val_old ->
-            # Check if val_old is a map
             if is_map(val_old) and !is_struct(val_old, MapSet) do
-              #IO.puts("Changing #{inspect(path)} from #{inspect(val_old[key])} to #{inspect(val_new)}")
-              put_in(game_old, path, val_new)
+              # Skip the update entirely if the value hasn't changed — avoids
+              # spurious automation rule evaluation on no-op SETs (e.g. bulk
+              # flag resets where most cards already hold the target value).
+              if val_old[key] === val_new do
+                :unchanged
+              else
+                put_in(game_old, path, val_new)
+              end
             else
               raise("Tried to set a key (#{key}) at a path that does not point to a map: #{inspect(path_minus_key)} = #{inspect(val_old)}")
             end
         end
       end
 
-    if is_map(game_new["ruleMap"]) and game_new["automationEnabled"] == true do
-      AutomationRules.apply_automation_rules_for_update_paths(game_new, game_old, [path], path, trace ++ ["apply_automation_rules_for_update_paths"])
+    if game_new == :unchanged do
+      game_old
     else
-      game_new
+      if is_map(game_new["ruleMap"]) and game_new["automationEnabled"] == true do
+        AutomationRules.apply_automation_rules_for_update_paths(game_new, game_old, [path], path, trace ++ ["apply_automation_rules_for_update_paths"])
+      else
+        game_new
+      end
     end
   end
 

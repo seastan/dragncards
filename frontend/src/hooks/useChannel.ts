@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { Socket } from "phoenix";
 import SocketContext from "../contexts/SocketContext";
 
@@ -43,18 +43,23 @@ const useChannel = (
   myUserId: number | null | undefined,
 ) => {
   const socket = useContext(SocketContext);
+  const onMessageRef = useRef(onMessage);
   const [broadcast, setBroadcast] = useState<
     (eventName: string, payload: object) => void
   >(mustJoinChannelWarning);
 
   useEffect(() => {
+    onMessageRef.current = onMessage;
+  }, [onMessage]);
+
+  useEffect(() => {
     let doCleanup: () => void = () => null;
     console.log('socket',socket);
     if (socket != null) {
-      doCleanup = joinChannel(socket, channelTopic, onMessage, setBroadcast, myUserId);
+      doCleanup = joinChannel(socket, channelTopic, onMessageRef, setBroadcast, myUserId);
     }
     return doCleanup;
-  }, [channelTopic, onMessage, socket, myUserId]);
+  }, [channelTopic, socket, myUserId]);
 
   return broadcast;
 };
@@ -62,7 +67,7 @@ const useChannel = (
 const joinChannel = (
   socket: Socket,
   channelTopic: string,
-  onMessage: (event: any, payload: any) => void,
+  onMessageRef: React.MutableRefObject<(event: any, payload: any) => void>,
   setBroadcast: React.Dispatch<
     React.SetStateAction<(eventName: string, payload: object) => void>
   >,
@@ -78,7 +83,7 @@ const joinChannel = (
     // I don't think the chan_reply_ events are needed - always duplicates of phx_reply?
     if (event != null && !event.startsWith("chan_reply_")) {
       console.log("Calling onMessage for event:", event);
-      onMessage(event, payload);
+      onMessageRef.current(event, payload);
     } else {
       console.log("Filtered out event:", event);
     }
