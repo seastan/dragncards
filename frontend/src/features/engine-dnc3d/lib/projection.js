@@ -32,28 +32,28 @@ export function createProjection() {
   function cardHeightPx() { return _cardH; }
 
   // Inverse projection: screen (viewport) coordinates → table-plane coordinates.
+  // Derivation: sy = cy + (ty·cosA − cy)·P/(P − ty·sinA)  →  ty = P·sy / (P·cosA + (sy−cy)·sinA)
   function screenToTable(sx, sy, tiltEl, deg) {
     const rad  = deg * Math.PI / 180;
     const cosA = Math.cos(rad), sinA = Math.sin(rad);
     const w    = parseFloat(tiltEl.style.width);
     const P    = stagePx();
-    const dy   = sy - _stageCY;
-    const ty = P * dy / (P * cosA + dy * sinA);
+    const ty = P * sy / (P * cosA + (sy - _stageCY) * sinA);
     const tx = w / 2 + (sx - _stageCX) * (P - ty * sinA) / P;
     return { x: tx, y: ty };
   }
 
   // Inverse projection accounting for a card's translateZ offset.
+  // Derivation: ty = (P·sy + Z·(P·sinA − (sy−cy)·cosA)) / (P·cosA + (sy−cy)·sinA)
   function screenToTableAtZ(sx, sy, Z, tiltEl, deg) {
     const rad  = deg * Math.PI / 180;
     const cosA = Math.cos(rad), sinA = Math.sin(rad);
     const w    = parseFloat(tiltEl.style.width);
     const P    = stagePx();
-    const dy   = sy - _stageCY;
-    const dx   = sx - _stageCX;
-    const D    = P * cosA + dy * sinA;
-    const ty   = (P * dy + Z * (P * sinA - dy * cosA)) / D;
-    const tx   = w / 2 + dx * (P - ty * sinA - Z * cosA) / P;
+    const dsy  = sy - _stageCY;
+    const D    = P * cosA + dsy * sinA;
+    const ty   = (P * sy + Z * (P * sinA - dsy * cosA)) / D;
+    const tx   = w / 2 + (sx - _stageCX) * (P - ty * sinA - Z * cosA) / P;
     return { x: tx, y: ty };
   }
 

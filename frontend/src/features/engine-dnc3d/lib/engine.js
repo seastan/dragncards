@@ -67,10 +67,12 @@ export function createDnc3DEngine(options = {}) {
     // provided (face.height * cardSize * zoomFactor * 1.7dvh).  Fall back to the
     // legacy tilt-fraction formula for sandbox/demo mode.
     if (_cardSize != null) {
+      // 2D renderer sizes cards as face.height * cardSize * zoomFactor dvh.
+      // dvh = 1% of viewport height (same as CSS dvh unit).
       const dvh = window.innerHeight / 100;
       setCardDims(
-        _cardDefaultW * _cardSize * _zoomFactor * 1.7 * dvh,
-        _cardDefaultH * _cardSize * _zoomFactor * 1.7 * dvh,
+        _cardDefaultW * _cardSize * _zoomFactor * dvh,
+        _cardDefaultH * _cardSize * _zoomFactor * dvh,
       );
     }
 
