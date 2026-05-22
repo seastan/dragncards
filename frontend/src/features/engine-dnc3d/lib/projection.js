@@ -17,15 +17,19 @@ export function createProjection() {
   // Perspective distance — CSS uses 300vw, so this is always viewport-width-based.
   function stagePx() { return PERSP_VW * window.innerWidth / 100; }
 
+  let _cardW = window.innerWidth  * 0.05;
+  let _cardH = window.innerHeight * 0.07;
+
   function setTiltDims(w, h) { _tiltW = w; _tiltH = h; }
+  function setCardDims(w, h) { _cardW = w; _cardH = h; }
 
   function setStageDims(w, h, cx, cy) {
     _stageW = w; _stageH = h;
     _stageCX = cx; _stageCY = cy;
   }
 
-  function cardWidthPx()  { return _tiltW * 0.05; }
-  function cardHeightPx() { return _tiltH * 0.07 * _stageW / _stageH; }
+  function cardWidthPx()  { return _cardW; }
+  function cardHeightPx() { return _cardH; }
 
   // Inverse projection: screen (viewport) coordinates → table-plane coordinates.
   function screenToTable(sx, sy, tiltEl, deg) {
@@ -65,5 +69,5 @@ export function createProjection() {
     return { x: sx, y: sy };
   }
 
-  return { stagePx, setTiltDims, setStageDims, cardWidthPx, cardHeightPx, screenToTable, screenToTableAtZ, tableToScreen };
+  return { stagePx, setTiltDims, setCardDims, setStageDims, cardWidthPx, cardHeightPx, screenToTable, screenToTableAtZ, tableToScreen };
 }

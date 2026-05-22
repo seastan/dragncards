@@ -25,6 +25,13 @@ export default function Dnc3DTable({
 }) {
   const observingPlayerN = useSelector(s => s?.playerUi?.observingPlayerN);
   const numPlayers       = useSelector(s => s?.gameUi?.game?.numPlayers);
+  const cardSize         = useSelector(s => {
+    const obs = s?.playerUi?.observingPlayerN;
+    return s?.gameUi?.game?.playerData?.[obs]?.layout?.cardSize
+        ?? s?.gameUi?.game?.layout?.cardSize
+        ?? null;
+  });
+  const zoomFactor       = useSelector(s => (s?.playerUi?.userSettings?.zoomPercent ?? 100) / 100);
 
   const tiltRef    = useRef(null);
   const engineRef  = useRef(null);
@@ -42,6 +49,8 @@ export default function Dnc3DTable({
   const doActionListRef    = useRef(doActionList);
   const observingPlayerRef = useRef(observingPlayerN);
   const numPlayersRef      = useRef(numPlayers);
+  const cardSizeRef        = useRef(cardSize);
+  const zoomFactorRef      = useRef(zoomFactor);
   gameRef.current            = game;
   layoutRef.current          = layoutRegions;
   gameDefRef.current         = gameDef;
@@ -49,6 +58,8 @@ export default function Dnc3DTable({
   doActionListRef.current    = doActionList;
   observingPlayerRef.current = observingPlayerN;
   numPlayersRef.current      = numPlayers;
+  cardSizeRef.current        = cardSize;
+  zoomFactorRef.current      = zoomFactor;
 
   // Re-initialize the engine whenever the card set changes.
   // This handles: switching to dnc3d after cards are loaded, and loading a
@@ -70,13 +81,24 @@ export default function Dnc3DTable({
     if (connected) {
       const playerN    = observingPlayerRef.current;
       const nPlayers   = numPlayersRef.current;
+      const gd         = gameDefRef.current;
       const regions = adaptRegions(lr, playerN, nPlayers);
       const { cardDescriptors, assignments, idMap } = adaptGameState(
-        g, lr, gameDefRef.current, languageRef.current, playerN, nPlayers
+        g, lr, gd, languageRef.current, playerN, nPlayers
       );
       const reverseIdMap = new Map([...idMap.entries()].map(([k, v]) => [v, k]));
       const callbacks    = buildEngineCallbacks(doActionListRef.current, reverseIdMap);
-      engineOptions = { regions, ...callbacks };
+      // Derive default card dimensions from gameDef cardBacks (any back will do).
+      const anyBack      = Object.values(gd?.cardBacks || {})[0];
+      const cardDefaultH = anyBack?.height ?? 1.0;
+      const cardDefaultW = anyBack?.width  ?? 0.72;
+      engineOptions = {
+        regions, ...callbacks,
+        cardSize:     cardSizeRef.current,
+        zoomFactor:   zoomFactorRef.current,
+        cardDefaultH,
+        cardDefaultW,
+      };
       initData      = { cards: cardDescriptors, assignments };
       idMapRef.current = idMap;
     } else {

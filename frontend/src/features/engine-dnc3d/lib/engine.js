@@ -5,22 +5,31 @@ import { createLayout } from './layout';
 import { easeOut, easeIn, animateFlip } from './animation';
 
 // Creates a self-contained dnc3d engine instance.
-// options.regions      — region definitions (default: DEFAULT_REGIONS for demo/sandbox mode)
-// options.onCardMove   — callback(cardId, fromRegionId, toRegionId, fracX, fracY)
-// options.onAttach     — callback(cardId, targetCardId, side)
-// options.onFlip       — callback(cardId)
+// options.regions         — region definitions (default: DEFAULT_REGIONS for demo/sandbox mode)
+// options.onCardMove      — callback(cardId, fromRegionId, toRegionId, fracX, fracY)
+// options.onAttach        — callback(cardId, targetCardId, side)
+// options.onFlip          — callback(cardId)
+// options.cardSize        — layout cardSize value (e.g. 16 for LotR); drives card pixel size
+// options.cardDefaultH    — card height in cardSize units (e.g. 1.0); default 1.0
+// options.cardDefaultW    — card width  in cardSize units (e.g. 0.72); default 0.72
+// options.zoomFactor      — user zoom setting as a multiplier; default 1.0
 export function createDnc3DEngine(options = {}) {
-  const REGIONS    = options.regions    || DEFAULT_REGIONS;
-  const onCardMove = options.onCardMove || null;
-  const onAttach   = options.onAttach   || null;
-  const onFlip     = options.onFlip     || null;
+  const REGIONS       = options.regions    || DEFAULT_REGIONS;
+  const onCardMove    = options.onCardMove || null;
+  const onAttach      = options.onAttach   || null;
+  const onFlip        = options.onFlip     || null;
+  // Card sizing — mirrors the 2D renderer's cardSize * zoomFactor * 1.7dvh formula.
+  const _cardSize     = options.cardSize     || null;   // null → fall back to legacy formula
+  const _cardDefaultH = options.cardDefaultH || 1.0;
+  const _cardDefaultW = options.cardDefaultW || 0.72;
+  const _zoomFactor   = options.zoomFactor   || 1.0;
 
   // ── Sub-system instances ───────────────────────────────────────────────────
   const state = createState(REGIONS);
   const { cards, stacks, regionState, createStack, splitStack, attachStack, moveStackToRegion, nextTopZ } = state;
 
   const projection = createProjection();
-  const { cardWidthPx, cardHeightPx, stagePx, screenToTableAtZ, tableToScreen, setTiltDims, setStageDims } = projection;
+  const { cardWidthPx, cardHeightPx, stagePx, screenToTableAtZ, tableToScreen, setTiltDims, setCardDims, setStageDims } = projection;
 
   const layout = createLayout(state, projection, REGIONS);
   const {
@@ -54,12 +63,26 @@ export function createDnc3DEngine(options = {}) {
 
     setStageDims(vw, vh, rect.left + vw / 2, rect.top + vh / 2);
 
+    // Card pixel size: use the same formula as the 2D renderer when cardSize is
+    // provided (face.height * cardSize * zoomFactor * 1.7dvh).  Fall back to the
+    // legacy tilt-fraction formula for sandbox/demo mode.
+    if (_cardSize != null) {
+      const dvh = window.innerHeight / 100;
+      setCardDims(
+        _cardDefaultW * _cardSize * _zoomFactor * 1.7 * dvh,
+        _cardDefaultH * _cardSize * _zoomFactor * 1.7 * dvh,
+      );
+    }
+
     const h             = vh * P / (P * cosA + vh / 2 * sinA);
     const bottomZ       = h * sinA;
     const scaleAtBottom = P / (P - bottomZ);
     const w             = vw / scaleAtBottom;
 
     setTiltDims(w, h);
+    if (_cardSize == null) {
+      setCardDims(w * 0.05, h * 0.07 * vw / vh);
+    }
 
     tiltEl.style.height    = h + 'px';
     tiltEl.style.width     = w + 'px';
