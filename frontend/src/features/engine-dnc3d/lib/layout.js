@@ -74,8 +74,8 @@ export function createLayout(state, projection, REGIONS) {
   }
 
   // Returns how far a stack visually extends left and right of its anchor point.
-  // Accounts for the primary card's game rotation (e.g. 90° exhaustion) so that
-  // rotated cards don't overlap adjacent stacks.
+  // Slots are always sized for the landscape width (ch) so that cards can be
+  // exhausted/rotated without overlapping neighbours.
   function stackExtents(sid) {
     const stack   = stacks[sid];
     const offsets = stackCardOffsets(stack);
@@ -83,14 +83,10 @@ export function createLayout(state, projection, REGIONS) {
     const cw      = cardWidthPx();
     const ch      = cardHeightPx();
 
-    // When a card is rotated ~90°, its visual width becomes ch (height) instead of cw.
-    // The CSS rotateZ pivots around the card element's center at (anchor.x + cw/2),
-    // so the visual left edge shifts to anchor.x + (cw-ch)/2.
-    const primaryCardEl = cards[stack.cardIds[0]]?.cardEl;
-    const gameRot       = Math.abs((primaryCardEl?._gameRotation || 0) % 180);
-    const isLandscape   = gameRot >= 45 && gameRot <= 135;
-    const leftEdge      = isLandscape ? (cw - ch) / 2 : 0;   // relative to anchor; negative when ch > cw
-    const rightEdge     = isLandscape ? (cw + ch) / 2 : cw;  // relative to anchor
+    // Each slot is ch wide, centered on the card element's center (anchor.x + cw/2).
+    // leftEdge is (cw-ch)/2 — negative when ch > cw, meaning the slot extends left of anchor.
+    const leftEdge  = (cw - ch) / 2;
+    const rightEdge = (cw + ch) / 2;
 
     return {
       leftExt:  Math.max(-leftEdge,   -Math.min(0, ...dxs)),
