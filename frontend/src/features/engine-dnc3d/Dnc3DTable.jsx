@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { setActiveCardId } from '../store/playerUiSlice';
 import { createDnc3DEngine } from './lib/engine';
 import { adaptRegions } from './adapters/regions';
 import { adaptGameState } from './adapters/cards';
@@ -23,6 +24,7 @@ export default function Dnc3DTable({
   language,
   doActionList,
 }) {
+  const dispatch         = useDispatch();
   const observingPlayerN = useSelector(s => s?.playerUi?.observingPlayerN);
   const numPlayers       = useSelector(s => s?.gameUi?.game?.numPlayers);
   const cardSize         = useSelector(s => {
@@ -94,10 +96,15 @@ export default function Dnc3DTable({
       const cardDefaultW = anyBack?.width  ?? 0.72;
       engineOptions = {
         regions, ...callbacks,
-        cardSize:     cardSizeRef.current,
-        zoomFactor:   zoomFactorRef.current,
+        cardSize:        cardSizeRef.current,
+        zoomFactor:      zoomFactorRef.current,
         cardDefaultH,
         cardDefaultW,
+        onCardHover:    (engineId) => {
+          const dcId = reverseIdMap.get(engineId);
+          if (dcId != null) dispatch(setActiveCardId(dcId));
+        },
+        onCardHoverEnd: () => dispatch(setActiveCardId(null)),
       };
       initData      = { cards: cardDescriptors, assignments };
       idMapRef.current = idMap;

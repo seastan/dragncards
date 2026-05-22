@@ -9,6 +9,8 @@ import { easeOut, easeIn, animateFlip } from './animation';
 // options.onCardMove      — callback(cardId, fromRegionId, toRegionId, fracX, fracY)
 // options.onAttach        — callback(cardId, targetCardId, side)
 // options.onFlip          — callback(cardId)
+// options.onCardHover     — callback(cardId) fired on pointerenter
+// options.onCardHoverEnd  — callback(cardId) fired on pointerleave
 // options.cardSize        — layout cardSize value (e.g. 16 for LotR); drives card pixel size
 // options.cardDefaultH    — card height in cardSize units (e.g. 1.0); default 1.0
 // options.cardDefaultW    — card width  in cardSize units (e.g. 0.72); default 0.72
@@ -17,7 +19,9 @@ export function createDnc3DEngine(options = {}) {
   const REGIONS       = options.regions    || DEFAULT_REGIONS;
   const onCardMove    = options.onCardMove || null;
   const onAttach      = options.onAttach   || null;
-  const onFlip        = options.onFlip     || null;
+  const onFlip        = options.onFlip        || null;
+  const onCardHover    = options.onCardHover    || null;
+  const onCardHoverEnd = options.onCardHoverEnd || null;
   // Card sizing — mirrors the 2D renderer's cardSize * zoomFactor * 1.7dvh formula.
   const _cardSize     = options.cardSize     || null;   // null → fall back to legacy formula
   const _cardDefaultH = options.cardDefaultH || 1.0;
@@ -240,6 +244,9 @@ export function createDnc3DEngine(options = {}) {
     cards.push(card);
 
     createStack([i]);
+
+    if (onCardHover)    liftEl.addEventListener('pointerenter', () => onCardHover(i));
+    if (onCardHoverEnd) liftEl.addEventListener('pointerleave', () => onCardHoverEnd(i));
 
     // ── Lift animation state ──
     let liftAnimId = null;
@@ -966,18 +973,6 @@ export function createDnc3DEngine(options = {}) {
         currentInsertRegion = null;
       }
 
-      // Click to flip (no drag movement)
-      const clickDx = e.clientX - startX;
-      const clickDy = e.clientY - startY;
-      const threshold = Math.min(window.innerWidth, window.innerHeight) * 0.005;
-      if (Math.hypot(clickDx, clickDy) < threshold && !cardEl._animating) {
-        card._cancelLift();
-        card.liftPx = 0;
-        cardEl._animating = true;
-        animateFlip(cardEl, liftEl, cardEl._angle);
-        cardEl._angle += 180;
-        if (onFlip) onFlip(card.id, cardEl._angle === 180 ? 'B' : 'A');
-      }
     });
   }
 
