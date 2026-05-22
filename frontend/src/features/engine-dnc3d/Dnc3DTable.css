@@ -111,12 +111,16 @@
 
 .dnc3d-region-label {
   position: absolute;
-  top: 3px;
-  left: 5px;
+  left: 2px;
+  top: 50%;
+  writing-mode: vertical-rl;
+  transform: translateY(-50%) rotate(180deg);
   color: rgba(255,255,255,0.22);
   font: 0.55vw/1 sans-serif;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 /* Lift wrapper — handles translateZ so card stays above table during flip */
