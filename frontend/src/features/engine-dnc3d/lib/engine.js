@@ -20,7 +20,7 @@ export function createDnc3DEngine(options = {}) {
   const { cards, stacks, regionState, createStack, splitStack, attachStack, moveStackToRegion, nextTopZ } = state;
 
   const projection = createProjection();
-  const { cardWidthPx, cardHeightPx, stagePx, screenToTableAtZ, tableToScreen, setTiltDims } = projection;
+  const { cardWidthPx, cardHeightPx, stagePx, screenToTableAtZ, tableToScreen, setTiltDims, setStageDims } = projection;
 
   const layout = createLayout(state, projection, REGIONS);
   const {
@@ -44,11 +44,15 @@ export function createDnc3DEngine(options = {}) {
 
   // ── Tilt geometry ──────────────────────────────────────────────────────────
   function applyTilt(tiltEl, deg) {
-    const rad  = deg * Math.PI / 180;
-    const vh   = window.innerHeight;
-    const vw   = window.innerWidth;
-    const cosA = Math.cos(rad), sinA = Math.sin(rad);
-    const P    = stagePx();
+    const rad     = deg * Math.PI / 180;
+    const stageEl = tiltEl.parentElement;
+    const rect    = stageEl ? stageEl.getBoundingClientRect() : { width: window.innerWidth, height: window.innerHeight, left: 0, top: 0 };
+    const vh      = rect.height;
+    const vw      = rect.width;
+    const cosA    = Math.cos(rad), sinA = Math.sin(rad);
+    const P       = stagePx();
+
+    setStageDims(vw, vh, rect.left + vw / 2, rect.top + vh / 2);
 
     const h             = vh * P / (P * cosA + vh / 2 * sinA);
     const bottomZ       = h * sinA;

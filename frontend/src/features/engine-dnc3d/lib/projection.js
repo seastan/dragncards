@@ -6,22 +6,36 @@ export function createProjection() {
   let _tiltW = window.innerWidth;
   let _tiltH = window.innerHeight;
 
-  function stagePx() { return PERSP_VW * window.innerWidth / 100; }
-  function setTiltDims(w, h) { _tiltW = w; _tiltH = h; }
-  function cardWidthPx()  { return _tiltW * 0.05; }
-  function cardHeightPx() { return _tiltH * 0.07 * window.innerWidth / window.innerHeight; }
+  // Stage container dimensions and viewport-relative center.
+  // Defaults to full viewport on init; applyTilt updates these from the
+  // actual container element so the engine works in a sub-region of the page.
+  let _stageW  = window.innerWidth;
+  let _stageH  = window.innerHeight;
+  let _stageCX = window.innerWidth  / 2;
+  let _stageCY = window.innerHeight / 2;
 
-  // Inverse projection: screen coordinates → table-plane coordinates.
+  // Perspective distance — CSS uses 300vw, so this is always viewport-width-based.
+  function stagePx() { return PERSP_VW * window.innerWidth / 100; }
+
+  function setTiltDims(w, h) { _tiltW = w; _tiltH = h; }
+
+  function setStageDims(w, h, cx, cy) {
+    _stageW = w; _stageH = h;
+    _stageCX = cx; _stageCY = cy;
+  }
+
+  function cardWidthPx()  { return _tiltW * 0.05; }
+  function cardHeightPx() { return _tiltH * 0.07 * _stageW / _stageH; }
+
+  // Inverse projection: screen (viewport) coordinates → table-plane coordinates.
   function screenToTable(sx, sy, tiltEl, deg) {
     const rad  = deg * Math.PI / 180;
     const cosA = Math.cos(rad), sinA = Math.sin(rad);
-    const vh   = window.innerHeight;
-    const vw   = window.innerWidth;
     const w    = parseFloat(tiltEl.style.width);
     const P    = stagePx();
-
-    const ty = P * sy / (P * cosA + (sy - vh / 2) * sinA);
-    const tx = w / 2 + (sx - vw / 2) * (P - ty * sinA) / P;
+    const dy   = sy - _stageCY;
+    const ty = P * dy / (P * cosA + dy * sinA);
+    const tx = w / 2 + (sx - _stageCX) * (P - ty * sinA) / P;
     return { x: tx, y: ty };
   }
 
@@ -29,13 +43,13 @@ export function createProjection() {
   function screenToTableAtZ(sx, sy, Z, tiltEl, deg) {
     const rad  = deg * Math.PI / 180;
     const cosA = Math.cos(rad), sinA = Math.sin(rad);
-    const vh   = window.innerHeight;
-    const vw   = window.innerWidth;
     const w    = parseFloat(tiltEl.style.width);
     const P    = stagePx();
-    const D    = P * cosA + (sy - vh / 2) * sinA;
-    const ty   = (P * sy + Z * (P * sinA - (sy - vh / 2) * cosA)) / D;
-    const tx   = w / 2 + (sx - vw / 2) * (P - ty * sinA - Z * cosA) / P;
+    const dy   = sy - _stageCY;
+    const dx   = sx - _stageCX;
+    const D    = P * cosA + dy * sinA;
+    const ty   = (P * dy + Z * (P * sinA - dy * cosA)) / D;
+    const tx   = w / 2 + dx * (P - ty * sinA - Z * cosA) / P;
     return { x: tx, y: ty };
   }
 
@@ -43,15 +57,13 @@ export function createProjection() {
   function tableToScreen(tx, ty, Z, tiltEl, deg) {
     const rad  = deg * Math.PI / 180;
     const cosA = Math.cos(rad), sinA = Math.sin(rad);
-    const vh   = window.innerHeight;
-    const vw   = window.innerWidth;
     const w    = parseFloat(tiltEl.style.width);
     const P    = stagePx();
     const D    = P - ty * sinA - Z * cosA;
-    const sx   = P * (tx - w / 2) / D + vw / 2;
-    const sy   = P * (ty * cosA - Z * sinA - vh / 2) / D + vh / 2;
+    const sx   = P * (tx - w / 2) / D + _stageCX;
+    const sy   = P * (ty * cosA - Z * sinA - _stageCY) / D + _stageCY;
     return { x: sx, y: sy };
   }
 
-  return { stagePx, setTiltDims, cardWidthPx, cardHeightPx, screenToTable, screenToTableAtZ, tableToScreen };
+  return { stagePx, setTiltDims, setStageDims, cardWidthPx, cardHeightPx, screenToTable, screenToTableAtZ, tableToScreen };
 }

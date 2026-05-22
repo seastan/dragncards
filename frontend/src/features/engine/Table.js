@@ -98,13 +98,13 @@ export const Table = React.memo(({onDragEnd}) => {
       <SideBar/>
       {/* Main panel */}
       <div className="w-full">
-        <div className="w-full h-full flex flex-col">
+        <div className="w-full h-full">
           {/* Game menu bar */}
-          <div className="bg-gray-600 text-white w-full flex-none" style={{height: "6%"}}>
+          <div className="bg-gray-600 text-white w-full" style={{height: "6%"}}>
             <TopBar/>
           </div>
           {/* Table */}
-          <div className="relative w-full flex-1">
+          <div className="relative w-full" style={{height: touchMode ? "82%" : "94%"}}>
             {rendererEngine === 'dnc3d'
               ? <Dnc3DTable
                   game={game}
@@ -118,7 +118,7 @@ export const Table = React.memo(({onDragEnd}) => {
             <FadeTextPlayer/>
           </div>
           {/* Touch Bar */}
-          {touchMode && <div className="relative bg-gray-700 w-full flex-none" style={{height: "12%"}}>
+          {touchMode && <div className="relative bg-gray-700 w-full" style={{height: "12%"}}>
               <TouchBarBottom/>
           </div>}
         </div>
