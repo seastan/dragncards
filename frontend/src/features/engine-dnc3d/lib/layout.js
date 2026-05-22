@@ -190,7 +190,7 @@ export function createLayout(state, projection, REGIONS) {
     const midY   = rp.y + (rp.h - ch) / 2;
     let startVisualX;
     if (totalW <= rp.w) {
-      startVisualX = rp.x + (rp.w - totalW) / 2;
+      startVisualX = rp.x;
     } else {
       const maxScroll = totalW - rp.w;
       const rs = regionState[regionId];
