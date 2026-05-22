@@ -5,7 +5,7 @@ import { useGameDefinition } from './useGameDefinition';
 import { useSendLocalMessage } from './useSendLocalMessage';
 
 export const useDoActionList = () => {
-    const gameDef = useGameDefinition(); 
+    const gameDef = useGameDefinition();
     const sendLocalMessage = useSendLocalMessage();
     const {gameBroadcast, chatBroadcast} = useContext(BroadcastContext);
 
@@ -22,13 +22,32 @@ export const useDoActionList = () => {
         }
         console.log("processedActionList ", actionList)
         if (actionList !== null) {
+            var processedActionList = [...actionList];
+            for (var i=0; i<processedActionList.length; i++) {
+                const action = processedActionList[i];
+                if (action[0] === "INPUT") {
+                    if (action[1] === "integer") {
+                        const raw = prompt(action[3], action[4]);
+                        if (raw === null) return;
+                        const parsed = parseInt(raw);
+                        processedActionList[i] = ["DEFINE", action[2], isNaN(parsed) ? action[4] : parsed];
+                    } else if (action[1] === "string") {
+                        const raw = prompt(action[3], action[4]);
+                        if (raw === null) return;
+                        processedActionList[i] = ["DEFINE", action[2], raw];
+                    }
+                } else if (action[0] === "CONFIRM") {
+                    if (!window.confirm(action[1])) return;
+                    else processedActionList.splice(i, 1);
+                }
+            }
 
             if (!playerUi) {
                 playerUi = store.getState().playerUi;
             }
             // Drop the droppableRefs from the playerUi object
             playerUi = {...playerUi, droppableRefs: {}}
-            
+
             // If playerUi.playerN is null, don't send the action list
             if (!playerUi.playerN) {
                 sendLocalMessage("You must be logged in and seated at the table to perform this action.");
@@ -42,9 +61,9 @@ export const useDoActionList = () => {
             }
 
             gameBroadcast("game_action", {
-                action: "evaluate", 
+                action: "evaluate",
                 options: {
-                    action_list: actionList, 
+                    action_list: processedActionList,
                     player_ui: playerUi,
                     description: description || null
                 }

@@ -153,7 +153,6 @@ defmodule DragnCardsGame.Evaluate do
         evaluate(game, code, trace)
       rescue
         e ->
-
           evaluate(game, ["ERROR", Exception.message(e)], trace)
       end
     end)
