@@ -74,26 +74,41 @@ export function createLayout(state, projection, REGIONS) {
   }
 
   // Returns how far a stack visually extends left and right of its anchor point.
+  // Accounts for the primary card's game rotation (e.g. 90° exhaustion) so that
+  // rotated cards don't overlap adjacent stacks.
   function stackExtents(sid) {
-    const offsets = stackCardOffsets(stacks[sid]);
+    const stack   = stacks[sid];
+    const offsets = stackCardOffsets(stack);
     const dxs     = offsets.map(o => o.dx);
     const cw      = cardWidthPx();
+    const ch      = cardHeightPx();
+
+    // When a card is rotated ~90°, its visual width becomes ch (height) instead of cw.
+    // The CSS rotateZ pivots around the card element's center at (anchor.x + cw/2),
+    // so the visual left edge shifts to anchor.x + (cw-ch)/2.
+    const primaryCardEl = cards[stack.cardIds[0]]?.cardEl;
+    const gameRot       = Math.abs((primaryCardEl?._gameRotation || 0) % 180);
+    const isLandscape   = gameRot >= 45 && gameRot <= 135;
+    const leftEdge      = isLandscape ? (cw - ch) / 2 : 0;   // relative to anchor; negative when ch > cw
+    const rightEdge     = isLandscape ? (cw + ch) / 2 : cw;  // relative to anchor
+
     return {
-      leftExt:  -Math.min(0, ...dxs),
-      rightExt:  Math.max(0, ...dxs) + cw,
+      leftExt:  Math.max(-leftEdge,   -Math.min(0, ...dxs)),
+      rightExt: Math.max(rightEdge, Math.max(0, ...dxs) + cw),
     };
   }
 
-  // Total visual width of all stacks in a horizontal row region.
+  // Total visual width of all stacks in a horizontal row region (includes left buffer).
   function rowTotalWidth(regionId) {
     const stackIds = regionState[regionId].stackIds;
     if (!stackIds.length) return regionPx(regionId).w;
-    const GAP = cardWidthPx() * 0.1;
+    const GAP         = cardWidthPx() * 0.1;
+    const LEFT_BUFFER = GAP;
     const total = stackIds.reduce((sum, sid) => {
       const { leftExt, rightExt } = stackExtents(sid);
       return sum + leftExt + rightExt;
     }, 0);
-    return total + (stackIds.length - 1) * GAP;
+    return total + (stackIds.length - 1) * GAP + LEFT_BUFFER;
   }
 
   function regionLayerZ(regionId) {
@@ -185,17 +200,18 @@ export function createLayout(state, projection, REGIONS) {
       return positions;
     }
 
-    const GAP    = cw * 0.1;
-    const totalW = rowTotalWidth(regionId);
-    const midY   = rp.y + (rp.h - ch) / 2;
+    const GAP         = cw * 0.1;
+    const LEFT_BUFFER = GAP;
+    const totalW      = rowTotalWidth(regionId);
+    const midY        = rp.y + (rp.h - ch) / 2;
     let startVisualX;
     if (totalW <= rp.w) {
-      startVisualX = rp.x;
+      startVisualX = rp.x + LEFT_BUFFER;
     } else {
       const maxScroll = totalW - rp.w;
       const rs = regionState[regionId];
       rs.scrollOffset = Math.min(Math.max(rs.scrollOffset || 0, 0), maxScroll);
-      startVisualX = rp.x - rs.scrollOffset;
+      startVisualX = rp.x + LEFT_BUFFER - rs.scrollOffset;
     }
     const positions = [];
     let x = startVisualX;
@@ -374,16 +390,17 @@ export function createLayout(state, projection, REGIONS) {
 
     // ── Horizontal row: per-stack extents, variable anchor spacing ──────────────
     if (!vert && type === 'row') {
-      const GAP        = cw * 0.1;
-      const allExtents = stackIds.map(sid => stackExtents(sid));
-      const totalW     = allExtents.reduce((s, e) => s + e.leftExt + e.rightExt, 0) + (n - 1) * GAP;
+      const GAP         = cw * 0.1;
+      const LEFT_BUFFER = GAP;
+      const allExtents  = stackIds.map(sid => stackExtents(sid));
+      const totalW      = allExtents.reduce((s, e) => s + e.leftExt + e.rightExt, 0) + (n - 1) * GAP + LEFT_BUFFER;
       let startVisualX;
       if (totalW <= rp.w) {
-        startVisualX = rp.x + (rp.w - totalW) / 2;
+        startVisualX = rp.x + LEFT_BUFFER;
       } else {
         const maxScroll = totalW - rp.w;
         const scrollOff = Math.min(Math.max(regionState[regionId].scrollOffset || 0, 0), maxScroll);
-        startVisualX = rp.x - scrollOff;
+        startVisualX = rp.x + LEFT_BUFFER - scrollOff;
       }
 
       const anchors = [];
