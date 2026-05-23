@@ -9,6 +9,7 @@ import { easeOut, easeIn, animateFlip } from './animation';
 // options.onCardMove      — callback(cardId, fromRegionId, toRegionId, fracX, fracY)
 // options.onAttach        — callback(cardId, targetCardId, side)
 // options.onFlip          — callback(cardId)
+// options.onCardClick     — callback(cardId, clientX, clientY) fired on click (no drag)
 // options.onCardHover     — callback(cardId) fired on pointerenter
 // options.onCardHoverEnd  — callback(cardId) fired on pointerleave
 // options.cardSize        — layout cardSize value (e.g. 16 for LotR); drives card pixel size
@@ -20,6 +21,7 @@ export function createDnc3DEngine(options = {}) {
   const onCardMove    = options.onCardMove || null;
   const onAttach      = options.onAttach   || null;
   const onFlip        = options.onFlip        || null;
+  const onCardClick    = options.onCardClick    || null;
   const onCardHover    = options.onCardHover    || null;
   const onCardHoverEnd = options.onCardHoverEnd || null;
   // Card sizing — mirrors the 2D renderer's cardSize * zoomFactor * 1.7dvh formula.
@@ -988,6 +990,14 @@ export function createDnc3DEngine(options = {}) {
         hideInsertionIndicator();
         currentInsertIdx    = -1;
         currentInsertRegion = null;
+      }
+
+      // Click (minimal movement) → open card menu
+      const clickDx = e.clientX - startX;
+      const clickDy = e.clientY - startY;
+      const threshold = Math.min(window.innerWidth, window.innerHeight) * 0.005;
+      if (Math.hypot(clickDx, clickDy) < threshold && onCardClick) {
+        onCardClick(card.id, e.clientX, e.clientY);
       }
 
     });

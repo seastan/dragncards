@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { setActiveCardId } from '../store/playerUiSlice';
+import { setActiveCardId, setDropdownMenu, setMouseXY, setScreenLeftRight } from '../store/playerUiSlice';
 import { createDnc3DEngine } from './lib/engine';
 import { adaptRegions } from './adapters/regions';
 import { adaptGameState } from './adapters/cards';
@@ -100,6 +100,17 @@ export default function Dnc3DTable({
         zoomFactor:      zoomFactorRef.current,
         cardDefaultH,
         cardDefaultW,
+        onCardClick:    (engineId, clientX, clientY) => {
+          const dcId = reverseIdMap.get(engineId);
+          if (dcId == null) return;
+          const card = gameRef.current?.cardById?.[dcId];
+          console.log('dnc3d card click', card);
+          const title = card?.sides?.[card?.currentSide]?.name || '';
+          dispatch(setMouseXY({ x: clientX, y: clientY }));
+          dispatch(setActiveCardId(dcId));
+          dispatch(setScreenLeftRight(clientX > window.innerWidth / 2 ? 'right' : 'left'));
+          dispatch(setDropdownMenu({ type: 'card', cardId: dcId, title, visible: true }));
+        },
         onCardHover:    (engineId) => {
           const dcId = reverseIdMap.get(engineId);
           if (dcId != null) dispatch(setActiveCardId(dcId));
