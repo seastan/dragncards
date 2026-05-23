@@ -256,23 +256,25 @@ export function createLayout(state, projection, REGIONS) {
       return positions;
     }
 
-    const midY       = rp.y + (rp.h - ch) / 2;
-    const minSpacing = cw * 0.20;
+    const midY        = rp.y + (rp.h - ch) / 2;
+    const LEFT_BUFFER = cw * 0.1;
+    const availW      = rp.w - LEFT_BUFFER;
+    const minSpacing  = cw * 0.20;
     let startX, spacing;
-    if (n * cw <= rp.w) {
-      startX  = rp.x;
+    if (n * cw <= availW) {
+      startX  = rp.x + LEFT_BUFFER;
       spacing = cw;
     } else {
-      const overlapSpacing = n > 1 ? (rp.w - cw) / (n - 1) : cw;
+      const overlapSpacing = n > 1 ? (availW - cw) / (n - 1) : cw;
       if (overlapSpacing >= minSpacing) {
-        startX  = rp.x;
+        startX  = rp.x + LEFT_BUFFER;
         spacing = overlapSpacing;
       } else {
-        const totalW    = (n - 1) * minSpacing + cw;
+        const totalW    = (n - 1) * minSpacing + cw + LEFT_BUFFER;
         const maxScroll = totalW - rp.w;
         const rs        = regionState[regionId];
         rs.scrollOffset = Math.min(Math.max(rs.scrollOffset || 0, 0), maxScroll);
-        startX  = rp.x - rs.scrollOffset;
+        startX  = rp.x + LEFT_BUFFER - rs.scrollOffset;
         spacing = minSpacing;
       }
     }
@@ -465,23 +467,25 @@ export function createLayout(state, projection, REGIONS) {
         }
       }
     } else { // horizontal fan
+      const LEFT_BUFFER = cw * 0.1;
+      const availW      = rp.w - LEFT_BUFFER;
       cardDim       = cw;
       regionExtent  = rp.w;
       regionOrigin  = rp.x;
       const minSpacing = cw * 0.20;
-      if (n * cw <= rp.w) {
-        start   = rp.x;
+      if (n * cw <= availW) {
+        start   = rp.x + LEFT_BUFFER;
         spacing = cw;
       } else {
-        const overlapSpacing = n > 1 ? (rp.w - cw) / (n - 1) : cw;
+        const overlapSpacing = n > 1 ? (availW - cw) / (n - 1) : cw;
         if (overlapSpacing >= minSpacing) {
-          start   = rp.x;
+          start   = rp.x + LEFT_BUFFER;
           spacing = overlapSpacing;
         } else {
-          const totalW    = (n - 1) * minSpacing + cw;
+          const totalW    = (n - 1) * minSpacing + cw + LEFT_BUFFER;
           const maxScroll = totalW - rp.w;
           const scrollOff = Math.min(Math.max(regionState[regionId].scrollOffset || 0, 0), maxScroll);
-          start   = rp.x - scrollOff;
+          start   = rp.x + LEFT_BUFFER - scrollOff;
           spacing = minSpacing;
         }
       }
