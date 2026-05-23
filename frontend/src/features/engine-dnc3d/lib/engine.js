@@ -24,6 +24,8 @@ export function createDnc3DEngine(options = {}) {
   const onCardClick    = options.onCardClick    || null;
   const onCardHover    = options.onCardHover    || null;
   const onCardHoverEnd = options.onCardHoverEnd || null;
+  const onGroupBrowse  = options.onGroupBrowse  || null;
+  const onGroupMenu    = options.onGroupMenu    || null;
   // Card sizing — mirrors the 2D renderer's cardSize * zoomFactor * 1.7dvh formula.
   const _cardSize     = options.cardSize     || null;   // null → fall back to legacy formula
   const _cardDefaultH = options.cardDefaultH || 1.0;
@@ -1122,6 +1124,27 @@ export function createDnc3DEngine(options = {}) {
       outline.style.top    = r.top    + '%';
       outline.style.width  = r.width  + '%';
       outline.style.height = r.height + '%';
+      const showIcons = (onGroupBrowse || onGroupMenu) &&
+        (r.showMenu === true || (r.type === 'pile' && r.showMenu !== false));
+      if (showIcons) {
+        const icons = document.createElement('div');
+        icons.className = 'dnc3d-region-icons';
+        if (onGroupBrowse) {
+          const eyeBtn = document.createElement('button');
+          eyeBtn.className = 'dnc3d-region-icon-btn';
+          eyeBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+          eyeBtn.addEventListener('click', e => { e.stopPropagation(); onGroupBrowse(id); });
+          icons.appendChild(eyeBtn);
+        }
+        if (onGroupMenu) {
+          const menuBtn = document.createElement('button');
+          menuBtn.className = 'dnc3d-region-icon-btn';
+          menuBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>';
+          menuBtn.addEventListener('click', e => { e.stopPropagation(); onGroupMenu(id, e.clientX, e.clientY); });
+          icons.appendChild(menuBtn);
+        }
+        outline.appendChild(icons);
+      }
       const label = document.createElement('span');
       label.className = 'dnc3d-region-label';
       label.textContent = r.label || id;

@@ -2,9 +2,10 @@ import { useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { setActiveCardId, setDropdownMenu, setMouseXY, setScreenLeftRight } from '../store/playerUiSlice';
 import { createDnc3DEngine } from './lib/engine';
-import { adaptRegions } from './adapters/regions';
+import { adaptRegions, gameL10n } from './adapters/regions';
 import { adaptGameState } from './adapters/cards';
 import { buildEngineCallbacks } from './adapters/actions';
+import { useBrowseTopN } from '../engine/hooks/useBrowseTopN';
 import './Dnc3DTable.css';
 
 // Wrapper component for the dnc3d engine.
@@ -25,6 +26,7 @@ export default function Dnc3DTable({
   doActionList,
 }) {
   const dispatch         = useDispatch();
+  const browseTopN       = useBrowseTopN();
   const observingPlayerN = useSelector(s => s?.playerUi?.observingPlayerN);
   const numPlayers       = useSelector(s => s?.gameUi?.game?.numPlayers);
   const cardSize         = useSelector(s => {
@@ -118,6 +120,14 @@ export default function Dnc3DTable({
           dispatch(setScreenLeftRight(clientX < window.innerWidth / 2 ? 'left' : 'right'));
         },
         onCardHoverEnd: () => dispatch(setActiveCardId(null)),
+        onGroupBrowse: (groupId) => browseTopN(groupId, 'All'),
+        onGroupMenu:   (groupId, clientX, clientY) => {
+          const group = gameRef.current?.groupById?.[groupId];
+          if (!group) return;
+          const title = gameL10n(group.label, gameDefRef.current, languageRef.current);
+          dispatch(setMouseXY({ x: clientX, y: clientY }));
+          dispatch(setDropdownMenu({ type: 'group', group, title }));
+        },
       };
       initData      = { cards: cardDescriptors, assignments };
       idMapRef.current = idMap;

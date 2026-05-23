@@ -43,7 +43,7 @@ export function formatGroupId(groupId, observingPlayerN, numPlayers) {
 }
 
 // Pure equivalent of the useGameL10n hook — resolves "id:xxx" labels via gameDef.
-function gameL10n(label, gameDef, language) {
+export function gameL10n(label, gameDef, language) {
   if (typeof label !== 'string') return JSON.stringify(label);
   if (label.startsWith('id:')) {
     const labelId = label.substring(3);
@@ -82,10 +82,11 @@ export function adaptRegions(layoutRegions, observingPlayerN, numPlayers, groupB
       width:  toPercent(region.width),
       height: toPercent(region.height),
       type,
-      ...(tableLabel             ? { label:             tableLabel }             : {}),
-      ...(region.direction       ? { direction:         region.direction }       : {}),
-      ...(region.layerIndex      ? { layerIndex:         region.layerIndex }      : {}),
-      ...(region.backgroundColor ? { backgroundColor:   region.backgroundColor } : {}),
+      ...(tableLabel                    ? { label:           tableLabel }           : {}),
+      ...(region.showMenu != null       ? { showMenu:        region.showMenu }       : {}),
+      ...(region.direction              ? { direction:       region.direction }      : {}),
+      ...(region.layerIndex             ? { layerIndex:      region.layerIndex }     : {}),
+      ...(region.backgroundColor        ? { backgroundColor: region.backgroundColor }: {}),
     };
   });
   return regions;
