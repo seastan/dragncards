@@ -53,7 +53,7 @@ const TYPE_MAP = {
   hand: 'fan',
 };
 
-export function adaptRegions(layoutRegions, observingPlayerN, numPlayers) {
+export function adaptRegions(layoutRegions, observingPlayerN, numPlayers, groupById = {}) {
   if (!layoutRegions) return {};
   const regions = {};
   Object.entries(layoutRegions).forEach(([, region]) => {
@@ -62,12 +62,14 @@ export function adaptRegions(layoutRegions, observingPlayerN, numPlayers) {
     if (!rawGroupId) return;
     const groupId = formatGroupId(rawGroupId, observingPlayerN, numPlayers);
     const type = TYPE_MAP[region.type] || 'free';
+    const tableLabel = groupById[groupId]?.tableLabel || null;
     regions[groupId] = {
       left:   toPercent(region.left),
       top:    toPercent(region.top),
       width:  toPercent(region.width),
       height: toPercent(region.height),
       type,
+      ...(tableLabel             ? { label:             tableLabel }             : {}),
       ...(region.direction       ? { direction:         region.direction }       : {}),
       ...(region.layerIndex      ? { layerIndex:         region.layerIndex }      : {}),
       ...(region.backgroundColor ? { backgroundColor:   region.backgroundColor } : {}),

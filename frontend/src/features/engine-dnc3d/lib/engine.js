@@ -1124,7 +1124,7 @@ export function createDnc3DEngine(options = {}) {
       outline.style.height = r.height + '%';
       const label = document.createElement('span');
       label.className = 'dnc3d-region-label';
-      label.textContent = id;
+      label.textContent = r.label || id;
       outline.appendChild(label);
       tiltEl.appendChild(outline);
       regionOutlineEls[id] = outline;

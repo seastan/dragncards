@@ -84,7 +84,7 @@ export default function Dnc3DTable({
       const playerN    = observingPlayerRef.current;
       const nPlayers   = numPlayersRef.current;
       const gd         = gameDefRef.current;
-      const regions = adaptRegions(lr, playerN, nPlayers);
+      const regions = adaptRegions(lr, playerN, nPlayers, g?.groupById || {});
       const { cardDescriptors, assignments, idMap } = adaptGameState(
         g, lr, gd, languageRef.current, playerN, nPlayers
       );
