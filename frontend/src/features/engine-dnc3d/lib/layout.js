@@ -68,6 +68,19 @@ export function createLayout(state, projection, REGIONS) {
     stack.cardIds.forEach(cid => moveCardToTilt(cards[cid]));
   }
 
+  // Inverse of moveCardToTilt — returns card from tiltEl back to its scroll-outer.
+  function moveCardFromTilt(card) {
+    if (card.liftEl.parentElement !== _tiltEl) return;
+    const target = (card.regionId && scrollOuters[card.regionId])
+      ? scrollOuters[card.regionId]
+      : _tiltEl;
+    if (target === _tiltEl) return;
+    const o = originOf(card.regionId);
+    card.liftEl.style.left = ((parseFloat(card.liftEl.style.left) || 0) - o.x) + 'px';
+    card.liftEl.style.top  = ((parseFloat(card.liftEl.style.top)  || 0) - o.y) + 'px';
+    target.appendChild(card.liftEl);
+  }
+
   // ── Helpers ─────────────────────────────────────────────────────────────────
   function isVertical(regionId) {
     return REGIONS[regionId]?.direction === 'vertical';
@@ -574,7 +587,7 @@ export function createLayout(state, projection, REGIONS) {
   return {
     initLayout, regionPx, findRegionAtPoint,
     setScrollOuter, clearScrollOuters,
-    tiltSpacePosOf, ensureCardParent, moveStackToTilt,
+    tiltSpacePosOf, ensureCardParent, moveCardToTilt, moveCardFromTilt, moveStackToTilt,
     stackCardOffsets, stackBaseCardIds,
     rowTotalWidth,
     layoutRow, layoutFan, layoutPile,

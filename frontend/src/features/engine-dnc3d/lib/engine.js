@@ -43,7 +43,7 @@ export function createDnc3DEngine(options = {}) {
   const {
     initLayout, regionPx, layoutFan, layoutRow, layoutPile,
     placeCardAt, layoutRegion, setAfterLayoutHook, setScrollOuter, setIndicatorEl,
-    findRegionAtPoint, insertStackAtIndex, moveStackToTilt,
+    findRegionAtPoint, insertStackAtIndex, moveCardToTilt, moveCardFromTilt, moveStackToTilt,
     animateCardTo, tiltSpacePosOf, stackCardOffsets, stackBaseCardIds,
     showInsertionIndicator, hideInsertionIndicator, clearScrollOuters,
     rowTotalWidth,
@@ -1352,7 +1352,8 @@ export function createDnc3DEngine(options = {}) {
       const currentVisualSide = (card.cardEl._angle % 360 === 180) ? 'B' : 'A';
       if (currentVisualSide !== expectedSide && !card.cardEl._animating) {
         card.cardEl._animating = true;
-        animateFlip(card.cardEl, card.liftEl, card.cardEl._angle);
+        moveCardToTilt(card);
+        animateFlip(card.cardEl, card.liftEl, card.cardEl._angle, () => moveCardFromTilt(card));
         card.cardEl._angle += 180;
       }
 

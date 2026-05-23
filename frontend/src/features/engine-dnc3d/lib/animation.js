@@ -4,7 +4,7 @@ export function ease(t)    { return t < 0.5 ? 2*t*t : -1 + (4 - 2*t)*t; }
 export function easeOut(t) { return t * (2 - t); }
 export function easeIn(t)  { return t * t; }
 
-export function animateFlip(cardEl, liftEl, startAngle) {
+export function animateFlip(cardEl, liftEl, startAngle, onComplete) {
   const startTime      = performance.now();
   const LIFT           = window.innerHeight * 0.07 * (1 + MAX_ZOOM);
   const startLayoutRot = (cardEl._layoutRotation || 0) + (cardEl._gameRotation || 0);
@@ -41,6 +41,7 @@ export function animateFlip(cardEl, liftEl, startAngle) {
       cardEl.style.transform = `perspective(300vw) rotateY(${startAngle + 180}deg) rotateZ(${startLayoutRot}deg) scale(1)`;
       cardEl.style.boxShadow = 'none';
       cardEl._animating      = false;
+      if (onComplete) onComplete();
     }
   }
 
