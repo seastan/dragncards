@@ -47,18 +47,20 @@ export function adaptGameState(game, layoutRegions, gameDef, language, observing
   // 3. Build card descriptors for visible cards
   const cardDescriptors = visibleCardIds.map((dcId, i) => {
     const card = cardById[dcId];
-    const sides = card.sides || {};
+    const sides    = card.sides || {};
     const sideKeys = Object.keys(sides);
-    const frontSide = card.currentSide || sideKeys[0] || 'A';
-    const backSide  = sideKeys.find(s => s !== frontSide) || frontSide;
-    const angle = frontSide !== 'A' ? 180 : 0;
-    const frontFace = sides[frontSide] || {};
-    const faceW = frontFace.width  || gameDef?.cardBacks?.[frontFace.name]?.width  || null;
-    const faceH = frontFace.height || gameDef?.cardBacks?.[frontFace.name]?.height || null;
+    // Front face element always holds side A; back face element always holds side B.
+    // angle 0 → front visible (A), angle 180 → back visible (B).
+    const sideA = sideKeys.includes('A') ? 'A' : (sideKeys[0] || 'A');
+    const sideB = sideKeys.find(s => s !== sideA) || sideA;
+    const angle = (card.currentSide && card.currentSide !== sideA) ? 180 : 0;
+    const currentFace = sides[card.currentSide || sideA] || {};
+    const faceW = currentFace.width  || gameDef?.cardBacks?.[currentFace.name]?.width  || null;
+    const faceH = currentFace.height || gameDef?.cardBacks?.[currentFace.name]?.height || null;
     return {
       id: i,
-      frontImageUrl: resolveImageUrl(sides[frontSide], gameDef, language),
-      backImageUrl:  resolveImageUrl(sides[backSide],  gameDef, language),
+      frontImageUrl: resolveImageUrl(sides[sideA], gameDef, language),
+      backImageUrl:  resolveImageUrl(sides[sideB],  gameDef, language),
       angle,
       faceW,
       faceH,
