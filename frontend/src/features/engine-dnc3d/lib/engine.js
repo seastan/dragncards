@@ -55,6 +55,19 @@ export function createDnc3DEngine(options = {}) {
   const sentinelEls      = {};
   const stackZoneEls     = new Map();
 
+  // ── Per-card dimension helpers ─────────────────────────────────────────────
+  // Sets --card-w / --card-h on a card's cardEl so each card renders at its
+  // own face aspect ratio rather than the global default. No-op in demo mode
+  // (_cardSize == null) since demo cards have no face data.
+  function applyCardDims(card) {
+    if (_cardSize == null) return;
+    const fw  = card.faceW || _cardDefaultW;
+    const fh  = card.faceH || _cardDefaultH;
+    const dvh = window.innerHeight / 100;
+    card.cardEl.style.setProperty('--card-w', (fw * _cardSize * _zoomFactor * dvh) + 'px');
+    card.cardEl.style.setProperty('--card-h', (fh * _cardSize * _zoomFactor * dvh) + 'px');
+  }
+
   // ── Tilt geometry ──────────────────────────────────────────────────────────
   function applyTilt(tiltEl, deg) {
     const rad     = deg * Math.PI / 180;
@@ -96,6 +109,7 @@ export function createDnc3DEngine(options = {}) {
     tiltEl.style.transform = `rotateX(${deg}deg)`;
     tiltEl.style.setProperty('--card-w', cardWidthPx() + 'px');
     tiltEl.style.setProperty('--card-h', cardHeightPx() + 'px');
+    cards.forEach(card => applyCardDims(card));
 
     if (cards.length) {
       // Reposition free-region cards proportionally
@@ -180,9 +194,9 @@ export function createDnc3DEngine(options = {}) {
   }
 
   // ── Card creation ──────────────────────────────────────────────────────────
-  // cardInfo: { id, frontImageUrl?, backImageUrl?, angle? }
+  // cardInfo: { id, frontImageUrl?, backImageUrl?, angle?, faceW?, faceH? }
   function createCard(tiltEl, cardInfo) {
-    const { id: i, frontImageUrl, backImageUrl, angle = 0 } = cardInfo;
+    const { id: i, frontImageUrl, backImageUrl, angle = 0, faceW = null, faceH = null } = cardInfo;
     const color = COLORS[i % COLORS.length];
 
     const liftEl = document.createElement('div');
@@ -240,8 +254,11 @@ export function createDnc3DEngine(options = {}) {
       pileZ:        0,
       liftPx:       0,
       dragOffFromPrimary: { dx: 0, dy: 0 },
+      faceW,
+      faceH,
     };
     cards.push(card);
+    applyCardDims(card);
 
     createStack([i]);
 
@@ -1269,7 +1286,17 @@ export function createDnc3DEngine(options = {}) {
         card.cardEl._angle += 180;
       }
 
-      // 3. Group change (card moved by another player)
+      // 3. Per-card face dimensions (update when side changes)
+      const currentFace = dcCard.sides?.[dcCard.currentSide] || {};
+      const newFaceW    = currentFace.width  || null;
+      const newFaceH    = currentFace.height || null;
+      if (card.faceW !== newFaceW || card.faceH !== newFaceH) {
+        card.faceW = newFaceW;
+        card.faceH = newFaceH;
+        applyCardDims(card);
+      }
+
+      // 4. Group change (card moved by another player)
       const expectedGroupId = dcCard.groupId;
       if (expectedGroupId && card.regionId !== expectedGroupId && regionState[expectedGroupId]) {
         const oldRegionId = card.regionId;

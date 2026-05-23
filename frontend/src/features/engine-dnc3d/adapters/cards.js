@@ -52,11 +52,16 @@ export function adaptGameState(game, layoutRegions, gameDef, language, observing
     const frontSide = card.currentSide || sideKeys[0] || 'A';
     const backSide  = sideKeys.find(s => s !== frontSide) || frontSide;
     const angle = frontSide !== 'A' ? 180 : 0;
+    const frontFace = sides[frontSide] || {};
+    const faceW = frontFace.width  || gameDef?.cardBacks?.[frontFace.name]?.width  || null;
+    const faceH = frontFace.height || gameDef?.cardBacks?.[frontFace.name]?.height || null;
     return {
       id: i,
       frontImageUrl: resolveImageUrl(sides[frontSide], gameDef, language),
       backImageUrl:  resolveImageUrl(sides[backSide],  gameDef, language),
       angle,
+      faceW,
+      faceH,
     };
   });
 
