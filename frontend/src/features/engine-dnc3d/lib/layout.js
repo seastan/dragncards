@@ -99,7 +99,7 @@ export function createLayout(state, projection, REGIONS) {
     const stackIds = regionState[regionId].stackIds;
     if (!stackIds.length) return regionPx(regionId).w;
     const GAP         = cardWidthPx() * 0.1;
-    const LEFT_BUFFER = GAP;
+    const LEFT_BUFFER = cardWidthPx() * 0.15;
     const total = stackIds.reduce((sum, sid) => {
       const { leftExt, rightExt } = stackExtents(sid);
       return sum + leftExt + rightExt;
@@ -197,7 +197,7 @@ export function createLayout(state, projection, REGIONS) {
     }
 
     const GAP         = cw * 0.1;
-    const LEFT_BUFFER = GAP;
+    const LEFT_BUFFER = cw * 0.15;
     const totalW      = rowTotalWidth(regionId);
     const midY        = rp.y + (rp.h - ch) / 2;
     let startVisualX;
@@ -257,7 +257,7 @@ export function createLayout(state, projection, REGIONS) {
     }
 
     const midY        = rp.y + (rp.h - ch) / 2;
-    const LEFT_BUFFER = cw * 0.1;
+    const LEFT_BUFFER = cw * 0.30;
     const availW      = rp.w - LEFT_BUFFER;
     const minSpacing  = cw * 0.20;
     let startX, spacing;
@@ -287,11 +287,12 @@ export function createLayout(state, projection, REGIONS) {
   }
 
   function layoutPile(regionId) {
-    const rp       = regionPx(regionId);
-    const stackIds = regionState[regionId].stackIds;
-    const cw       = cardWidthPx(), ch = cardHeightPx();
-    const cx       = rp.x + (rp.w - cw) / 2;
-    const cy       = rp.y + (rp.h - ch) / 2;
+    const rp          = regionPx(regionId);
+    const stackIds    = regionState[regionId].stackIds;
+    const cw          = cardWidthPx(), ch = cardHeightPx();
+    const LEFT_BUFFER = cw * 0.15;
+    const cx          = rp.x + LEFT_BUFFER + (rp.w - LEFT_BUFFER - cw) / 2;
+    const cy          = rp.y + (rp.h - ch) / 2;
     const lz       = regionLayerZ(regionId);
     const positions = [];
     stackIds.forEach((sid, slotIdx) => {
@@ -389,7 +390,7 @@ export function createLayout(state, projection, REGIONS) {
     // ── Horizontal row: per-stack extents, variable anchor spacing ──────────────
     if (!vert && type === 'row') {
       const GAP         = cw * 0.1;
-      const LEFT_BUFFER = GAP;
+      const LEFT_BUFFER = cw * 0.15;
       const allExtents  = stackIds.map(sid => stackExtents(sid));
       const totalW      = allExtents.reduce((s, e) => s + e.leftExt + e.rightExt, 0) + (n - 1) * GAP + LEFT_BUFFER;
       let startVisualX;
@@ -467,7 +468,7 @@ export function createLayout(state, projection, REGIONS) {
         }
       }
     } else { // horizontal fan
-      const LEFT_BUFFER = cw * 0.1;
+      const LEFT_BUFFER = cw * 0.30;
       const availW      = rp.w - LEFT_BUFFER;
       cardDim       = cw;
       regionExtent  = rp.w;

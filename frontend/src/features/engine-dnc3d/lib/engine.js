@@ -56,6 +56,8 @@ export function createDnc3DEngine(options = {}) {
 
   const scrollOuterEls   = {};
   const regionOutlineEls = {};
+  const regionIconEls    = {};
+  const regionLabelEls   = {};
   const sentinelEls      = {};
   const stackZoneEls     = new Map();
 
@@ -1124,8 +1126,7 @@ export function createDnc3DEngine(options = {}) {
       outline.style.top    = r.top    + '%';
       outline.style.width  = r.width  + '%';
       outline.style.height = r.height + '%';
-      const showIcons = (onGroupBrowse || onGroupMenu) &&
-        (r.showMenu === true || (r.type === 'pile' && r.showMenu !== false));
+      const showIcons = !!(onGroupBrowse || onGroupMenu) && r.showMenu !== false;
       if (showIcons) {
         const icons = document.createElement('div');
         icons.className = 'dnc3d-region-icons';
@@ -1144,11 +1145,13 @@ export function createDnc3DEngine(options = {}) {
           icons.appendChild(menuBtn);
         }
         outline.appendChild(icons);
+        regionIconEls[id] = icons;
       }
       const label = document.createElement('span');
       label.className = 'dnc3d-region-label';
       label.textContent = r.label || id;
       outline.appendChild(label);
+      regionLabelEls[id] = label;
       tiltEl.appendChild(outline);
       regionOutlineEls[id] = outline;
 
@@ -1170,6 +1173,35 @@ export function createDnc3DEngine(options = {}) {
     });
 
     setAfterLayoutHook(updateSentinel);
+
+    // ── Region icon hover ────────────────────────────────────────────────────
+    let hoveredIconRegion = null;
+    function setRegionHoverState(id, hovered) {
+      if (regionIconEls[id])  regionIconEls[id].style.opacity  = hovered ? '1' : '0';
+      if (regionLabelEls[id]) regionLabelEls[id].style.opacity = hovered ? '0' : '';
+    }
+    function updateIconHover(clientX, clientY) {
+      let newHovered = null;
+      for (const id of Object.keys(regionIconEls)) {
+        const rect = regionOutlineEls[id]?.getBoundingClientRect();
+        if (rect && clientX >= rect.left && clientX <= rect.right &&
+            clientY >= rect.top && clientY <= rect.bottom) {
+          newHovered = id;
+          break;
+        }
+      }
+      if (newHovered !== hoveredIconRegion) {
+        if (hoveredIconRegion) setRegionHoverState(hoveredIconRegion, false);
+        hoveredIconRegion = newHovered;
+        if (hoveredIconRegion) setRegionHoverState(hoveredIconRegion, true);
+      }
+    }
+    function onTiltPointerMove(e) { updateIconHover(e.clientX, e.clientY); }
+    function onTiltPointerLeave() {
+      if (hoveredIconRegion) { setRegionHoverState(hoveredIconRegion, false); hoveredIconRegion = null; }
+    }
+    tiltEl.addEventListener('pointermove',  onTiltPointerMove);
+    tiltEl.addEventListener('pointerleave', onTiltPointerLeave);
 
     // ── Wheel scroll ────────────────────────────────────────────────────────
     function onWheel(e) {
@@ -1265,6 +1297,8 @@ export function createDnc3DEngine(options = {}) {
 
     // ── Cleanup ──────────────────────────────────────────────────────────────
     return function cleanup() {
+      tiltEl.removeEventListener('pointermove',  onTiltPointerMove);
+      tiltEl.removeEventListener('pointerleave', onTiltPointerLeave);
       window.removeEventListener('wheel', onWheel);
       while (tiltEl.firstChild) tiltEl.removeChild(tiltEl.firstChild);
       cards.length = 0;
@@ -1277,6 +1311,8 @@ export function createDnc3DEngine(options = {}) {
       Object.keys(sentinelEls).forEach(k => delete sentinelEls[k]);
       _attachTargetIconEl = null;
       Object.keys(regionOutlineEls).forEach(k => delete regionOutlineEls[k]);
+      Object.keys(regionIconEls).forEach(k => delete regionIconEls[k]);
+      Object.keys(regionLabelEls).forEach(k => delete regionLabelEls[k]);
       stackZoneEls.clear();
       clearScrollOuters();
       setAfterLayoutHook(null);
