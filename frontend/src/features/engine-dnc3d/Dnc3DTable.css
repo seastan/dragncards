@@ -5,7 +5,8 @@
   inset: 0;
   perspective: 300vw;
   perspective-origin: 50% 50%;
-  overflow: hidden;
+  overflow: visible;
+  z-index: 10001;
 }
 
 .dnc3d-tilt {
@@ -37,7 +38,7 @@
       rgba(255,255,255,0.02) 0, rgba(255,255,255,0.02) 1px,
       transparent 1px, transparent 8px);
   border: 0.3vw solid #5a3a1a;
-  box-shadow: 0 0 3vw rgba(0,0,0,0.8);
+  box-shadow: 0 2vw 3vw rgba(0,0,0,0.8);
 }
 
 .dnc3d-region-outline {
