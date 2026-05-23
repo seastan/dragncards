@@ -116,7 +116,7 @@
   writing-mode: vertical-rl;
   transform: translateY(-50%) rotate(180deg);
   color: rgba(255,255,255,0.22);
-  font: 0.55vw/1 sans-serif;
+  font: bold 0.55vw/1 sans-serif;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   white-space: nowrap;
