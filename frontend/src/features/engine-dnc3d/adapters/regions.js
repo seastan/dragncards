@@ -42,6 +42,18 @@ export function formatGroupId(groupId, observingPlayerN, numPlayers) {
   return groupId;
 }
 
+// Pure equivalent of the useGameL10n hook — resolves "id:xxx" labels via gameDef.
+function gameL10n(label, gameDef, language) {
+  if (typeof label !== 'string') return JSON.stringify(label);
+  if (label.startsWith('id:')) {
+    const labelId = label.substring(3);
+    return gameDef?.labels?.[labelId]?.[language]
+        || gameDef?.labels?.[labelId]?.English
+        || labelId;
+  }
+  return label;
+}
+
 // Maps dragncards region types to dnc3d region types.
 // dnc3d supports: 'free' | 'row' | 'fan' | 'pile'
 const TYPE_MAP = {
@@ -53,7 +65,7 @@ const TYPE_MAP = {
   hand: 'fan',
 };
 
-export function adaptRegions(layoutRegions, observingPlayerN, numPlayers, groupById = {}) {
+export function adaptRegions(layoutRegions, observingPlayerN, numPlayers, groupById = {}, gameDef = null, language = 'English') {
   if (!layoutRegions) return {};
   const regions = {};
   Object.entries(layoutRegions).forEach(([, region]) => {
@@ -62,7 +74,8 @@ export function adaptRegions(layoutRegions, observingPlayerN, numPlayers, groupB
     if (!rawGroupId) return;
     const groupId = formatGroupId(rawGroupId, observingPlayerN, numPlayers);
     const type = TYPE_MAP[region.type] || 'free';
-    const tableLabel = groupById[groupId]?.tableLabel || null;
+    const rawLabel   = groupById[groupId]?.tableLabel || null;
+    const tableLabel = rawLabel ? gameL10n(rawLabel, gameDef, language) : null;
     regions[groupId] = {
       left:   toPercent(region.left),
       top:    toPercent(region.top),
