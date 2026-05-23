@@ -111,9 +111,11 @@ export default function Dnc3DTable({
           dispatch(setScreenLeftRight(clientX > window.innerWidth / 2 ? 'right' : 'left'));
           dispatch(setDropdownMenu({ type: 'card', cardId: dcId, title, visible: true }));
         },
-        onCardHover:    (engineId) => {
+        onCardHover:    (engineId, clientX) => {
           const dcId = reverseIdMap.get(engineId);
-          if (dcId != null) dispatch(setActiveCardId(dcId));
+          if (dcId == null) return;
+          dispatch(setActiveCardId(dcId));
+          dispatch(setScreenLeftRight(clientX < window.innerWidth / 2 ? 'left' : 'right'));
         },
         onCardHoverEnd: () => dispatch(setActiveCardId(null)),
       };

@@ -265,7 +265,7 @@ export function createDnc3DEngine(options = {}) {
     createStack([i]);
 
     liftEl.addEventListener('click', e => e.stopPropagation());
-    if (onCardHover)    liftEl.addEventListener('pointerenter', () => onCardHover(i));
+    if (onCardHover)    liftEl.addEventListener('pointerenter', (e) => onCardHover(i, e.clientX));
     if (onCardHoverEnd) liftEl.addEventListener('pointerleave', () => onCardHoverEnd(i));
 
     // ── Lift animation state ──
