@@ -264,6 +264,7 @@ export function createDnc3DEngine(options = {}) {
 
     createStack([i]);
 
+    liftEl.addEventListener('click', e => e.stopPropagation());
     if (onCardHover)    liftEl.addEventListener('pointerenter', () => onCardHover(i));
     if (onCardHoverEnd) liftEl.addEventListener('pointerleave', () => onCardHoverEnd(i));
 
