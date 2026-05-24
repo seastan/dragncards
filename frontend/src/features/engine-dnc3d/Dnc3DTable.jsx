@@ -1,11 +1,14 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { setActiveCardId, setDropdownMenu, setMouseXY, setScreenLeftRight } from '../store/playerUiSlice';
+import store from '../../store';
 import { createDnc3DEngine } from './lib/engine';
 import { adaptRegions, gameL10n } from './adapters/regions';
 import { adaptGameState } from './adapters/cards';
 import { buildEngineCallbacks } from './adapters/actions';
 import { useBrowseTopN } from '../engine/hooks/useBrowseTopN';
+import { Dnc3DHudChat } from './Dnc3DHudChat';
+import { Dnc3DHudBrowse } from './Dnc3DHudBrowse';
 import './Dnc3DTable.css';
 
 // Wrapper component for the dnc3d engine.
@@ -16,7 +19,7 @@ import './Dnc3DTable.css';
 // The engine is (re-)initialized whenever the card set changes (deck load).
 // Incremental reconciliation for mid-game server updates is Phase 5.
 export default function Dnc3DTable({
-  tiltDeg      = 15,
+  tiltDeg      = 25,
   tableOpacity = 100,
   // Connected mode props — all optional; omitting them uses demo mode
   game,
@@ -36,6 +39,13 @@ export default function Dnc3DTable({
         ?? null;
   });
   const zoomFactor       = useSelector(s => (s?.playerUi?.userSettings?.zoomPercent ?? 100) / 100);
+  const tableBackgroundUrl = useSelector(s => {
+    const userBg = s?.playerUi?.userSettings?.backgroundUrl;
+    if (userBg && userBg !== '') return userBg;
+    return null;
+  }) || gameDef?.backgroundUrl || null;
+
+  const browseGroupId = useSelector(s => s?.gameUi?.game?.playerData?.[observingPlayerN]?.browseGroup?.id);
 
   const tiltRef    = useRef(null);
   const engineRef  = useRef(null);
@@ -53,8 +63,9 @@ export default function Dnc3DTable({
   const doActionListRef    = useRef(doActionList);
   const observingPlayerRef = useRef(observingPlayerN);
   const numPlayersRef      = useRef(numPlayers);
-  const cardSizeRef        = useRef(cardSize);
-  const zoomFactorRef      = useRef(zoomFactor);
+  const cardSizeRef           = useRef(cardSize);
+  const zoomFactorRef         = useRef(zoomFactor);
+  const tableBackgroundUrlRef = useRef(tableBackgroundUrl);
   gameRef.current            = game;
   layoutRef.current          = layoutRegions;
   gameDefRef.current         = gameDef;
@@ -62,8 +73,9 @@ export default function Dnc3DTable({
   doActionListRef.current    = doActionList;
   observingPlayerRef.current = observingPlayerN;
   numPlayersRef.current      = numPlayers;
-  cardSizeRef.current        = cardSize;
-  zoomFactorRef.current      = zoomFactor;
+  cardSizeRef.current           = cardSize;
+  zoomFactorRef.current         = zoomFactor;
+  tableBackgroundUrlRef.current = tableBackgroundUrl;
 
   // Re-initialize the engine whenever the card set changes.
   // This handles: switching to dnc3d after cards are loaded, and loading a
@@ -98,8 +110,9 @@ export default function Dnc3DTable({
       const cardDefaultW = anyBack?.width  ?? 0.72;
       engineOptions = {
         regions, ...callbacks,
-        cardSize:        cardSizeRef.current,
-        zoomFactor:      zoomFactorRef.current,
+        cardSize:           cardSizeRef.current,
+        zoomFactor:         zoomFactorRef.current,
+        tableBackgroundUrl: tableBackgroundUrlRef.current,
         cardDefaultH,
         cardDefaultW,
         onCardClick:    (engineId, clientX, clientY) => {
@@ -119,7 +132,9 @@ export default function Dnc3DTable({
           dispatch(setActiveCardId(dcId));
           dispatch(setScreenLeftRight(clientX < window.innerWidth / 2 ? 'left' : 'right'));
         },
-        onCardHoverEnd: () => dispatch(setActiveCardId(null)),
+        onCardHoverEnd: () => {
+          if (!store.getState().playerUi?.dropdownMenu) dispatch(setActiveCardId(null));
+        },
         onGroupBrowse: (groupId) => browseTopN(groupId, 'All'),
         onGroupMenu:   (groupId, clientX, clientY) => {
           const group = gameRef.current?.groupById?.[groupId];
@@ -181,11 +196,28 @@ export default function Dnc3DTable({
     engine.applyTableOpacity(tiltEl, tableOpacity / 100);
   }, [tableOpacity]);
 
+  // ── Open / close browse region in the engine ───────────────────────────────
+  useEffect(() => {
+    const engine = engineRef.current;
+    const idMap  = idMapRef.current;
+    if (!engine) return;
+    if (browseGroupId && idMap && gameRef.current) {
+      engine.openBrowse(browseGroupId, gameRef.current, idMap);
+    } else {
+      engine.closeBrowse();
+    }
+  }, [browseGroupId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Filter callback from the HUD browse panel ──────────────────────────────
+  const handleBrowseFilterChange = useCallback((filteredIndices) => {
+    engineRef.current?.updateBrowseFilter(filteredIndices);
+  }, []);
+
   return (
     <div className="dnc3d-stage">
-      <div className="dnc3d-tilt" ref={tiltRef}>
-        <div className="dnc3d-table-surface" />
-      </div>
+      <div className="dnc3d-tilt" ref={tiltRef} />
+      {game && <Dnc3DHudChat />}
+      {game && <Dnc3DHudBrowse onFilterChange={handleBrowseFilterChange} />}
     </div>
   );
 }

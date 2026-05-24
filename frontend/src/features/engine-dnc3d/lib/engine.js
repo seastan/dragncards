@@ -27,10 +27,11 @@ export function createDnc3DEngine(options = {}) {
   const onGroupBrowse  = options.onGroupBrowse  || null;
   const onGroupMenu    = options.onGroupMenu    || null;
   // Card sizing — mirrors the 2D renderer's cardSize * zoomFactor * 1.7dvh formula.
-  const _cardSize     = options.cardSize     || null;   // null → fall back to legacy formula
-  const _cardDefaultH = options.cardDefaultH || 1.0;
-  const _cardDefaultW = options.cardDefaultW || 0.72;
-  const _zoomFactor   = options.zoomFactor   || 1.0;
+  const _cardSize           = options.cardSize           || null;
+  const _cardDefaultH       = options.cardDefaultH       || 1.0;
+  const _cardDefaultW       = options.cardDefaultW       || 0.72;
+  const _zoomFactor         = options.zoomFactor         || 1.0;
+  const _tableBackgroundUrl = options.tableBackgroundUrl || null;
 
   // ── Sub-system instances ───────────────────────────────────────────────────
   const state = createState(REGIONS);
@@ -60,6 +61,41 @@ export function createDnc3DEngine(options = {}) {
   const regionLabelEls   = {};
   const sentinelEls      = {};
   const stackZoneEls     = new Map();
+
+  // ── Browse state ───────────────────────────────────────────────────────────
+  let _browseGroupId         = null;
+  let _browseAllEngineStacks = []; // [{ engineStackId, dcStackIndex }]
+
+  function _makeBrowseRegion() {
+    const tiltH    = parseFloat(_tiltEl?.style.height) || window.innerHeight;
+    const tiltW    = parseFloat(_tiltEl?.style.width)  || window.innerWidth;
+    const cardH    = cardHeightPx();
+    const heightPct = Math.min(88, (cardH / tiltH) * 100 * 1.15 + 3);
+    const topPct    = 100 - heightPct - 25;
+
+    // The scroll outer sits at translateZ(LAYER_Z * layerIndex) = 540px above the
+    // tilt plane, plus the tilt plane itself is at z = y * sinA at the center Y of
+    // the region. The perspective scale at this combined Z makes the region appear
+    // wider on screen than its CSS width. Compute the max CSS width that keeps the
+    // apparent screen width within 96% of the viewport.
+    const layerIndex = 2;
+    const layerZ   = LAYER_Z * layerIndex;
+    const P        = stagePx();
+    const rad      = _currentDeg * Math.PI / 180;
+    const sinA     = Math.sin(rad);
+    const centerY  = ((topPct + heightPct / 2) / 100) * tiltH;
+    const totalZ   = centerY * sinA + layerZ;
+    const scale    = P / Math.max(1, P - totalZ);
+    const stageRect = _tiltEl?.parentElement?.getBoundingClientRect();
+    const stageW   = stageRect ? stageRect.width : window.innerWidth;
+
+    const maxApparent = stageW * 0.96;
+    const maxCSSW     = maxApparent / scale;
+    const width       = Math.min(96, (maxCSSW / tiltW) * 100);
+    const left        = (100 - width) / 2;
+
+    return { left, top: topPct, width, height: heightPct, type: 'fan', direction: 'horizontal', layerIndex };
+  }
 
   // ── Per-card dimension helpers ─────────────────────────────────────────────
   // Sets --card-w / --card-h on a card's cardEl so each card renders at its
@@ -199,6 +235,125 @@ export function createDnc3DEngine(options = {}) {
     Object.keys(sentinelEls).forEach(updateSentinel);
   }
 
+  // ── Browse region DOM setup / teardown ─────────────────────────────────────
+  function _setupBrowseRegionDom() {
+    if (!_tiltEl) return;
+    const r = REGIONS['_browse'];
+
+    const scrollOuter = document.createElement('div');
+    scrollOuter.className = 'dnc3d-region-scroll-outer';
+    scrollOuter.style.transform = `translateZ(${LAYER_Z * r.layerIndex}px)`;
+    _tiltEl.appendChild(scrollOuter);
+    scrollOuterEls['_browse'] = scrollOuter;
+    setScrollOuter('_browse', scrollOuter);
+    updateScrollOuters();
+
+    const outline = document.createElement('div');
+    outline.className = 'dnc3d-region-outline dnc3d-region-elevated';
+    outline.style.transform  = `translateZ(${LAYER_Z * r.layerIndex - 1}px)`;
+    outline.style.left       = r.left   + '%';
+    outline.style.top        = r.top    + '%';
+    outline.style.width      = r.width  + '%';
+    outline.style.height     = r.height + '%';
+    outline.style.background = '#1f2937';
+    _tiltEl.appendChild(outline);
+    regionOutlineEls['_browse'] = outline;
+
+    const sentinel = document.createElement('div');
+    sentinel.className = 'dnc3d-region-scroll-sentinel';
+    const spacer = document.createElement('div');
+    spacer.className = 'dnc3d-region-scroll-spacer';
+    sentinel.appendChild(spacer);
+    outline.appendChild(sentinel);
+    const s = { el: sentinel, spacer, _syncing: false };
+    sentinelEls['_browse'] = s;
+    sentinel.addEventListener('scroll', () => {
+      if (s._syncing) { s._syncing = false; return; }
+      regionState['_browse'].scrollOffset = sentinel.scrollLeft;
+      layoutRegion('_browse');
+    });
+  }
+
+  function _teardownBrowseRegionDom() {
+    if (scrollOuterEls['_browse']) {
+      if (_tiltEl) _tiltEl.removeChild(scrollOuterEls['_browse']);
+      delete scrollOuterEls['_browse'];
+    }
+    if (regionOutlineEls['_browse']) {
+      if (_tiltEl) _tiltEl.removeChild(regionOutlineEls['_browse']);
+      delete regionOutlineEls['_browse'];
+    }
+    delete sentinelEls['_browse'];
+    clearScrollOuters();
+    Object.entries(scrollOuterEls).forEach(([id, el]) => setScrollOuter(id, el));
+  }
+
+  // ── Browse API ─────────────────────────────────────────────────────────────
+  // Opens the browse fan for a group, moving its cards to the browse region.
+  // game/idMap come from the current Dnc3DTable reconcile refs.
+  function openBrowse(browseGroupId, game, idMap) {
+    if (_browseGroupId) closeBrowse();
+    _browseGroupId = browseGroupId;
+
+    const group = game?.groupById?.[browseGroupId];
+    if (!group) { _browseGroupId = null; return; }
+
+    REGIONS['_browse'] = _makeBrowseRegion();
+    regionState['_browse'] = { stackIds: [], scrollOffset: 0 };
+    _setupBrowseRegionDom();
+
+    _browseAllEngineStacks = [];
+    (group.stackIds || []).forEach((dcStackId, dcStackIndex) => {
+      const dcStack = game.stackById?.[dcStackId];
+      if (!dcStack?.cardIds?.length) return;
+      const firstEngineIdx = idMap.get(dcStack.cardIds[0]);
+      if (firstEngineIdx === undefined) return;
+      const card = cards[firstEngineIdx];
+      if (!card) return;
+      _browseAllEngineStacks.push({ engineStackId: card.stackId, dcStackIndex });
+      moveStackToRegion(card.stackId, '_browse');
+    });
+
+    updateBrowseFilter(_browseAllEngineStacks.map(e => e.dcStackIndex));
+  }
+
+  // Closes browse, restoring all cards to their home region.
+  function closeBrowse() {
+    if (!_browseGroupId) return;
+    const homeGroupId = _browseGroupId;
+
+    _browseAllEngineStacks.forEach(({ engineStackId }) => {
+      const stack = stacks[engineStackId];
+      if (!stack) return;
+      stack.cardIds.forEach(cid => { if (cards[cid]?.liftEl) cards[cid].liftEl.style.display = ''; });
+      if (regionState[homeGroupId]) moveStackToRegion(engineStackId, homeGroupId);
+    });
+
+    if (regionState[homeGroupId]) layoutRegion(homeGroupId);
+
+    _teardownBrowseRegionDom();
+    delete REGIONS['_browse'];
+    delete regionState['_browse'];
+    _browseGroupId = null;
+    _browseAllEngineStacks = [];
+  }
+
+  // Updates which stacks are visible in the browse fan.
+  // filteredDcStackIndices: array of indices into the original group.stackIds.
+  function updateBrowseFilter(filteredDcStackIndices) {
+    if (!_browseGroupId || !regionState['_browse']) return;
+    const filteredSet = new Set(filteredDcStackIndices);
+    regionState['_browse'].stackIds = [];
+    _browseAllEngineStacks.forEach(({ engineStackId, dcStackIndex }) => {
+      const stack = stacks[engineStackId];
+      if (!stack) return;
+      const visible = filteredSet.has(dcStackIndex);
+      stack.cardIds.forEach(cid => { if (cards[cid]?.liftEl) cards[cid].liftEl.style.display = visible ? '' : 'none'; });
+      if (visible) regionState['_browse'].stackIds.push(engineStackId);
+    });
+    layoutRegion('_browse');
+  }
+
   // ── Card creation ──────────────────────────────────────────────────────────
   // cardInfo: { id, frontImageUrl?, backImageUrl?, angle?, faceW?, faceH? }
   function createCard(tiltEl, cardInfo) {
@@ -275,8 +430,12 @@ export function createDnc3DEngine(options = {}) {
     // ── Lift animation state ──
     let liftAnimId = null;
 
-    const _maxLayerZ = Math.max(0, ...Object.values(REGIONS).map(r => LAYER_Z * (r.layerIndex || 0)));
-    function dragLiftMax() { return window.innerHeight * 0.04 + _maxLayerZ; }
+    // Recomputed on every call so that regions added after card creation (e.g.
+    // the browse region with layerIndex 9) are included.
+    function dragLiftMax() {
+      const maxZ = Math.max(0, ...Object.values(REGIONS).map(r => LAYER_Z * (r.layerIndex || 0)));
+      return window.innerHeight * 0.04 + maxZ;
+    }
 
     function setLiftVisuals(z_px, x_px = 0) {
       card.liftPx = z_px;
@@ -1087,6 +1246,13 @@ export function createDnc3DEngine(options = {}) {
     _currentDeg = initialDeg;
     initLayout(tiltEl);
 
+    const tableSurface = document.createElement('div');
+    tableSurface.className = 'dnc3d-table-surface';
+    if (_tableBackgroundUrl) {
+      tableSurface.style.background = `url(${_tableBackgroundUrl}) center / cover no-repeat`;
+    }
+    tiltEl.appendChild(tableSurface);
+
     Object.entries(REGIONS).forEach(([id, r]) => {
       if (r.type !== 'row' && r.type !== 'fan') return;
       const el = document.createElement('div');
@@ -1369,7 +1535,8 @@ export function createDnc3DEngine(options = {}) {
 
       // 4. Group change (card moved by another player)
       const expectedGroupId = dcCard.groupId;
-      if (expectedGroupId && card.regionId !== expectedGroupId && regionState[expectedGroupId]) {
+      const inBrowse = _browseGroupId && card.regionId === '_browse' && expectedGroupId === _browseGroupId;
+      if (!inBrowse && expectedGroupId && card.regionId !== expectedGroupId && regionState[expectedGroupId]) {
         const oldRegionId = card.regionId;
         moveStackToRegion(card.stackId, expectedGroupId);
         if (REGIONS[expectedGroupId]?.type === 'free') {
@@ -1405,5 +1572,5 @@ export function createDnc3DEngine(options = {}) {
     });
   }
 
-  return { init, applyTilt, applyTableOpacity, setCurrentDeg, onTiltUpdated, reconcile };
+  return { init, applyTilt, applyTableOpacity, setCurrentDeg, onTiltUpdated, reconcile, openBrowse, closeBrowse, updateBrowseFilter };
 }

@@ -24,11 +24,16 @@ export function createLayout(state, projection, REGIONS) {
   }
 
   function findRegionAtPoint(pctX, pctY) {
+    let bestId    = null;
+    let bestLayer = -1;
     for (const [id, r] of Object.entries(REGIONS)) {
       if (pctX >= r.left && pctX <= r.left + r.width &&
-          pctY >= r.top  && pctY <= r.top  + r.height) return id;
+          pctY >= r.top  && pctY <= r.top  + r.height) {
+        const layer = r.layerIndex || 0;
+        if (layer > bestLayer) { bestLayer = layer; bestId = id; }
+      }
     }
-    return null;
+    return bestId;
   }
 
   // ── Scroll outer containers ─────────────────────────────────────────────────

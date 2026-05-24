@@ -7,6 +7,7 @@
   perspective-origin: 50% 50%;
   overflow: visible;
   z-index: 10001;
+  background: #111;
 }
 
 .dnc3d-tilt {
@@ -37,7 +38,7 @@
     repeating-linear-gradient(-45deg,
       rgba(255,255,255,0.02) 0, rgba(255,255,255,0.02) 1px,
       transparent 1px, transparent 8px);
-  border: 0.3vw solid #5a3a1a;
+  border: none;
   box-shadow: 0 2vw 3vw rgba(0,0,0,0.8);
 }
 
@@ -197,20 +198,6 @@
 .dnc3d-card-back {
   background: #1a3a6b;
   transform: rotateY(180deg);
-}
-.dnc3d-card-back::before {
-  content: "";
-  position: absolute;
-  inset: 0.4vw;
-  border-radius: 0.2vw;
-  border: 0.05vw solid rgba(255,255,255,0.15);
-  background:
-    repeating-linear-gradient(45deg,
-      rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 2px,
-      transparent 2px, transparent 10px),
-    repeating-linear-gradient(-45deg,
-      rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 2px,
-      transparent 2px, transparent 10px);
 }
 
 /* Attachment icon — shown on the dragged stack edge when hovering an attach zone */
