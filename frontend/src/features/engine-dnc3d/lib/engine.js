@@ -302,6 +302,12 @@ export function createDnc3DEngine(options = {}) {
     regionState['_browse'] = { stackIds: [], scrollOffset: 0 };
     _setupBrowseRegionDom();
 
+    // Hide the home region's table DOM so it doesn't appear as a drop target.
+    for (const el of [scrollOuterEls[browseGroupId], regionOutlineEls[browseGroupId],
+                      regionIconEls[browseGroupId], regionLabelEls[browseGroupId]]) {
+      if (el) el.style.display = 'none';
+    }
+
     _browseAllEngineStacks = [];
     (group.stackIds || []).forEach((dcStackId, dcStackIndex) => {
       const dcStack = game.stackById?.[dcStackId];
@@ -325,11 +331,19 @@ export function createDnc3DEngine(options = {}) {
     _browseAllEngineStacks.forEach(({ engineStackId }) => {
       const stack = stacks[engineStackId];
       if (!stack) return;
+      // Skip stacks that were dropped into another region while browse was open.
+      if (cards[stack.cardIds[0]]?.regionId !== '_browse') return;
       stack.cardIds.forEach(cid => { if (cards[cid]?.liftEl) cards[cid].liftEl.style.display = ''; });
       if (regionState[homeGroupId]) moveStackToRegion(engineStackId, homeGroupId);
     });
 
     if (regionState[homeGroupId]) layoutRegion(homeGroupId);
+
+    // Restore the home region's table DOM.
+    for (const el of [scrollOuterEls[homeGroupId], regionOutlineEls[homeGroupId],
+                      regionIconEls[homeGroupId], regionLabelEls[homeGroupId]]) {
+      if (el) el.style.display = '';
+    }
 
     _teardownBrowseRegionDom();
     delete REGIONS['_browse'];
@@ -347,6 +361,9 @@ export function createDnc3DEngine(options = {}) {
     _browseAllEngineStacks.forEach(({ engineStackId, dcStackIndex }) => {
       const stack = stacks[engineStackId];
       if (!stack) return;
+      // Skip stacks that were dropped into another region while browse was open;
+      // touching their display here would hide a card that's now on the table.
+      if (cards[stack.cardIds[0]]?.regionId !== '_browse') return;
       const visible = filteredSet.has(dcStackIndex);
       stack.cardIds.forEach(cid => { if (cards[cid]?.liftEl) cards[cid].liftEl.style.display = visible ? '' : 'none'; });
       if (visible) regionState['_browse'].stackIds.push(engineStackId);
@@ -430,11 +447,8 @@ export function createDnc3DEngine(options = {}) {
     // ── Lift animation state ──
     let liftAnimId = null;
 
-    // Recomputed on every call so that regions added after card creation (e.g.
-    // the browse region with layerIndex 9) are included.
     function dragLiftMax() {
-      const maxZ = Math.max(0, ...Object.values(REGIONS).map(r => LAYER_Z * (r.layerIndex || 0)));
-      return window.innerHeight * 0.04 + maxZ;
+      return window.innerHeight * 0.04 + (card._dragStartPileZ ?? 0);
     }
 
     function setLiftVisuals(z_px, x_px = 0) {
@@ -536,6 +550,7 @@ export function createDnc3DEngine(options = {}) {
             dx: c.prevPos.left - primaryPos.left,
             dy: c.prevPos.top  - primaryPos.top,
           };
+          c._dragStartPileZ = c.pileZ;
           c.liftPx = c.pileZ;
           c.pileZ  = 0;
           c._cancelLift();
@@ -752,7 +767,7 @@ export function createDnc3DEngine(options = {}) {
         currentInsertRegion = null;
       } else {
         const hoverRegion = findRegionAtPoint(cx / tw * 100, cy / th * 100);
-        if (hoverRegion && (REGIONS[hoverRegion].type === 'row' || REGIONS[hoverRegion].type === 'fan')) {
+        if (hoverRegion && hoverRegion !== _browseGroupId && (REGIONS[hoverRegion].type === 'row' || REGIONS[hoverRegion].type === 'fan')) {
           currentInsertIdx    = showInsertionIndicator(hoverRegion, cx, cy, dragStack.id);
           currentInsertRegion = hoverRegion;
         } else {
@@ -799,7 +814,9 @@ export function createDnc3DEngine(options = {}) {
         const parentCard = droppedStackCards[0];
         const dropCX = (parseFloat(parentCard.liftEl.style.left) + cardWidthPx()  / 2) / tw * 100;
         const dropCY = (parseFloat(parentCard.liftEl.style.top)  + cardHeightPx() / 2) / th * 100;
-        const targetRegionId = findRegionAtPoint(dropCX, dropCY);
+        const _rawTargetRegion = findRegionAtPoint(dropCX, dropCY);
+        // Treat the browse home region as empty while it's being browsed.
+        const targetRegionId = (_rawTargetRegion === _browseGroupId) ? null : _rawTargetRegion;
 
         function liftDown(dur, cb, targets = null, options = {}) {
           const { wiggleXPx = 0, settleProgressAt = 1, deferZIndex = false } = options;
@@ -809,15 +826,16 @@ export function createDnc3DEngine(options = {}) {
           let done = 0;
           const startTime = performance.now();
           droppedStackCards.forEach(c => {
-            const target = targetByCardId?.get(c.id);
-            if (target) {
-              c.pileZ = target.stackZ;
-              if (!deferZIndex) {
-                c.liftEl.style.zIndex = target.zIndex;
-                c._setLiftVisuals(c.liftPx);
-              }
+            const target     = targetByCardId?.get(c.id);
+            const stackZ     = target ? (target.stackZ ?? 0) : c.pileZ;
+            const liftTarget = c.liftPx >= stackZ ? stackZ : 0;
+            if (target && !deferZIndex) {
+              c.liftEl.style.zIndex = target.zIndex;
             }
-            c._animateLift(0, dur, easeIn, () => {
+            c._animateLift(liftTarget, dur, easeIn, () => {
+              c.pileZ  = stackZ;
+              c.liftPx = 0;
+              c._setLiftVisuals(0);
               if (!target) c.liftEl.style.zIndex = nextTopZ();
               done++;
               if (done === droppedStackCards.length && cb) cb();
@@ -980,11 +998,15 @@ export function createDnc3DEngine(options = {}) {
               } else {
                 card.layoutAnimId = null;
                 droppedStackCards.forEach(c => {
-                  const myPos = posById.get(c.id);
-                  c.pileZ = myPos?.stackZ || 0;
-                  c._animateLift(0, 200, easeIn, () => {
+                  const myPos      = posById.get(c.id);
+                  const stackZ     = myPos?.stackZ ?? 0;
+                  const liftTarget = c.liftPx >= stackZ ? stackZ : 0;
+                  c._animateLift(liftTarget, 200, easeIn, () => {
+                    c.pileZ  = stackZ;
+                    c.liftPx = 0;
+                    c._setLiftVisuals(0);
                     c.liftEl.style.zIndex = nextTopZ();
-                    if (myPos) placeCardAt(c, myPos.left, myPos.top, 0, myPos.zIndex, myPos.stackZ || 0);
+                    if (myPos) placeCardAt(c, myPos.left, myPos.top, 0, myPos.zIndex, stackZ);
                   });
                 });
               }
@@ -1017,11 +1039,15 @@ export function createDnc3DEngine(options = {}) {
                   card.layoutAnimId = null;
                   let done = 0;
                   droppedStackCards.forEach((c, idx) => {
-                    const myPos = myPositions[idx];
-                    c.pileZ = myPos?.stackZ || 0;
-                    c._animateLift(0, 200, easeIn, () => {
+                    const myPos      = myPositions[idx];
+                    const stackZ     = myPos?.stackZ ?? 0;
+                    const liftTarget = c.liftPx >= stackZ ? stackZ : 0;
+                    c._animateLift(liftTarget, 200, easeIn, () => {
+                      c.pileZ  = stackZ;
+                      c.liftPx = 0;
+                      c._setLiftVisuals(0);
                       c.liftEl.style.zIndex = nextTopZ();
-                      if (myPos) placeCardAt(c, myPos.left, myPos.top, 0, myPos.zIndex, myPos.stackZ || 0);
+                      if (myPos) placeCardAt(c, myPos.left, myPos.top, 0, myPos.zIndex, stackZ);
                       done++;
                     });
                   });
@@ -1129,17 +1155,36 @@ export function createDnc3DEngine(options = {}) {
               onCardMove(c0.id, oldRegionId, targetRegionId, c0.fracX, c0.fracY);
             }
           } else {
-            // Miss — snap every card back to its saved position
-            const snapTargets = stackTargets(droppedStack, c => ({
+            // Miss — slide back to origin while staying raised, then lift down.
+            const snapTargets  = stackTargets(droppedStack, c => ({
               left: c.prevPos.left,
-              top: c.prevPos.top,
-              rot: c.prevPos.rot,
+              top:  c.prevPos.top,
+              rot:  c.prevPos.rot,
             }));
-            liftDown(280, () => {
-              snapTargets.forEach(pos => {
-                animateCardTo(pos.card, pos.left, pos.top, pos.rot, pos.zIndex, 220, pos.stackZ);
+            const snapByCardId = new Map(snapTargets.map(t => [t.card.id, t]));
+            const slideDur     = scaleDuration(220);
+            const slideStart   = performance.now();
+            const fromPos      = droppedStackCards.map(c => ({
+              left: parseFloat(c.liftEl.style.left),
+              top:  parseFloat(c.liftEl.style.top),
+            }));
+            (function slideFrame(now) {
+              const t  = Math.min((now - slideStart) / slideDur, 1);
+              const ef = easeOut(t);
+              droppedStackCards.forEach((c, idx) => {
+                const from   = fromPos[idx];
+                const target = snapByCardId.get(c.id);
+                if (!target) return;
+                c.liftEl.style.left = (from.left + (target.left - from.left) * ef) + 'px';
+                c.liftEl.style.top  = (from.top  + (target.top  - from.top)  * ef) + 'px';
               });
-            }, snapTargets);
+              if (t < 1) {
+                requestAnimationFrame(slideFrame);
+              } else {
+                const homeRegionId = cards[droppedStack.cardIds[0]]?.regionId;
+                liftDown(250, () => { if (homeRegionId) layoutRegion(homeRegionId); }, snapTargets);
+              }
+            })(performance.now());
           }
         }
       }
