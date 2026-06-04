@@ -1,4 +1,4 @@
-import { COLORS, BASE_LIFT, LAYER_Z, DEFAULT_REGIONS, scaleDuration, ATTACH_WIGGLE_DVH, DRAG_EDGE_SCROLL_SPEED } from './config';
+import { COLORS, BASE_LIFT, PILE_STACK_Z, MAX_PILE_VISUAL_DEPTH, LAYER_Z, DEFAULT_REGIONS, scaleDuration, ATTACH_WIGGLE_DVH, DRAG_EDGE_SCROLL_SPEED } from './config';
 import { createState } from './state';
 import { createProjection } from './projection';
 import { createLayout } from './layout';
@@ -54,6 +54,7 @@ export function createDnc3DEngine(options = {}) {
   let _tiltEl             = null;
   let _currentDeg         = 15;
   let _attachTargetIconEl = null;
+  let _tableSurfaceEl     = null;
 
   const scrollOuterEls   = {};
   const regionOutlineEls = {};
@@ -149,6 +150,13 @@ export function createDnc3DEngine(options = {}) {
     tiltEl.style.width     = w + 'px';
     tiltEl.style.left      = (vw - w) / 2 + 'px';
     tiltEl.style.transform = `rotateX(${deg}deg)`;
+    if (_tableSurfaceEl) {
+      _tableSurfaceEl.style.height    = h + 'px';
+      _tableSurfaceEl.style.width     = w + 'px';
+      _tableSurfaceEl.style.left      = (vw - w) / 2 + 'px';
+      _tableSurfaceEl.style.top       = '0px';
+      _tableSurfaceEl.style.transform = `rotateX(${deg}deg)`;
+    }
     tiltEl.style.setProperty('--card-w', cardWidthPx() + 'px');
     tiltEl.style.setProperty('--card-h', cardHeightPx() + 'px');
     cards.forEach(card => applyCardDims(card));
@@ -448,7 +456,11 @@ export function createDnc3DEngine(options = {}) {
     let liftAnimId = null;
 
     function dragLiftMax() {
-      return window.innerHeight * 0.04 + (card._dragStartPileZ ?? 0);
+      let maxLayerZ = 0;
+      for (const r of Object.values(REGIONS)) {
+        if (r.layerIndex) maxLayerZ = Math.max(maxLayerZ, LAYER_Z * r.layerIndex);
+      }
+      return maxLayerZ + (MAX_PILE_VISUAL_DEPTH - 1) * PILE_STACK_Z + window.innerHeight * 0.04;
     }
 
     function setLiftVisuals(z_px, x_px = 0) {
@@ -550,7 +562,6 @@ export function createDnc3DEngine(options = {}) {
             dx: c.prevPos.left - primaryPos.left,
             dy: c.prevPos.top  - primaryPos.top,
           };
-          c._dragStartPileZ = c.pileZ;
           c.liftPx = c.pileZ;
           c.pileZ  = 0;
           c._cancelLift();
@@ -1293,10 +1304,20 @@ export function createDnc3DEngine(options = {}) {
 
     const tableSurface = document.createElement('div');
     tableSurface.className = 'dnc3d-table-surface';
+    tableSurface.style.zIndex = '0';
+    // Mirror current tilt geometry so it renders on the same tilted plane
+    tableSurface.style.height    = tiltEl.style.height;
+    tableSurface.style.width     = tiltEl.style.width;
+    tableSurface.style.left      = tiltEl.style.left;
+    tableSurface.style.top       = '0px';
+    tableSurface.style.transform = tiltEl.style.transform;
     if (_tableBackgroundUrl) {
       tableSurface.style.background = `url(${_tableBackgroundUrl}) center / cover no-repeat`;
     }
-    tiltEl.appendChild(tableSurface);
+    // Insert before tiltEl so it's behind cards in DOM order
+    tiltEl.parentElement.insertBefore(tableSurface, tiltEl);
+    _tableSurfaceEl = tableSurface;
+
 
     Object.entries(REGIONS).forEach(([id, r]) => {
       if (r.type !== 'row' && r.type !== 'fan') return;
@@ -1511,6 +1532,7 @@ export function createDnc3DEngine(options = {}) {
       tiltEl.removeEventListener('pointermove',  onTiltPointerMove);
       tiltEl.removeEventListener('pointerleave', onTiltPointerLeave);
       window.removeEventListener('wheel', onWheel);
+      if (_tableSurfaceEl) { _tableSurfaceEl.parentElement?.removeChild(_tableSurfaceEl); _tableSurfaceEl = null; }
       while (tiltEl.firstChild) tiltEl.removeChild(tiltEl.firstChild);
       cards.length = 0;
       Object.keys(stacks).forEach(k => delete stacks[k]);

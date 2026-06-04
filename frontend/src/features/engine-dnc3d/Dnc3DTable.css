@@ -19,14 +19,15 @@
   --table-opacity: 1;
 }
 
+
 .dnc3d-table-surface {
   position: absolute;
-  inset: 0;
-  border-radius: inherit;
+  top: 0;
+  transform-origin: 50% 0%;
+  border-radius: 0.4vw;
   pointer-events: none;
   opacity: var(--table-opacity);
   box-sizing: border-box;
-  transform: translateZ(-1px);
   backface-visibility: hidden;
   will-change: transform;
   background: radial-gradient(ellipse at 50% 60%, #2d6a3f 0%, #1a4a2a 60%, #0e2e18 100%);

@@ -35,7 +35,7 @@ export function buildEngineCallbacks(doActionList, reverseIdMap) {
 
       const actionList = [
         ["LOG", "$ALIAS_N", " moved a card."],
-        ["MOVE_STACK", stackId, toRegionId, destIndex, { allowFlip: false }],
+        ["MOVE_STACK", stackId, toRegionId, destIndex],
       ];
 
       // Free regions need an explicit position update.
@@ -74,7 +74,7 @@ export function buildEngineCallbacks(doActionList, reverseIdMap) {
 
       doActionList([
         ["LOG", "$ALIAS_N", " attached a card."],
-        ["MOVE_STACK", sourceStackId, targetGroupId, targetStackIndex, { combine: side, allowFlip: false }],
+        ["MOVE_STACK", sourceStackId, targetGroupId, targetStackIndex, { combine: side }],
       ], `Attached card ${dcCardId} to ${dcTargetId} (${side})`);
     },
 

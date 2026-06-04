@@ -2,8 +2,9 @@
 export const PERSP_VW = 300;
 
 // Card lift / flip animation constants
-export const BASE_LIFT     = 0.01; // keep a tiny non-zero Z to avoid first-drag layer flash
-export const PILE_STACK_Z  = 1.5; // px of translateZ per card position in a pile
+export const BASE_LIFT           = 0.01; // keep a tiny non-zero Z to avoid first-drag layer flash
+export const PILE_STACK_Z        = 1.5;  // px of translateZ per card position in a pile
+export const MAX_PILE_VISUAL_DEPTH = 30; // pile visual depth is capped at this many cards
 export const LAYER_Z       = 60;  // px of translateZ per layerIndex step
 export const ANIMATION_SPEED_MULTIPLIER = 1;
 export const ATTACH_WIGGLE_DVH = 8; // horizontal wiggle on card attachment, in dvh

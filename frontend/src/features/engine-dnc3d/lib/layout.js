@@ -1,4 +1,4 @@
-import { BASE_LIFT, PILE_STACK_Z, LAYER_Z, scaleDuration } from './config';
+import { BASE_LIFT, PILE_STACK_Z, MAX_PILE_VISUAL_DEPTH, LAYER_Z, scaleDuration } from './config';
 import { easeOut } from './animation';
 
 // Attachment cards offset horizontally from their parent within a stack.
@@ -315,7 +315,8 @@ export function createLayout(state, projection, REGIONS) {
     const positions = [];
     stackIds.forEach((sid, slotIdx) => {
       const stack = stacks[sid];
-      positions.push(...stackPositionsAtAnchor(stack, cx, cy, slotIdx * 100, slotIdx * PILE_STACK_Z + lz));
+      const cappedIdx = Math.min(slotIdx, MAX_PILE_VISUAL_DEPTH - 1);
+      positions.push(...stackPositionsAtAnchor(stack, cx, cy, slotIdx * 100, cappedIdx * PILE_STACK_Z + lz));
     });
     return positions;
   }
