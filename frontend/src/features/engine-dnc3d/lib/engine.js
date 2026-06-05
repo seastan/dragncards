@@ -1615,6 +1615,33 @@ export function createDnc3DEngine(options = {}) {
           if (card.layoutAnimId) { cancelAnimationFrame(card.layoutAnimId); card.layoutAnimId = null; }
           const liftPx = card.liftPx;
           card._cancelLift();
+
+          // Slide X/Y to the server-computed position concurrently with the flip.
+          // animateFlip only writes liftEl.style.transform and cardEl.style.transform,
+          // so animating liftEl.style.left/top here is safe — no shared CSS properties.
+          const dcStack = stackById[dcCard.stackId];
+          if (dcStack?.left != null && _tiltEl) {
+            const tiltW      = parseFloat(_tiltEl.style.width)  || 1;
+            const tiltH      = parseFloat(_tiltEl.style.height) || 1;
+            const targetLeft = dcStack.left * tiltW;
+            const targetTop  = (dcStack.top ?? 0) * tiltH;
+            const fromLeft   = parseFloat(card.liftEl.style.left) || 0;
+            const fromTop    = parseFloat(card.liftEl.style.top)  || 0;
+            card.fracX = dcStack.left;
+            card.fracY = dcStack.top ?? 0;
+            if (Math.abs(targetLeft - fromLeft) > 1 || Math.abs(targetTop - fromTop) > 1) {
+              const slideDurMs = scaleDuration(220);
+              const slideStart = performance.now();
+              (function slideXY(now) {
+                const t = Math.min((now - slideStart) / slideDurMs, 1);
+                const e = easeOut(t);
+                card.liftEl.style.left = (fromLeft + (targetLeft - fromLeft) * e) + 'px';
+                card.liftEl.style.top  = (fromTop  + (targetTop  - fromTop)  * e) + 'px';
+                if (t < 1) requestAnimationFrame(slideXY);
+              })(performance.now());
+            }
+          }
+
           animateFlip(card.cardEl, card.liftEl, startAngle, () => {
             card.liftPx = 0;
             card.pileZ  = 0;
@@ -1644,20 +1671,24 @@ export function createDnc3DEngine(options = {}) {
       // 4. Group change (card moved by another player)
       const expectedGroupId = dcCard.groupId;
       const inBrowse = _browseGroupId && card.regionId === '_browse' && expectedGroupId === _browseGroupId;
-      if (!inBrowse && !card.cardEl._animating && expectedGroupId && card.regionId !== expectedGroupId && regionState[expectedGroupId]) {
+      if (!inBrowse && expectedGroupId && card.regionId !== expectedGroupId && regionState[expectedGroupId]) {
         const oldRegionId = card.regionId;
         moveStackToRegion(card.stackId, expectedGroupId);
-        if (REGIONS[expectedGroupId]?.type === 'free') {
-          const dcStack = stackById[dcCard.stackId];
-          if (dcStack?.left != null && _tiltEl) {
-            const tiltW = parseFloat(_tiltEl.style.width);
-            const tiltH = parseFloat(_tiltEl.style.height);
-            card.fracX = dcStack.left;
-            card.fracY = dcStack.top ?? 0;
-            animateCardTo(card, dcStack.left * tiltW, (dcStack.top ?? 0) * tiltH, 0, card.id + 1, 300, 0);
+        // Only animate into the new region when we're not already animating a flip.
+        // moveStackToRegion and layoutRegion(old) always run so engine state stays consistent.
+        if (!card.cardEl._animating) {
+          if (REGIONS[expectedGroupId]?.type === 'free') {
+            const dcStack = stackById[dcCard.stackId];
+            if (dcStack?.left != null && _tiltEl) {
+              const tiltW = parseFloat(_tiltEl.style.width);
+              const tiltH = parseFloat(_tiltEl.style.height);
+              card.fracX = dcStack.left;
+              card.fracY = dcStack.top ?? 0;
+              animateCardTo(card, dcStack.left * tiltW, (dcStack.top ?? 0) * tiltH, 0, card.id + 1, 300, 0);
+            }
+          } else {
+            layoutRegion(expectedGroupId);
           }
-        } else {
-          layoutRegion(expectedGroupId);
         }
         if (oldRegionId && oldRegionId !== expectedGroupId) layoutRegion(oldRegionId);
       }
