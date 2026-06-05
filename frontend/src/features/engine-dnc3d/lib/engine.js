@@ -1693,8 +1693,8 @@ export function createDnc3DEngine(options = {}) {
         if (oldRegionId && oldRegionId !== expectedGroupId) layoutRegion(oldRegionId);
       }
 
-      // 4. Free-region position update (card moved within same free region)
-      if (!card.cardEl._animating && card.regionId && REGIONS[card.regionId]?.type === 'free') {
+      // 5. Free-region position update (card moved within same free region)
+      if (card.regionId && REGIONS[card.regionId]?.type === 'free') {
         const dcStack = stackById[dcCard.stackId];
         if (dcStack?.left != null && _tiltEl) {
           const dx = Math.abs((dcStack.left  ?? 0) - (card.fracX || 0));
@@ -1704,7 +1704,27 @@ export function createDnc3DEngine(options = {}) {
             const tiltH = parseFloat(_tiltEl.style.height);
             card.fracX = dcStack.left;
             card.fracY = dcStack.top ?? 0;
-            animateCardTo(card, dcStack.left * tiltW, (dcStack.top ?? 0) * tiltH, card.cardEl._layoutRotation, card.id + 1, 300, 0);
+            if (!card.cardEl._animating) {
+              animateCardTo(card, dcStack.left * tiltW, (dcStack.top ?? 0) * tiltH, card.cardEl._layoutRotation, card.id + 1, 300, 0);
+            } else {
+              // A flip animation is running and owns liftEl.style.transform and
+              // cardEl.style.transform. Slide only X/Y so there is no conflict.
+              const targetLeft = dcStack.left * tiltW;
+              const targetTop  = (dcStack.top ?? 0) * tiltH;
+              const fromLeft   = parseFloat(card.liftEl.style.left) || 0;
+              const fromTop    = parseFloat(card.liftEl.style.top)  || 0;
+              if (Math.abs(targetLeft - fromLeft) > 1 || Math.abs(targetTop - fromTop) > 1) {
+                const slideDurMs = scaleDuration(300);
+                const slideStart = performance.now();
+                (function slideXY(now) {
+                  const t = Math.min((now - slideStart) / slideDurMs, 1);
+                  const e = easeOut(t);
+                  card.liftEl.style.left = (fromLeft + (targetLeft - fromLeft) * e) + 'px';
+                  card.liftEl.style.top  = (fromTop  + (targetTop  - fromTop)  * e) + 'px';
+                  if (t < 1) requestAnimationFrame(slideXY);
+                })(performance.now());
+              }
+            }
           }
         }
       }
