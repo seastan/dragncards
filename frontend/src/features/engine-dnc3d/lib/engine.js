@@ -12,6 +12,7 @@ import { easeOut, easeIn, animateFlip } from './animation';
 // options.onCardClick     — callback(cardId, clientX, clientY) fired on click (no drag)
 // options.onCardHover     — callback(cardId) fired on pointerenter
 // options.onCardHoverEnd  — callback(cardId) fired on pointerleave
+// options.onDragStart     — callback() fired when a drag gesture begins
 // options.cardSize        — layout cardSize value (e.g. 16 for LotR); drives card pixel size
 // options.cardDefaultH    — card height in cardSize units (e.g. 1.0); default 1.0
 // options.cardDefaultW    — card width  in cardSize units (e.g. 0.72); default 0.72
@@ -24,6 +25,7 @@ export function createDnc3DEngine(options = {}) {
   const onCardClick    = options.onCardClick    || null;
   const onCardHover    = options.onCardHover    || null;
   const onCardHoverEnd = options.onCardHoverEnd || null;
+  const onDragStart    = options.onDragStart    || null;
   const onGroupBrowse  = options.onGroupBrowse  || null;
   const onGroupMenu    = options.onGroupMenu    || null;
   // Card sizing — mirrors the 2D renderer's cardSize * zoomFactor * 1.7dvh formula.
@@ -394,6 +396,7 @@ export function createDnc3DEngine(options = {}) {
     cardEl._animating      = false;
     cardEl._layoutRotation = 0;
     cardEl._gameRotation   = 0;
+    cardEl._rotTransId     = null;
 
     const front = document.createElement('div');
     front.className = 'dnc3d-card-face dnc3d-card-front';
@@ -552,6 +555,8 @@ export function createDnc3DEngine(options = {}) {
 
       if (!isDragging && Math.hypot(dx, dy) >= threshold) {
         isDragging = true;
+        if (cardEl._rotTransId) { clearTimeout(cardEl._rotTransId); cardEl._rotTransId = null; cardEl.style.transition = ''; }
+        if (onDragStart) onDragStart();
 
         dragStack      = stacks[card.stackId];
         dragStackCards = dragStack.cardIds.map(id => cards[id]);
@@ -1163,6 +1168,16 @@ export function createDnc3DEngine(options = {}) {
 
             if (onCardMove) {
               const c0 = droppedStackCards[0];
+              // Update fracX/fracY to the actual drop position (as fractions of tilt
+              // dimensions) so the server stores the correct position. Without this, the
+              // stale pile-space value would cause a reconcile-triggered animateCardTo
+              // to snap the card to the wrong location after the flip animation clears.
+              if (_tiltEl) {
+                const tiltW = parseFloat(_tiltEl.style.width)  || 1;
+                const tiltH = parseFloat(_tiltEl.style.height) || 1;
+                c0.fracX = (parseFloat(c0.liftEl.style.left) || 0) / tiltW;
+                c0.fracY = (parseFloat(c0.liftEl.style.top)  || 0) / tiltH;
+              }
               onCardMove(c0.id, oldRegionId, targetRegionId, c0.fracX, c0.fracY);
             }
           } else {
@@ -1575,8 +1590,15 @@ export function createDnc3DEngine(options = {}) {
         card.cardEl._gameRotation = newGameRot;
         if (!card.cardEl._animating) {
           const totalRot = (card.cardEl._layoutRotation || 0) + newGameRot;
+          if (card.cardEl._rotTransId) clearTimeout(card.cardEl._rotTransId);
+          const rotDurMs = scaleDuration(300);
+          card.cardEl.style.transition = `transform ${rotDurMs}ms ease`;
           card.cardEl.style.transform =
             `perspective(300vw) rotateY(${card.cardEl._angle}deg) rotateZ(${totalRot}deg) scale(1)`;
+          card.cardEl._rotTransId = setTimeout(() => {
+            card.cardEl.style.transition = '';
+            card.cardEl._rotTransId = null;
+          }, rotDurMs + 10);
         }
       }
 
@@ -1585,9 +1607,28 @@ export function createDnc3DEngine(options = {}) {
       const currentVisualSide = (card.cardEl._angle % 360 === 180) ? 'B' : 'A';
       if (currentVisualSide !== expectedSide && !card.cardEl._animating) {
         card.cardEl._animating = true;
-        moveCardToTilt(card);
-        animateFlip(card.cardEl, card.liftEl, card.cardEl._angle, () => moveCardFromTilt(card));
+        const startAngle = card.cardEl._angle;
         card.cardEl._angle += 180;
+        if (card.liftPx > 1) {
+          // Card is still elevated from a drag-drop. Cancel the descent and do a
+          // drop-flip: rotate while hovering, then descend as part of the flip.
+          if (card.layoutAnimId) { cancelAnimationFrame(card.layoutAnimId); card.layoutAnimId = null; }
+          const liftPx = card.liftPx;
+          card._cancelLift();
+          animateFlip(card.cardEl, card.liftEl, startAngle, () => {
+            card.liftPx = 0;
+            card.pileZ  = 0;
+            card._setLiftVisuals(0);
+            if (_tiltEl) {
+              card.fracX = (parseFloat(card.liftEl.style.left) || 0) / parseFloat(_tiltEl.style.width);
+              card.fracY = (parseFloat(card.liftEl.style.top)  || 0) / parseFloat(_tiltEl.style.height);
+            }
+            moveCardFromTilt(card);
+          }, liftPx);
+        } else {
+          moveCardToTilt(card);
+          animateFlip(card.cardEl, card.liftEl, startAngle, () => moveCardFromTilt(card));
+        }
       }
 
       // 3. Per-card face dimensions (update when side changes)
@@ -1603,7 +1644,7 @@ export function createDnc3DEngine(options = {}) {
       // 4. Group change (card moved by another player)
       const expectedGroupId = dcCard.groupId;
       const inBrowse = _browseGroupId && card.regionId === '_browse' && expectedGroupId === _browseGroupId;
-      if (!inBrowse && expectedGroupId && card.regionId !== expectedGroupId && regionState[expectedGroupId]) {
+      if (!inBrowse && !card.cardEl._animating && expectedGroupId && card.regionId !== expectedGroupId && regionState[expectedGroupId]) {
         const oldRegionId = card.regionId;
         moveStackToRegion(card.stackId, expectedGroupId);
         if (REGIONS[expectedGroupId]?.type === 'free') {
@@ -1622,7 +1663,7 @@ export function createDnc3DEngine(options = {}) {
       }
 
       // 4. Free-region position update (card moved within same free region)
-      if (card.regionId && REGIONS[card.regionId]?.type === 'free') {
+      if (!card.cardEl._animating && card.regionId && REGIONS[card.regionId]?.type === 'free') {
         const dcStack = stackById[dcCard.stackId];
         if (dcStack?.left != null && _tiltEl) {
           const dx = Math.abs((dcStack.left  ?? 0) - (card.fracX || 0));

@@ -336,6 +336,7 @@ export function createLayout(state, projection, REGIONS) {
   }
 
   function animateCardTo(card, targetLeft, targetTop, targetRot, targetZ, duration = 300, targetStackZ = 0) {
+    if (card.cardEl._animating) return;
     if (card.layoutAnimId) { cancelAnimationFrame(card.layoutAnimId); card.layoutAnimId = null; }
     const { left: fromLeft, top: fromTop } = tiltSpacePosOf(card);
     const fromRot    = card.cardEl._layoutRotation || 0;

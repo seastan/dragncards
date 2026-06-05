@@ -135,6 +135,9 @@ export default function Dnc3DTable({
         onCardHoverEnd: () => {
           if (!store.getState().playerUi?.dropdownMenu) dispatch(setActiveCardId(null));
         },
+        onDragStart: () => {
+          dispatch(setActiveCardId(null));
+        },
         onGroupBrowse: (groupId) => browseTopN(groupId, 'All'),
         onGroupMenu:   (groupId, clientX, clientY) => {
           const group = gameRef.current?.groupById?.[groupId];

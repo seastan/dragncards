@@ -4,22 +4,30 @@ export function ease(t)    { return t < 0.5 ? 2*t*t : -1 + (4 - 2*t)*t; }
 export function easeOut(t) { return t * (2 - t); }
 export function easeIn(t)  { return t * t; }
 
-export function animateFlip(cardEl, liftEl, startAngle, onComplete) {
+// Animates a card flip.
+// startLiftPx > 0: "drop-flip" mode — card is already elevated at that height,
+// so skip the GROW phase and go straight to FLIP → SHRINK (rotate then descend).
+export function animateFlip(cardEl, liftEl, startAngle, onComplete, startLiftPx = 0) {
   const startTime      = performance.now();
   const LIFT           = window.innerHeight * 0.07 * (1 + MAX_ZOOM);
   const startLayoutRot = (cardEl._layoutRotation || 0) + (cardEl._gameRotation || 0);
-  const growMs         = scaleDuration(GROW);
   const flipMs         = scaleDuration(FLIP);
   const shrinkMs       = scaleDuration(SHRINK);
   const overlapMs      = scaleDuration(OVERLAP);
-  const t2             = growMs - overlapMs;
-  const t3             = t2 + flipMs - overlapMs;
-  const total          = t3 + shrinkMs;
+
+  const dropFlip = startLiftPx > 0;
+  const growMs   = dropFlip ? 0 : scaleDuration(GROW);
+  const t2       = dropFlip ? 0 : (growMs - overlapMs);
+  // Drop-flip: no GROW phase, so start SHRINK only after FLIP fully completes
+  // (no overlap). Regular flip: normal overlap between FLIP and SHRINK.
+  const t3       = dropFlip ? flipMs : t2 + flipMs - overlapMs;
+  const total    = t3 + shrinkMs;
+  const peakLift = dropFlip ? startLiftPx : LIFT;
 
   function frame(now) {
     const elapsed = Math.min(now - startTime, total);
 
-    const p1 = ease(Math.min(elapsed / growMs, 1));
+    const p1 = dropFlip ? 1 : ease(Math.min(elapsed / growMs, 1));
     const p2 = easeOut(Math.max(0, Math.min((elapsed - t2) / flipMs, 1)));
     const p3 = ease(Math.max(0, Math.min((elapsed - t3) / shrinkMs, 1)));
 
@@ -28,7 +36,9 @@ export function animateFlip(cardEl, liftEl, startAngle, onComplete) {
     const shadowOpacity = 0.7 - 0.4 * p1 + 0.4 * p3;
     const currentAngle  = startAngle + 180 * p2;
     const tx            = -25 * Math.sin(p2 * Math.PI);
-    const lift          = Math.max(0, LIFT * p1 - LIFT * p3);
+    const lift          = dropFlip
+      ? peakLift * (1 - p3)
+      : Math.max(0, peakLift * p1 - peakLift * p3);
 
     liftEl.style.transform = `translateZ(${BASE_LIFT + lift}px)`;
     cardEl.style.transform = `translateX(${tx}%) perspective(300vw) rotateY(${currentAngle}deg) rotateZ(${startLayoutRot}deg) scale(${scale})`;
