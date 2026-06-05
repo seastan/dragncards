@@ -5,7 +5,10 @@
   inset: 0;
   perspective: 300vw;
   perspective-origin: 50% 50%;
-  overflow: visible;
+  /* clip (not hidden): hidden is a scroll container the browser can scroll
+     programmatically (e.g. scroll-into-view when a card near the edge animates),
+     which shifts the whole table up and never scrolls back. clip cannot scroll. */
+  overflow: clip;
   z-index: 10001;
   background: #111;
 }
