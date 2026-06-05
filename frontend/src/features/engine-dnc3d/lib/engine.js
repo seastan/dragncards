@@ -1613,44 +1613,60 @@ export function createDnc3DEngine(options = {}) {
           // Card is still elevated from a drag-drop. Cancel the descent and do a
           // drop-flip: rotate while hovering, then descend as part of the flip.
           if (card.layoutAnimId) { cancelAnimationFrame(card.layoutAnimId); card.layoutAnimId = null; }
-          const liftPx = card.liftPx;
+          const liftPx     = card.liftPx;
+          const regionType = REGIONS[card.regionId]?.type;
           card._cancelLift();
 
-          // Slide X/Y to the server-computed position concurrently with the flip.
-          // animateFlip only writes liftEl.style.transform and cardEl.style.transform,
-          // so animating liftEl.style.left/top here is safe — no shared CSS properties.
-          const dcStack = stackById[dcCard.stackId];
-          if (dcStack?.left != null && _tiltEl) {
-            const tiltW      = parseFloat(_tiltEl.style.width)  || 1;
-            const tiltH      = parseFloat(_tiltEl.style.height) || 1;
-            const targetLeft = dcStack.left * tiltW;
-            const targetTop  = (dcStack.top ?? 0) * tiltH;
-            const fromLeft   = parseFloat(card.liftEl.style.left) || 0;
-            const fromTop    = parseFloat(card.liftEl.style.top)  || 0;
-            card.fracX = dcStack.left;
-            card.fracY = dcStack.top ?? 0;
-            if (Math.abs(targetLeft - fromLeft) > 1 || Math.abs(targetTop - fromTop) > 1) {
-              const slideDurMs = scaleDuration(220);
-              const slideStart = performance.now();
-              (function slideXY(now) {
-                const t = Math.min((now - slideStart) / slideDurMs, 1);
-                const e = easeOut(t);
-                card.liftEl.style.left = (fromLeft + (targetLeft - fromLeft) * e) + 'px';
-                card.liftEl.style.top  = (fromTop  + (targetTop  - fromTop)  * e) + 'px';
-                if (t < 1) requestAnimationFrame(slideXY);
-              })(performance.now());
+          // Concurrent X/Y slide to the server-computed target position.
+          // animateFlip owns liftEl.style.transform and cardEl.style.transform,
+          // so sliding liftEl.style.left/top here is safe (no shared CSS properties).
+          const fromLeft = parseFloat(card.liftEl.style.left) || 0;
+          const fromTop  = parseFloat(card.liftEl.style.top)  || 0;
+          let slideTargetLeft = null, slideTargetTop = null;
+
+          if (regionType === 'free') {
+            // Free regions store position as fractions in dcStack.left/top.
+            const dcStack = stackById[dcCard.stackId];
+            if (dcStack?.left != null && _tiltEl) {
+              const tiltW = parseFloat(_tiltEl.style.width)  || 1;
+              const tiltH = parseFloat(_tiltEl.style.height) || 1;
+              card.fracX = dcStack.left;
+              card.fracY = dcStack.top ?? 0;
+              slideTargetLeft = dcStack.left * tiltW;
+              slideTargetTop  = (dcStack.top ?? 0) * tiltH;
             }
+          } else if (regionType) {
+            // Row/fan/pile regions: compute target from the layout engine.
+            // The card is already in regionState (moveStackToRegion ran in the drop handler).
+            const layoutFn = regionType === 'row' ? layoutRow : regionType === 'fan' ? layoutFan : layoutPile;
+            const positions = layoutFn(card.regionId);
+            const myPos = positions.find(p => p.cardId === card.id);
+            if (myPos) { slideTargetLeft = myPos.left; slideTargetTop = myPos.top; }
+          }
+
+          if (slideTargetLeft != null && (Math.abs(slideTargetLeft - fromLeft) > 1 || Math.abs(slideTargetTop - fromTop) > 1)) {
+            const slideDurMs = scaleDuration(220);
+            const slideStart = performance.now();
+            (function slideXY(now) {
+              const t = Math.min((now - slideStart) / slideDurMs, 1);
+              const e = easeOut(t);
+              card.liftEl.style.left = (fromLeft + (slideTargetLeft - fromLeft) * e) + 'px';
+              card.liftEl.style.top  = (fromTop  + (slideTargetTop  - fromTop)  * e) + 'px';
+              if (t < 1) requestAnimationFrame(slideXY);
+            })(performance.now());
           }
 
           animateFlip(card.cardEl, card.liftEl, startAngle, () => {
             card.liftPx = 0;
             card.pileZ  = 0;
             card._setLiftVisuals(0);
-            if (_tiltEl) {
+            moveCardFromTilt(card);
+            if (regionType === 'free' && _tiltEl) {
               card.fracX = (parseFloat(card.liftEl.style.left) || 0) / parseFloat(_tiltEl.style.width);
               card.fracY = (parseFloat(card.liftEl.style.top)  || 0) / parseFloat(_tiltEl.style.height);
+            } else if (regionType) {
+              layoutRegion(card.regionId);
             }
-            moveCardFromTilt(card);
           }, liftPx);
         } else {
           moveCardToTilt(card);
