@@ -1,4 +1,4 @@
-import { COLORS, BASE_LIFT, PILE_STACK_Z, MAX_PILE_VISUAL_DEPTH, LAYER_Z, DEFAULT_REGIONS, scaleDuration, ATTACH_WIGGLE_DVH, DRAG_EDGE_SCROLL_SPEED } from './config';
+import { COLORS, BASE_LIFT, PILE_STACK_Z, MAX_PILE_VISUAL_DEPTH, LAYER_Z, DEFAULT_REGIONS, scaleDuration, ATTACH_WIGGLE_DVH, DRAG_EDGE_SCROLL_SPEED, GROW, FLIP, OVERLAP } from './config';
 import { createState } from './state';
 import { createProjection } from './projection';
 import { createLayout } from './layout';
@@ -1687,8 +1687,76 @@ export function createDnc3DEngine(options = {}) {
             }
           }, liftPx, endStackZ);
         } else {
-          moveCardToTilt(card);
-          animateFlip(card.cardEl, card.liftEl, startAngle, () => moveCardFromTilt(card));
+          // Card is not elevated from a drag. Two cases:
+          //  (a) flip in place (same group) — rotate where it sits.
+          //  (b) flip + group move (e.g. drawing a card) — lift off, fly to the
+          //      destination's resting slot while turning over, then drop.
+          const destGroupId = dcCard.groupId;
+          const inBrowseFlip = _browseGroupId && card.regionId === '_browse' && destGroupId === _browseGroupId;
+          const groupMove = !inBrowseFlip && destGroupId && card.regionId !== destGroupId && regionState[destGroupId];
+
+          if (groupMove) {
+            // Convert to tilt space using the OLD region origin, then move the
+            // card's engine state into the destination so we can find its slot.
+            moveCardToTilt(card);
+            const fromLeft    = parseFloat(card.liftEl.style.left) || 0;
+            const fromTop     = parseFloat(card.liftEl.style.top)  || 0;
+            const oldRegionId = card.regionId;
+            moveStackToRegion(card.stackId, destGroupId);
+            const destType = REGIONS[destGroupId]?.type;
+
+            let slideTargetLeft = fromLeft, slideTargetTop = fromTop;
+            let endStackZ = LAYER_Z * (REGIONS[destGroupId]?.layerIndex || 0);
+            if (destType === 'free') {
+              const dcStack = stackById[dcCard.stackId];
+              if (dcStack?.left != null && _tiltEl) {
+                const tiltW = parseFloat(_tiltEl.style.width)  || 1;
+                const tiltH = parseFloat(_tiltEl.style.height) || 1;
+                card.fracX = dcStack.left;
+                card.fracY = dcStack.top ?? 0;
+                slideTargetLeft = dcStack.left * tiltW;
+                slideTargetTop  = (dcStack.top ?? 0) * tiltH;
+              }
+            } else if (destType) {
+              const layoutFn = destType === 'row' ? layoutRow : destType === 'fan' ? layoutFan : layoutPile;
+              const myPos = layoutFn(destGroupId).find(p => p.cardId === card.id);
+              if (myPos) { slideTargetLeft = myPos.left; slideTargetTop = myPos.top; endStackZ = myPos.stackZ ?? endStackZ; }
+            }
+
+            // Slide over the rise+turn phases (ending when the flip's descent
+            // begins) so the card arrives as it finishes turning, then the flip's
+            // SHRINK phase drops it straight down into place. GROW + FLIP - 2*OVERLAP
+            // mirrors animateFlip's t3 (the moment the descent starts).
+            if (Math.abs(slideTargetLeft - fromLeft) > 1 || Math.abs(slideTargetTop - fromTop) > 1) {
+              const slideDurMs = scaleDuration(GROW + FLIP - 2 * OVERLAP);
+              const slideStart = performance.now();
+              (function slideXY(now) {
+                const t = Math.min((now - slideStart) / slideDurMs, 1);
+                const e = easeOut(t);
+                card.liftEl.style.left = (fromLeft + (slideTargetLeft - fromLeft) * e) + 'px';
+                card.liftEl.style.top  = (fromTop  + (slideTargetTop  - fromTop)  * e) + 'px';
+                if (t < 1) requestAnimationFrame(slideXY);
+              })(performance.now());
+            }
+
+            animateFlip(card.cardEl, card.liftEl, startAngle, () => {
+              card.liftPx = 0;
+              card.pileZ  = endStackZ;
+              card._setLiftVisuals(0);
+              moveCardFromTilt(card);
+              if (destType === 'free' && _tiltEl) {
+                card.fracX = (parseFloat(card.liftEl.style.left) || 0) / parseFloat(_tiltEl.style.width);
+                card.fracY = (parseFloat(card.liftEl.style.top)  || 0) / parseFloat(_tiltEl.style.height);
+              } else if (destType) {
+                layoutRegion(destGroupId);
+              }
+            }, 0, endStackZ);
+
+            if (oldRegionId && oldRegionId !== destGroupId) layoutRegion(oldRegionId);
+          } else {
+            moveCardToTilt(card);
+            animateFlip(card.cardEl, card.liftEl, startAngle, () => moveCardFromTilt(card));
+          }
         }
       }
 

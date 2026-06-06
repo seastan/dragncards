@@ -40,7 +40,9 @@ export function animateFlip(cardEl, liftEl, startAngle, onComplete, startLiftPx 
     const tx            = -25 * Math.sin(p2 * Math.PI);
     const lift          = dropFlip
       ? peakLift + (endLiftPx - peakLift) * p3
-      : Math.max(0, peakLift * p1 - peakLift * p3);
+      // Regular flip: rise 0 → peakLift (GROW), then descend peakLift → endLiftPx
+      // (SHRINK). endLiftPx defaults to 0 (table) so in-place flips are unchanged.
+      : Math.max(0, peakLift * p1 - (peakLift - endLiftPx) * p3);
 
     liftEl.style.transform = `translateZ(${BASE_LIFT + lift}px)`;
     cardEl.style.transform = `translateX(${tx}%) perspective(300vw) rotateY(${currentAngle}deg) rotateZ(${startLayoutRot}deg) scale(${scale})`;
@@ -49,7 +51,7 @@ export function animateFlip(cardEl, liftEl, startAngle, onComplete, startLiftPx 
     if (elapsed < total) {
       requestAnimationFrame(frame);
     } else {
-      liftEl.style.transform = `translateZ(${BASE_LIFT + (dropFlip ? endLiftPx : 0)}px)`;
+      liftEl.style.transform = `translateZ(${BASE_LIFT + endLiftPx}px)`;
       cardEl.style.transform = `perspective(300vw) rotateY(${startAngle + 180}deg) rotateZ(${startLayoutRot}deg) scale(1)`;
       cardEl.style.boxShadow = 'none';
       cardEl._animating      = false;
