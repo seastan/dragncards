@@ -9,7 +9,9 @@ export function easeIn(t)  { return t * t; }
 // so skip the GROW phase and go straight to FLIP → SHRINK (rotate then descend).
 // endLiftPx: the resting translateZ the card descends to (e.g. the top-of-pile
 // stack height). Defaults to 0 (the table plane) for regular flips.
-export function animateFlip(cardEl, liftEl, startAngle, onComplete, startLiftPx = 0, endLiftPx = 0) {
+// startRestPx: the resting translateZ the regular (rise-fall) arc begins from,
+// e.g. the top-of-pile height a card sits at before lifting off. Defaults to 0.
+export function animateFlip(cardEl, liftEl, startAngle, onComplete, startLiftPx = 0, endLiftPx = 0, startRestPx = 0) {
   const startTime      = performance.now();
   const LIFT           = window.innerHeight * 0.07 * (1 + MAX_ZOOM);
   const startLayoutRot = (cardEl._layoutRotation || 0) + (cardEl._gameRotation || 0);
@@ -40,9 +42,10 @@ export function animateFlip(cardEl, liftEl, startAngle, onComplete, startLiftPx 
     const tx            = -25 * Math.sin(p2 * Math.PI);
     const lift          = dropFlip
       ? peakLift + (endLiftPx - peakLift) * p3
-      // Regular flip: rise 0 → peakLift (GROW), then descend peakLift → endLiftPx
-      // (SHRINK). endLiftPx defaults to 0 (table) so in-place flips are unchanged.
-      : Math.max(0, peakLift * p1 - (peakLift - endLiftPx) * p3);
+      // Regular flip: rise startRestPx → startRestPx+peakLift (GROW), then descend
+      // to endLiftPx (SHRINK). startRestPx/endLiftPx default to 0 (table) so
+      // ordinary in-place flips are unchanged.
+      : Math.max(0, startRestPx + peakLift * p1 - (startRestPx + peakLift - endLiftPx) * p3);
 
     liftEl.style.transform = `translateZ(${BASE_LIFT + lift}px)`;
     cardEl.style.transform = `translateX(${tx}%) perspective(300vw) rotateY(${currentAngle}deg) rotateZ(${startLayoutRot}deg) scale(${scale})`;

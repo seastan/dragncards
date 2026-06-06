@@ -6,7 +6,7 @@ import { easeOut, easeIn, animateFlip } from './animation';
 
 // Creates a self-contained dnc3d engine instance.
 // options.regions         — region definitions (default: DEFAULT_REGIONS for demo/sandbox mode)
-// options.onCardMove      — callback(cardId, fromRegionId, toRegionId, fracX, fracY)
+// options.onCardMove      — callback(cardId, fromRegionId, toRegionId, fracX, fracY, insertIdx)
 // options.onAttach        — callback(cardId, targetCardId, side)
 // options.onFlip          — callback(cardId)
 // options.onCardClick     — callback(cardId, clientX, clientY) fired on click (no drag)
@@ -1091,7 +1091,7 @@ export function createDnc3DEngine(options = {}) {
 
           if (onCardMove) {
             const c0 = droppedStackCards[0];
-            onCardMove(c0.id, c0.prevPos._regionId, targetRegionId, null, null);
+            onCardMove(c0.id, c0.prevPos._regionId, targetRegionId, null, null, droppedInsertIdx);
           }
         }
 
@@ -1696,6 +1696,9 @@ export function createDnc3DEngine(options = {}) {
           const groupMove = !inBrowseFlip && destGroupId && card.regionId !== destGroupId && regionState[destGroupId];
 
           if (groupMove) {
+            // Resting Z the card sits at now (e.g. top of its source pile) — the
+            // rise-fall arc starts here so the card lifts off the top, not the base.
+            const startRestPx = card.pileZ || 0;
             // Convert to tilt space using the OLD region origin, then move the
             // card's engine state into the destination so we can find its slot.
             moveCardToTilt(card);
@@ -1750,12 +1753,15 @@ export function createDnc3DEngine(options = {}) {
               } else if (destType) {
                 layoutRegion(destGroupId);
               }
-            }, 0, endStackZ);
+            }, 0, endStackZ, startRestPx);
 
             if (oldRegionId && oldRegionId !== destGroupId) layoutRegion(oldRegionId);
           } else {
+            // In-place flip: rise from and settle back to the card's own resting
+            // height so a card on top of a pile doesn't sink to the pile base.
+            const restPx = card.pileZ || 0;
             moveCardToTilt(card);
-            animateFlip(card.cardEl, card.liftEl, startAngle, () => moveCardFromTilt(card));
+            animateFlip(card.cardEl, card.liftEl, startAngle, () => moveCardFromTilt(card), 0, restPx, restPx);
           }
         }
       }

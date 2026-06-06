@@ -101,7 +101,11 @@ export function adaptGameState(game, layoutRegions, gameDef, language, observing
       });
     });
 
-    assignments[groupId] = stacks;
+    // dragncards stores a pile's top card at stackIds[0], but the dnc3d pile
+    // layout renders the LAST slot at the highest stackZ (visual top). Reverse so
+    // the game's top card maps to the engine's top slot — otherwise the top card
+    // sits at the visual bottom and draws appear to originate from underneath the pile.
+    assignments[groupId] = region.type === 'pile' ? stacks.reverse() : stacks;
   });
 
   return { cardDescriptors, assignments, idMap };

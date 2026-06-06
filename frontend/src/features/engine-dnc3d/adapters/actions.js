@@ -19,7 +19,7 @@ export function buildEngineCallbacks(doActionList, reverseIdMap) {
 
   return {
     // Card dragged from one region to another (or repositioned within a free region).
-    onCardMove: (dnc3dCardId, _fromRegionId, toRegionId, fracX, fracY) => {
+    onCardMove: (dnc3dCardId, _fromRegionId, toRegionId, fracX, fracY, insertIdx) => {
       const dcCardId = dcCardIdFor(dnc3dCardId);
       if (!dcCardId) return;
 
@@ -31,7 +31,9 @@ export function buildEngineCallbacks(doActionList, reverseIdMap) {
       if (!card || !destGroup) return;
 
       const stackId   = card.stackId;
-      const destIndex = destGroup.stackIds?.length ?? 0;
+      const destIndex = (insertIdx != null && insertIdx >= 0)
+        ? insertIdx
+        : (destGroup.stackIds?.length ?? 0);
 
       const actionList = [
         ["LOG", "$ALIAS_N", " moved a card."],
