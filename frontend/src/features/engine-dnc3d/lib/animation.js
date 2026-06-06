@@ -7,7 +7,9 @@ export function easeIn(t)  { return t * t; }
 // Animates a card flip.
 // startLiftPx > 0: "drop-flip" mode — card is already elevated at that height,
 // so skip the GROW phase and go straight to FLIP → SHRINK (rotate then descend).
-export function animateFlip(cardEl, liftEl, startAngle, onComplete, startLiftPx = 0) {
+// endLiftPx: the resting translateZ the card descends to (e.g. the top-of-pile
+// stack height). Defaults to 0 (the table plane) for regular flips.
+export function animateFlip(cardEl, liftEl, startAngle, onComplete, startLiftPx = 0, endLiftPx = 0) {
   const startTime      = performance.now();
   const LIFT           = window.innerHeight * 0.07 * (1 + MAX_ZOOM);
   const startLayoutRot = (cardEl._layoutRotation || 0) + (cardEl._gameRotation || 0);
@@ -37,7 +39,7 @@ export function animateFlip(cardEl, liftEl, startAngle, onComplete, startLiftPx 
     const currentAngle  = startAngle + 180 * p2;
     const tx            = -25 * Math.sin(p2 * Math.PI);
     const lift          = dropFlip
-      ? peakLift * (1 - p3)
+      ? peakLift + (endLiftPx - peakLift) * p3
       : Math.max(0, peakLift * p1 - peakLift * p3);
 
     liftEl.style.transform = `translateZ(${BASE_LIFT + lift}px)`;
@@ -47,7 +49,7 @@ export function animateFlip(cardEl, liftEl, startAngle, onComplete, startLiftPx 
     if (elapsed < total) {
       requestAnimationFrame(frame);
     } else {
-      liftEl.style.transform = `translateZ(${BASE_LIFT}px)`;
+      liftEl.style.transform = `translateZ(${BASE_LIFT + (dropFlip ? endLiftPx : 0)}px)`;
       cardEl.style.transform = `perspective(300vw) rotateY(${startAngle + 180}deg) rotateZ(${startLayoutRot}deg) scale(1)`;
       cardEl.style.boxShadow = 'none';
       cardEl._animating      = false;

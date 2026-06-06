@@ -23,8 +23,9 @@ export function createDnc3DEngine(options = {}) {
   const onAttach      = options.onAttach   || null;
   const onFlip        = options.onFlip        || null;
   const onCardClick    = options.onCardClick    || null;
-  const onCardHover    = options.onCardHover    || null;
-  const onCardHoverEnd = options.onCardHoverEnd || null;
+  const onCardHover         = options.onCardHover         || null;
+  const onCardHoverEnd      = options.onCardHoverEnd      || null;
+  const onCardHoverTopBottom = options.onCardHoverTopBottom || null;
   const onDragStart    = options.onDragStart    || null;
   const onGroupBrowse  = options.onGroupBrowse  || null;
   const onGroupMenu    = options.onGroupMenu    || null;
@@ -57,6 +58,7 @@ export function createDnc3DEngine(options = {}) {
   let _currentDeg         = 15;
   let _attachTargetIconEl = null;
   let _tableSurfaceEl     = null;
+  let _isDragging         = false; // true while any card drag is in progress
 
   const scrollOuterEls   = {};
   const regionOutlineEls = {};
@@ -452,8 +454,18 @@ export function createDnc3DEngine(options = {}) {
     createStack([i]);
 
     liftEl.addEventListener('click', e => e.stopPropagation());
-    if (onCardHover)    liftEl.addEventListener('pointerenter', (e) => onCardHover(i, e.clientX));
-    if (onCardHoverEnd) liftEl.addEventListener('pointerleave', () => onCardHoverEnd(i));
+    // Suppress hover while dragging: re-parenting the dragged card's liftEl
+    // (moveStackToTilt) fires a spurious pointerenter that would re-show the
+    // GiantCard mid-drag right after onDragStart cleared it.
+    if (onCardHover)    liftEl.addEventListener('pointerenter', (e) => { if (!_isDragging) onCardHover(i, e.clientX); });
+    if (onCardHoverEnd) liftEl.addEventListener('pointerleave', () => { if (!_isDragging) onCardHoverEnd(i); });
+    if (onCardHoverTopBottom) {
+      liftEl.addEventListener('pointermove', (e) => {
+        if (_isDragging) return;
+        const rect = liftEl.getBoundingClientRect();
+        onCardHoverTopBottom(e.clientY < rect.top + rect.height / 2 ? 'top' : 'bottom');
+      });
+    }
 
     // ── Lift animation state ──
     let liftAnimId = null;
@@ -555,6 +567,7 @@ export function createDnc3DEngine(options = {}) {
 
       if (!isDragging && Math.hypot(dx, dy) >= threshold) {
         isDragging = true;
+        _isDragging = true;
         if (cardEl._rotTransId) { clearTimeout(cardEl._rotTransId); cardEl._rotTransId = null; cardEl.style.transition = ''; }
         if (onDragStart) onDragStart();
 
@@ -1216,6 +1229,7 @@ export function createDnc3DEngine(options = {}) {
       }
 
       isDragging      = false;
+      _isDragging     = false;
       dragStack       = null;
       dragStackCards  = [];
       hoverAttachStackId = null;
@@ -1623,6 +1637,10 @@ export function createDnc3DEngine(options = {}) {
           const fromLeft = parseFloat(card.liftEl.style.left) || 0;
           const fromTop  = parseFloat(card.liftEl.style.top)  || 0;
           let slideTargetLeft = null, slideTargetTop = null;
+          // The translateZ the card should settle at — its top-of-stack height in
+          // the destination region. The flip descends straight to this instead of
+          // dropping to the table (z=0) and bouncing back up via a follow-up layout.
+          let endStackZ = LAYER_Z * (REGIONS[card.regionId]?.layerIndex || 0);
 
           if (regionType === 'free') {
             // Free regions store position as fractions in dcStack.left/top.
@@ -1641,7 +1659,7 @@ export function createDnc3DEngine(options = {}) {
             const layoutFn = regionType === 'row' ? layoutRow : regionType === 'fan' ? layoutFan : layoutPile;
             const positions = layoutFn(card.regionId);
             const myPos = positions.find(p => p.cardId === card.id);
-            if (myPos) { slideTargetLeft = myPos.left; slideTargetTop = myPos.top; }
+            if (myPos) { slideTargetLeft = myPos.left; slideTargetTop = myPos.top; endStackZ = myPos.stackZ ?? endStackZ; }
           }
 
           if (slideTargetLeft != null && (Math.abs(slideTargetLeft - fromLeft) > 1 || Math.abs(slideTargetTop - fromTop) > 1)) {
@@ -1658,7 +1676,7 @@ export function createDnc3DEngine(options = {}) {
 
           animateFlip(card.cardEl, card.liftEl, startAngle, () => {
             card.liftPx = 0;
-            card.pileZ  = 0;
+            card.pileZ  = endStackZ;
             card._setLiftVisuals(0);
             moveCardFromTilt(card);
             if (regionType === 'free' && _tiltEl) {
@@ -1667,7 +1685,7 @@ export function createDnc3DEngine(options = {}) {
             } else if (regionType) {
               layoutRegion(card.regionId);
             }
-          }, liftPx);
+          }, liftPx, endStackZ);
         } else {
           moveCardToTilt(card);
           animateFlip(card.cardEl, card.liftEl, startAngle, () => moveCardFromTilt(card));
@@ -1747,5 +1765,9 @@ export function createDnc3DEngine(options = {}) {
     });
   }
 
-  return { init, applyTilt, applyTableOpacity, setCurrentDeg, onTiltUpdated, reconcile, openBrowse, closeBrowse, updateBrowseFilter };
+  function getCardElements() {
+    return cards.map(c => ({ id: c.id, frontEl: c.frontEl, faceW: c.faceW, faceH: c.faceH }));
+  }
+
+  return { init, applyTilt, applyTableOpacity, setCurrentDeg, onTiltUpdated, reconcile, openBrowse, closeBrowse, updateBrowseFilter, getCardElements };
 }

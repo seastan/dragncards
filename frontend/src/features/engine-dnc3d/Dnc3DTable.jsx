@@ -1,15 +1,22 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { setActiveCardId, setDropdownMenu, setMouseXY, setScreenLeftRight } from '../store/playerUiSlice';
+import { setActiveCardId, setDropdownMenu, setMouseTopBottom, setMouseXY, setScreenLeftRight } from '../store/playerUiSlice';
 import store from '../../store';
 import { createDnc3DEngine } from './lib/engine';
 import { adaptRegions, gameL10n } from './adapters/regions';
 import { adaptGameState } from './adapters/cards';
 import { buildEngineCallbacks } from './adapters/actions';
 import { useBrowseTopN } from '../engine/hooks/useBrowseTopN';
+import { Tokens } from '../engine/Tokens';
 import { Dnc3DHudChat } from './Dnc3DHudChat';
 import { Dnc3DHudBrowse } from './Dnc3DHudBrowse';
 import './Dnc3DTable.css';
+
+function CardTokens({ cardId, aspectRatio }) {
+  const isActive = useSelector(s => s?.playerUi?.activeCardId === cardId);
+  return <Tokens cardId={cardId} isActive={isActive} aspectRatio={aspectRatio} />;
+}
 
 // Wrapper component for the dnc3d engine.
 //
@@ -46,6 +53,8 @@ export default function Dnc3DTable({
   }) || gameDef?.backgroundUrl || null;
 
   const browseGroupId = useSelector(s => s?.gameUi?.game?.playerData?.[observingPlayerN]?.browseGroup?.id);
+
+  const [tokenPortals, setTokenPortals] = useState([]);
 
   const tiltRef    = useRef(null);
   const engineRef  = useRef(null);
@@ -94,6 +103,8 @@ export default function Dnc3DTable({
     let engineOptions = {};
     let initData      = {};
 
+    let reverseIdMap = null;
+
     if (connected) {
       const playerN    = observingPlayerRef.current;
       const nPlayers   = numPlayersRef.current;
@@ -102,7 +113,7 @@ export default function Dnc3DTable({
       const { cardDescriptors, assignments, idMap } = adaptGameState(
         g, lr, gd, languageRef.current, playerN, nPlayers
       );
-      const reverseIdMap = new Map([...idMap.entries()].map(([k, v]) => [v, k]));
+      reverseIdMap = new Map([...idMap.entries()].map(([k, v]) => [v, k]));
       const callbacks    = buildEngineCallbacks(doActionListRef.current, reverseIdMap);
       // Derive default card dimensions from gameDef cardBacks (any back will do).
       const anyBack      = Object.values(gd?.cardBacks || {})[0];
@@ -135,6 +146,9 @@ export default function Dnc3DTable({
         onCardHoverEnd: () => {
           if (!store.getState().playerUi?.dropdownMenu) dispatch(setActiveCardId(null));
         },
+        onCardHoverTopBottom: (topBottom) => {
+          dispatch(setMouseTopBottom(topBottom));
+        },
         onDragStart: () => {
           dispatch(setActiveCardId(null));
         },
@@ -159,6 +173,18 @@ export default function Dnc3DTable({
     engine.applyTilt(tiltEl, tiltDegRef.current);
     const cleanup = engine.init(tiltEl, tiltDegRef.current, initData);
 
+    if (connected && reverseIdMap) {
+      const portals = engine.getCardElements().flatMap(({ id, frontEl, faceW, faceH }) => {
+        const dcId = reverseIdMap.get(id);
+        if (!dcId || !frontEl) return [];
+        const aspectRatio = (faceW && faceH) ? faceW / faceH : 0.72;
+        return [{ dcId, frontEl, aspectRatio }];
+      });
+      setTokenPortals(portals);
+    } else {
+      setTokenPortals([]);
+    }
+
     function handleResize() {
       engine.applyTilt(tiltEl, tiltDegRef.current);
       engine.onTiltUpdated();
@@ -166,6 +192,7 @@ export default function Dnc3DTable({
     window.addEventListener('resize', handleResize);
 
     return () => {
+      setTokenPortals([]);
       cleanup();
       window.removeEventListener('resize', handleResize);
       engineRef.current = null;
@@ -221,6 +248,9 @@ export default function Dnc3DTable({
       <div className="dnc3d-tilt" ref={tiltRef} />
       {game && <Dnc3DHudChat />}
       {game && <Dnc3DHudBrowse onFilterChange={handleBrowseFilterChange} />}
+      {tokenPortals.map(({ dcId, frontEl, aspectRatio }) =>
+        createPortal(<CardTokens cardId={dcId} aspectRatio={aspectRatio} />, frontEl, dcId)
+      )}
     </div>
   );
 }
