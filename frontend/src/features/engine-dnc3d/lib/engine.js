@@ -232,6 +232,51 @@ export function createDnc3DEngine(options = {}) {
     }
   }
 
+  // Scrolls a scrollable (row/fan) region so the given stack's slot is centered
+  // in the viewport — or scrolled as far as possible toward center when the slot
+  // is near an end. Updates regionState.scrollOffset and syncs the sentinel's
+  // scroll position so a subsequent layout places the stack inside the visible
+  // area (instead of out in the clipped overflow). No-op for non-scrollable
+  // regions or when the slot is already on-screen. Returns true if it scrolled.
+  function scrollStackToCenter(regionId, stackId) {
+    const r = REGIONS[regionId];
+    if (!r || (r.type !== 'row' && r.type !== 'fan')) return false;
+    const rp        = regionPx(regionId);
+    const vert      = r.direction === 'vertical';
+    const viewport  = vert ? rp.h : rp.w;
+    const total     = scrollTotalExtent(regionId);
+    const maxScroll = Math.max(0, total - viewport);
+    if (maxScroll <= 0) return false;
+
+    const parentCardId = stacks[stackId]?.cardIds?.[0];
+    if (parentCardId === undefined) return false;
+
+    // Compute the slot's content-space position by laying out at scrollOffset 0.
+    const rs       = regionState[regionId];
+    const savedOff = rs.scrollOffset || 0;
+    rs.scrollOffset = 0;
+    const layoutFn = r.type === 'row' ? layoutRow : layoutFan;
+    const positions = layoutFn(regionId);
+    rs.scrollOffset = savedOff;
+
+    const pos = positions.find(p => p.cardId === parentCardId);
+    if (!pos) return false;
+
+    const cardDim    = vert ? cardHeightPx() : cardWidthPx();
+    const slotCenter = (vert ? pos.top - rp.y : pos.left - rp.x) + cardDim / 2;
+    const off        = Math.min(Math.max(slotCenter - viewport / 2, 0), maxScroll);
+    if (Math.abs(savedOff - off) < 0.5) return false;
+
+    rs.scrollOffset = off;
+    const s = sentinelEls[regionId];
+    if (s) {
+      s._syncing = true;
+      if (vert) { s.spacer.style.height = total + 'px'; s.el.scrollTop  = off; }
+      else      { s.spacer.style.width  = total + 'px'; s.el.scrollLeft = off; }
+    }
+    return true;
+  }
+
   function updateScrollOuters() {
     Object.entries(scrollOuterEls).forEach(([id, el]) => {
       const rp = regionPx(id);
@@ -1708,6 +1753,12 @@ export function createDnc3DEngine(options = {}) {
             moveStackToRegion(card.stackId, destGroupId);
             const destType = REGIONS[destGroupId]?.type;
 
+            // Center the destination slot before computing the flight target so the
+            // card lands inside the visible region rather than out in the clipped
+            // overflow. layoutRegion (excluding the flyer) slides the existing cards
+            // into the scrolled layout while the card flies in.
+            if (scrollStackToCenter(destGroupId, card.stackId)) layoutRegion(destGroupId, card.stackId);
+
             let slideTargetLeft = fromLeft, slideTargetTop = fromTop;
             let endStackZ = LAYER_Z * (REGIONS[destGroupId]?.layerIndex || 0);
             if (destType === 'free') {
@@ -1795,6 +1846,10 @@ export function createDnc3DEngine(options = {}) {
               animateCardTo(card, dcStack.left * tiltW, (dcStack.top ?? 0) * tiltH, 0, card.id + 1, 300, 0);
             }
           } else {
+            // Center the destination slot first so an overflowing region scrolls
+            // the target on-screen before the card animates in, rather than the
+            // card sliding out into the clipped overflow.
+            scrollStackToCenter(expectedGroupId, card.stackId);
             layoutRegion(expectedGroupId);
           }
         }
