@@ -1728,7 +1728,11 @@ export function createDnc3DEngine(options = {}) {
               card.fracX = (parseFloat(card.liftEl.style.left) || 0) / parseFloat(_tiltEl.style.width);
               card.fracY = (parseFloat(card.liftEl.style.top)  || 0) / parseFloat(_tiltEl.style.height);
             } else if (regionType) {
-              layoutRegion(card.regionId);
+              // Set the landed card's final z-index immediately (see groupMove
+              // note below) so it doesn't briefly paint behind its neighbours.
+              const positions = layoutRegion(card.regionId);
+              const myPos = positions?.find(p => p.cardId === card.id);
+              if (myPos) card.liftEl.style.zIndex = myPos.zIndex;
             }
           }, liftPx, endStackZ);
         } else {
@@ -1802,7 +1806,13 @@ export function createDnc3DEngine(options = {}) {
                 card.fracX = (parseFloat(card.liftEl.style.left) || 0) / parseFloat(_tiltEl.style.width);
                 card.fracY = (parseFloat(card.liftEl.style.top)  || 0) / parseFloat(_tiltEl.style.height);
               } else if (destType) {
-                layoutRegion(destGroupId);
+                // Assign the landed card's final z-index now. layoutRegion's
+                // animateCardTo would otherwise only set it when its 300ms
+                // animation ends, leaving the card painted behind its new
+                // neighbours (with a stale pile z-index) until it snaps forward.
+                const positions = layoutRegion(destGroupId);
+                const myPos = positions?.find(p => p.cardId === card.id);
+                if (myPos) card.liftEl.style.zIndex = myPos.zIndex;
               }
             }, 0, endStackZ, startRestPx);
 
