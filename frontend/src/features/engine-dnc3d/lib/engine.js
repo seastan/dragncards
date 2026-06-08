@@ -441,7 +441,16 @@ export function createDnc3DEngine(options = {}) {
       stack.cardIds.forEach(cid => { if (cards[cid]?.liftEl) cards[cid].liftEl.style.display = visible ? '' : 'none'; });
       if (visible) regionState['_browse'].stackIds.push(engineStackId);
     });
-    layoutRegion('_browse');
+    // A card mid-flight from a drag-drop (liftPx > 1) lives in the tilt plane and
+    // is owned by the drop/flip logic. Laying it out here would re-home it into
+    // the scroll-outer via ensureCardParent — which doesn't convert coordinates,
+    // teleporting the card down by the region origin. Exclude it from the layout.
+    let inFlightStackId = null;
+    for (const sid of regionState['_browse'].stackIds) {
+      const c = cards[stacks[sid]?.cardIds?.[0]];
+      if (c && c.liftPx > 1) { inFlightStackId = sid; break; }
+    }
+    layoutRegion('_browse', inFlightStackId);
   }
 
   // Re-derives the browse snapshot from the current game state. _browseAllEngineStacks
@@ -1872,13 +1881,20 @@ export function createDnc3DEngine(options = {}) {
 
           const fromLeft = parseFloat(card.liftEl.style.left) || 0;
           const fromTop  = parseFloat(card.liftEl.style.top)  || 0;
-          let endStackZ       = LAYER_Z * (REGIONS['_browse']?.layerIndex || 0);
+          // The browse scroll-outer is itself translated in Z (its layerIndex).
+          // While the card flips it lives in the tilt plane — not inside the
+          // scroll-outer — so its resting translateZ must include BOTH the
+          // scroll-outer's layer Z and the card's own pile Z, or it would jump in
+          // depth when reparented back into the scroll-outer on completion.
+          const layerZ = LAYER_Z * (REGIONS['_browse']?.layerIndex || 0);
+          let restStackZ      = layerZ;
           let slideTargetLeft = fromLeft, slideTargetTop = fromTop;
           const myPos = layoutFan('_browse').find(p => p.cardId === card.id);
-          if (myPos) { slideTargetLeft = myPos.left; slideTargetTop = myPos.top; endStackZ = myPos.stackZ ?? endStackZ; }
-          // Regular (non-elevated) flips rise from and settle at the browse layer
-          // height so the card doesn't dip to the table plane and bounce back.
-          const startRestPx = wasElevated ? 0 : endStackZ;
+          if (myPos) { slideTargetLeft = myPos.left; slideTargetTop = myPos.top; restStackZ = myPos.stackZ ?? layerZ; }
+          const flipRestZ = layerZ + restStackZ; // tilt-relative resting depth
+          // Regular (non-elevated) flips rise from and settle at that depth so the
+          // card doesn't dip toward the table plane and bounce back.
+          const startRestPx = wasElevated ? 0 : flipRestZ;
 
           if (Math.abs(slideTargetLeft - fromLeft) > 1 || Math.abs(slideTargetTop - fromTop) > 1) {
             const slideDurMs = scaleDuration(wasElevated ? 220 : (GROW + FLIP - 2 * OVERLAP));
@@ -1894,13 +1910,15 @@ export function createDnc3DEngine(options = {}) {
 
           animateFlip(card.cardEl, card.liftEl, startAngle, () => {
             card.liftPx = 0;
-            card.pileZ  = endStackZ;
+            // pileZ holds only the card's own stack Z; the scroll-outer contributes
+            // its layer Z once the card is reparented back into it below.
+            card.pileZ  = restStackZ;
             card._setLiftVisuals(0);
             moveCardFromTilt(card);
             const positions = layoutRegion('_browse');
             const mp = positions?.find(p => p.cardId === card.id);
             if (mp) card.liftEl.style.zIndex = mp.zIndex;
-          }, startLiftPx, endStackZ, startRestPx);
+          }, startLiftPx, flipRestZ, startRestPx);
         } else if (card.liftPx > 1) {
           // Card is still elevated from a drag-drop. Cancel the descent and do a
           // drop-flip: rotate while hovering, then descend as part of the flip.
