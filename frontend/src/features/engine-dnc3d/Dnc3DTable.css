@@ -64,7 +64,9 @@
 }
 .dnc3d-region-outline.dnc3d-region-elevated {
   border-color: rgba(255,255,255,0.45);
-  background: rgba(255,255,255,0.04);
+  /* Opaque panel so an elevated region reads as a solid surface floating above
+     the table. Regions with an explicit backgroundColor override this inline. */
+  background: #1f2937;
   box-shadow:
     0 16px 48px rgba(0,0,0,0.65),
     0  4px 12px rgba(0,0,0,0.45);

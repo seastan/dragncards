@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { setActiveCardId, setDropdownMenu, setMouseTopBottom, setMouseXY, setScreenLeftRight } from '../store/playerUiSlice';
@@ -75,6 +75,7 @@ export default function Dnc3DTable({
   const cardSizeRef           = useRef(cardSize);
   const zoomFactorRef         = useRef(zoomFactor);
   const tableBackgroundUrlRef = useRef(tableBackgroundUrl);
+  const browseGroupIdRef      = useRef(browseGroupId);
   gameRef.current            = game;
   layoutRef.current          = layoutRegions;
   gameDefRef.current         = gameDef;
@@ -85,12 +86,33 @@ export default function Dnc3DTable({
   cardSizeRef.current           = cardSize;
   zoomFactorRef.current         = zoomFactor;
   tableBackgroundUrlRef.current = tableBackgroundUrl;
+  browseGroupIdRef.current      = browseGroupId;
 
   // Re-initialize the engine whenever the card set changes.
   // This handles: switching to dnc3d after cards are loaded, and loading a
   // deck while already in dnc3d mode. cardCount is a stable numeric dep that
   // only changes on deck load — not on every card state update.
   const cardCount = Object.keys(game?.cardById || {}).length;
+
+  // Re-initialize when the visible region set / geometry changes too. Toggling
+  // an overlay region on doesn't change cardCount (game.cardById holds every
+  // card regardless of which regions are visible), and the engine only builds
+  // DOM + cards for groups that have a visible region — so without this the
+  // newly-toggled region (and its cards) would never appear. The key captures
+  // each visible region's group, type, layer and geometry; the observing player
+  // and player count affect groupId resolution, so they're folded in too.
+  const regionsKey = useMemo(() => {
+    const regions = layoutRegions || {};
+    return Object.keys(regions)
+      .map(k => {
+        const r = regions[k];
+        if (r?.visible === false || !r?.groupId) return null;
+        return `${r.groupId}|${r.type}|${r.layerIndex || 0}|${r.direction || ''}|${r.left}|${r.top}|${r.width}|${r.height}`;
+      })
+      .filter(Boolean)
+      .sort()
+      .join(';') + `#${observingPlayerN}#${numPlayers}`;
+  }, [layoutRegions, observingPlayerN, numPlayers]);
 
   useEffect(() => {
     const tiltEl = tiltRef.current;
@@ -121,6 +143,7 @@ export default function Dnc3DTable({
       const cardDefaultW = anyBack?.width  ?? 0.72;
       engineOptions = {
         regions, ...callbacks,
+        playerN:            observingPlayerRef.current,
         cardSize:           cardSizeRef.current,
         zoomFactor:         zoomFactorRef.current,
         tableBackgroundUrl: tableBackgroundUrlRef.current,
@@ -181,6 +204,15 @@ export default function Dnc3DTable({
         return [{ dcId, frontEl, aspectRatio }];
       });
       setTokenPortals(portals);
+
+      // Re-open browse if it was open before this rebuild (e.g. the user toggled
+      // an overlay region while browsing). The browse effect below only fires on
+      // browseGroupId changes, so it won't re-open browse after a re-init on its
+      // own — Redux still holds the same browseGroupId. Keep it open until the
+      // user explicitly closes it.
+      if (browseGroupIdRef.current && idMapRef.current && gameRef.current) {
+        engine.openBrowse(browseGroupIdRef.current, gameRef.current, idMapRef.current);
+      }
     } else {
       setTokenPortals([]);
     }
@@ -197,7 +229,24 @@ export default function Dnc3DTable({
       window.removeEventListener('resize', handleResize);
       engineRef.current = null;
     };
-  }, [cardCount]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cardCount, regionsKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Open / close browse region in the engine ───────────────────────────────
+  // Declared BEFORE the reconcile effect so that on a tick where browse opens
+  // (e.g. clicking the eye), the cards are moved into '_browse' before reconcile
+  // processes the same tick. Otherwise a peeking-triggered flip would fire while
+  // the cards are still in their home (pile) region and collide with the move —
+  // the cards flip in place and openBrowse then skips them (they're animating).
+  useEffect(() => {
+    const engine = engineRef.current;
+    const idMap  = idMapRef.current;
+    if (!engine) return;
+    if (browseGroupId && idMap && gameRef.current) {
+      engine.openBrowse(browseGroupId, gameRef.current, idMap);
+    } else {
+      engine.closeBrowse();
+    }
+  }, [browseGroupId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Reconcile engine state with Redux on every game change ─────────────────
   // Handles rotation, flip, and position updates without a full re-init.
@@ -225,18 +274,6 @@ export default function Dnc3DTable({
     if (!tiltEl || !engine) return;
     engine.applyTableOpacity(tiltEl, tableOpacity / 100);
   }, [tableOpacity]);
-
-  // ── Open / close browse region in the engine ───────────────────────────────
-  useEffect(() => {
-    const engine = engineRef.current;
-    const idMap  = idMapRef.current;
-    if (!engine) return;
-    if (browseGroupId && idMap && gameRef.current) {
-      engine.openBrowse(browseGroupId, gameRef.current, idMap);
-    } else {
-      engine.closeBrowse();
-    }
-  }, [browseGroupId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Filter callback from the HUD browse panel ──────────────────────────────
   const handleBrowseFilterChange = useCallback((filteredIndices) => {

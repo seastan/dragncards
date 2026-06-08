@@ -11,7 +11,10 @@ export function easeIn(t)  { return t * t; }
 // stack height). Defaults to 0 (the table plane) for regular flips.
 // startRestPx: the resting translateZ the regular (rise-fall) arc begins from,
 // e.g. the top-of-pile height a card sits at before lifting off. Defaults to 0.
-export function animateFlip(cardEl, liftEl, startAngle, onComplete, startLiftPx = 0, endLiftPx = 0, startRestPx = 0) {
+// direction: +1 (default) spins rotateY toward +180; -1 spins toward -180 (the
+// opposite way), mirroring the lateral swing too. The caller is responsible for
+// advancing cardEl._angle by direction*180 so the resting angle stays in sync.
+export function animateFlip(cardEl, liftEl, startAngle, onComplete, startLiftPx = 0, endLiftPx = 0, startRestPx = 0, direction = 1) {
   const startTime      = performance.now();
   const LIFT           = window.innerHeight * 0.07 * (1 + MAX_ZOOM);
   const startLayoutRot = (cardEl._layoutRotation || 0) + (cardEl._gameRotation || 0);
@@ -38,8 +41,8 @@ export function animateFlip(cardEl, liftEl, startAngle, onComplete, startLiftPx 
     const scale         = 1 + MAX_ZOOM * p1 - MAX_ZOOM * p3;
     const shadowVH      = Math.max(0, 1 * p1 - 1 * p3);
     const shadowOpacity = 0.7 - 0.4 * p1 + 0.4 * p3;
-    const currentAngle  = startAngle + 180 * p2;
-    const tx            = -25 * Math.sin(p2 * Math.PI);
+    const currentAngle  = startAngle + direction * 180 * p2;
+    const tx            = direction * -25 * Math.sin(p2 * Math.PI);
     const lift          = dropFlip
       ? peakLift + (endLiftPx - peakLift) * p3
       // Regular flip: rise startRestPx → startRestPx+peakLift (GROW), then descend
@@ -55,7 +58,7 @@ export function animateFlip(cardEl, liftEl, startAngle, onComplete, startLiftPx 
       requestAnimationFrame(frame);
     } else {
       liftEl.style.transform = `translateZ(${BASE_LIFT + endLiftPx}px)`;
-      cardEl.style.transform = `perspective(300vw) rotateY(${startAngle + 180}deg) rotateZ(${startLayoutRot}deg) scale(1)`;
+      cardEl.style.transform = `perspective(300vw) rotateY(${startAngle + direction * 180}deg) rotateZ(${startLayoutRot}deg) scale(1)`;
       cardEl.style.boxShadow = 'none';
       cardEl._animating      = false;
       if (onComplete) onComplete();

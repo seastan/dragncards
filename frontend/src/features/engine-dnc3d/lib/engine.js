@@ -35,6 +35,7 @@ export function createDnc3DEngine(options = {}) {
   const _cardDefaultW       = options.cardDefaultW       || 0.72;
   const _zoomFactor         = options.zoomFactor         || 1.0;
   const _tableBackgroundUrl = options.tableBackgroundUrl || null;
+  const _playerN            = options.playerN            || null;
 
   // ── Sub-system instances ───────────────────────────────────────────────────
   const state = createState(REGIONS);
@@ -1856,8 +1857,10 @@ export function createDnc3DEngine(options = {}) {
         }
       }
 
-      // 2. Flip — currentSide drives the expected rotateY angle
-      const expectedSide      = dcCard.currentSide || 'A';
+      // 2. Flip — currentSide drives the expected rotateY angle, except the
+      // observing player peeking at a face-down card sees its front (side A).
+      const peeking           = !!(_playerN && dcCard.peeking && dcCard.peeking[_playerN]);
+      const expectedSide      = peeking ? 'A' : (dcCard.currentSide || 'A');
       // Normalize into [0,360) so a card flipped the negative direction
       // (_angle e.g. -180) is still correctly detected as showing side B.
       const currentVisualSide = ((((card.cardEl._angle % 360) + 360) % 360) === 180) ? 'B' : 'A';

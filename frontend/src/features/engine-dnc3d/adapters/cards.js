@@ -53,7 +53,10 @@ export function adaptGameState(game, layoutRegions, gameDef, language, observing
     // angle 0 → front visible (A), angle 180 → back visible (B).
     const sideA = sideKeys.includes('A') ? 'A' : (sideKeys[0] || 'A');
     const sideB = sideKeys.find(s => s !== sideA) || sideA;
-    const angle = (card.currentSide && card.currentSide !== sideA) ? 180 : 0;
+    // The observing player peeking at a face-down card sees its front (side A).
+    const peeking = !!(observingPlayerN && card.peeking && card.peeking[observingPlayerN]);
+    const visibleSide = peeking ? sideA : (card.currentSide || sideA);
+    const angle = (visibleSide !== sideA) ? 180 : 0;
     const currentFace = sides[card.currentSide || sideA] || {};
     const faceW = currentFace.width  || gameDef?.cardBacks?.[currentFace.name]?.width  || null;
     const faceH = currentFace.height || gameDef?.cardBacks?.[currentFace.name]?.height || null;
