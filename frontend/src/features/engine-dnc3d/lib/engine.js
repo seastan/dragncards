@@ -1856,7 +1856,52 @@ export function createDnc3DEngine(options = {}) {
         card.cardEl._animating = true;
         const startAngle = card.cardEl._angle;
         card.cardEl._angle += 180;
-        if (card.liftPx > 1) {
+        if (card.regionId === '_browse') {
+          // Card flipping inside the browse fan (e.g. dropped face-down into a
+          // face-up browse). refreshBrowseFromGame may have just started a layout
+          // animation on this card — cancel it so it doesn't fight the flip (the
+          // symptom being the card vanishing mid-flip then sliding in from the
+          // region edge). Normalize to tilt space, then slide to the fan slot
+          // while flipping: drop-flip style if still elevated from the drag,
+          // otherwise a rise-fall flip from the browse layer height.
+          if (card.layoutAnimId) { cancelAnimationFrame(card.layoutAnimId); card.layoutAnimId = null; }
+          const wasElevated = card.liftPx > 1;
+          const startLiftPx = wasElevated ? card.liftPx : 0;
+          card._cancelLift();
+          moveCardToTilt(card);
+
+          const fromLeft = parseFloat(card.liftEl.style.left) || 0;
+          const fromTop  = parseFloat(card.liftEl.style.top)  || 0;
+          let endStackZ       = LAYER_Z * (REGIONS['_browse']?.layerIndex || 0);
+          let slideTargetLeft = fromLeft, slideTargetTop = fromTop;
+          const myPos = layoutFan('_browse').find(p => p.cardId === card.id);
+          if (myPos) { slideTargetLeft = myPos.left; slideTargetTop = myPos.top; endStackZ = myPos.stackZ ?? endStackZ; }
+          // Regular (non-elevated) flips rise from and settle at the browse layer
+          // height so the card doesn't dip to the table plane and bounce back.
+          const startRestPx = wasElevated ? 0 : endStackZ;
+
+          if (Math.abs(slideTargetLeft - fromLeft) > 1 || Math.abs(slideTargetTop - fromTop) > 1) {
+            const slideDurMs = scaleDuration(wasElevated ? 220 : (GROW + FLIP - 2 * OVERLAP));
+            const slideStart = performance.now();
+            (function slideXY(now) {
+              const t = Math.min((now - slideStart) / slideDurMs, 1);
+              const e = easeOut(t);
+              card.liftEl.style.left = (fromLeft + (slideTargetLeft - fromLeft) * e) + 'px';
+              card.liftEl.style.top  = (fromTop  + (slideTargetTop  - fromTop)  * e) + 'px';
+              if (t < 1) requestAnimationFrame(slideXY);
+            })(performance.now());
+          }
+
+          animateFlip(card.cardEl, card.liftEl, startAngle, () => {
+            card.liftPx = 0;
+            card.pileZ  = endStackZ;
+            card._setLiftVisuals(0);
+            moveCardFromTilt(card);
+            const positions = layoutRegion('_browse');
+            const mp = positions?.find(p => p.cardId === card.id);
+            if (mp) card.liftEl.style.zIndex = mp.zIndex;
+          }, startLiftPx, endStackZ, startRestPx);
+        } else if (card.liftPx > 1) {
           // Card is still elevated from a drag-drop. Cancel the descent and do a
           // drop-flip: rotate while hovering, then descend as part of the flip.
           if (card.layoutAnimId) { cancelAnimationFrame(card.layoutAnimId); card.layoutAnimId = null; }
@@ -1929,11 +1974,7 @@ export function createDnc3DEngine(options = {}) {
           //  (b) flip + group move (e.g. drawing a card) — lift off, fly to the
           //      destination's resting slot while turning over, then drop.
           const destGroupId = dcCard.groupId;
-          // Any card parked in '_browse' by the engine is managed by the browse
-          // system — treat it as an in-place flip even if the backend group hasn't
-          // caught up yet (e.g. a card just dropped in before the server confirms).
-          const inBrowseFlip = !!_browseGroupId && card.regionId === '_browse';
-          const groupMove = !inBrowseFlip && destGroupId && card.regionId !== destGroupId && regionState[destGroupId];
+          const groupMove = destGroupId && card.regionId !== destGroupId && regionState[destGroupId];
 
           if (groupMove) {
             // Resting Z the card sits at now (e.g. top of its source pile) — the
