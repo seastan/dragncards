@@ -9,7 +9,13 @@
      programmatically (e.g. scroll-into-view when a card near the edge animates),
      which shifts the whole table up and never scrolls back. clip cannot scroll. */
   overflow: clip;
-  z-index: 10001;
+  /* The stage is the base play surface and must sit BELOW the app's overlays
+     (top-bar Menu/View/Builder dropdowns at z-index 10000, modals, giant card,
+     etc. — see Z_INDEX in engine/functions/common.js). Its opaque background
+     means any higher z-index here would cover those dropdowns. z-index 0 keeps
+     it a backdrop while still establishing a stacking context for its own
+     children (HUD, cards, attach icons). */
+  z-index: 0;
   background: #111;
 }
 
@@ -75,16 +81,13 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 12px;
+  height: 1px;
   overflow-x: scroll;
   overflow-y: hidden;
-  pointer-events: auto;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.4) rgba(255,255,255,0.08);
+  pointer-events: none;
+  scrollbar-width: none;
 }
-.dnc3d-region-scroll-sentinel::-webkit-scrollbar        { height: 6px; }
-.dnc3d-region-scroll-sentinel::-webkit-scrollbar-track  { background: rgba(255,255,255,0.08); border-radius: 3px; }
-.dnc3d-region-scroll-sentinel::-webkit-scrollbar-thumb  { background: rgba(255,255,255,0.4);  border-radius: 3px; }
+.dnc3d-region-scroll-sentinel::-webkit-scrollbar { display: none; }
 .dnc3d-region-scroll-spacer { height: 1px; }
 
 .dnc3d-region-scroll-sentinel--vertical {
@@ -92,16 +95,54 @@
   right: 0;
   left: auto;
   top: 0;
-  width: 12px;
+  width: 1px;
   height: auto;
   overflow-x: hidden;
   overflow-y: scroll;
-  scrollbar-width: thin;
+  scrollbar-width: none;
 }
-.dnc3d-region-scroll-sentinel--vertical::-webkit-scrollbar        { width: 6px; height: auto; }
-.dnc3d-region-scroll-sentinel--vertical::-webkit-scrollbar-track  { background: rgba(255,255,255,0.08); border-radius: 3px; }
-.dnc3d-region-scroll-sentinel--vertical::-webkit-scrollbar-thumb  { background: rgba(255,255,255,0.4);  border-radius: 3px; }
+.dnc3d-region-scroll-sentinel--vertical::-webkit-scrollbar { display: none; }
 .dnc3d-region-scroll-sentinel--vertical .dnc3d-region-scroll-spacer { width: 1px; height: 1px; }
+
+/* ── Scroll arrow overlays ─────────────────────────────────────────────── */
+.dnc3d-region-scroll-arrow {
+  position: absolute;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.dnc3d-region-scroll-arrow.dnc3d-scroll-visible {
+  opacity: 1;
+}
+.dnc3d-region-scroll-arrow--start:not(.dnc3d-scroll-vertical) {
+  left: 0; top: 0; bottom: 0;
+  width: 80px;
+  background: linear-gradient(to right, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 50%, transparent 100%);
+}
+.dnc3d-region-scroll-arrow--end:not(.dnc3d-scroll-vertical) {
+  right: 0; top: 0; bottom: 0;
+  width: 80px;
+  background: linear-gradient(to left, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 50%, transparent 100%);
+}
+.dnc3d-region-scroll-arrow--start.dnc3d-scroll-vertical {
+  top: 0; left: 0; right: 0;
+  height: 80px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 50%, transparent 100%);
+}
+.dnc3d-region-scroll-arrow--end.dnc3d-scroll-vertical {
+  bottom: 0; left: 0; right: 0;
+  height: 80px;
+  background: linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 50%, transparent 100%);
+}
+.dnc3d-region-scroll-arrow svg {
+  pointer-events: none;
+  filter: drop-shadow(0 1px 4px rgba(0,0,0,0.9));
+}
 
 .dnc3d-insert-indicator {
   position: absolute;

@@ -65,6 +65,7 @@ export function createDnc3DEngine(options = {}) {
   const regionIconEls    = {};
   const regionLabelEls   = {};
   const sentinelEls      = {};
+  const arrowEls         = {}; // { start, end } per scrollable region
   const stackZoneEls     = new Map();
 
   // ── Browse state ───────────────────────────────────────────────────────────
@@ -232,6 +233,21 @@ export function createDnc3DEngine(options = {}) {
     }
   }
 
+  function updateScrollArrows(regionId) {
+    const arrows = arrowEls[regionId];
+    if (!arrows) return;
+    const r    = REGIONS[regionId];
+    const rp   = regionPx(regionId);
+    const vert = r?.direction === 'vertical';
+    const total    = scrollTotalExtent(regionId);
+    const maxScroll = Math.max(0, total - (vert ? rp.h : rp.w));
+    const off      = regionState[regionId].scrollOffset || 0;
+    const hasPrev  = off > 0.5;
+    const hasNext  = off < maxScroll - 0.5;
+    arrows.start.classList.toggle('dnc3d-scroll-visible', hasPrev);
+    arrows.end.classList.toggle('dnc3d-scroll-visible', hasNext);
+  }
+
   // Scrolls a scrollable (row/fan) region so the given stack's slot is centered
   // in the viewport — or scrolled as far as possible toward center when the slot
   // is near an end. Updates regionState.scrollOffset and syncs the sentinel's
@@ -289,7 +305,7 @@ export function createDnc3DEngine(options = {}) {
 
   function onTiltUpdated() {
     updateScrollOuters();
-    Object.keys(sentinelEls).forEach(updateSentinel);
+    Object.keys(sentinelEls).forEach(id => { updateSentinel(id); updateScrollArrows(id); });
   }
 
   // ── Browse region DOM setup / teardown ─────────────────────────────────────
@@ -1476,9 +1492,95 @@ export function createDnc3DEngine(options = {}) {
         regionState[id].scrollOffset = r.direction === 'vertical' ? el.scrollTop : el.scrollLeft;
         layoutRegion(id);
       });
+
+      // ── Scroll arrow overlays ────────────────────────────────────────────
+      const vert = r.direction === 'vertical';
+      function makeChevronSvg(dir) {
+        const svg  = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('viewBox', '0 0 24 24');
+        svg.setAttribute('width', '32');
+        svg.setAttribute('height', '32');
+        svg.style.cssText = 'fill:none;stroke:rgba(255,255,255,0.95);stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round';
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const ds = { left:'M15 18l-6-6 6-6', right:'M9 18l6-6-6-6', up:'M18 15l-6-6-6 6', down:'M6 9l6 6 6-6' };
+        path.setAttribute('d', ds[dir]);
+        svg.appendChild(path);
+        return svg;
+      }
+      const startArrow = document.createElement('div');
+      startArrow.className = 'dnc3d-region-scroll-arrow dnc3d-region-scroll-arrow--start' + (vert ? ' dnc3d-scroll-vertical' : '');
+      startArrow.appendChild(makeChevronSvg(vert ? 'up' : 'left'));
+      outline.appendChild(startArrow);
+
+      const endArrow = document.createElement('div');
+      endArrow.className = 'dnc3d-region-scroll-arrow dnc3d-region-scroll-arrow--end' + (vert ? ' dnc3d-scroll-vertical' : '');
+      endArrow.appendChild(makeChevronSvg(vert ? 'down' : 'right'));
+      outline.appendChild(endArrow);
+
+      arrowEls[id] = { start: startArrow, end: endArrow };
     });
 
-    setAfterLayoutHook(updateSentinel);
+    setAfterLayoutHook(id => { updateSentinel(id); updateScrollArrows(id); });
+
+    // ── Arrow hover-scroll and touch-scroll ─────────────────────────────────
+    let arrowScrollRaf  = null;
+    let arrowScrollId   = null;
+    let arrowScrollDir  = null; // 'start' | 'end'
+
+    function doArrowScrollStep() {
+      if (!arrowScrollId || !arrowScrollDir) return;
+      const r    = REGIONS[arrowScrollId];
+      const rp   = regionPx(arrowScrollId);
+      const isV  = r.direction === 'vertical';
+      const total    = scrollTotalExtent(arrowScrollId);
+      const maxScroll = Math.max(0, total - (isV ? rp.h : rp.w));
+      const speed    = (isV ? rp.h : rp.w) * 0.5 / 60; // 50% region width per second at 60fps
+      const delta    = (arrowScrollDir === 'end' ? 1 : -1) * speed;
+      const newOff   = Math.min(Math.max((regionState[arrowScrollId].scrollOffset || 0) + delta, 0), maxScroll);
+      if (newOff !== regionState[arrowScrollId].scrollOffset) {
+        regionState[arrowScrollId].scrollOffset = newOff;
+        const sv = sentinelEls[arrowScrollId];
+        if (sv) { sv._syncing = true; if (isV) sv.el.scrollTop = newOff; else sv.el.scrollLeft = newOff; }
+        layoutRegion(arrowScrollId);
+      }
+      arrowScrollRaf = requestAnimationFrame(doArrowScrollStep);
+    }
+
+    function startArrowScrollLoop(regionId, dir) {
+      arrowScrollId  = regionId;
+      arrowScrollDir = dir;
+      if (!arrowScrollRaf) arrowScrollRaf = requestAnimationFrame(doArrowScrollStep);
+    }
+
+    function stopArrowScrollLoop() {
+      if (arrowScrollRaf) { cancelAnimationFrame(arrowScrollRaf); arrowScrollRaf = null; }
+      arrowScrollId  = null;
+      arrowScrollDir = null;
+    }
+
+    function tapArrowScroll(regionId, dir) {
+      const r    = REGIONS[regionId];
+      const rp   = regionPx(regionId);
+      const isV  = r.direction === 'vertical';
+      const total    = scrollTotalExtent(regionId);
+      const maxScroll = Math.max(0, total - (isV ? rp.h : rp.w));
+      const amount   = (isV ? rp.h : rp.w) * 0.5;
+      const delta    = (dir === 'end' ? 1 : -1) * amount;
+      const newOff   = Math.min(Math.max((regionState[regionId].scrollOffset || 0) + delta, 0), maxScroll);
+      regionState[regionId].scrollOffset = newOff;
+      const sv = sentinelEls[regionId];
+      if (sv) { sv._syncing = true; if (isV) sv.el.scrollTop = newOff; else sv.el.scrollLeft = newOff; }
+      layoutRegion(regionId);
+    }
+
+    Object.entries(arrowEls).forEach(([regionId, arrows]) => {
+      [['start', arrows.start], ['end', arrows.end]].forEach(([dir, arrowEl]) => {
+        arrowEl.addEventListener('pointerenter', () => startArrowScrollLoop(regionId, dir));
+        arrowEl.addEventListener('pointerleave', () => stopArrowScrollLoop());
+        arrowEl.addEventListener('touchstart', (e) => { e.preventDefault(); tapArrowScroll(regionId, dir); }, { passive: false });
+        arrowEl.addEventListener('click', () => tapArrowScroll(regionId, dir));
+      });
+    });
 
     // ── Region icon hover ────────────────────────────────────────────────────
     let hoveredIconRegion = null;
@@ -1663,7 +1765,9 @@ export function createDnc3DEngine(options = {}) {
 
       // 2. Flip — currentSide drives the expected rotateY angle
       const expectedSide      = dcCard.currentSide || 'A';
-      const currentVisualSide = (card.cardEl._angle % 360 === 180) ? 'B' : 'A';
+      // Normalize into [0,360) so a card flipped the negative direction
+      // (_angle e.g. -180) is still correctly detected as showing side B.
+      const currentVisualSide = ((((card.cardEl._angle % 360) + 360) % 360) === 180) ? 'B' : 'A';
       if (currentVisualSide !== expectedSide && !card.cardEl._animating) {
         card.cardEl._animating = true;
         const startAngle = card.cardEl._angle;
@@ -1781,6 +1885,13 @@ export function createDnc3DEngine(options = {}) {
               if (myPos) { slideTargetLeft = myPos.left; slideTargetTop = myPos.top; endStackZ = myPos.stackZ ?? endStackZ; }
             }
 
+            // Flip direction follows horizontal travel: a card moving right turns
+            // the default way (+180); a card moving left turns the other way (-180)
+            // so the flip reads as "toward" the destination. Re-derive _angle from
+            // the chosen direction (the shared +=180 above assumed +1).
+            const flipDir = slideTargetLeft < fromLeft - 1 ? -1 : 1;
+            card.cardEl._angle = startAngle + flipDir * 180;
+
             // Slide over the rise+turn phases (ending when the flip's descent
             // begins) so the card arrives as it finishes turning, then the flip's
             // SHRINK phase drops it straight down into place. GROW + FLIP - 2*OVERLAP
@@ -1814,7 +1925,7 @@ export function createDnc3DEngine(options = {}) {
                 const myPos = positions?.find(p => p.cardId === card.id);
                 if (myPos) card.liftEl.style.zIndex = myPos.zIndex;
               }
-            }, 0, endStackZ, startRestPx);
+            }, 0, endStackZ, startRestPx, flipDir);
 
             if (oldRegionId && oldRegionId !== destGroupId) layoutRegion(oldRegionId);
           } else {
