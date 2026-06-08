@@ -444,6 +444,48 @@ export function createDnc3DEngine(options = {}) {
     layoutRegion('_browse');
   }
 
+  // Re-derives the browse snapshot from the current game state. _browseAllEngineStacks
+  // is otherwise a one-time snapshot from openBrowse, so cards dropped into (or moved
+  // within / removed from) the browsed group would desync: the dropped card gets
+  // evicted by updateBrowseFilter and stale dcStackIndex values hide the wrong cards.
+  // Called from reconcile so the browse view tracks the live group membership/order.
+  function refreshBrowseFromGame(game, idMap) {
+    if (!_browseGroupId || !regionState['_browse']) return;
+    const group = game?.groupById?.[_browseGroupId];
+    if (!group) return;
+
+    const next = [];
+    (group.stackIds || []).forEach((dcStackId, dcStackIndex) => {
+      const dcStack = game.stackById?.[dcStackId];
+      if (!dcStack?.cardIds?.length) return;
+      const firstEngineIdx = idMap.get(dcStack.cardIds[0]);
+      if (firstEngineIdx === undefined) return;
+      const card = cards[firstEngineIdx];
+      if (!card) return;
+      next.push({ engineStackId: card.stackId, dcStackIndex });
+    });
+
+    // No-op when the membership and order are unchanged — avoids re-laying-out
+    // the fan on every reconcile tick.
+    const unchanged = next.length === _browseAllEngineStacks.length &&
+      next.every((e, i) =>
+        e.engineStackId === _browseAllEngineStacks[i].engineStackId &&
+        e.dcStackIndex  === _browseAllEngineStacks[i].dcStackIndex);
+    if (unchanged) return;
+
+    // Pull any stacks now in the group but not yet in the browse region (e.g. a
+    // card another player added). Cards dropped in locally are already in '_browse'.
+    next.forEach(({ engineStackId }) => {
+      const stack = stacks[engineStackId];
+      if (stack && cards[stack.cardIds[0]]?.regionId !== '_browse') {
+        moveStackToRegion(engineStackId, '_browse');
+      }
+    });
+
+    _browseAllEngineStacks = next;
+    updateBrowseFilter(next.map(e => e.dcStackIndex));
+  }
+
   // ── Card creation ──────────────────────────────────────────────────────────
   // cardInfo: { id, frontImageUrl?, backImageUrl?, angle?, faceW?, faceH? }
   function createCard(tiltEl, cardInfo) {
@@ -1102,7 +1144,17 @@ export function createDnc3DEngine(options = {}) {
               }
             })(performance.now());
           } else {
-            const positions    = insertStackAtIndex(droppedStack.id, targetRegionId, droppedInsertIdx);
+            let positions = insertStackAtIndex(droppedStack.id, targetRegionId, droppedInsertIdx);
+            // For the browse fan, scroll to center the dropped card so it's clearly visible
+            // even in a dense deck where the individual slot-shift would be imperceptible.
+            if (targetRegionId === '_browse') {
+              const scrolled = scrollStackToCenter(targetRegionId, droppedStack.id);
+              if (scrolled) {
+                updateSentinel(targetRegionId);
+                updateScrollArrows(targetRegionId);
+                positions = layoutRegion(targetRegionId, droppedStack.id) || positions;
+              }
+            }
             const myCardIdSet  = new Set(droppedStack.cardIds);
             const myPositions  = (positions || []).filter(p => myCardIdSet.has(p.cardId));
 
@@ -1152,7 +1204,23 @@ export function createDnc3DEngine(options = {}) {
 
           if (onCardMove) {
             const c0 = droppedStackCards[0];
-            onCardMove(c0.id, c0.prevPos._regionId, targetRegionId, null, null, droppedInsertIdx);
+            // '_browse' is an engine-internal region ID; translate it to the real
+            // game group so the backend callback can find it in game.groupById.
+            let cbRegion = targetRegionId;
+            let cbInsertIdx = droppedInsertIdx;
+            if (targetRegionId === '_browse' && _browseGroupId) {
+              cbRegion = _browseGroupId;
+              const vis = regionState['_browse']?.stackIds || [];
+              if (cbInsertIdx < vis.length) {
+                const entry = _browseAllEngineStacks.find(x => x.engineStackId === vis[cbInsertIdx]);
+                if (entry) cbInsertIdx = entry.dcStackIndex;
+              } else {
+                const last = vis[vis.length - 1];
+                const entry = last ? _browseAllEngineStacks.find(x => x.engineStackId === last) : null;
+                if (entry) cbInsertIdx = entry.dcStackIndex + 1;
+              }
+            }
+            onCardMove(c0.id, c0.prevPos._regionId, cbRegion, null, null, cbInsertIdx);
           }
         }
 
@@ -1199,6 +1267,16 @@ export function createDnc3DEngine(options = {}) {
               const droppedCardIds = new Set(droppedStack.cardIds);
               const splitIds = splitStack(droppedStack.id);
               splitIds.forEach(sid => moveStackToRegion(sid, targetRegionId));
+
+              // For the browse fan (appended to end), scroll to show the new card.
+              if (targetRegionId === '_browse' && regionType === 'fan') {
+                splitIds.forEach(sid => {
+                  if (scrollStackToCenter(targetRegionId, sid)) {
+                    updateSentinel(targetRegionId);
+                    updateScrollArrows(targetRegionId);
+                  }
+                });
+              }
 
               const prePositions = regionType === 'pile'
                 ? layoutPile(targetRegionId)
@@ -1252,7 +1330,8 @@ export function createDnc3DEngine(options = {}) {
                 c0.fracX = (parseFloat(c0.liftEl.style.left) || 0) / tiltW;
                 c0.fracY = (parseFloat(c0.liftEl.style.top)  || 0) / tiltH;
               }
-              onCardMove(c0.id, oldRegionId, targetRegionId, c0.fracX, c0.fracY);
+              const cbRegion = (targetRegionId === '_browse' && _browseGroupId) ? _browseGroupId : targetRegionId;
+              onCardMove(c0.id, oldRegionId, cbRegion, c0.fracX, c0.fracY);
             }
           } else {
             // Miss — slide back to origin while staying raised, then lift down.
@@ -1739,6 +1818,11 @@ export function createDnc3DEngine(options = {}) {
     const cardById  = game.cardById  || {};
     const stackById = game.stackById || {};
 
+    // Keep the browse fan in sync with the live group before the per-card loop so
+    // cards dropped into / added to the browsed group are already in '_browse'
+    // (and excluded from the group-move path below).
+    refreshBrowseFromGame(game, idMap);
+
     Object.entries(cardById).forEach(([dcCardId, dcCard]) => {
       const i = idMap.get(dcCardId);
       if (i === undefined) return;
@@ -1845,7 +1929,10 @@ export function createDnc3DEngine(options = {}) {
           //  (b) flip + group move (e.g. drawing a card) — lift off, fly to the
           //      destination's resting slot while turning over, then drop.
           const destGroupId = dcCard.groupId;
-          const inBrowseFlip = _browseGroupId && card.regionId === '_browse' && destGroupId === _browseGroupId;
+          // Any card parked in '_browse' by the engine is managed by the browse
+          // system — treat it as an in-place flip even if the backend group hasn't
+          // caught up yet (e.g. a card just dropped in before the server confirms).
+          const inBrowseFlip = !!_browseGroupId && card.regionId === '_browse';
           const groupMove = !inBrowseFlip && destGroupId && card.regionId !== destGroupId && regionState[destGroupId];
 
           if (groupMove) {
@@ -1950,7 +2037,11 @@ export function createDnc3DEngine(options = {}) {
 
       // 4. Group change (card moved by another player)
       const expectedGroupId = dcCard.groupId;
-      const inBrowse = _browseGroupId && card.regionId === '_browse' && expectedGroupId === _browseGroupId;
+      // Any card currently in '_browse' is managed by the browse system. Skip
+      // the group-change path even if the backend hasn't confirmed the move yet
+      // (e.g. a card dropped in before the server round-trip completes would
+      // otherwise be yanked back out and snap the browse cards to old positions).
+      const inBrowse = !!_browseGroupId && card.regionId === '_browse';
       if (!inBrowse && expectedGroupId && card.regionId !== expectedGroupId && regionState[expectedGroupId]) {
         const oldRegionId = card.regionId;
         moveStackToRegion(card.stackId, expectedGroupId);
