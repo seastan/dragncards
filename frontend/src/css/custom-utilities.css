@@ -217,6 +217,17 @@ padding: 0;
    (src/components/basic/Menu.tsx); the old CSS :hover dropdown styles
    (.top-level-menu / .second-level-menu / .third-level-menu) were removed. */
 
+/* Hide the native number-input spinners (used by the TopBar counter steppers). */
+.no-spinner::-webkit-inner-spin-button,
+.no-spinner::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.no-spinner {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 @keyframes spin {
   from {transform:rotate(0deg);}
   to {transform:rotate(360deg);}

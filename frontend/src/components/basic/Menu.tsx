@@ -32,8 +32,11 @@ const useTouchMode = (): boolean =>
 
 // Shared styling for any clickable row inside a menu panel.
 const itemClasses =
-  "w-full text-left px-3 py-1.5 flex items-center justify-between gap-2 " +
-  "text-white bg-transparent border-0 cursor-pointer transition-colors duration-150";
+  "w-full text-left px-3 py-1.5 flex items-center justify-between gap-2 rounded text-sm " +
+  "text-gray-200 bg-transparent border-0 cursor-pointer transition-colors duration-150";
+
+// Styling shared by both the top-level and nested dropdown panels.
+const panelClasses = "py-1 px-1 list-none m-0 bg-gray-800 border border-gray-700 rounded-md shadow-xl";
 
 export const MenuBar: React.FC<{ className?: string; children: ReactNode }> = ({
   className,
@@ -94,9 +97,9 @@ export const Menu: React.FC<MenuProps> = ({
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
         className={cx(
-          "h-full px-3 flex items-center justify-center select-none",
-          "text-white bg-transparent border-0 cursor-pointer transition-colors duration-150",
-          open ? "bg-red-800" : "hover:bg-red-800"
+          "h-full px-4 flex items-center justify-center select-none font-medium",
+          "bg-transparent border-0 cursor-pointer transition-colors duration-150",
+          open ? "bg-gray-700 text-white" : "text-gray-200 hover:bg-gray-700 hover:text-white"
         )}
       >
         {label}
@@ -104,8 +107,8 @@ export const Menu: React.FC<MenuProps> = ({
       {open && (
         <ul
           role="menu"
-          className="absolute left-0 top-full py-1 list-none m-0 bg-gray-700 rounded-b shadow-lg"
-          style={{ zIndex: 10001, minWidth: `${panelMinWidthRem}rem` }}
+          className={cx("absolute left-0 mt-px", panelClasses)}
+          style={{ zIndex: 10001, minWidth: `${panelMinWidthRem}rem`, top: "100%" }}
         >
           <MenuContext.Provider value={{ close: () => setOpen(false) }}>
             {children}
@@ -136,7 +139,7 @@ export const MenuItem: React.FC<MenuItemProps> = ({
       <button
         type="button"
         role="menuitem"
-        className={cx(itemClasses, "hover:bg-red-800", className)}
+        className={cx(itemClasses, "hover:bg-gray-700 hover:text-white", className)}
         onClick={(e) => {
           onClick?.(e);
           if (closeOnClick) close();
@@ -179,15 +182,15 @@ export const SubMenu: React.FC<SubMenuProps> = ({
         aria-haspopup="true"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className={cx(itemClasses, open ? "bg-red-800" : "hover:bg-red-800")}
+        className={cx(itemClasses, open ? "bg-gray-700 text-white" : "hover:bg-gray-700 hover:text-white")}
       >
         <span>{label}</span>
-        <FontAwesomeIcon icon={faChevronRight} className="ml-2 opacity-70" />
+        <FontAwesomeIcon icon={faChevronRight} className="ml-2 opacity-50" />
       </button>
       {open && (
         <ul
           role="menu"
-          className="absolute top-0 left-full py-1 list-none m-0 bg-gray-700 rounded shadow-lg overflow-y-auto"
+          className={cx("absolute top-0 left-full ml-px overflow-y-auto", panelClasses)}
           style={{ zIndex: 10002, minWidth: `${panelMinWidthRem}rem`, maxHeight: "60dvh" }}
         >
           {children}

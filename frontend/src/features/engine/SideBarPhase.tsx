@@ -23,14 +23,19 @@ export const SideBarPhase = React.memo(({ phaseId, triggerMap }: Props) => {
       style={{
         height: phaseInfo.height,
         maxHeight: phaseInfo.height,
-        borderBottom: phaseId === "End" ? "" : "1px solid",
+        borderBottom: phaseId === "End" ? "" : "1px solid rgb(55,65,81)",
       }}
     >
       <div
-        className={`absolute h-full pointer-events-none ${isPhase ? "bg-red-800" : ""}`}
+        className={`absolute h-full pointer-events-none transition-colors ${isPhase ? "bg-red-700" : ""}`}
         style={{ width: "3dvh" }}
       >
-        <div className="absolute h-full w-full" style={{ writingMode: "vertical-rl" }}>
+        <div
+          className={`absolute h-full w-full flex items-center justify-center font-medium tracking-wide ${
+            isPhase ? "text-white" : "text-gray-400"
+          }`}
+          style={{ writingMode: "vertical-rl" }}
+        >
           {gameL10n(phaseInfo.label)}
         </div>
       </div>

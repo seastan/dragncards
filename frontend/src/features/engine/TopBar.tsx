@@ -7,8 +7,8 @@ import { TopBarDataContainer } from "./TopBarDataContainer";
 
 export const TopBar = React.memo(() => {
   return (
-    <div className="h-full flex items-stretch">
-      <MenuBar className="flex-shrink-0">
+    <div className="h-full flex items-stretch bg-gray-800 border-b border-gray-700 text-gray-200">
+      <MenuBar className="flex-shrink-0 border-r border-gray-700">
         <TopBarMenu />
         <TopBarView />
         <TopBarBuilder />
