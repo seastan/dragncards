@@ -113,13 +113,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  pointer-events: auto;
+  pointer-events: none;
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.2s ease;
 }
 .dnc3d-region-scroll-arrow.dnc3d-scroll-visible {
   opacity: 1;
+  pointer-events: auto;
 }
 .dnc3d-region-scroll-arrow--start:not(.dnc3d-scroll-vertical) {
   left: 0; top: 0; bottom: 0;
