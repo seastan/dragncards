@@ -9,6 +9,12 @@
      programmatically (e.g. scroll-into-view when a card near the edge animates),
      which shifts the whole table up and never scrolls back. clip cannot scroll. */
   overflow: clip;
+  /* ...but let lifted/flipping cards paint beyond the stage's top edge, over the
+     TopBar. The table region paints above the static TopBar strip, so the
+     overflow shows on top of it; bottom/side overflow runs off-screen behind the
+     chrome, so a generous margin is safe. clip-margin keeps clip non-scrollable,
+     so the scroll fix above is preserved. Tune the value if a tall flip clips. */
+  overflow-clip-margin: 20vh;
   /* The stage is the base play surface and must sit BELOW the app's overlays
      (top-bar Menu/View/Builder dropdowns at z-index 10000, modals, giant card,
      etc. — see Z_INDEX in engine/functions/common.js). Its opaque background
