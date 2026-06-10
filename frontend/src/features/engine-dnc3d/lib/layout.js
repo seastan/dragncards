@@ -1,4 +1,4 @@
-import { BASE_LIFT, PILE_STACK_Z, MAX_PILE_VISUAL_DEPTH, LAYER_Z, scaleDuration } from './config';
+import { BASE_LIFT, pileStackZPx, MAX_PILE_VISUAL_DEPTH, layerZPx, scaleDuration } from './config';
 import { easeOut } from './animation';
 
 // Attachment cards offset horizontally from their parent within a stack.
@@ -126,7 +126,7 @@ export function createLayout(state, projection, REGIONS) {
   }
 
   function regionLayerZ(regionId) {
-    return LAYER_Z * (REGIONS[regionId]?.layerIndex || 0);
+    return layerZPx(cardHeightPx()) * (REGIONS[regionId]?.layerIndex || 0);
   }
 
   // ── Layout functions ────────────────────────────────────────────────────────
@@ -316,7 +316,7 @@ export function createLayout(state, projection, REGIONS) {
     stackIds.forEach((sid, slotIdx) => {
       const stack = stacks[sid];
       const cappedIdx = Math.min(slotIdx, MAX_PILE_VISUAL_DEPTH - 1);
-      positions.push(...stackPositionsAtAnchor(stack, cx, cy, slotIdx * 100, cappedIdx * PILE_STACK_Z + lz));
+      positions.push(...stackPositionsAtAnchor(stack, cx, cy, slotIdx * 100, cappedIdx * pileStackZPx(ch) + lz));
     });
     return positions;
   }
@@ -331,6 +331,7 @@ export function createLayout(state, projection, REGIONS) {
     card.liftEl.style.top       = (top  - o.y) + 'px';
     card.liftEl.style.zIndex    = zIdx;
     card.pileZ                  = stackZ;
+    card.liftEl.style.transform = `translateZ(${BASE_LIFT + stackZ}px)`;
     card.cardEl._layoutRotation = rot;
     card.cardEl.style.transform = `perspective(300vw) rotateY(${card.cardEl._angle}deg) rotateZ(${rot + (card.cardEl._gameRotation || 0)}deg) scale(1)`;
   }

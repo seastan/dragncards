@@ -1,4 +1,4 @@
-import { COLORS, BASE_LIFT, PILE_STACK_Z, MAX_PILE_VISUAL_DEPTH, LAYER_Z, DEFAULT_REGIONS, scaleDuration, ATTACH_WIGGLE_DVH, DRAG_EDGE_SCROLL_SPEED, GROW, FLIP, OVERLAP } from './config';
+import { COLORS, BASE_LIFT, pileStackZPx, MAX_PILE_VISUAL_DEPTH, layerZPx, DEFAULT_REGIONS, scaleDuration, ATTACH_WIGGLE_DVH, DRAG_EDGE_SCROLL_SPEED, GROW, FLIP, OVERLAP } from './config';
 import { createState } from './state';
 import { createProjection } from './projection';
 import { createLayout } from './layout';
@@ -80,13 +80,13 @@ export function createDnc3DEngine(options = {}) {
     const heightPct = Math.min(88, (cardH / tiltH) * 100 * 1.15 + 3);
     const topPct    = 100 - heightPct - 25;
 
-    // The scroll outer sits at translateZ(LAYER_Z * layerIndex) = 540px above the
+    // The scroll outer sits at translateZ(layerZPx(cardHeightPx()) * layerIndex) above the
     // tilt plane, plus the tilt plane itself is at z = y * sinA at the center Y of
     // the region. The perspective scale at this combined Z makes the region appear
     // wider on screen than its CSS width. Compute the max CSS width that keeps the
     // apparent screen width within 96% of the viewport.
     const layerIndex = 2;
-    const layerZ   = LAYER_Z * layerIndex;
+    const layerZ   = layerZPx(cardHeightPx()) * layerIndex;
     const P        = stagePx();
     const rad      = _currentDeg * Math.PI / 180;
     const sinA     = Math.sin(rad);
@@ -316,7 +316,7 @@ export function createDnc3DEngine(options = {}) {
 
     const scrollOuter = document.createElement('div');
     scrollOuter.className = 'dnc3d-region-scroll-outer';
-    scrollOuter.style.transform = `translateZ(${LAYER_Z * r.layerIndex}px)`;
+    scrollOuter.style.transform = `translateZ(${layerZPx(cardHeightPx()) * r.layerIndex}px)`;
     _tiltEl.appendChild(scrollOuter);
     scrollOuterEls['_browse'] = scrollOuter;
     setScrollOuter('_browse', scrollOuter);
@@ -324,7 +324,7 @@ export function createDnc3DEngine(options = {}) {
 
     const outline = document.createElement('div');
     outline.className = 'dnc3d-region-outline dnc3d-region-elevated';
-    outline.style.transform  = `translateZ(${LAYER_Z * r.layerIndex - 1}px)`;
+    outline.style.transform  = `translateZ(${layerZPx(cardHeightPx()) * r.layerIndex - 1}px)`;
     outline.style.left       = r.left   + '%';
     outline.style.top        = r.top    + '%';
     outline.style.width      = r.width  + '%';
@@ -586,9 +586,9 @@ export function createDnc3DEngine(options = {}) {
     function dragLiftMax() {
       let maxLayerZ = 0;
       for (const r of Object.values(REGIONS)) {
-        if (r.layerIndex) maxLayerZ = Math.max(maxLayerZ, LAYER_Z * r.layerIndex);
+        if (r.layerIndex) maxLayerZ = Math.max(maxLayerZ, layerZPx(cardHeightPx()) * r.layerIndex);
       }
-      return maxLayerZ + (MAX_PILE_VISUAL_DEPTH - 1) * PILE_STACK_Z + window.innerHeight * 0.04;
+      return maxLayerZ + (MAX_PILE_VISUAL_DEPTH - 1) * pileStackZPx(cardHeightPx()) + window.innerHeight * 0.04;
     }
 
     function setLiftVisuals(z_px, x_px = 0) {
@@ -996,7 +996,7 @@ export function createDnc3DEngine(options = {}) {
           return stack.cardIds.map((cid, cardIdx) => {
             const c = cards[cid];
             const target = resolveTarget(c, cardIdx);
-            const layerOffset = LAYER_Z * (REGIONS[c.regionId]?.layerIndex || 0);
+            const layerOffset = layerZPx(cardHeightPx()) * (REGIONS[c.regionId]?.layerIndex || 0);
             return {
               card: c,
               left: target.left,
@@ -1206,7 +1206,7 @@ export function createDnc3DEngine(options = {}) {
                 }
               })(performance.now());
             } else {
-              const layerZ = LAYER_Z * (REGIONS[targetRegionId]?.layerIndex || 0);
+              const layerZ = layerZPx(cardHeightPx()) * (REGIONS[targetRegionId]?.layerIndex || 0);
               droppedStackCards.forEach(c => { c.pileZ = layerZ; });
               liftDown(280, null);
             }
@@ -1502,7 +1502,7 @@ export function createDnc3DEngine(options = {}) {
       if (r.type !== 'row' && r.type !== 'fan') return;
       const el = document.createElement('div');
       el.className = 'dnc3d-region-scroll-outer';
-      if (r.layerIndex > 0) el.style.transform = `translateZ(${LAYER_Z * r.layerIndex}px)`;
+      if (r.layerIndex > 0) el.style.transform = `translateZ(${layerZPx(cardHeightPx()) * r.layerIndex}px)`;
       tiltEl.appendChild(el);
       scrollOuterEls[id] = el;
       setScrollOuter(id, el);
@@ -1530,7 +1530,7 @@ export function createDnc3DEngine(options = {}) {
       outline.className = 'dnc3d-region-outline';
       if (r.layerIndex > 0) {
         outline.classList.add('dnc3d-region-elevated');
-        outline.style.transform = `translateZ(${LAYER_Z * r.layerIndex - 1}px)`;
+        outline.style.transform = `translateZ(${layerZPx(cardHeightPx()) * r.layerIndex - 1}px)`;
       }
       if (r.backgroundColor) outline.style.backgroundColor = r.backgroundColor;
       outline.style.left   = r.left   + '%';
@@ -1889,7 +1889,7 @@ export function createDnc3DEngine(options = {}) {
           // scroll-outer — so its resting translateZ must include BOTH the
           // scroll-outer's layer Z and the card's own pile Z, or it would jump in
           // depth when reparented back into the scroll-outer on completion.
-          const layerZ = LAYER_Z * (REGIONS['_browse']?.layerIndex || 0);
+          const layerZ = layerZPx(cardHeightPx()) * (REGIONS['_browse']?.layerIndex || 0);
           let restStackZ      = layerZ;
           let slideTargetLeft = fromLeft, slideTargetTop = fromTop;
           const myPos = layoutFan('_browse').find(p => p.cardId === card.id);
@@ -1939,7 +1939,7 @@ export function createDnc3DEngine(options = {}) {
           // The translateZ the card should settle at — its top-of-stack height in
           // the destination region. The flip descends straight to this instead of
           // dropping to the table (z=0) and bouncing back up via a follow-up layout.
-          let endStackZ = LAYER_Z * (REGIONS[card.regionId]?.layerIndex || 0);
+          let endStackZ = layerZPx(cardHeightPx()) * (REGIONS[card.regionId]?.layerIndex || 0);
 
           if (regionType === 'free') {
             // Free regions store position as fractions in dcStack.left/top.
@@ -2017,7 +2017,7 @@ export function createDnc3DEngine(options = {}) {
             if (scrollStackToCenter(destGroupId, card.stackId)) layoutRegion(destGroupId, card.stackId);
 
             let slideTargetLeft = fromLeft, slideTargetTop = fromTop;
-            let endStackZ = LAYER_Z * (REGIONS[destGroupId]?.layerIndex || 0);
+            let endStackZ = layerZPx(cardHeightPx()) * (REGIONS[destGroupId]?.layerIndex || 0);
             if (destType === 'free') {
               const dcStack = stackById[dcCard.stackId];
               if (dcStack?.left != null && _tiltEl) {

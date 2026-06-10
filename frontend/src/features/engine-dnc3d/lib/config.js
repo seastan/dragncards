@@ -3,9 +3,21 @@ export const PERSP_VW = 300;
 
 // Card lift / flip animation constants
 export const BASE_LIFT           = 0.01; // keep a tiny non-zero Z to avoid first-drag layer flash
-export const PILE_STACK_Z        = 1.5;  // px of translateZ per card position in a pile
 export const MAX_PILE_VISUAL_DEPTH = 30; // pile visual depth is capped at this many cards
-export const LAYER_Z       = 60;  // px of translateZ per layerIndex step
+
+// translateZ depths are a fraction of the rendered card height. The on-screen
+// gap a translateZ produces and the card's on-screen height share the same
+// perspective factor (P/D), so it cancels: pile-gap / card-height ≈
+// (Z / cardHeight)·tanθ. Keying Z to card height therefore holds the apparent
+// pile/layer depth constant relative to the cards under any resize — when the
+// cards shrink, the gap shrinks with them. (vw / dvh bases fail here: they
+// don't track card height, so the gap stays put as the cards shrink.)
+export const PILE_STACK_Z_FRAC = 0.0175; // fraction of card height per card position in a pile
+export const LAYER_Z_FRAC      = 0.7;   // fraction of card height per layerIndex step
+
+export const dvhPx        = () => window.innerHeight / 100;
+export const pileStackZPx = (cardH) => PILE_STACK_Z_FRAC * cardH;
+export const layerZPx     = (cardH) => LAYER_Z_FRAC * cardH;
 export const ANIMATION_SPEED_MULTIPLIER = 1;
 export const ATTACH_WIGGLE_DVH = 8; // horizontal wiggle on card attachment, in dvh
 export const DRAG_EDGE_SCROLL_SPEED = 0.048; // auto-scroll speed when dragging near region edge, as fraction of card width per frame (~60fps)
