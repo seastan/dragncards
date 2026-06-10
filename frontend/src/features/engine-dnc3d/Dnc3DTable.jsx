@@ -244,7 +244,7 @@ export default function Dnc3DTable({
     if (browseGroupId && idMap && gameRef.current) {
       engine.openBrowse(browseGroupId, gameRef.current, idMap);
     } else {
-      engine.closeBrowse();
+      engine.closeBrowse(gameRef.current, idMap);
     }
   }, [browseGroupId]); // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -363,10 +363,27 @@ export function createDnc3DEngine(options = {}) {
   }
 
   // ── Browse API ─────────────────────────────────────────────────────────────
+  // Snaps a card to the side the observing player should see (the front when
+  // peeking at a face-down card, otherwise its currentSide) with no animation.
+  // Used when opening browse so the reveal is already in place by the time
+  // reconcile runs — otherwise reconcile fires a flip animation that collides
+  // with the browse region rising in Z, producing a stutter/jump.
+  function _snapCardToExpectedSide(card, dcCard) {
+    if (!card || !card.cardEl || !dcCard || card.cardEl._animating) return;
+    const peeking      = !!(_playerN && dcCard.peeking && dcCard.peeking[_playerN]);
+    const expectedSide = peeking ? 'A' : (dcCard.currentSide || 'A');
+    const visualSide   = ((((card.cardEl._angle % 360) + 360) % 360) === 180) ? 'B' : 'A';
+    if (visualSide === expectedSide) return;
+    card.cardEl._angle += 180;
+    card.cardEl.style.transition = '';
+    card.cardEl.style.transform =
+      `perspective(300vw) rotateY(${card.cardEl._angle}deg) rotateZ(${(card.cardEl._layoutRotation || 0) + (card.cardEl._gameRotation || 0)}deg) scale(1)`;
+  }
+
   // Opens the browse fan for a group, moving its cards to the browse region.
   // game/idMap come from the current Dnc3DTable reconcile refs.
   function openBrowse(browseGroupId, game, idMap) {
-    if (_browseGroupId) closeBrowse();
+    if (_browseGroupId) closeBrowse(game, idMap);
     _browseGroupId = browseGroupId;
 
     const group = game?.groupById?.[browseGroupId];
@@ -392,13 +409,23 @@ export function createDnc3DEngine(options = {}) {
       if (!card) return;
       _browseAllEngineStacks.push({ engineStackId: card.stackId, dcStackIndex });
       moveStackToRegion(card.stackId, '_browse');
+      // Snap every card in the stack to its revealed side before reconcile runs,
+      // so opening browse doesn't animate a flip while the region rises into place.
+      dcStack.cardIds.forEach(cid => {
+        const idx = idMap.get(cid);
+        if (idx !== undefined) _snapCardToExpectedSide(cards[idx], game.cardById?.[cid]);
+      });
     });
 
-    updateBrowseFilter(_browseAllEngineStacks.map(e => e.dcStackIndex));
+    // instant: opening browse is a "peek" ability, not a physical move — the
+    // cards should appear in the fan rather than sliding in from their home pile.
+    updateBrowseFilter(_browseAllEngineStacks.map(e => e.dcStackIndex), true);
   }
 
-  // Closes browse, restoring all cards to their home region.
-  function closeBrowse() {
+  // Closes browse, restoring all cards to their home region. game/idMap (from the
+  // reconcile refs) let us snap orientation back instantly; without them the cards
+  // still return to their slots, just without the side fix-up.
+  function closeBrowse(game, idMap) {
     if (!_browseGroupId) return;
     const homeGroupId = _browseGroupId;
 
@@ -411,7 +438,18 @@ export function createDnc3DEngine(options = {}) {
       if (regionState[homeGroupId]) moveStackToRegion(engineStackId, homeGroupId);
     });
 
-    if (regionState[homeGroupId]) layoutRegion(homeGroupId);
+    // instant: closing browse is the inverse "peek" — cards should reappear in
+    // their table positions and orientations rather than sliding/flipping back.
+    if (regionState[homeGroupId]) layoutRegion(homeGroupId, null, true);
+    if (game && idMap) {
+      const homeGroup = game.groupById?.[homeGroupId];
+      (homeGroup?.stackIds || []).forEach(dcStackId => {
+        (game.stackById?.[dcStackId]?.cardIds || []).forEach(cid => {
+          const idx = idMap.get(cid);
+          if (idx !== undefined) _snapCardToExpectedSide(cards[idx], game.cardById?.[cid]);
+        });
+      });
+    }
 
     // Restore the home region's table DOM.
     for (const el of [scrollOuterEls[homeGroupId], regionOutlineEls[homeGroupId],
@@ -428,7 +466,8 @@ export function createDnc3DEngine(options = {}) {
 
   // Updates which stacks are visible in the browse fan.
   // filteredDcStackIndices: array of indices into the original group.stackIds.
-  function updateBrowseFilter(filteredDcStackIndices) {
+  // instant: place cards with no slide animation (used when first opening browse).
+  function updateBrowseFilter(filteredDcStackIndices, instant = false) {
     if (!_browseGroupId || !regionState['_browse']) return;
     const filteredSet = new Set(filteredDcStackIndices);
     regionState['_browse'].stackIds = [];
@@ -451,7 +490,7 @@ export function createDnc3DEngine(options = {}) {
       const c = cards[stacks[sid]?.cardIds?.[0]];
       if (c && c.liftPx > 1) { inFlightStackId = sid; break; }
     }
-    layoutRegion('_browse', inFlightStackId);
+    layoutRegion('_browse', inFlightStackId, instant);
   }
 
   // Re-derives the browse snapshot from the current game state. _browseAllEngineStacks
@@ -512,6 +551,7 @@ export function createDnc3DEngine(options = {}) {
     cardEl._layoutRotation = 0;
     cardEl._gameRotation   = 0;
     cardEl._rotTransId     = null;
+    cardEl._peeking        = false;
 
     const front = document.createElement('div');
     front.className = 'dnc3d-card-face dnc3d-card-front';
@@ -1864,7 +1904,15 @@ export function createDnc3DEngine(options = {}) {
       // Normalize into [0,360) so a card flipped the negative direction
       // (_angle e.g. -180) is still correctly detected as showing side B.
       const currentVisualSide = ((((card.cardEl._angle % 360) + 360) % 360) === 180) ? 'B' : 'A';
-      if (currentVisualSide !== expectedSide && !card.cardEl._animating) {
+      // A change in the peeking bit is a "peek" reveal/hide, not a physical flip,
+      // so snap the card to its side instantly rather than animating. This also
+      // covers closing browse, where the top card's peeking is cleared by a
+      // separate dispatch that lands after closeBrowse has already run.
+      const peekingChanged = peeking !== (card.cardEl._peeking || false);
+      card.cardEl._peeking = peeking;
+      if (currentVisualSide !== expectedSide && peekingChanged && !card.cardEl._animating) {
+        _snapCardToExpectedSide(card, dcCard);
+      } else if (currentVisualSide !== expectedSide && !card.cardEl._animating) {
         card.cardEl._animating = true;
         const startAngle = card.cardEl._angle;
         card.cardEl._angle += 180;

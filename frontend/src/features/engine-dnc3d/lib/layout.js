@@ -326,6 +326,10 @@ export function createLayout(state, projection, REGIONS) {
 
   function placeCardAt(card, left, top, rot, zIdx, stackZ = 0) {
     ensureCardParent(card);
+    // placeCardAt is the instant primitive — clear any lingering transform
+    // transition (e.g. from a recent game-rotation) so nothing animates.
+    if (card.cardEl._rotTransId) { clearTimeout(card.cardEl._rotTransId); card.cardEl._rotTransId = null; }
+    card.cardEl.style.transition = '';
     const o = originOf(card.regionId);
     card.liftEl.style.left      = (left - o.x) + 'px';
     card.liftEl.style.top       = (top  - o.y) + 'px';
@@ -574,7 +578,10 @@ export function createLayout(state, projection, REGIONS) {
 
   // Animates all cards in the region to their layout positions.
   // Skips cards whose stack matches excludeStackId (used for the inserted stack).
-  function layoutRegion(regionId, excludeStackId = null) {
+  // instant: place cards at their computed slots with no slide animation. Used
+  // when opening browse, where the reveal is a "peek" ability and not a physical
+  // move of the cards, so they should simply appear in the fan.
+  function layoutRegion(regionId, excludeStackId = null, instant = false) {
     if (!regionId || !REGIONS[regionId] || REGIONS[regionId].type === 'free') return null;
     let positions;
     switch (REGIONS[regionId].type) {
@@ -586,7 +593,12 @@ export function createLayout(state, projection, REGIONS) {
     positions.forEach(pos => {
       const card = cards[pos.cardId];
       if (excludeStackId !== null && card.stackId === excludeStackId) return;
-      animateCardTo(card, pos.left, pos.top, pos.rot, pos.zIndex, 300, pos.stackZ || 0);
+      if (instant) {
+        if (card.layoutAnimId) { cancelAnimationFrame(card.layoutAnimId); card.layoutAnimId = null; }
+        placeCardAt(card, pos.left, pos.top, pos.rot, pos.zIndex, pos.stackZ || 0);
+      } else {
+        animateCardTo(card, pos.left, pos.top, pos.rot, pos.zIndex, 300, pos.stackZ || 0);
+      }
     });
     if (_afterLayoutHook) _afterLayoutHook(regionId);
     return positions;
