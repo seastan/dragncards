@@ -764,11 +764,16 @@ export function createDnc3DEngine(options = {}) {
         c.liftEl.style.top  = (primaryTop  + c.dragOffFromPrimary.dy) + 'px';
       });
 
-      const parentCard = dragStackCards[0];
       const tw = parseFloat(_tiltEl.style.width);
       const th = parseFloat(_tiltEl.style.height);
-      const cx = parseFloat(parentCard.liftEl.style.left) + cardWidthPx()  / 2;
-      const cy = parseFloat(parentCard.liftEl.style.top)  + cardHeightPx() / 2;
+      // Hit-test the drop location from the cursor itself, projected onto the
+      // table surface (Z=0) where the regions actually live — not the dragged
+      // card's center and not the lifted card plane (projecting at the lift
+      // height would offset the point under perspective tilt). Matches the
+      // attach hit-test below, which already keys off the raw e.clientX/Y.
+      const cursorTp = screenToTableAtZ(e.clientX, e.clientY, 0, _tiltEl, _currentDeg);
+      const cx = cursorTp.x;
+      const cy = cursorTp.y;
 
       // ── Attach-gesture hit-test ──────────────────────────────────────────────
       let newHoverAttachStackId = null;
@@ -993,9 +998,11 @@ export function createDnc3DEngine(options = {}) {
         hoverAttachCardId   = null;
         hoverAttachSide     = null;
 
-        const parentCard = droppedStackCards[0];
-        const dropCX = (parseFloat(parentCard.liftEl.style.left) + cardWidthPx()  / 2) / tw * 100;
-        const dropCY = (parseFloat(parentCard.liftEl.style.top)  + cardHeightPx() / 2) / th * 100;
+        // Determine the drop region from the cursor projected onto the table
+        // surface (Z=0), matching the live hover feedback during the drag.
+        const dropTp = screenToTableAtZ(e.clientX, e.clientY, 0, _tiltEl, _currentDeg);
+        const dropCX = dropTp.x / tw * 100;
+        const dropCY = dropTp.y / th * 100;
         const _rawTargetRegion = findRegionAtPoint(dropCX, dropCY);
         // Treat the browse home region as empty while it's being browsed.
         const targetRegionId = (_rawTargetRegion === _browseGroupId) ? null : _rawTargetRegion;
