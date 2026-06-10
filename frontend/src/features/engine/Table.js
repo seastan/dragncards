@@ -109,6 +109,8 @@ export const Table = React.memo(({onDragEnd}) => {
               ? <Dnc3DTable
                   game={game}
                   layoutRegions={layout?.regions}
+                  layoutTextBoxes={layout?.textBoxes}
+                  layoutTableButtons={layout?.tableButtons}
                   gameDef={gameDef}
                   language={language}
                   doActionList={doActionList}

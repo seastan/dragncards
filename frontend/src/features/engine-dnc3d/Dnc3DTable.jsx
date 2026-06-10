@@ -1,21 +1,30 @@
 import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { setActiveCardId, setDropdownMenu, setMouseTopBottom, setMouseXY, setScreenLeftRight } from '../store/playerUiSlice';
+import { setActiveCardId, setDropdownMenu, setMouseTopBottom, setMouseXY, setScreenLeftRight, toggleMultiSelectCardId } from '../store/playerUiSlice';
 import store from '../../store';
 import { createDnc3DEngine } from './lib/engine';
 import { adaptRegions, gameL10n } from './adapters/regions';
 import { adaptGameState } from './adapters/cards';
 import { buildEngineCallbacks } from './adapters/actions';
 import { useBrowseTopN } from '../engine/hooks/useBrowseTopN';
+import { convertToPercentage, Z_INDEX } from '../engine/functions/common';
+import { TableButton } from '../engine/TableButton';
+import { Prompts } from '../engine/Prompts';
 import { Tokens } from '../engine/Tokens';
+import { MultiSelectOverlay } from '../engine/MultiSelectOverlay';
 import { Dnc3DHudChat } from './Dnc3DHudChat';
 import { Dnc3DHudBrowse } from './Dnc3DHudBrowse';
 import './Dnc3DTable.css';
 
 function CardTokens({ cardId, aspectRatio }) {
   const isActive = useSelector(s => s?.playerUi?.activeCardId === cardId);
-  return <Tokens cardId={cardId} isActive={isActive} aspectRatio={aspectRatio} />;
+  return (
+    <>
+      <Tokens cardId={cardId} isActive={isActive} aspectRatio={aspectRatio} />
+      <MultiSelectOverlay cardId={cardId} />
+    </>
+  );
 }
 
 // Wrapper component for the dnc3d engine.
@@ -31,6 +40,8 @@ export default function Dnc3DTable({
   // Connected mode props — all optional; omitting them uses demo mode
   game,
   layoutRegions,
+  layoutTextBoxes,
+  layoutTableButtons,
   gameDef,
   language,
   doActionList,
@@ -53,6 +64,7 @@ export default function Dnc3DTable({
   }) || gameDef?.backgroundUrl || null;
 
   const browseGroupId = useSelector(s => s?.gameUi?.game?.playerData?.[observingPlayerN]?.browseGroup?.id);
+  const multiSelectEnabled = useSelector(s => s?.playerUi?.multiSelect?.enabled);
 
   const [tokenPortals, setTokenPortals] = useState([]);
 
@@ -76,6 +88,7 @@ export default function Dnc3DTable({
   const zoomFactorRef         = useRef(zoomFactor);
   const tableBackgroundUrlRef = useRef(tableBackgroundUrl);
   const browseGroupIdRef      = useRef(browseGroupId);
+  const multiSelectEnabledRef = useRef(multiSelectEnabled);
   gameRef.current            = game;
   layoutRef.current          = layoutRegions;
   gameDefRef.current         = gameDef;
@@ -87,6 +100,7 @@ export default function Dnc3DTable({
   zoomFactorRef.current         = zoomFactor;
   tableBackgroundUrlRef.current = tableBackgroundUrl;
   browseGroupIdRef.current      = browseGroupId;
+  multiSelectEnabledRef.current = multiSelectEnabled;
 
   // Re-initialize the engine whenever the card set changes.
   // This handles: switching to dnc3d after cards are loaded, and loading a
@@ -152,6 +166,13 @@ export default function Dnc3DTable({
         onCardClick:    (engineId, clientX, clientY) => {
           const dcId = reverseIdMap.get(engineId);
           if (dcId == null) return;
+          // Multi-select mode (e.g. a selectCards prompt): a click toggles the
+          // card's membership in the selection instead of activating it / opening
+          // the card menu — mirrors CardMouseRegion.handleClick in the 2D engine.
+          if (multiSelectEnabledRef.current) {
+            dispatch(toggleMultiSelectCardId(dcId));
+            return;
+          }
           const card = gameRef.current?.cardById?.[dcId];
           console.log('dnc3d card click', card);
           const title = card?.sides?.[card?.currentSide]?.name || '';
@@ -285,6 +306,42 @@ export default function Dnc3DTable({
       <div className="dnc3d-tilt" ref={tiltRef} />
       {game && <Dnc3DHudChat />}
       {game && <Dnc3DHudBrowse onFilterChange={handleBrowseFilterChange} />}
+      {/* Player prompts — self-contained draggable overlay (reads visible prompts
+          from Redux, renders null when there are none). Positioned relative to
+          the stage, same as in the 2D TableLayout. */}
+      {game && <Prompts />}
+      {/* Hover TextBox overlays — screen-space, positioned relative to the stage.
+          Like the other 3D engines (pixi/r3f), only hover textboxes are drawn:
+          non-hover ones live on the tilted table surface, which this renderer
+          doesn't place flat overlays onto. */}
+      {layoutTextBoxes && Object.entries(layoutTextBoxes).map(([id, tb]) => {
+        if (tb.visible === false || !tb.hover) return null;
+        const customStyle = tb.style || {};
+        return (
+          <div
+            key={id}
+            className="absolute flex border border-gray-500 justify-center items-center text-gray-400 bg-gray-700 text-nowrap overflow-hidden"
+            style={{
+              left: convertToPercentage(tb.left),
+              top: convertToPercentage(tb.top),
+              width: convertToPercentage(tb.width),
+              height: convertToPercentage(tb.height),
+              pointerEvents: 'none',
+              zIndex: Z_INDEX.Modal,
+              ...customStyle,
+            }}>
+            {gameL10n(tb.label, gameDef, language)}
+          </div>
+        );
+      })}
+      {/* Table buttons — screen-space controls positioned relative to the stage.
+          TableButton is self-contained (its own playerN / doActionList / l10n
+          hooks), and at Z_INDEX.TableButton it floats above the tilted table
+          layer so it stays clickable in 3D. */}
+      {layoutTableButtons && Object.entries(layoutTableButtons).map(([id, tableButton]) => {
+        if (tableButton.visible === false) return null;
+        return <TableButton key={id} tableButton={tableButton} />;
+      })}
       {tokenPortals.map(({ dcId, frontEl, aspectRatio }) =>
         createPortal(<CardTokens cardId={dcId} aspectRatio={aspectRatio} />, frontEl, dcId)
       )}

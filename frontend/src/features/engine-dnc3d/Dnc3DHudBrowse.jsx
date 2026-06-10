@@ -152,7 +152,7 @@ export const Dnc3DHudBrowse = ({ onFilterChange }) => {
 
   return (
     <div style={{
-      position: 'absolute', bottom: '8px', left: '50%',
+      position: 'absolute', bottom: 'calc(8px + 5%)', left: '50%',
       transform: 'translateX(-50%)',
       background: 'rgba(22, 22, 28, 0.97)', color: 'white',
       borderRadius: '10px', fontFamily: 'system-ui', fontSize: '13px',

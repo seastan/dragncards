@@ -1859,6 +1859,56 @@ export function createDnc3DEngine(options = {}) {
     };
   }
 
+  // Re-sync a home region's stack ORDER to the backend group order. The per-card
+  // loop in reconcile handles membership (a card moving to a different group) but
+  // not a pure reorder within a group — e.g. a shuffle, which permutes
+  // group.stackIds without moving any card to another group. Without this the
+  // engine keeps its stale order, so a pile renders the wrong card on top and
+  // draws appear to originate from the middle of the deck until a full re-init
+  // (page refresh).
+  function syncRegionOrders(game, idMap) {
+    const groupById = game.groupById || {};
+    Object.keys(regionState).forEach(regionId => {
+      if (regionId === '_browse' || regionId === _browseGroupId) return;
+      const region = REGIONS[regionId];
+      if (!region || region.type === 'free') return;
+      const group = groupById[regionId];
+      if (!group) return;
+
+      // Desired engine-stack order, derived from the backend group order. Only
+      // stacks actually resident in this region count (membership has already
+      // been reconciled above). Piles are reversed to match the adapter: the
+      // game's top card (stackIds[0]) maps to the engine's top (last) slot.
+      const desired = [];
+      (group.stackIds || []).forEach(dcStackId => {
+        const firstDcCard = game.stackById?.[dcStackId]?.cardIds?.[0];
+        if (firstDcCard === undefined) return;
+        const idx = idMap.get(firstDcCard);
+        if (idx === undefined) return;
+        const card = cards[idx];
+        if (!card || card.regionId !== regionId) return;
+        desired.push(card.stackId);
+      });
+      if (region.type === 'pile') desired.reverse();
+
+      const current = regionState[regionId].stackIds;
+      // Membership still settling (a stack here isn't in the backend order, or
+      // vice-versa) — skip; a later reconcile syncs once membership matches.
+      if (desired.length !== current.length) return;
+      if (desired.every((sid, i) => sid === current[i])) return; // already in order
+
+      // Don't disturb an in-progress drag/flip/lift in this region.
+      const busy = current.some(sid => {
+        const c = cards[stacks[sid]?.cardIds?.[0]];
+        return c && (c.cardEl._animating || c.liftPx > 1);
+      });
+      if (busy) return;
+
+      regionState[regionId].stackIds = desired;
+      layoutRegion(regionId);
+    });
+  }
+
   // ── Reconcile engine visual state with current Redux game state ───────────
   // Called on every game state change. Applies targeted updates (rotation, flip,
   // group/position) without tearing down and rebuilding the whole engine.
@@ -2214,6 +2264,10 @@ export function createDnc3DEngine(options = {}) {
         }
       }
     });
+
+    // Apply any intra-group reordering (e.g. a shuffle) after membership above
+    // has settled, so piles/rows/fans reflect the backend stack order.
+    syncRegionOrders(game, idMap);
   }
 
   function getCardElements() {
