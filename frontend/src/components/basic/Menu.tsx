@@ -30,6 +30,91 @@ const MenuContext = React.createContext<MenuContextValue>({ close: () => {} });
 const useTouchMode = (): boolean =>
   useSelector((state: any) => !!state?.playerUi?.touchMode);
 
+// Hover-intent open/close: opening is immediate, but closing is deferred by a
+// short delay so that briefly crossing the small gap between a trigger and its
+// (absolutely-positioned) panel does not make the menu vanish before the
+// pointer reaches it.
+const CLOSE_DELAY_MS = 150;
+
+const useHoverIntent = (enabled: boolean) => {
+  const [open, setOpen] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearTimer = () => {
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+  };
+
+  useEffect(() => clearTimer, []);
+
+  const hoverProps = enabled
+    ? {
+        onMouseEnter: () => {
+          clearTimer();
+          setOpen(true);
+        },
+        onMouseLeave: () => {
+          clearTimer();
+          timer.current = setTimeout(() => setOpen(false), CLOSE_DELAY_MS);
+        },
+      }
+    : {};
+
+  return { open, setOpen, hoverProps, clearTimer };
+};
+
+// Coordinates the SubMenus that share one panel so that only one is open at a
+// time. Opening is immediate (which instantly closes any sibling), while
+// closing on mouse-out is deferred by CLOSE_DELAY_MS so the pointer can travel
+// across the small gap into the flyout without it disappearing.
+interface SubMenuGroupValue {
+  openId: string | null;
+  setOpen: (id: string | null) => void; // immediate
+  scheduleClose: (id: string) => void; // deferred; only closes if still this id
+  cancelClose: () => void;
+}
+const SubMenuGroupContext = React.createContext<SubMenuGroupValue | null>(null);
+
+let subMenuSeq = 0;
+const useSubMenuId = (): string => {
+  const idRef = useRef<string>();
+  if (idRef.current === undefined) idRef.current = `submenu-${subMenuSeq++}`;
+  return idRef.current;
+};
+
+const SubMenuGroupProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [openId, setOpenId] = useState<string | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cancelClose = () => {
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+  };
+  useEffect(() => cancelClose, []);
+
+  const setOpen = (id: string | null) => {
+    cancelClose();
+    setOpenId(id);
+  };
+  const scheduleClose = (id: string) => {
+    cancelClose();
+    timer.current = setTimeout(
+      () => setOpenId((cur) => (cur === id ? null : cur)),
+      CLOSE_DELAY_MS
+    );
+  };
+
+  return (
+    <SubMenuGroupContext.Provider value={{ openId, setOpen, scheduleClose, cancelClose }}>
+      {children}
+    </SubMenuGroupContext.Provider>
+  );
+};
+
 // Shared styling for any clickable row inside a menu panel.
 const itemClasses =
   "w-full text-left px-3 py-1.5 flex items-center justify-between gap-2 rounded text-sm " +
@@ -63,16 +148,22 @@ export const Menu: React.FC<MenuProps> = ({
   panelMinWidthRem = 14,
 }) => {
   const touchMode = useTouchMode();
-  const [open, setOpen] = useState(false);
   const ref = useRef<HTMLLIElement>(null);
+  const { open, setOpen, hoverProps, clearTimer } = useHoverIntent(!touchMode);
 
   useEffect(() => {
     if (!open) return;
     const onDocClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        clearTimer();
+        setOpen(false);
+      }
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        clearTimer();
+        setOpen(false);
+      }
     };
     document.addEventListener("mousedown", onDocClick);
     document.addEventListener("keydown", onKey);
@@ -81,13 +172,6 @@ export const Menu: React.FC<MenuProps> = ({
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
-
-  const hoverProps = touchMode
-    ? {}
-    : {
-        onMouseEnter: () => setOpen(true),
-        onMouseLeave: () => setOpen(false),
-      };
 
   return (
     <li ref={ref} role="none" className="relative h-full" {...hoverProps}>
@@ -107,11 +191,11 @@ export const Menu: React.FC<MenuProps> = ({
       {open && (
         <ul
           role="menu"
-          className={cx("absolute left-0 mt-px", panelClasses)}
+          className={cx("absolute left-0", panelClasses)}
           style={{ zIndex: 10001, minWidth: `${panelMinWidthRem}rem`, top: "100%" }}
         >
           <MenuContext.Provider value={{ close: () => setOpen(false) }}>
-            {children}
+            <SubMenuGroupProvider>{children}</SubMenuGroupProvider>
           </MenuContext.Provider>
         </ul>
       )}
@@ -164,15 +248,31 @@ export const SubMenu: React.FC<SubMenuProps> = ({
   panelMinWidthRem = 16,
 }) => {
   const touchMode = useTouchMode();
-  const [open, setOpen] = useState(false);
   const ref = useRef<HTMLLIElement>(null);
+  const id = useSubMenuId();
+  const group = useContext(SubMenuGroupContext);
+
+  // Fallback for the (unexpected) case of a SubMenu rendered outside a panel
+  // group: keep the previous self-contained hover-intent behavior.
+  const fallback = useHoverIntent(!touchMode);
+
+  const open = group ? group.openId === id : fallback.open;
+
+  const toggle = () => {
+    if (group) group.setOpen(group.openId === id ? null : id);
+    else fallback.setOpen((o) => !o);
+  };
 
   const hoverProps = touchMode
     ? {}
-    : {
-        onMouseEnter: () => setOpen(true),
-        onMouseLeave: () => setOpen(false),
-      };
+    : group
+    ? {
+        // Entering immediately makes this the one open submenu, instantly
+        // closing any sibling that was open.
+        onMouseEnter: () => group.setOpen(id),
+        onMouseLeave: () => group.scheduleClose(id),
+      }
+    : fallback.hoverProps;
 
   return (
     <li ref={ref} role="none" className="relative" {...hoverProps}>
@@ -181,7 +281,7 @@ export const SubMenu: React.FC<SubMenuProps> = ({
         role="menuitem"
         aria-haspopup="true"
         aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggle}
         className={cx(itemClasses, open ? "bg-gray-700 text-white" : "hover:bg-gray-700 hover:text-white")}
       >
         <span>{label}</span>
@@ -190,10 +290,10 @@ export const SubMenu: React.FC<SubMenuProps> = ({
       {open && (
         <ul
           role="menu"
-          className={cx("absolute top-0 left-full ml-px overflow-y-auto", panelClasses)}
+          className={cx("absolute top-0 left-full overflow-y-auto", panelClasses)}
           style={{ zIndex: 10002, minWidth: `${panelMinWidthRem}rem`, maxHeight: "60dvh" }}
         >
-          {children}
+          <SubMenuGroupProvider>{children}</SubMenuGroupProvider>
         </ul>
       )}
     </li>
