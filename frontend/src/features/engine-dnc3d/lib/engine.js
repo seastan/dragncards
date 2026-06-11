@@ -1131,15 +1131,17 @@ export function createDnc3DEngine(options = {}) {
               settleProgressAt: 0.5,
             });
           } else {
-            // Keep the dropped cards in the tilt plane for the lift/wiggle so they
-            // aren't clipped by the target region's scroll-outer overflow — the
-            // same problem the flip path avoids by living in the tilt plane. We
-            // compute the region layout directly, animate only the *other* cards
-            // into their (possibly shifted) slots, and slide the dropped cards in
-            // tilt space below, reparenting them into the scroll-outer once the
-            // wiggle settles. (attachStack already reassigned the dropped cards'
-            // stackId to the merged target stack, so layoutRegion's excludeStackId
-            // can no longer single them out.)
+            // The target region's scroll-outer flattens its children
+            // (overflow:hidden, no preserve-3d), so a card animating in the tilt
+            // plane can't tuck *among* the target stack's cards — it renders
+            // entirely in front of that flattened plane, and is also clipped at
+            // the region edge. To get both correct layering and no clipping, move
+            // the whole merged stack into the tilt plane (where per-card z-index
+            // is honored, as in the free-region branch) for the animation, then
+            // reparent every merged card back into the scroll-outer once settled.
+            const merged = targetStack; // stacks[droppedAttachSid] — now dropped + target cards
+            merged.cardIds.forEach(cid => moveCardToTilt(cards[cid]));
+
             const layoutFn = REGIONS[targetRegion].type === 'row' ? layoutRow
                            : REGIONS[targetRegion].type === 'fan' ? layoutFan
                            : layoutPile;
@@ -1147,25 +1149,44 @@ export function createDnc3DEngine(options = {}) {
             if (sourceRegion && sourceRegion !== targetRegion && REGIONS[sourceRegion]?.type !== 'free') {
               layoutRegion(sourceRegion);
             }
-            const droppedIdSet = new Set(droppedStackCards.map(c => c.id));
-            const droppedTargetByCardId = new Map(
-              regionPositions.filter(p => droppedIdSet.has(p.cardId)).map(p => [p.cardId, p])
-            );
-            const liftTargets = regionPositions
-              .filter(p => droppedIdSet.has(p.cardId))
-              .map(p => ({ card: cards[p.cardId], stackZ: p.stackZ || 0, zIndex: p.zIndex }));
-
-            regionPositions.forEach(p => {
-              if (droppedIdSet.has(p.cardId)) return;
-              const c = cards[p.cardId];
-              if (!c) return;
-              c.liftEl.style.zIndex = p.zIndex; // set now to avoid a brief paint-behind
-              animateCardTo(c, p.left, p.top, p.rot, p.zIndex, 280, p.stackZ || 0);
-            });
             // layoutRegion's after-layout hook (skipped since we laid out
             // directly): refresh the region's scroll bounds for its new width.
             updateSentinel(targetRegion);
             updateScrollArrows(targetRegion);
+
+            const mergedIdSet    = new Set(merged.cardIds);
+            const droppedIdSet   = new Set(droppedStackCards.map(c => c.id));
+            const targetByCardId = new Map(regionPositions.map(p => [p.cardId, p]));
+
+            // Other stacks in the region slide (within their scroll-outer) to make room.
+            regionPositions.forEach(p => {
+              if (mergedIdSet.has(p.cardId)) return;
+              const c = cards[p.cardId];
+              if (!c) return;
+              c.liftEl.style.zIndex = p.zIndex;
+              animateCardTo(c, p.left, p.top, p.rot, p.zIndex, 280, p.stackZ || 0);
+            });
+
+            // The merged stack's existing (non-dropped) cards are static — snap
+            // them into place in the tilt plane (no reparent) so they share the
+            // dropped cards' z-index context for correct layering.
+            merged.cardIds.forEach(cid => {
+              if (droppedIdSet.has(cid)) return;
+              const p = targetByCardId.get(cid);
+              const c = cards[cid];
+              if (!p || !c) return;
+              c.pileZ = p.stackZ || 0;
+              c.liftEl.style.left      = p.left + 'px';
+              c.liftEl.style.top       = p.top + 'px';
+              c.liftEl.style.zIndex    = p.zIndex;
+              c.liftEl.style.transform = `translateZ(${BASE_LIFT + (p.stackZ || 0)}px)`;
+              c.cardEl._layoutRotation = p.rot;
+              c.cardEl.style.transform = `perspective(300vw) rotateY(${c.cardEl._angle}deg) rotateZ(${p.rot + (c.cardEl._gameRotation || 0)}deg) scale(1)`;
+            });
+
+            const liftTargets = regionPositions
+              .filter(p => droppedIdSet.has(p.cardId))
+              .map(p => ({ card: cards[p.cardId], stackZ: p.stackZ || 0, zIndex: p.zIndex }));
 
             [...droppedStackCards].reverse().forEach(c => { c.liftEl.style.zIndex = nextTopZ(); });
 
@@ -1178,7 +1199,7 @@ export function createDnc3DEngine(options = {}) {
               const t = Math.min((now - slideStart) / slideDurMs, 1);
               const e = easeOut(t);
               droppedStackCards.forEach(c => {
-                const tgt = droppedTargetByCardId.get(c.id);
+                const tgt = targetByCardId.get(c.id);
                 const from = slideFrom.get(c.id);
                 if (!tgt || !from || c.liftEl.parentElement !== _tiltEl) return;
                 c.liftEl.style.left = (from.left + (tgt.left - from.left) * e) + 'px';
@@ -1188,12 +1209,13 @@ export function createDnc3DEngine(options = {}) {
             })(performance.now());
 
             liftDown(280, () => {
-              // Wiggle settled — reparent each dropped card into the target
-              // region's scroll-outer at its final tilt-space slot.
-              droppedStackCards.forEach(c => {
-                const tgt = droppedTargetByCardId.get(c.id);
-                if (!tgt) return;
-                placeCardAt(c, tgt.left, tgt.top, tgt.rot ?? 0, tgt.zIndex, tgt.stackZ || 0);
+              // Settled — reparent every merged card back into the region's
+              // scroll-outer at its final slot, restoring normal z-index layering.
+              merged.cardIds.forEach(cid => {
+                const p = targetByCardId.get(cid);
+                const c = cards[cid];
+                if (!p || !c) return;
+                placeCardAt(c, p.left, p.top, p.rot ?? 0, p.zIndex, p.stackZ || 0);
               });
             }, liftTargets.length ? liftTargets : null, {
               wiggleXPx: attachWiggleXPx,
