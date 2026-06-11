@@ -73,6 +73,8 @@
 }
 .dnc3d-region-outline.dnc3d-region-elevated {
   border-color: rgba(255,255,255,0.45);
+  /* DEBUG: see cards behind elevated regions. Remove when done. */
+  opacity: 0.9;
   /* Opaque panel so an elevated region reads as a solid surface floating above
      the table. Regions with an explicit backgroundColor override this inline. */
   background: #1f2937;
@@ -287,26 +289,106 @@
   transform: rotateY(180deg);
 }
 
-/* Attachment icon — shown on the dragged stack edge when hovering an attach zone */
+/* Attachment hint — shown on the dragged stack edge when hovering an attach
+   zone. The `.dnc3d-attach-icon` is a transparent positioning container; the
+   visible disc lives in `.dnc3d-attach-icon-circle` (painted on top) and the
+   label box (painted behind, tucked under the disc) so the two read as one
+   continuous shape. They share the same solid fill and border for a seamless
+   join. */
 .dnc3d-attach-icon {
   position: absolute;
   pointer-events: none;
+  opacity: 0;
+  transition: opacity 100ms ease-out;
+  z-index: 10001;
+}
+.dnc3d-attach-icon.dnc3d-is-visible { opacity: 1; }
+
+.dnc3d-attach-icon-circle {
+  position: absolute;
+  inset: 0;
+  z-index: 2; /* above the label so it covers the label's inner edge */
   border-radius: 50%;
-  background: rgba(20, 20, 20, 0.82);
+  background: rgb(24, 24, 24);
   border: 1.5px solid rgba(255, 255, 255, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
   color: rgba(255, 255, 255, 0.92);
-  opacity: 0;
-  transition: opacity 100ms ease-out;
-  z-index: 10001;
   box-shadow: 0 0.3vh 0.8vh rgba(0, 0, 0, 0.55);
 }
-.dnc3d-attach-icon.dnc3d-is-visible { opacity: 1; }
-.dnc3d-attach-icon svg {
+.dnc3d-attach-icon-circle svg {
   width: 55%;
   height: 55%;
+}
+
+/* Label box that grows out of the disc toward "Attach to <name> (side)".
+   Its inner half is tucked behind the opaque disc; it scales open over 0.3s
+   when the parent icon gains .dnc3d-is-visible. */
+.dnc3d-attach-label {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  height: 100%; /* match the disc's diameter */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  gap: 0.1em;
+  padding: 0.3em 0.85em;
+  box-sizing: border-box;
+  min-width: 9.5em;
+  max-width: 18em;
+  white-space: nowrap;
+  background: rgb(24, 24, 24);
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 0.3vh 0.8vh rgba(0, 0, 0, 0.55);
+  color: rgba(255, 255, 255, 0.92);
+  /* Hidden state: collapsed toward the disc. The grow runs when the parent
+     icon gains .dnc3d-is-visible. */
+  opacity: 0;
+  transform: translateY(-50%) scaleX(0);
+  transition: transform 300ms ease-out, opacity 300ms ease-out;
+}
+.dnc3d-attach-label-out-right {
+  left: 50%; /* inner half hidden behind the disc */
+  padding-left: 2.6em; /* center the text in the visible area beyond the disc */
+  transform-origin: left center;
+  border-left: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-top-right-radius: 0.7em;
+  border-bottom-right-radius: 0.7em;
+}
+.dnc3d-attach-label-out-left {
+  right: 50%; /* inner half hidden behind the disc */
+  padding-right: 2.6em; /* center the text in the visible area beyond the disc */
+  transform-origin: right center;
+  border-right: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-top-left-radius: 0.7em;
+  border-bottom-left-radius: 0.7em;
+}
+.dnc3d-attach-icon.dnc3d-is-visible .dnc3d-attach-label {
+  opacity: 1;
+  transform: translateY(-50%) scaleX(1);
+}
+.dnc3d-attach-label-head {
+  font-size: 0.75em;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+}
+.dnc3d-attach-label-name {
+  font-size: 1.1em;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dnc3d-attach-label-side {
+  font-size: 0.8em;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .dnc3d-stack-zone { position: absolute; pointer-events: none; }

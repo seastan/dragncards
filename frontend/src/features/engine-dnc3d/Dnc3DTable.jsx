@@ -196,6 +196,12 @@ export default function Dnc3DTable({
         onDragStart: () => {
           dispatch(setActiveCardId(null));
         },
+        getCardName: (engineId) => {
+          const dcId = reverseIdMap.get(engineId);
+          if (dcId == null) return '';
+          const card = gameRef.current?.cardById?.[dcId];
+          return card?.sides?.[card?.currentSide]?.name || '';
+        },
         onGroupBrowse: (groupId) => browseTopN(groupId, 'All'),
         onGroupMenu:   (groupId, clientX, clientY) => {
           const group = gameRef.current?.groupById?.[groupId];
