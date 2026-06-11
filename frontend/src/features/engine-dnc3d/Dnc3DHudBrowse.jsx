@@ -135,45 +135,53 @@ export const Dnc3DHudBrowse = ({ onFilterChange }) => {
   const midBg   = '#1f2937';
   const hoverBg = '#374151';
 
+  // Size unit: all HUD dimensions scale with viewport height via the --hud-u
+  // custom property set on the root container (1 unit ≈ 1px at a 1000px-tall
+  // viewport). u(n) keeps the prior px numbers readable while making the whole
+  // HUD proportional to the table as it resizes; tune --hud-u to rescale it all.
+  // (1px hairline borders/dividers stay literal px so they don't blur.)
+  const u = (n) => `calc(${n} * var(--hud-u))`;
+
   const btnStyle = (active) => ({
-    padding: '5px 10px', borderRadius: '5px', cursor: 'pointer',
+    padding: `${u(5)} ${u(10)}`, borderRadius: u(5), cursor: 'pointer',
     background: active ? '#7f1d1d' : midBg,
     border: active ? '1px solid #ef4444' : '1px solid transparent',
-    color: 'white', fontSize: '12px', textAlign: 'center', flex: '1 1 0',
+    color: 'white', fontSize: u(12), textAlign: 'center', flex: '1 1 0',
     transition: 'background 0.1s',
   });
 
   const closeBtnStyle = {
-    padding: '5px 10px', borderRadius: '5px', cursor: 'pointer',
+    padding: `${u(5)} ${u(10)}`, borderRadius: u(5), cursor: 'pointer',
     background: midBg, border: '1px solid transparent',
-    color: 'white', fontSize: '12px', textAlign: 'center', width: '100%',
+    color: 'white', fontSize: u(12), textAlign: 'center', width: '100%',
     transition: 'background 0.1s',
   };
 
   return (
     <div style={{
-      position: 'absolute', bottom: 'calc(8px + 5%)', left: '50%',
+      '--hud-u': '0.1dvh',
+      position: 'absolute', bottom: `calc(${u(8)} + 5%)`, left: '50%',
       transform: 'translateX(-50%)',
       background: 'rgba(22, 22, 28, 0.97)', color: 'white',
-      borderRadius: '10px', fontFamily: 'system-ui', fontSize: '13px',
-      zIndex: 10000, width: '640px', maxWidth: '92vw',
-      boxShadow: '0 4px 24px rgba(0,0,0,0.85)', userSelect: 'none',
+      borderRadius: u(10), fontFamily: 'system-ui', fontSize: u(13),
+      zIndex: 10000, width: u(640), maxWidth: '92vw',
+      boxShadow: `0 ${u(4)} ${u(24)} rgba(0,0,0,0.85)`, userSelect: 'none',
       border: '1px solid rgba(255,255,255,0.08)', pointerEvents: 'auto',
     }}>
       {/* Header */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: '10px',
-        padding: '7px 12px',
+        display: 'flex', alignItems: 'center', gap: u(10),
+        padding: `${u(7)} ${u(12)}`,
         background: 'rgba(50, 50, 58, 0.9)',
-        borderTopLeftRadius: '10px', borderTopRightRadius: '10px',
+        borderTopLeftRadius: u(10), borderTopRightRadius: u(10),
         borderBottom: '1px solid rgba(255,255,255,0.07)',
       }}>
-        <span style={{ fontWeight: 'bold', fontSize: '14px' }}>{gameL10n(group.label)}</span>
+        <span style={{ fontWeight: 'bold', fontSize: u(14) }}>{gameL10n(group.label)}</span>
         <div
           onClick={handleBarsClick}
           style={{
-            cursor: 'pointer', fontSize: '11px', padding: '3px 8px',
-            borderRadius: '4px', background: 'rgba(255,255,255,0.08)',
+            cursor: 'pointer', fontSize: u(11), padding: `${u(3)} ${u(8)}`,
+            borderRadius: u(4), background: 'rgba(255,255,255,0.08)',
             border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)',
             flexShrink: 0,
           }}
@@ -183,15 +191,15 @@ export const Dnc3DHudBrowse = ({ onFilterChange }) => {
           More Options
         </div>
         <div style={{ flex: '1 1 auto' }} />
-        <label style={{ fontSize: '11px', opacity: 0.6, flexShrink: 0 }}>Looking at side:</label>
+        <label style={{ fontSize: u(11), opacity: 0.6, flexShrink: 0 }}>Looking at side:</label>
         {[['A', 'All'], ['B', 'None']].map(([label, topNValue]) => {
           const active = label === 'A' ? isPeeking : !isPeeking;
           return (
             <div key={label} onClick={() => browseTopN(groupId, topNValue)} style={{
-              padding: '3px 12px', borderRadius: '4px', cursor: 'pointer',
+              padding: `${u(3)} ${u(12)}`, borderRadius: u(4), cursor: 'pointer',
               background: active ? '#1d4ed8' : 'rgba(255,255,255,0.08)',
               border: active ? '1px solid #3b82f6' : '1px solid transparent',
-              fontSize: '13px', fontWeight: 'bold', flexShrink: 0, transition: 'background 0.1s',
+              fontSize: u(13), fontWeight: 'bold', flexShrink: 0, transition: 'background 0.1s',
             }}>
               {label}
             </div>
@@ -200,14 +208,14 @@ export const Dnc3DHudBrowse = ({ onFilterChange }) => {
       </div>
 
       {/* Search row */}
-      <div style={{ padding: '6px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <div style={{ padding: `${u(6)} ${u(10)}`, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <input
           type="text"
           placeholder="🔍  Search cards..."
           value={searchForText}
           style={{
             background: darkBg, border: 'none', color: 'white',
-            padding: '5px 10px', borderRadius: '4px', fontSize: '12px',
+            padding: `${u(5)} ${u(10)}`, borderRadius: u(4), fontSize: u(12),
             outline: 'none', cursor: 'text', width: '100%', boxSizing: 'border-box', opacity: 0.9,
           }}
           onFocus={() => dispatch(setTyping(true))}
@@ -217,11 +225,11 @@ export const Dnc3DHudBrowse = ({ onFilterChange }) => {
       </div>
 
       {/* Body: filter buttons + close actions */}
-      <div style={{ display: 'flex', gap: '0', padding: '8px 10px', alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', gap: '0', padding: `${u(8)} ${u(10)}`, alignItems: 'flex-start' }}>
         {/* Filter button grid */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: '1 1 auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: u(4), flex: '1 1 auto' }}>
           {pairedFilterButtons.map((row, rowIndex) => (
-            <div key={rowIndex} style={{ display: 'flex', gap: '4px' }}>
+            <div key={rowIndex} style={{ display: 'flex', gap: u(4) }}>
               {row.map((item, itemIndex) => item != null && (
                 <div
                   key={itemIndex}
@@ -238,11 +246,11 @@ export const Dnc3DHudBrowse = ({ onFilterChange }) => {
         </div>
 
         {/* Divider */}
-        <div style={{ width: '1px', background: 'rgba(255,255,255,0.08)', margin: '0 10px', alignSelf: 'stretch' }} />
+        <div style={{ width: '1px', background: 'rgba(255,255,255,0.08)', margin: `0 ${u(10)}`, alignSelf: 'stretch' }} />
 
         {/* Close actions */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: '0 0 auto', width: '100px' }}>
-          <div style={{ fontSize: '10px', opacity: 0.5, textAlign: 'center', marginBottom: '1px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: u(4), flex: '0 0 auto', width: u(100) }}>
+          <div style={{ fontSize: u(10), opacity: 0.5, textAlign: 'center', marginBottom: u(1), textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Close &amp;
           </div>
           {[['Shuffle', 'shuffle'], ['Keep order', 'order'], ['Keep peeking', 'peeking']].map(([label, opt]) => (

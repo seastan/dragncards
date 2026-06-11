@@ -131,31 +131,45 @@
   opacity: 1;
   pointer-events: auto;
 }
-/* The darkest stop is nudged 1px past the region edge so the aliased seam
-   from the tilted perspective stays covered by full shading. */
+/* The shading band scales with viewport height (--dnc3d-overflow-grad-size) so
+   it stays proportional to the table as it resizes. The extra 1px (and the
+   matching -1px offset) nudges the darkest stop past the region edge so the
+   aliased seam from the tilted perspective stays covered — that stays a single
+   physical pixel (it's seam coverage, not a scalable dimension; the outline's
+   3px overflow-clip-margin lets it paint past the edge). */
+.dnc3d-region-scroll-arrow {
+  --dnc3d-overflow-grad-size: 8dvh;
+}
 .dnc3d-region-scroll-arrow--start:not(.dnc3d-scroll-vertical) {
   left: -1px; top: 0; bottom: 0;
-  width: 81px;
+  width: calc(var(--dnc3d-overflow-grad-size) + 1px);
   background: linear-gradient(to right, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 50%, transparent 100%);
 }
 .dnc3d-region-scroll-arrow--end:not(.dnc3d-scroll-vertical) {
   right: -1px; top: 0; bottom: 0;
-  width: 81px;
+  width: calc(var(--dnc3d-overflow-grad-size) + 1px);
   background: linear-gradient(to left, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 50%, transparent 100%);
 }
 .dnc3d-region-scroll-arrow--start.dnc3d-scroll-vertical {
   top: -1px; left: 0; right: 0;
-  height: 81px;
+  height: calc(var(--dnc3d-overflow-grad-size) + 1px);
   background: linear-gradient(to bottom, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 50%, transparent 100%);
 }
 .dnc3d-region-scroll-arrow--end.dnc3d-scroll-vertical {
   bottom: -1px; left: 0; right: 0;
-  height: 81px;
+  height: calc(var(--dnc3d-overflow-grad-size) + 1px);
   background: linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 50%, transparent 100%);
 }
 .dnc3d-region-scroll-arrow svg {
   pointer-events: none;
   filter: drop-shadow(0 1px 4px rgba(0,0,0,0.9));
+}
+/* Row (horizontal) overflow chevrons scale with viewport height rather than a
+   fixed px size, so they stay proportional to the table as it resizes. The
+   viewBox-relative stroke-width scales along with the svg automatically. */
+.dnc3d-region-scroll-arrow:not(.dnc3d-scroll-vertical) svg {
+  width: 7dvh;
+  height: 7dvh;
 }
 
 .dnc3d-insert-indicator {
@@ -296,3 +310,55 @@
 }
 
 .dnc3d-stack-zone { position: absolute; pointer-events: none; }
+
+/* ── Targeting + arrow overlay ──────────────────────────────────────────────
+   A flat screen-space layer over the tilted table. Sits above the cards but
+   below the app chrome (dropdowns/modals at z-index 10000), and never eats
+   pointer events so cards stay interactive. */
+.dnc3d-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.dnc3d-overlay-arrows {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.dnc3d-target {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.dnc3d-target-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.6;
+  animation: dnc3d-target-spin 3s infinite linear;
+}
+
+.dnc3d-target-label {
+  position: relative;
+  font-weight: 900;
+  color: #000;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+@keyframes dnc3d-target-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
