@@ -18,7 +18,7 @@ export const LAYER_Z_FRAC      = 0.7;   // fraction of card height per layerInde
 export const dvhPx        = () => window.innerHeight / 100;
 export const pileStackZPx = (cardH) => PILE_STACK_Z_FRAC * cardH;
 export const layerZPx     = (cardH) => LAYER_Z_FRAC * cardH;
-export const ANIMATION_SPEED_MULTIPLIER = 5;
+export const ANIMATION_SPEED_MULTIPLIER = 1;
 export const ATTACH_WIGGLE_DVH = 8; // horizontal wiggle on card attachment, in dvh
 export const DRAG_EDGE_SCROLL_SPEED = 0.048; // auto-scroll speed when dragging near region edge, as fraction of card width per frame (~60fps)
 export const MAX_ZOOM  = 0.3;

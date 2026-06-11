@@ -1,4 +1,4 @@
-import { BASE_LIFT, pileStackZPx, MAX_PILE_VISUAL_DEPTH, layerZPx, scaleDuration } from './config';
+import { BASE_LIFT, pileStackZPx, MAX_PILE_VISUAL_DEPTH, layerZPx, scaleDuration, dvhPx } from './config';
 import { easeOut } from './animation';
 
 // Attachment cards offset horizontally from their parent within a stack.
@@ -552,22 +552,53 @@ export function createLayout(state, projection, REGIONS) {
     const info = computeInsertInfo(regionId, dragCenterXTilt, dragCenterYTilt, excludeStackId);
     if (_indicatorEl.parentElement !== scrollOuter) scrollOuter.appendChild(_indicatorEl);
     _indicatorEl.style.display = 'block';
+    // Keep the line shorter than the region so its rounded caps and the
+    // end-fade gradient stay visible instead of being clipped by neighbors.
+    // dvh-based so it scales with the table like the other table chrome.
+    const endMargin = 0.5 * dvhPx(); // breathing room at each end for caps + glow
+    const thin      = 0.3 * dvhPx(); // probe's thin dimension (overlay sets the visible band)
     if (vert) {
-      const indicatorW = cw * 1.5;
+      const indicatorW = Math.min(cw * 1.5, Math.max(cw * 0.5, rp.w - 2 * endMargin));
+      _indicatorEl.style.setProperty('--dnc3d-indicator-fade', 'to right');
       _indicatorEl.style.top       = (info.lineY - rp.y) + 'px';
       _indicatorEl.style.left      = ((rp.w - indicatorW) / 2) + 'px';
       _indicatorEl.style.width     = indicatorW + 'px';
-      _indicatorEl.style.height    = '3px';
+      _indicatorEl.style.height    = thin + 'px';
       _indicatorEl.style.transform = 'translateY(-50%)';
     } else {
-      const indicatorH = ch * 1.5;
+      const indicatorH = Math.min(ch * 1.5, Math.max(ch * 0.5, rp.h - 2 * endMargin));
+      _indicatorEl.style.setProperty('--dnc3d-indicator-fade', 'to bottom');
       _indicatorEl.style.left      = (info.lineX - rp.x) + 'px';
       _indicatorEl.style.top       = ((rp.h - indicatorH) / 2) + 'px';
-      _indicatorEl.style.width     = '3px';
+      _indicatorEl.style.width     = thin + 'px';
       _indicatorEl.style.height    = indicatorH + 'px';
       _indicatorEl.style.transform = 'translateX(-50%)';
     }
+    // Pin two zero-size markers to the line's two ends. They ride the region's
+    // tilted plane, so the overlay can read their projected screen positions and
+    // draw its twin rotated to match the table's perspective (vs. axis-aligned).
+    positionEndMarkers(vert);
     return info.insertIdx;
+  }
+
+  function positionEndMarkers(vert) {
+    let ends = _indicatorEl.getElementsByClassName('dnc3d-insert-end');
+    if (ends.length < 2) {
+      while (_indicatorEl.firstChild) _indicatorEl.removeChild(_indicatorEl.firstChild);
+      for (let i = 0; i < 2; i++) {
+        const m = document.createElement('div');
+        m.className = 'dnc3d-insert-end';
+        _indicatorEl.appendChild(m);
+      }
+      ends = _indicatorEl.getElementsByClassName('dnc3d-insert-end');
+    }
+    if (vert) { // horizontal bar: ends at left & right edges, mid height
+      ends[0].style.left = '0%';   ends[0].style.top = '50%';
+      ends[1].style.left = '100%'; ends[1].style.top = '50%';
+    } else {    // vertical bar: ends at top & bottom edges, mid width
+      ends[0].style.left = '50%';  ends[0].style.top = '0%';
+      ends[1].style.left = '50%';  ends[1].style.top = '100%';
+    }
   }
 
   function hideInsertionIndicator() {

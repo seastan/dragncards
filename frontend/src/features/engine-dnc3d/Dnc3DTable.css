@@ -60,7 +60,7 @@
 
 .dnc3d-region-outline {
   position: absolute;
-  border: 1px dashed rgba(255,255,255,0.22);
+  border: 1px dotted rgba(255,255,255,0.2);
   border-radius: 0.3vw;
   pointer-events: none;
   transform: translateZ(0.5px);
@@ -71,6 +71,36 @@
   overflow: clip;
   overflow-clip-margin: 3px;
 }
+/* Drop-target glow: a soft fill that follows the region's RECTANGULAR shape,
+   brightest across the centre and fading to transparent toward all four edges.
+   Lives on the region outline (present for EVERY region type — rows, fans AND
+   piles) so any region can light up while dragged over. The rectangular falloff
+   comes from two crossed linear-gradient masks (horizontal × vertical) combined
+   with mask-composite:intersect, so the fill tapers near every edge/corner
+   instead of forming an ellipse — and because it fades to transparent on its own
+   the outline's clip never cuts it. ::before keeps it behind the region's
+   label/menu icons. Always present at opacity 0 to fade in/out with the class. */
+.dnc3d-region-outline::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.08);
+  -webkit-mask:
+    linear-gradient(to right, transparent 0%, #000 22%, #000 78%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, #000 22%, #000 78%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask:
+    linear-gradient(to right, transparent 0%, #000 22%, #000 78%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, #000 22%, #000 78%, transparent 100%);
+  mask-composite: intersect;
+  opacity: 0;
+  transition: opacity 0.15s ease-out;
+}
+.dnc3d-region-outline.dnc3d-region-drop-target::before {
+  opacity: 1;
+}
+
 .dnc3d-region-outline.dnc3d-region-elevated {
   border-color: rgba(255,255,255,0.45);
   /* DEBUG: see cards behind elevated regions. Remove when done. */
@@ -174,16 +204,64 @@
   height: 7dvh;
 }
 
+/* Table-level insertion line. It now serves only as an invisible measurement
+   probe: the visible line is its screen-space twin (.dnc3d-insert-overlay-line),
+   which paints above the dragged card. We keep this element sized/positioned (so
+   getBoundingClientRect reports the gap's on-screen box) but render it
+   transparent — drawing it too caused a faint doubling, since it sits on the
+   tilted table plane while the twin is flat screen-space. */
 .dnc3d-insert-indicator {
   position: absolute;
   width: 3px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 2px;
   pointer-events: none;
   z-index: 9999;
   display: none;
   transform: translateX(-50%);
-  box-shadow: 0 0 6px 3px rgba(255, 255, 255, 0.6), 0 0 18px 6px rgba(180, 220, 255, 0.35);
+  opacity: 0;
+}
+
+/* Zero-size markers at the line's two ends. Riding the tilted region plane, their
+   projected screen positions give the overlay the line's true (perspective-
+   skewed) endpoints, so its twin can be rotated to match the table. */
+.dnc3d-insert-end {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+/* Screen-space twin of the insertion line, drawn in the overlay (above the
+   cards) so the landing position stays visible even when the dragged card sits
+   directly over the table-level line. The overlay code sets its left/top/width/
+   height from the table line's live on-screen rect, so it tracks the gap exactly
+   and handles both orientations (the rect's aspect ratio drives the fade dir). */
+/* Wrapper exists solely to carry the black outline as a drop-shadow: it isn't
+   masked, so the shadow of the (masked, faded) white line renders as a soft dark
+   halo around it — making the line readable over light cards. dvh-sized so it
+   scales with the line. */
+.dnc3d-insert-overlay-line-wrap {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* 50% opacity on the wrapper fades the white line and its black outline
+     together as one unit. */
+  opacity: 0.8;
+  filter:
+    drop-shadow(0 0 0.15dvh rgba(0, 0, 0, 0.9))
+    drop-shadow(0 0 0.35dvh rgba(0, 0, 0, 0.55));
+}
+
+.dnc3d-insert-overlay-line {
+  position: absolute;
+  display: none;
+  pointer-events: none;
+  /* Solid fill; the all-around taper to transparent (gentle at the tips, faster
+     across the long edges) is done with a crossed-gradient mask whose image is
+     built per-orientation in JS. mask-composite:intersect multiplies the two
+     gradients so the line fades on every side at once. */
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 999px;
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
 }
 
 .dnc3d-region-label {

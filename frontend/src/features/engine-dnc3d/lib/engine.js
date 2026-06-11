@@ -66,6 +66,7 @@ export function createDnc3DEngine(options = {}) {
 
   // Targeting-icon + card-arrow overlay (flat screen-space layer above the tilt).
   const _overlay = createOverlay();
+  let   _insertIndicatorEl = null; // table-level line; overlay mirrors it on top
 
   const scrollOuterEls   = {};
   const regionOutlineEls = {};
@@ -685,7 +686,18 @@ export function createDnc3DEngine(options = {}) {
     let dragZ = i + 1;
     let currentInsertRegion = null;
     let currentInsertIdx    = -1;
+    let dropGlowRegionId    = null;
     let dragStack           = null;
+
+    // Light up a whole region as the active drop target. Works for any region
+    // type because every region has a `.dnc3d-region-outline` (rows/fans only
+    // get the insertion line on top). Pass null to clear.
+    const setDropGlow = (regionId) => {
+      if (dropGlowRegionId === regionId) return;
+      regionOutlineEls[dropGlowRegionId]?.classList.remove('dnc3d-region-drop-target');
+      regionOutlineEls[regionId]?.classList.add('dnc3d-region-drop-target');
+      dropGlowRegionId = regionId;
+    };
     let dragStackCards      = [];
     let hoverAttachStackId  = null;
     let hoverAttachCardId   = null;
@@ -970,21 +982,34 @@ export function createDnc3DEngine(options = {}) {
         }
       }
 
-      // ── Insertion indicator ──────────────────────────────────────────────────
+      // ── Insertion indicator + drop-target glow ────────────────────────────────
       if (hoverAttachStackId !== null) {
+        // Attaching to a card, not dropping into a region — no region highlight.
         hideInsertionIndicator();
+        _overlay.setInsertProbe(null);
         currentInsertIdx    = -1;
         currentInsertRegion = null;
+        setDropGlow(null);
       } else {
         const hoverRegion = findRegionAtPoint(cx / tw * 100, cy / th * 100);
-        if (hoverRegion && hoverRegion !== _browseGroupId && (REGIONS[hoverRegion].type === 'row' || REGIONS[hoverRegion].type === 'fan')) {
+        const hoverType   = hoverRegion ? REGIONS[hoverRegion].type : null;
+        const droppable   = hoverRegion && hoverRegion !== _browseGroupId &&
+          (hoverType === 'row' || hoverType === 'fan' || hoverType === 'pile');
+        // The insertion line only applies to ordered regions (rows/fans); piles
+        // stack in place, so they glow but get no line.
+        if (droppable && (hoverType === 'row' || hoverType === 'fan')) {
           currentInsertIdx    = showInsertionIndicator(hoverRegion, cx, cy, dragStack.id);
           currentInsertRegion = hoverRegion;
+          // Mirror the line into the screen-space overlay so it stays visible on
+          // top of the dragged card instead of being hidden beneath it.
+          _overlay.setInsertProbe(_insertIndicatorEl);
         } else {
           hideInsertionIndicator();
+          _overlay.setInsertProbe(null);
           currentInsertIdx    = -1;
           currentInsertRegion = null;
         }
+        setDropGlow(droppable ? hoverRegion : null);
       }
     });
 
@@ -1015,6 +1040,8 @@ export function createDnc3DEngine(options = {}) {
         const droppedInsertRgn   = currentInsertRegion;
 
         hideInsertionIndicator();
+        _overlay.setInsertProbe(null);
+        setDropGlow(null);
         currentInsertIdx    = -1;
         currentInsertRegion = null;
         hoverAttachStackId  = null;
@@ -1521,6 +1548,8 @@ export function createDnc3DEngine(options = {}) {
       hoverAttachStackId = null;
       hoverAttachSide    = null;
 
+      setDropGlow(null);
+      _overlay.setInsertProbe(null);
       if (currentInsertRegion) {
         hideInsertionIndicator();
         currentInsertIdx    = -1;
@@ -1654,6 +1683,7 @@ export function createDnc3DEngine(options = {}) {
     insertIndicatorEl.className = 'dnc3d-insert-indicator';
     tiltEl.appendChild(insertIndicatorEl);
     setIndicatorEl(insertIndicatorEl);
+    _insertIndicatorEl = insertIndicatorEl;
 
     // The icon is a transparent positioning container holding two layered
     // children: the label box (behind) and the circle (in front, so it covers

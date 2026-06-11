@@ -1,4 +1,4 @@
-import { PLAYER_COLORS } from './config';
+import { PLAYER_COLORS, dvhPx } from './config';
 
 // ── Targeting + arrow overlay ────────────────────────────────────────────────
 //
@@ -39,6 +39,14 @@ export function createOverlay() {
   let _targets = []; // [{ card, players: ['1', '2'] }]
   let _arrows  = []; // [{ fromCard, toCard, color }]
 
+  // The insertion line lives at table level (under the dragged card) but we also
+  // draw a screen-space twin up here so it stays visible ON TOP of the card. The
+  // probe is the real table-level indicator element; we read its live rect each
+  // frame and mirror it into `_insertLineEl`, so the twin tracks the gap exactly
+  // without re-deriving the tilt/perspective projection.
+  let _insertProbe  = null;
+  let _insertLineEl = null;
+
   // Persistent target DOM per card id so the CSS spin animation isn't reset on
   // every frame (rebuilding the element would restart the animation).
   const _targetEls = new Map(); // cardId -> { wrap, label }
@@ -50,16 +58,86 @@ export function createOverlay() {
     _arrowSvg = document.createElementNS(SVG_NS, 'svg');
     _arrowSvg.setAttribute('class', 'dnc3d-overlay-arrows');
     _overlayEl.appendChild(_arrowSvg);
+    // The white line is wrapped so the black outline can live as a drop-shadow on
+    // the (unmasked) wrapper — a shadow on the line itself would be clipped by the
+    // line's own mask.
+    const wrap = document.createElement('div');
+    wrap.className = 'dnc3d-insert-overlay-line-wrap';
+    _insertLineEl = document.createElement('div');
+    _insertLineEl.className = 'dnc3d-insert-overlay-line';
+    wrap.appendChild(_insertLineEl);
+    _overlayEl.appendChild(wrap);
     stageEl.appendChild(_overlayEl);
   }
 
   function unmount() {
     stop();
     if (_overlayEl) _overlayEl.remove();
-    _overlayEl = null;
-    _arrowSvg  = null;
-    _targets   = [];
-    _arrows    = [];
+    _overlayEl    = null;
+    _arrowSvg     = null;
+    _insertLineEl = null;
+    _insertProbe  = null;
+    _targets      = [];
+    _arrows       = [];
+  }
+
+  // Point the screen-space twin at a table-level indicator element (or null to
+  // hide it). Keeps the render loop alive while a probe is set.
+  function setInsertProbe(el) {
+    _insertProbe = el || null;
+    if (_insertProbe) {
+      start();
+    } else {
+      if (_insertLineEl) _insertLineEl.style.display = 'none';
+      if (!_targets.length && !_arrows.length) stop();
+    }
+  }
+
+  function renderInsertLine(originRect) {
+    if (!_insertLineEl) return;
+    const probe = _insertProbe;
+    if (!probe || probe.style.display === 'none') {
+      _insertLineEl.style.display = 'none';
+      return;
+    }
+    // Read the two end markers' projected screen positions. Because they ride the
+    // region's tilted plane, the segment between them already carries the table's
+    // perspective skew — so the twin can be drawn rotated to match it.
+    const ends = probe.getElementsByClassName('dnc3d-insert-end');
+    if (ends.length < 2) { _insertLineEl.style.display = 'none'; return; }
+    const ra = ends[0].getBoundingClientRect();
+    const rb = ends[1].getBoundingClientRect();
+    const ax = (ra.left + ra.width / 2) - originRect.left;
+    const ay = (ra.top  + ra.height / 2) - originRect.top;
+    const bx = (rb.left + rb.width / 2) - originRect.left;
+    const by = (rb.top  + rb.height / 2) - originRect.top;
+
+    const dx = bx - ax, dy = by - ay;
+    const length = Math.hypot(dx, dy);
+    if (!length) { _insertLineEl.style.display = 'none'; return; }
+    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+    const midX  = (ax + bx) / 2, midY = (ay + by) / 2;
+
+    // The twin is a horizontal bar of width=length, rotated about its centre to
+    // lie along the marker segment. Band width in dvh so it scales with the table;
+    // the mask tapers it to a ~half-width bright core.
+    const THICK = 0.8 * dvhPx();
+    _insertLineEl.style.display   = 'block';
+    _insertLineEl.style.width     = length + 'px';
+    _insertLineEl.style.height    = THICK + 'px';
+    _insertLineEl.style.left      = (midX - length / 2) + 'px';
+    _insertLineEl.style.top       = (midY - THICK / 2) + 'px';
+    _insertLineEl.style.transform = `rotate(${angle}deg)`;
+
+    // Crossed-gradient mask in the bar's own (post-rotation) axes: one tapers
+    // ACROSS the thickness (triangle — brightest at the centreline), the other
+    // ALONG the length (solid, soft only near the tips). intersect ⇒ fades all
+    // around. Constant now, since the bar is always length×THICK before rotation.
+    const mask =
+      'linear-gradient(to bottom, transparent 0%, #000 50%, transparent 100%),' +
+      'linear-gradient(to right, transparent 0%, #000 10%, #000 90%, transparent 100%)';
+    _insertLineEl.style.webkitMaskImage = mask;
+    _insertLineEl.style.maskImage       = mask;
   }
 
   // Card center in overlay-local coordinates (overlay is inset:0 over the stage,
@@ -176,6 +254,7 @@ export function createOverlay() {
     const originRect = _overlayEl.getBoundingClientRect();
     renderArrows(originRect);
     renderTargets(originRect);
+    renderInsertLine(originRect);
   }
 
   function tick() {
@@ -194,6 +273,7 @@ export function createOverlay() {
     if (_raf) cancelAnimationFrame(_raf);
     _raf = null;
     if (_arrowSvg) _arrowSvg.innerHTML = '';
+    if (_insertLineEl) _insertLineEl.style.display = 'none';
     for (const [, entry] of _targetEls) entry.wrap.remove();
     _targetEls.clear();
   }
@@ -235,9 +315,9 @@ export function createOverlay() {
       }
     }
 
-    if (_targets.length || _arrows.length) start();
+    if (_targets.length || _arrows.length || _insertProbe) start();
     else stop();
   }
 
-  return { mount, unmount, rebuild };
+  return { mount, unmount, rebuild, setInsertProbe };
 }
