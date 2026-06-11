@@ -66,7 +66,10 @@
   transform: translateZ(0.5px);
   transform-style: preserve-3d;
   box-sizing: border-box;
-  overflow: hidden;
+  /* clip (not hidden) with a 1px margin so the overflow-shading gradient can
+     paint 1px past the tilted edge, covering the anti-aliased seam there. */
+  overflow: clip;
+  overflow-clip-margin: 3px;
 }
 .dnc3d-region-outline.dnc3d-region-elevated {
   border-color: rgba(255,255,255,0.45);
@@ -128,24 +131,26 @@
   opacity: 1;
   pointer-events: auto;
 }
+/* The darkest stop is nudged 1px past the region edge so the aliased seam
+   from the tilted perspective stays covered by full shading. */
 .dnc3d-region-scroll-arrow--start:not(.dnc3d-scroll-vertical) {
-  left: 0; top: 0; bottom: 0;
-  width: 80px;
+  left: -1px; top: 0; bottom: 0;
+  width: 81px;
   background: linear-gradient(to right, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 50%, transparent 100%);
 }
 .dnc3d-region-scroll-arrow--end:not(.dnc3d-scroll-vertical) {
-  right: 0; top: 0; bottom: 0;
-  width: 80px;
+  right: -1px; top: 0; bottom: 0;
+  width: 81px;
   background: linear-gradient(to left, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 50%, transparent 100%);
 }
 .dnc3d-region-scroll-arrow--start.dnc3d-scroll-vertical {
-  top: 0; left: 0; right: 0;
-  height: 80px;
+  top: -1px; left: 0; right: 0;
+  height: 81px;
   background: linear-gradient(to bottom, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 50%, transparent 100%);
 }
 .dnc3d-region-scroll-arrow--end.dnc3d-scroll-vertical {
-  bottom: 0; left: 0; right: 0;
-  height: 80px;
+  bottom: -1px; left: 0; right: 0;
+  height: 81px;
   background: linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 50%, transparent 100%);
 }
 .dnc3d-region-scroll-arrow svg {
@@ -238,13 +243,27 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  border: 0.1vw solid rgba(255,255,255,0.2);
+  /* backface-visibility promotes each face to its own composite layer, whose
+     OUTER edge the GPU leaves un-anti-aliased — so the tilted card edge looks
+     jagged. We keep the visible edge well inside that hard boundary so it lands
+     on AA'd interior texels instead. Only the left/right edges are slanted by
+     the rotateX tilt, so the padding is applied there only:
+       - 1px transparent left/right border = inner padding ring (kept truly
+         transparent by background-clip: padding-box so art/color doesn't bleed);
+       - inset box-shadow draws the actual white edge, now interior;
+       - 1px transparent outline = outer padding ring on the raster bounds.
+     Net: the visible left/right edge sits ~2px inside the jagged layer
+     boundary, while top/bottom keep their full extent. */
+  border-left: 1px solid transparent;
+  border-right: 1px solid transparent;
+  background-clip: padding-box;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   transition: box-shadow 120ms ease-out;
 }
 .dnc3d-card:not(.dnc3d-dragging):hover .dnc3d-card-face {
   box-shadow:
+    inset 0 0 0 0.1vw rgba(255,255,255,0.2),
     0 0 0 1.5px rgba(255, 220, 0, 0.9),
     0 0 10px 4px rgba(255, 200, 0, 0.45);
 }
