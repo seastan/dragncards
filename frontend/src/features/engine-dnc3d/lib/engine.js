@@ -2,6 +2,7 @@ import { COLORS, BASE_LIFT, pileStackZPx, MAX_PILE_VISUAL_DEPTH, layerZPx, DEFAU
 import { createState } from './state';
 import { createProjection } from './projection';
 import { createLayout } from './layout';
+import { createOverlay } from './overlay';
 import { easeOut, easeIn, animateFlip } from './animation';
 
 // Creates a self-contained dnc3d engine instance.
@@ -60,6 +61,9 @@ export function createDnc3DEngine(options = {}) {
   let _attachTargetIconEl = null;
   let _tableSurfaceEl     = null;
   let _isDragging         = false; // true while any card drag is in progress
+
+  // Targeting-icon + card-arrow overlay (flat screen-space layer above the tilt).
+  const _overlay = createOverlay();
 
   const scrollOuterEls   = {};
   const regionOutlineEls = {};
@@ -1544,6 +1548,11 @@ export function createDnc3DEngine(options = {}) {
     tiltEl.parentElement.insertBefore(tableSurface, tiltEl);
     _tableSurfaceEl = tableSurface;
 
+    // Screen-space overlay for targeting icons and card arrows. Mounted into the
+    // stage (not the tilt) so it isn't subject to the 3D rotation; it positions
+    // its elements from each card's live on-screen rect every frame.
+    _overlay.mount(tiltEl.parentElement);
+
 
     Object.entries(REGIONS).forEach(([id, r]) => {
       if (r.type !== 'row' && r.type !== 'fan') return;
@@ -1845,6 +1854,7 @@ export function createDnc3DEngine(options = {}) {
       tiltEl.removeEventListener('pointerleave', onTiltPointerLeave);
       window.removeEventListener('wheel', onWheel);
       if (_tableSurfaceEl) { _tableSurfaceEl.parentElement?.removeChild(_tableSurfaceEl); _tableSurfaceEl = null; }
+      _overlay.unmount();
       while (tiltEl.firstChild) tiltEl.removeChild(tiltEl.firstChild);
       cards.length = 0;
       Object.keys(stacks).forEach(k => delete stacks[k]);
@@ -2275,11 +2285,22 @@ export function createDnc3DEngine(options = {}) {
     // Apply any intra-group reordering (e.g. a shuffle) after membership above
     // has settled, so piles/rows/fans reflect the backend stack order.
     syncRegionOrders(game, idMap);
+
+    // Refresh the targeting/arrow overlay from the new game state. The overlay's
+    // own rAF loop handles per-frame repositioning while cards are in motion.
+    _overlay.rebuild(game, idMap, cards);
   }
 
   function getCardElements() {
     return cards.map(c => ({ id: c.id, frontEl: c.frontEl, faceW: c.faceW, faceH: c.faceH }));
   }
 
-  return { init, applyTilt, applyTableOpacity, setCurrentDeg, onTiltUpdated, reconcile, openBrowse, closeBrowse, updateBrowseFilter, getCardElements };
+  // Rebuild just the targeting/arrow overlay from game state, without running a
+  // full reconcile. Used right after a re-init (deck load / region toggle), where
+  // the React reconcile effect won't re-fire because `game` is unchanged.
+  function syncOverlay(game, idMap) {
+    _overlay.rebuild(game, idMap, cards);
+  }
+
+  return { init, applyTilt, applyTableOpacity, setCurrentDeg, onTiltUpdated, reconcile, openBrowse, closeBrowse, updateBrowseFilter, getCardElements, syncOverlay };
 }

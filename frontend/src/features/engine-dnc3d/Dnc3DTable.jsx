@@ -234,6 +234,13 @@ export default function Dnc3DTable({
       if (browseGroupIdRef.current && idMapRef.current && gameRef.current) {
         engine.openBrowse(browseGroupIdRef.current, gameRef.current, idMapRef.current);
       }
+
+      // Seed the targeting/arrow overlay from current state. The reconcile effect
+      // (dep: [game]) won't re-fire on a pure re-init since `game` is unchanged,
+      // so without this an active target/arrow would vanish until the next tick.
+      if (idMapRef.current && gameRef.current) {
+        engine.syncOverlay(gameRef.current, idMapRef.current);
+      }
     } else {
       setTokenPortals([]);
     }

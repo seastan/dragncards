@@ -44,6 +44,20 @@ export const DEFAULT_REGIONS = {
   sideboard: { left: 82, top: 60, width: 15, height: 40, type: 'fan',  direction: 'vertical', layerIndex: 1, backgroundColor: 'rgb(30, 80, 180)' },
 };
 
+// Per-player colours for targeting numbers and arrows. Keyed by the playerN
+// string used in card.targeting / card.arrows (mirrors playerColorMap in the
+// 2D engine's functions/common.js).
+export const PLAYER_COLORS = {
+  player1: 'rgb(255,90,139)',  // Red
+  player2: 'rgb(121,180,255)', // Blue
+  player3: 'rgb(101,241,18)',  // Green
+  player4: 'rgb(255,223,76)',  // Yellow
+  player5: 'rgb(225,138,244)', // Purple
+  player6: 'rgb(255,187,191)', // Pink
+  player7: 'rgb(0,201,187)',   // Teal
+  player8: 'rgb(255,142,12)',  // Orange
+};
+
 export const COLORS = [
   '#c0392b', '#e67e22', '#d4ac0d', '#27ae60',
   '#16a085', '#2980b9', '#8e44ad', '#e91e63',
