@@ -8,6 +8,7 @@ import { easeOut, easeIn, animateFlip } from './animation';
 // Creates a self-contained dnc3d engine instance.
 // options.regions         — region definitions (default: DEFAULT_REGIONS for demo/sandbox mode)
 // options.onCardMove      — callback(cardId, fromRegionId, toRegionId, fracX, fracY, insertIdx)
+// options.getCardName     — callback(cardId) → display name of a card (for the attach label)
 // options.onAttach        — callback(cardId, targetCardId, side)
 // options.onFlip          — callback(cardId)
 // options.onCardClick     — callback(cardId, clientX, clientY) fired on click (no drag)
@@ -30,6 +31,7 @@ export function createDnc3DEngine(options = {}) {
   const onDragStart    = options.onDragStart    || null;
   const onGroupBrowse  = options.onGroupBrowse  || null;
   const onGroupMenu    = options.onGroupMenu    || null;
+  const getCardName    = options.getCardName    || null;
   // Card sizing — mirrors the 2D renderer's cardSize * zoomFactor * 1.7dvh formula.
   const _cardSize           = options.cardSize           || null;
   const _cardDefaultH       = options.cardDefaultH       || 1.0;
@@ -50,7 +52,7 @@ export function createDnc3DEngine(options = {}) {
     initLayout, regionPx, layoutFan, layoutRow, layoutPile,
     placeCardAt, layoutRegion, setAfterLayoutHook, setScrollOuter, setIndicatorEl,
     findRegionAtPoint, insertStackAtIndex, moveCardToTilt, moveCardFromTilt, moveStackToTilt,
-    animateCardTo, tiltSpacePosOf, stackCardOffsets, stackBaseCardIds,
+    animateCardTo, tiltSpacePosOf, stackCardOffsets, stackBaseCardIds, stackPositionsAtAnchor,
     showInsertionIndicator, hideInsertionIndicator, clearScrollOuters,
     rowTotalWidth,
   } = layout;
@@ -892,6 +894,23 @@ export function createDnc3DEngine(options = {}) {
             _attachTargetIconEl.style.left      = (edgeX   - iconSize / 2) + 'px';
             _attachTargetIconEl.style.top       = (ty_icon - iconSize / 2) + 'px';
             _attachTargetIconEl.style.transform = `translateZ(${iconZ}px)`;
+            // Font scales with the icon so the label reads consistently at any zoom.
+            _attachTargetIconEl.style.fontSize  = (iconSize * 0.22) + 'px';
+
+            // Populate the grow-out label: "Attach to" / <card name> / (left|right).
+            // The name is the stack's parent (base) card, not the edge card the
+            // icon sits next to.
+            const labelEl = _attachTargetIconEl.querySelector('.dnc3d-attach-label');
+            if (labelEl) {
+              const parentCardId = stacks[newHoverAttachStackId]?.cardIds?.[0];
+              const name = (getCardName && parentCardId != null) ? (getCardName(parentCardId) || '') : '';
+              labelEl.querySelector('.dnc3d-attach-label-name').textContent = name;
+              labelEl.querySelector('.dnc3d-attach-label-side').textContent = `(${newHoverAttachSide})`;
+              // Grow away from the card edge: the icon sits on the card's `side`
+              // edge, so a left-attach grows further left, a right-attach further right.
+              labelEl.classList.toggle('dnc3d-attach-label-out-left',  newHoverAttachSide === 'left');
+              labelEl.classList.toggle('dnc3d-attach-label-out-right', newHoverAttachSide === 'right');
+            }
             _attachTargetIconEl.classList.add('dnc3d-is-visible');
           }
         } else {
@@ -1112,11 +1131,26 @@ export function createDnc3DEngine(options = {}) {
               settleProgressAt: 0.5,
             });
           } else {
-            const regionPositions = layoutRegion(targetRegion) || [];
+            // Keep the dropped cards in the tilt plane for the lift/wiggle so they
+            // aren't clipped by the target region's scroll-outer overflow — the
+            // same problem the flip path avoids by living in the tilt plane. We
+            // compute the region layout directly, animate only the *other* cards
+            // into their (possibly shifted) slots, and slide the dropped cards in
+            // tilt space below, reparenting them into the scroll-outer once the
+            // wiggle settles. (attachStack already reassigned the dropped cards'
+            // stackId to the merged target stack, so layoutRegion's excludeStackId
+            // can no longer single them out.)
+            const layoutFn = REGIONS[targetRegion].type === 'row' ? layoutRow
+                           : REGIONS[targetRegion].type === 'fan' ? layoutFan
+                           : layoutPile;
+            const regionPositions = layoutFn(targetRegion) || [];
             if (sourceRegion && sourceRegion !== targetRegion && REGIONS[sourceRegion]?.type !== 'free') {
               layoutRegion(sourceRegion);
             }
             const droppedIdSet = new Set(droppedStackCards.map(c => c.id));
+            const droppedTargetByCardId = new Map(
+              regionPositions.filter(p => droppedIdSet.has(p.cardId)).map(p => [p.cardId, p])
+            );
             const liftTargets = regionPositions
               .filter(p => droppedIdSet.has(p.cardId))
               .map(p => ({ card: cards[p.cardId], stackZ: p.stackZ || 0, zIndex: p.zIndex }));
@@ -1125,14 +1159,43 @@ export function createDnc3DEngine(options = {}) {
               if (droppedIdSet.has(p.cardId)) return;
               const c = cards[p.cardId];
               if (!c) return;
-              c.pileZ = p.stackZ || 0;
-              c.liftEl.style.zIndex = p.zIndex;
-              c._setLiftVisuals(c.liftPx);
+              c.liftEl.style.zIndex = p.zIndex; // set now to avoid a brief paint-behind
+              animateCardTo(c, p.left, p.top, p.rot, p.zIndex, 280, p.stackZ || 0);
             });
+            // layoutRegion's after-layout hook (skipped since we laid out
+            // directly): refresh the region's scroll bounds for its new width.
+            updateSentinel(targetRegion);
+            updateScrollArrows(targetRegion);
 
             [...droppedStackCards].reverse().forEach(c => { c.liftEl.style.zIndex = nextTopZ(); });
 
-            liftDown(280, null, liftTargets.length ? liftTargets : null, {
+            // Tilt-space X/Y slide of the dropped cards to their attached slots,
+            // concurrent with the lift/wiggle (which only touches Z and translateX).
+            const slideStart = performance.now();
+            const slideDurMs = scaleDuration(280);
+            const slideFrom  = new Map(droppedStackCards.map(c => [c.id, tiltSpacePosOf(c)]));
+            (function slideDropped(now) {
+              const t = Math.min((now - slideStart) / slideDurMs, 1);
+              const e = easeOut(t);
+              droppedStackCards.forEach(c => {
+                const tgt = droppedTargetByCardId.get(c.id);
+                const from = slideFrom.get(c.id);
+                if (!tgt || !from || c.liftEl.parentElement !== _tiltEl) return;
+                c.liftEl.style.left = (from.left + (tgt.left - from.left) * e) + 'px';
+                c.liftEl.style.top  = (from.top  + (tgt.top  - from.top)  * e) + 'px';
+              });
+              if (t < 1) requestAnimationFrame(slideDropped);
+            })(performance.now());
+
+            liftDown(280, () => {
+              // Wiggle settled — reparent each dropped card into the target
+              // region's scroll-outer at its final tilt-space slot.
+              droppedStackCards.forEach(c => {
+                const tgt = droppedTargetByCardId.get(c.id);
+                if (!tgt) return;
+                placeCardAt(c, tgt.left, tgt.top, tgt.rot ?? 0, tgt.zIndex, tgt.stackZ || 0);
+              });
+            }, liftTargets.length ? liftTargets : null, {
               wiggleXPx: attachWiggleXPx,
               settleProgressAt: 0.5,
               deferZIndex: true,
@@ -1570,9 +1633,22 @@ export function createDnc3DEngine(options = {}) {
     tiltEl.appendChild(insertIndicatorEl);
     setIndicatorEl(insertIndicatorEl);
 
+    // The icon is a transparent positioning container holding two layered
+    // children: the label box (behind) and the circle (in front, so it covers
+    // the label's inner edge and the two read as one continuous shape).
     _attachTargetIconEl = document.createElement('div');
     _attachTargetIconEl.className = 'dnc3d-attach-icon';
-    _attachTargetIconEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
+    const attachLabelEl = document.createElement('div');
+    attachLabelEl.className = 'dnc3d-attach-label';
+    attachLabelEl.innerHTML =
+      `<div class="dnc3d-attach-label-head">Attach to</div>` +
+      `<div class="dnc3d-attach-label-name"></div>` +
+      `<div class="dnc3d-attach-label-side"></div>`;
+    const attachCircleEl = document.createElement('div');
+    attachCircleEl.className = 'dnc3d-attach-icon-circle';
+    attachCircleEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
+    _attachTargetIconEl.appendChild(attachLabelEl);
+    _attachTargetIconEl.appendChild(attachCircleEl);
     tiltEl.appendChild(_attachTargetIconEl);
 
     if (initData.cards) {
@@ -1804,10 +1880,26 @@ export function createDnc3DEngine(options = {}) {
         if (type === 'free') {
           const tiltW = parseFloat(tiltEl.style.width);
           const tiltH = parseFloat(tiltEl.style.height);
+          const layerOffset = layerZPx(cardHeightPx()) * (REGIONS[regionId].layerIndex || 0);
           regionState[regionId].stackIds.forEach(sid => {
-            const baseCard = cards[stacks[sid].cardIds[0]];
+            const stack = stacks[sid];
+            const baseCard = cards[stack.cardIds[0]];
             if (!baseCard) return;
-            placeCardAt(baseCard, (baseCard.fracX || 0) * tiltW, (baseCard.fracY || 0) * tiltH, 0, baseCard.id + 1);
+            // Place the whole stack (base + attachments) so attachments inherit the
+            // region's layer Z; otherwise they'd render at Z=0, behind an elevated
+            // region's opaque panel.
+            const anchorLeft = (baseCard.fracX || 0) * tiltW;
+            const anchorTop  = (baseCard.fracY || 0) * tiltH;
+            stackPositionsAtAnchor(stack, anchorLeft, anchorTop, baseCard.id + 1, layerOffset)
+              .forEach(pos => {
+                const c = cards[pos.cardId];
+                if (!c) return;
+                // Store each card's own frac position (base + attachment offset) so a
+                // later resize repositions attachments correctly, not just the base.
+                c.fracX = pos.left / tiltW;
+                c.fracY = pos.top  / tiltH;
+                placeCardAt(c, pos.left, pos.top, pos.rot, pos.zIndex, pos.stackZ);
+              });
           });
         } else if (type === 'fan') {
           layoutFan(regionId).forEach(pos => placeCardAt(cards[pos.cardId], pos.left, pos.top, pos.rot, pos.zIndex, pos.stackZ || 0));
@@ -1924,6 +2016,29 @@ export function createDnc3DEngine(options = {}) {
       regionState[regionId].stackIds = desired;
       layoutRegion(regionId);
     });
+  }
+
+  // Animate a whole free-region stack (base + attachments) to a backend anchor
+  // (fractional tilt-space position). The backend stores only one origin per
+  // stack, so attachment positions are derived from stackCardOffsets rather than
+  // placed individually — otherwise they collapse onto the base. The stack's
+  // resting Z is the region's layer offset, so an elevated region's opaque panel
+  // doesn't hide its cards.
+  function animateFreeStackToFrac(stack, fracX, fracY) {
+    if (!_tiltEl || !stack) return;
+    const baseCard = cards[stack.cardIds[0]];
+    if (!baseCard) return;
+    const tiltW = parseFloat(_tiltEl.style.width);
+    const tiltH = parseFloat(_tiltEl.style.height);
+    const layerOffset = layerZPx(cardHeightPx()) * (REGIONS[baseCard.regionId]?.layerIndex || 0);
+    stackPositionsAtAnchor(stack, fracX * tiltW, fracY * tiltH, baseCard.id + 1, layerOffset)
+      .forEach(pos => {
+        const c = cards[pos.cardId];
+        if (!c || c.cardEl._animating) return;
+        c.fracX = pos.left / tiltW;
+        c.fracY = pos.top  / tiltH;
+        animateCardTo(c, pos.left, pos.top, pos.rot, pos.zIndex, 300, pos.stackZ);
+      });
   }
 
   // ── Reconcile engine visual state with current Redux game state ───────────
@@ -2228,11 +2343,10 @@ export function createDnc3DEngine(options = {}) {
           if (REGIONS[expectedGroupId]?.type === 'free') {
             const dcStack = stackById[dcCard.stackId];
             if (dcStack?.left != null && _tiltEl) {
-              const tiltW = parseFloat(_tiltEl.style.width);
-              const tiltH = parseFloat(_tiltEl.style.height);
-              card.fracX = dcStack.left;
-              card.fracY = dcStack.top ?? 0;
-              animateCardTo(card, dcStack.left * tiltW, (dcStack.top ?? 0) * tiltH, 0, card.id + 1, 300, 0);
+              // Lay out the whole stack so attachments follow with their offsets
+              // and the region's layer Z (moveStackToRegion above already moved
+              // every card in the stack, so this runs once per stack).
+              animateFreeStackToFrac(stacks[card.stackId], dcStack.left, dcStack.top ?? 0);
             }
           } else {
             // Center the destination slot first so an overflowing region scrolls
@@ -2245,20 +2359,26 @@ export function createDnc3DEngine(options = {}) {
         if (oldRegionId && oldRegionId !== expectedGroupId) layoutRegion(oldRegionId);
       }
 
-      // 5. Free-region position update (card moved within same free region)
-      if (card.regionId && REGIONS[card.regionId]?.type === 'free') {
+      // 5. Free-region position update (card moved within same free region).
+      // Only the stack's base card drives positioning; attachments follow via
+      // animateFreeStackToFrac. The backend stores a single origin per stack, so
+      // an attachment's fracX (base + offset) never matches dcStack.left —
+      // repositioning it individually here would collapse it onto the base at
+      // Z=0, behind an elevated region's opaque panel.
+      if (card.regionId && REGIONS[card.regionId]?.type === 'free'
+          && stacks[card.stackId]?.cardIds[0] === card.id) {
         const dcStack = stackById[dcCard.stackId];
         if (dcStack?.left != null && _tiltEl) {
           const dx = Math.abs((dcStack.left  ?? 0) - (card.fracX || 0));
           const dy = Math.abs((dcStack.top   ?? 0) - (card.fracY || 0));
           if (dx > 0.001 || dy > 0.001) {
-            const tiltW = parseFloat(_tiltEl.style.width);
-            const tiltH = parseFloat(_tiltEl.style.height);
-            card.fracX = dcStack.left;
-            card.fracY = dcStack.top ?? 0;
             if (!card.cardEl._animating) {
-              animateCardTo(card, dcStack.left * tiltW, (dcStack.top ?? 0) * tiltH, card.cardEl._layoutRotation, card.id + 1, 300, 0);
+              animateFreeStackToFrac(stacks[card.stackId], dcStack.left, dcStack.top ?? 0);
             } else {
+              const tiltW = parseFloat(_tiltEl.style.width);
+              const tiltH = parseFloat(_tiltEl.style.height);
+              card.fracX = dcStack.left;
+              card.fracY = dcStack.top ?? 0;
               // A flip animation is running and owns liftEl.style.transform and
               // cardEl.style.transform. Slide only X/Y so there is no conflict.
               const targetLeft = dcStack.left * tiltW;

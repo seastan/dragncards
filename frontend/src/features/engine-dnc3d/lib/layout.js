@@ -608,7 +608,7 @@ export function createLayout(state, projection, REGIONS) {
     initLayout, regionPx, findRegionAtPoint,
     setScrollOuter, clearScrollOuters,
     tiltSpacePosOf, ensureCardParent, moveCardToTilt, moveCardFromTilt, moveStackToTilt,
-    stackCardOffsets, stackBaseCardIds,
+    stackCardOffsets, stackBaseCardIds, stackPositionsAtAnchor,
     rowTotalWidth,
     layoutRow, layoutFan, layoutPile,
     placeCardAt, animateCardTo,
