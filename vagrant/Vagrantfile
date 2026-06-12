@@ -14,6 +14,7 @@ Vagrant.configure("2") do |config|
           dragn.customize [ "modifyvm", :id, "--uartmode1", "file", File::NULL ]
           dragn.memory = "8192"
           dragn.cpus = 2
+          dragn.gui = true
         end
     
         # Provision demo dependencies.
