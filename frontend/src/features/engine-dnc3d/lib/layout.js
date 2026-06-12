@@ -1,5 +1,5 @@
 import { BASE_LIFT, pileStackZPx, MAX_PILE_VISUAL_DEPTH, layerZPx, scaleDuration, dvhPx } from './config';
-import { easeOut } from './animation';
+import { ease, easeOut } from './animation';
 
 // Attachment cards offset horizontally from their parent within a stack.
 const ATTACH_OFFSET_X = 0.22; // fraction of card width per side-specific attachment index
@@ -327,9 +327,11 @@ export function createLayout(state, projection, REGIONS) {
   function placeCardAt(card, left, top, rot, zIdx, stackZ = 0) {
     ensureCardParent(card);
     // placeCardAt is the instant primitive — clear any lingering transform
-    // transition (e.g. from a recent game-rotation) so nothing animates.
+    // transition (e.g. from a recent game-rotation) so nothing animates, and any
+    // in-flight elevation (a canceled arc would otherwise leave liftPx stale).
     if (card.cardEl._rotTransId) { clearTimeout(card.cardEl._rotTransId); card.cardEl._rotTransId = null; }
     card.cardEl.style.transition = '';
+    card.liftPx = 0;
     const o = originOf(card.regionId);
     card.liftEl.style.left      = (left - o.x) + 'px';
     card.liftEl.style.top       = (top  - o.y) + 'px';
@@ -342,7 +344,10 @@ export function createLayout(state, projection, REGIONS) {
 
   function animateCardTo(card, targetLeft, targetTop, targetRot, targetZ, duration = 300, targetStackZ = 0) {
     if (card.cardEl._animating) return;
-    if (card.layoutAnimId) { cancelAnimationFrame(card.layoutAnimId); card.layoutAnimId = null; }
+    // Canceling a layout animation takes ownership of the card; an interrupted
+    // arc (animateCardArc) would otherwise leave a stale mid-hop liftPx that
+    // reads as "in flight" elsewhere. Cards under layout animation rest at 0.
+    if (card.layoutAnimId) { cancelAnimationFrame(card.layoutAnimId); card.layoutAnimId = null; card.liftPx = 0; }
     const { left: fromLeft, top: fromTop } = tiltSpacePosOf(card);
     const fromRot    = card.cardEl._layoutRotation || 0;
     const fromStackZ = card.pileZ || 0;
@@ -371,6 +376,70 @@ export function createLayout(state, projection, REGIONS) {
           card.fracX = targetLeft / tw;
           card.fracY = targetTop  / th;
         }
+      }
+    }
+    card.layoutAnimId = requestAnimationFrame(frame);
+  }
+
+  // Like animateCardTo, but lifts the card off the table along a parabolic Z arc
+  // (rise → peak → drop) while it travels, instead of sliding flat. Used when
+  // another player moves a card/stack so observers see it pick up, fly over, and
+  // set down rather than skate across the surface (or teleport).
+  // The XY uses a symmetric ease (accelerate then decelerate) so the move reads as
+  // a deliberate pickup-and-place rather than easeOut's fast-start "teleport".
+  // liftPx is the peak height of the hop in tilt-space px; pass a shared value for
+  // every card in a stack so the whole stack rises and falls in unison.
+  // options.inTiltPlane: the caller has already reparented the card into the tilt
+  //   plane (moveCardToTilt) and target coords are tilt-space — fly it there
+  //   without reparenting, so a clipping destination scroll-outer can't cut the
+  //   flight off; the caller lands it (moveCardFromTilt) in options.onComplete.
+  function animateCardArc(card, targetLeft, targetTop, targetRot, targetZ, duration = 360, targetStackZ = 0, liftPx = 0, options = {}) {
+    if (card.cardEl._animating) return;
+    if (card.layoutAnimId) { cancelAnimationFrame(card.layoutAnimId); card.layoutAnimId = null; }
+    const { left: fromLeft, top: fromTop } = tiltSpacePosOf(card);
+    const fromRot    = card.cardEl._layoutRotation || 0;
+    const fromStackZ = card.pileZ || 0;
+    const start      = performance.now();
+    const durationMs = scaleDuration(duration);
+    if (!options.inTiltPlane) ensureCardParent(card);
+    // Float above the table for the duration of the hop so the card paints over
+    // whatever it flies across; the resting z-index (targetZ) is restored on land.
+    // The +targetZ keeps a stack's cards in their correct relative order in flight.
+    card.liftEl.style.zIndex = 100000 + targetZ;
+    function frame(now) {
+      const t = Math.min((now - start) / durationMs, 1);
+      const e = ease(t);
+      // Resting Z interpolates toward the destination; the hop adds a sine bump on
+      // top so the card is highest at the midpoint and settles flush at the end.
+      const restZ = fromStackZ + (targetStackZ - fromStackZ) * e;
+      const bump  = Math.sin(Math.PI * t) * liftPx;
+      const o = options.inTiltPlane ? { x: 0, y: 0 } : originOf(card.regionId);
+      card.pileZ  = restZ;
+      // Track the hop height in liftPx (the drag system's "elevation above rest")
+      // so concurrent reconcile paths treat the card as in flight — e.g. a flip
+      // arriving mid-hop takes the drop-flip path from the current height instead
+      // of yanking the card to the table.
+      card.liftPx = bump;
+      card.liftEl.style.left      = (fromLeft + (targetLeft - fromLeft) * e - o.x) + 'px';
+      card.liftEl.style.top       = (fromTop  + (targetTop  - fromTop)  * e - o.y) + 'px';
+      card.liftEl.style.transform = `translateZ(${BASE_LIFT + restZ + bump}px)`;
+      card.cardEl._layoutRotation = fromRot + (targetRot - fromRot) * e;
+      card.cardEl.style.transform = `perspective(300vw) rotateY(${card.cardEl._angle}deg) rotateZ(${card.cardEl._layoutRotation + (card.cardEl._gameRotation || 0)}deg) scale(1)`;
+      if (t < 1) {
+        card.layoutAnimId = requestAnimationFrame(frame);
+      } else {
+        card.layoutAnimId = null;
+        card.pileZ  = targetStackZ;
+        card.liftPx = 0;
+        card.liftEl.style.transform = `translateZ(${BASE_LIFT + targetStackZ}px)`;
+        card.liftEl.style.zIndex = targetZ;
+        if (card.regionId && REGIONS[card.regionId].type === 'free') {
+          const tw = parseFloat(_tiltEl.style.width);
+          const th = parseFloat(_tiltEl.style.height);
+          card.fracX = targetLeft / tw;
+          card.fracY = targetTop  / th;
+        }
+        if (options.onComplete) options.onComplete();
       }
     }
     card.layoutAnimId = requestAnimationFrame(frame);
@@ -642,7 +711,7 @@ export function createLayout(state, projection, REGIONS) {
     stackCardOffsets, stackBaseCardIds, stackPositionsAtAnchor,
     rowTotalWidth,
     layoutRow, layoutFan, layoutPile,
-    placeCardAt, animateCardTo,
+    placeCardAt, animateCardTo, animateCardArc,
     insertStackAtIndex,
     setIndicatorEl, showInsertionIndicator, hideInsertionIndicator,
     setAfterLayoutHook,

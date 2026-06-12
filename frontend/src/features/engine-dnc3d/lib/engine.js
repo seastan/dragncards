@@ -53,7 +53,7 @@ export function createDnc3DEngine(options = {}) {
     initLayout, regionPx, layoutFan, layoutRow, layoutPile,
     placeCardAt, layoutRegion, setAfterLayoutHook, setScrollOuter, setIndicatorEl,
     findRegionAtPoint, insertStackAtIndex, moveCardToTilt, moveCardFromTilt, moveStackToTilt,
-    animateCardTo, tiltSpacePosOf, stackCardOffsets, stackBaseCardIds, stackPositionsAtAnchor,
+    animateCardTo, animateCardArc, tiltSpacePosOf, stackCardOffsets, stackBaseCardIds, stackPositionsAtAnchor,
     showInsertionIndicator, hideInsertionIndicator, clearScrollOuters,
     rowTotalWidth,
   } = layout;
@@ -2045,29 +2045,11 @@ export function createDnc3DEngine(options = {}) {
   // draws appear to originate from the middle of the deck until a full re-init
   // (page refresh).
   function syncRegionOrders(game, idMap) {
-    const groupById = game.groupById || {};
     Object.keys(regionState).forEach(regionId => {
       if (regionId === '_browse' || regionId === _browseGroupId) return;
       const region = REGIONS[regionId];
-      if (!region || region.type === 'free') return;
-      const group = groupById[regionId];
-      if (!group) return;
-
-      // Desired engine-stack order, derived from the backend group order. Only
-      // stacks actually resident in this region count (membership has already
-      // been reconciled above). Piles are reversed to match the adapter: the
-      // game's top card (stackIds[0]) maps to the engine's top (last) slot.
-      const desired = [];
-      (group.stackIds || []).forEach(dcStackId => {
-        const firstDcCard = game.stackById?.[dcStackId]?.cardIds?.[0];
-        if (firstDcCard === undefined) return;
-        const idx = idMap.get(firstDcCard);
-        if (idx === undefined) return;
-        const card = cards[idx];
-        if (!card || card.regionId !== regionId) return;
-        desired.push(card.stackId);
-      });
-      if (region.type === 'pile') desired.reverse();
+      const desired = desiredRegionOrder(regionId, game, idMap);
+      if (!desired) return;
 
       const current = regionState[regionId].stackIds;
       // Membership still settling (a stack here isn't in the backend order, or
@@ -2279,8 +2261,15 @@ export function createDnc3DEngine(options = {}) {
     const tiltW = parseFloat(_tiltEl.style.width);
     const tiltH = parseFloat(_tiltEl.style.height);
     const layerOffset = layerZPx(cardHeightPx()) * (REGIONS[baseCard.regionId]?.layerIndex || 0);
-    stackPositionsAtAnchor(stack, fracX * tiltW, fracY * tiltH, baseCard.id + 1, layerOffset)
-      .forEach(pos => {
+    const positions = stackPositionsAtAnchor(stack, fracX * tiltW, fracY * tiltH, baseCard.id + 1, layerOffset);
+    // Size the lift hop off the base card's travel so the whole stack rises and
+    // falls together: longer moves get a higher arc, capped so a big slide across
+    // the table never looks cartoonish; tiny nudges keep a small but visible hop.
+    const basePos  = positions.find(p => p.cardId === baseCard.id) || positions[0];
+    const baseFrom = tiltSpacePosOf(baseCard);
+    const travel   = basePos ? Math.hypot(basePos.left - baseFrom.left, basePos.top - baseFrom.top) : 0;
+    const liftPx   = Math.min(cardHeightPx() * 0.5, Math.max(cardHeightPx() * 0.18, travel * 0.28));
+    positions.forEach(pos => {
         const c = cards[pos.cardId];
         if (!c || c.cardEl._animating) return;
         c.fracX = pos.left / tiltW;
@@ -2288,8 +2277,71 @@ export function createDnc3DEngine(options = {}) {
         // instant: a freshly-revealed card has no on-screen origin to slide from,
         // so snap it into place rather than animating from the (0,0) origin.
         if (instant) placeCardAt(c, pos.left, pos.top, pos.rot, pos.zIndex, pos.stackZ);
-        else animateCardTo(c, pos.left, pos.top, pos.rot, pos.zIndex, 300, pos.stackZ);
+        else animateCardArc(c, pos.left, pos.top, pos.rot, pos.zIndex, 360, pos.stackZ, liftPx);
       });
+  }
+
+  // Flies a stack from its current on-screen position into its layout slot in a
+  // row/fan/pile region with a lift-travel-drop arc. The caller must have already
+  // reparented the stack into the tilt plane (moveStackToTilt) — the flight runs
+  // there so the destination scroll-outer's overflow clipping can't cut it off —
+  // and have laid out the region's other cards (layoutRegion with this stack
+  // excluded). Each card lands back into the scroll-outer when its arc completes.
+  function flyStackToRegionSlot(stack, regionId) {
+    const type     = REGIONS[regionId]?.type;
+    const layoutFn = type === 'row' ? layoutRow : type === 'fan' ? layoutFan : type === 'pile' ? layoutPile : null;
+    if (!layoutFn || !stack) return;
+    const idSet     = new Set(stack.cardIds);
+    const positions = layoutFn(regionId).filter(p => idSet.has(p.cardId));
+    if (!positions.length) return;
+    const baseCard = cards[stack.cardIds[0]];
+    const basePos  = positions.find(p => p.cardId === baseCard.id) || positions[0];
+    const baseFrom = tiltSpacePosOf(baseCard);
+    const travel   = Math.hypot(basePos.left - baseFrom.left, basePos.top - baseFrom.top);
+    const liftPx   = Math.min(cardHeightPx() * 0.5, Math.max(cardHeightPx() * 0.18, travel * 0.28));
+    positions.forEach(pos => {
+      const c = cards[pos.cardId];
+      // A mid-flip card is owned by its flip animation, whose onComplete lands it.
+      if (!c || c.cardEl._animating) return;
+      animateCardArc(c, pos.left, pos.top, pos.rot, pos.zIndex, 360, pos.stackZ || 0, liftPx,
+        { inTiltPlane: true, onComplete: () => moveCardFromTilt(c) });
+    });
+  }
+
+  // Engine-stack order a region should have, derived from the backend group
+  // order. Only stacks actually resident in the region count (membership is
+  // reconciled separately). Piles are reversed to match the adapter: the game's
+  // top card (stackIds[0]) maps to the engine's top (last) slot. Returns null
+  // for free/unknown regions or when the group isn't in the game state.
+  function desiredRegionOrder(regionId, game, idMap) {
+    const region = REGIONS[regionId];
+    const group  = game.groupById?.[regionId];
+    if (!region || region.type === 'free' || !group) return null;
+    const desired = [];
+    (group.stackIds || []).forEach(dcStackId => {
+      const firstDcCard = game.stackById?.[dcStackId]?.cardIds?.[0];
+      if (firstDcCard === undefined) return;
+      const idx = idMap.get(firstDcCard);
+      if (idx === undefined) return;
+      const c = cards[idx];
+      if (!c || c.regionId !== regionId) return;
+      desired.push(c.stackId);
+    });
+    if (region.type === 'pile') desired.reverse();
+    return desired;
+  }
+
+  // Aligns regionState[regionId].stackIds with the backend group order, data
+  // only (no layout). Used when a stack arrives in a region: moveStackToRegion
+  // appends, but the backend may have inserted it elsewhere — syncing before
+  // computing the arrival layout makes the stack fly to its real slot and leaves
+  // nothing for the follow-up syncRegionOrders pass to reorder (which would
+  // otherwise yank the mid-flight cards with a flat re-layout).
+  function syncRegionOrderData(regionId, game, idMap) {
+    const desired = desiredRegionOrder(regionId, game, idMap);
+    if (desired && desired.length === regionState[regionId].stackIds.length) {
+      regionState[regionId].stackIds = desired;
+    }
   }
 
   // Show/hide every card in a stack at once (attachments included). Used by
@@ -2612,6 +2664,13 @@ export function createDnc3DEngine(options = {}) {
           // this client doesn't render. It has no on-screen origin to slide from,
           // so reveal it and snap (not slide) its whole stack into place.
           const wasHidden = !oldRegionId;
+          // Convert the stack's coords to tilt space using the OLD region's origin
+          // before membership changes. originOf keys off card.regionId, so once
+          // the stack is in the new region its scroll-outer-relative left/top
+          // would be misread as destination-relative and the flight would start
+          // from a garbage point inside the destination (seen as a teleport).
+          const willFly = !wasHidden && !card.cardEl._animating;
+          if (willFly) moveStackToTilt(stacks[card.stackId]);
           moveStackToRegion(card.stackId, expectedGroupId);
           if (wasHidden) setStackHidden(stacks[card.stackId], false);
           // Only animate into the new region when we're not already animating a flip.
@@ -2626,11 +2685,21 @@ export function createDnc3DEngine(options = {}) {
                 animateFreeStackToFrac(stacks[card.stackId], dcStack.left, dcStack.top ?? 0, wasHidden);
               }
             } else {
+              // Match the backend's ordering before computing slots, so the stack
+              // flies to its real slot rather than the appended end.
+              syncRegionOrderData(expectedGroupId, game, idMap);
               // Center the destination slot first so an overflowing region scrolls
               // the target on-screen before the card animates in, rather than the
               // card sliding out into the clipped overflow.
               scrollStackToCenter(expectedGroupId, card.stackId);
-              layoutRegion(expectedGroupId, null, wasHidden);
+              if (wasHidden) {
+                layoutRegion(expectedGroupId, null, true);
+              } else {
+                // Slide the region's existing cards into their new slots, leaving
+                // the arriving stack out, then fly it in along a lift arc.
+                layoutRegion(expectedGroupId, card.stackId);
+                flyStackToRegionSlot(stacks[card.stackId], expectedGroupId);
+              }
             }
           }
           if (oldRegionId && oldRegionId !== expectedGroupId) layoutRegion(oldRegionId);
