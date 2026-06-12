@@ -2002,6 +2002,11 @@ export function createDnc3DEngine(options = {}) {
       if (c) c.liftEl.style.transform = `translateZ(${BASE_LIFT + c.pileZ}px)`;
     });
 
+    // Cards that didn't land in any rendered region (they live in a group this
+    // player doesn't show, e.g. another player's hand) are parked at the origin
+    // and hidden. reconcile reveals them if/when they move into a rendered region.
+    cards.forEach(c => { if (c && !c.regionId) c.liftEl.style.display = 'none'; });
+
     Object.keys(sentinelEls).forEach(updateSentinel);
 
     // ── Cleanup ──────────────────────────────────────────────────────────────
@@ -2267,7 +2272,7 @@ export function createDnc3DEngine(options = {}) {
   // placed individually — otherwise they collapse onto the base. The stack's
   // resting Z is the region's layer offset, so an elevated region's opaque panel
   // doesn't hide its cards.
-  function animateFreeStackToFrac(stack, fracX, fracY) {
+  function animateFreeStackToFrac(stack, fracX, fracY, instant = false) {
     if (!_tiltEl || !stack) return;
     const baseCard = cards[stack.cardIds[0]];
     if (!baseCard) return;
@@ -2280,8 +2285,22 @@ export function createDnc3DEngine(options = {}) {
         if (!c || c.cardEl._animating) return;
         c.fracX = pos.left / tiltW;
         c.fracY = pos.top  / tiltH;
-        animateCardTo(c, pos.left, pos.top, pos.rot, pos.zIndex, 300, pos.stackZ);
+        // instant: a freshly-revealed card has no on-screen origin to slide from,
+        // so snap it into place rather than animating from the (0,0) origin.
+        if (instant) placeCardAt(c, pos.left, pos.top, pos.rot, pos.zIndex, pos.stackZ);
+        else animateCardTo(c, pos.left, pos.top, pos.rot, pos.zIndex, 300, pos.stackZ);
       });
+  }
+
+  // Show/hide every card in a stack at once (attachments included). Used by
+  // reconcile when a stack crosses between a region this client renders and one
+  // it doesn't (e.g. another player's hand <-> the shared table).
+  function setStackHidden(stack, hidden) {
+    if (!stack) return;
+    stack.cardIds.forEach(cid => {
+      const c = cards[cid];
+      if (c?.liftEl) c.liftEl.style.display = hidden ? 'none' : '';
+    });
   }
 
   // ── Reconcile engine visual state with current Redux game state ───────────
@@ -2335,7 +2354,11 @@ export function createDnc3DEngine(options = {}) {
       // separate dispatch that lands after closeBrowse has already run.
       const peekingChanged = peeking !== (card.cardEl._peeking || false);
       card.cardEl._peeking = peeking;
-      if (currentVisualSide !== expectedSide && peekingChanged && !card.cardEl._animating) {
+      // A parked card lives in a region this client doesn't render (regionId
+      // null, hidden). Keep its orientation in sync silently — snap, never
+      // animate — so it shows the right side the instant it's revealed.
+      const parked = !card.regionId;
+      if (currentVisualSide !== expectedSide && (peekingChanged || parked) && !card.cardEl._animating) {
         _snapCardToExpectedSide(card, dcCard);
       } else if (currentVisualSide !== expectedSide && !card.cardEl._animating) {
         card.cardEl._animating = true;
@@ -2571,36 +2594,54 @@ export function createDnc3DEngine(options = {}) {
         applyCardDims(card);
       }
 
-      // 4. Group change (card moved by another player)
+      // 4. Group / visibility change. A card may move by another player between a
+      // region this client renders and one it doesn't (e.g. another player moving
+      // a card from their hand to the shared table, or back the other way).
       const expectedGroupId = dcCard.groupId;
+      // Whether this client renders a region for the card's destination group.
+      const destRendered = !!(expectedGroupId && regionState[expectedGroupId]);
       // Any card currently in '_browse' is managed by the browse system. Skip
       // the group-change path even if the backend hasn't confirmed the move yet
       // (e.g. a card dropped in before the server round-trip completes would
       // otherwise be yanked back out and snap the browse cards to old positions).
       const inBrowse = !!_browseGroupId && card.regionId === '_browse';
-      if (!inBrowse && expectedGroupId && card.regionId !== expectedGroupId && regionState[expectedGroupId]) {
-        const oldRegionId = card.regionId;
-        moveStackToRegion(card.stackId, expectedGroupId);
-        // Only animate into the new region when we're not already animating a flip.
-        // moveStackToRegion and layoutRegion(old) always run so engine state stays consistent.
-        if (!card.cardEl._animating) {
-          if (REGIONS[expectedGroupId]?.type === 'free') {
-            const dcStack = stackById[dcCard.stackId];
-            if (dcStack?.left != null && _tiltEl) {
-              // Lay out the whole stack so attachments follow with their offsets
-              // and the region's layer Z (moveStackToRegion above already moved
-              // every card in the stack, so this runs once per stack).
-              animateFreeStackToFrac(stacks[card.stackId], dcStack.left, dcStack.top ?? 0);
+      if (!inBrowse && card.regionId !== expectedGroupId) {
+        if (destRendered) {
+          const oldRegionId = card.regionId;
+          // A card with no current region was parked/hidden — it lived in a region
+          // this client doesn't render. It has no on-screen origin to slide from,
+          // so reveal it and snap (not slide) its whole stack into place.
+          const wasHidden = !oldRegionId;
+          moveStackToRegion(card.stackId, expectedGroupId);
+          if (wasHidden) setStackHidden(stacks[card.stackId], false);
+          // Only animate into the new region when we're not already animating a flip.
+          // moveStackToRegion and layoutRegion(old) always run so engine state stays consistent.
+          if (!card.cardEl._animating) {
+            if (REGIONS[expectedGroupId]?.type === 'free') {
+              const dcStack = stackById[dcCard.stackId];
+              if (dcStack?.left != null && _tiltEl) {
+                // Lay out the whole stack so attachments follow with their offsets
+                // and the region's layer Z (moveStackToRegion above already moved
+                // every card in the stack, so this runs once per stack).
+                animateFreeStackToFrac(stacks[card.stackId], dcStack.left, dcStack.top ?? 0, wasHidden);
+              }
+            } else {
+              // Center the destination slot first so an overflowing region scrolls
+              // the target on-screen before the card animates in, rather than the
+              // card sliding out into the clipped overflow.
+              scrollStackToCenter(expectedGroupId, card.stackId);
+              layoutRegion(expectedGroupId, null, wasHidden);
             }
-          } else {
-            // Center the destination slot first so an overflowing region scrolls
-            // the target on-screen before the card animates in, rather than the
-            // card sliding out into the clipped overflow.
-            scrollStackToCenter(expectedGroupId, card.stackId);
-            layoutRegion(expectedGroupId);
           }
+          if (oldRegionId && oldRegionId !== expectedGroupId) layoutRegion(oldRegionId);
+        } else if (card.regionId && card.regionId !== '_browse') {
+          // The card moved into a region this client doesn't render — pull its
+          // whole stack out and hide it so it doesn't linger where it was.
+          const oldRegionId = card.regionId;
+          moveStackToRegion(card.stackId, null);
+          setStackHidden(stacks[card.stackId], true);
+          layoutRegion(oldRegionId);
         }
-        if (oldRegionId && oldRegionId !== expectedGroupId) layoutRegion(oldRegionId);
       }
 
       // 5. Free-region position update (card moved within same free region).

@@ -30,22 +30,17 @@ export function resolveImageUrl(face, gameDef, language) {
 export function adaptGameState(game, layoutRegions, gameDef, language, observingPlayerN, numPlayers) {
   const { cardById = {}, stackById = {}, groupById = {} } = game || {};
 
-  // 1. Determine which groups have a visible layout region.
-  //    Cards in groups without a region are not rendered at all.
-  const visibleGroupIds = new Set();
-  Object.values(layoutRegions || {}).forEach(region => {
-    if (region.visible === false || !region.groupId) return;
-    visibleGroupIds.add(formatGroupId(region.groupId, observingPlayerN, numPlayers));
-  });
+  // 1. Build an integer index mapping for EVERY card in the game, not just the
+  //    ones currently in a region this player renders. A card living in a region
+  //    this player doesn't show (e.g. another player's hand) still gets an engine
+  //    element so that when it later moves into a rendered region (e.g. the shared
+  //    table) reconcile can reveal it. Cards that start outside a rendered region
+  //    are created hidden (see init) and parked until they move into one.
+  const allCardIds = Object.keys(cardById);
+  const idMap = new Map(allCardIds.map((dcId, i) => [dcId, i]));
 
-  // 2. Build integer index mapping for visible cards only
-  const visibleCardIds = Object.keys(cardById).filter(
-    dcId => visibleGroupIds.has(cardById[dcId]?.groupId)
-  );
-  const idMap = new Map(visibleCardIds.map((dcId, i) => [dcId, i]));
-
-  // 3. Build card descriptors for visible cards
-  const cardDescriptors = visibleCardIds.map((dcId, i) => {
+  // 2. Build card descriptors for every card
+  const cardDescriptors = allCardIds.map((dcId, i) => {
     const card = cardById[dcId];
     const sides    = card.sides || {};
     const sideKeys = Object.keys(sides);
@@ -70,7 +65,9 @@ export function adaptGameState(game, layoutRegions, gameDef, language, observing
     };
   });
 
-  // 4. Build assignments keyed by groupId (with playerN substitution)
+  // 3. Build assignments keyed by groupId (with playerN substitution). Only
+  //    groups with a visible region get assignments; every other card stays
+  //    parked (regionId null) and hidden until it moves into a rendered region.
   const assignments = {};
   Object.entries(layoutRegions || {}).forEach(([, region]) => {
     if (region.visible === false) return;

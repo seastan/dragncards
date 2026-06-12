@@ -120,20 +120,15 @@ export const TopBarUser = React.memo(({ playerI }: { playerI: string }) => {
     }
   };
 
-  const dotColor = sittingUserId ? (isMe ? "#60a5fa" : "#4ade80") : "#6b7280";
-
   return (
-    <div className="h-full p-1">
+    <div className="h-full">
       <div
-        className="h-full flex rounded-md border border-gray-700 bg-gray-800 overflow-hidden"
+        className="h-full flex border border-gray-700 bg-gray-800 overflow-hidden"
         style={{ borderLeft: `3px solid ${borderColor}` }}
       >
         <div className="h-full flex flex-col flex-1 min-w-0">
-          <div className="flex items-center gap-1 min-w-0 px-1.5" style={{ height: "50%" }}>
-            <span
-              className="flex-shrink-0 rounded-full"
-              style={{ width: "0.9dvh", height: "0.9dvh", background: dotColor }}
-            />
+          <div className="flex items-center justify-center gap-1 min-w-0 px-1.5" style={{ height: "50%" }}>
+
             {firstPlayer === playerI ? (
               <div className="flex-shrink-0">
                 <FirstPlayerToken />
