@@ -43,7 +43,7 @@ export function createDnc3DEngine(options = {}) {
 
   // ── Sub-system instances ───────────────────────────────────────────────────
   const state = createState(REGIONS);
-  const { cards, stacks, regionState, createStack, splitStack, attachStack, moveStackToRegion, nextTopZ } = state;
+  const { cards, stacks, regionState, createStack, destroyStack, splitStack, attachStack, moveStackToRegion, nextTopZ } = state;
 
   const projection = createProjection();
   const { cardWidthPx, cardHeightPx, stagePx, screenToTableAtZ, tableToScreen, setTiltDims, setCardDims, setStageDims } = projection;
@@ -2262,13 +2262,7 @@ export function createDnc3DEngine(options = {}) {
     const tiltH = parseFloat(_tiltEl.style.height);
     const layerOffset = layerZPx(cardHeightPx()) * (REGIONS[baseCard.regionId]?.layerIndex || 0);
     const positions = stackPositionsAtAnchor(stack, fracX * tiltW, fracY * tiltH, baseCard.id + 1, layerOffset);
-    // Size the lift hop off the base card's travel so the whole stack rises and
-    // falls together: longer moves get a higher arc, capped so a big slide across
-    // the table never looks cartoonish; tiny nudges keep a small but visible hop.
-    const basePos  = positions.find(p => p.cardId === baseCard.id) || positions[0];
-    const baseFrom = tiltSpacePosOf(baseCard);
-    const travel   = basePos ? Math.hypot(basePos.left - baseFrom.left, basePos.top - baseFrom.top) : 0;
-    const liftPx   = Math.min(cardHeightPx() * 0.5, Math.max(cardHeightPx() * 0.18, travel * 0.28));
+    const liftPx = stackHopHeight(positions);
     positions.forEach(pos => {
         const c = cards[pos.cardId];
         if (!c || c.cardEl._animating) return;
@@ -2279,6 +2273,21 @@ export function createDnc3DEngine(options = {}) {
         if (instant) placeCardAt(c, pos.left, pos.top, pos.rot, pos.zIndex, pos.stackZ);
         else animateCardArc(c, pos.left, pos.top, pos.rot, pos.zIndex, 360, pos.stackZ, liftPx);
       });
+  }
+
+  // Peak hop height for a stack flight: keyed to the farthest-travelling member
+  // (e.g. an attachment flying in from across the table while the base card stays
+  // put) so the whole stack rises and falls together. Longer moves get a higher
+  // arc, capped so a big slide across the table never looks cartoonish; tiny
+  // nudges keep a small but visible hop.
+  function stackHopHeight(positions) {
+    const travel = positions.reduce((max, pos) => {
+      const c = cards[pos.cardId];
+      if (!c || c.cardEl._animating) return max;
+      const from = tiltSpacePosOf(c);
+      return Math.max(max, Math.hypot(pos.left - from.left, pos.top - from.top));
+    }, 0);
+    return Math.min(cardHeightPx() * 0.5, Math.max(cardHeightPx() * 0.18, travel * 0.28));
   }
 
   // Flies a stack from its current on-screen position into its layout slot in a
@@ -2294,11 +2303,7 @@ export function createDnc3DEngine(options = {}) {
     const idSet     = new Set(stack.cardIds);
     const positions = layoutFn(regionId).filter(p => idSet.has(p.cardId));
     if (!positions.length) return;
-    const baseCard = cards[stack.cardIds[0]];
-    const basePos  = positions.find(p => p.cardId === baseCard.id) || positions[0];
-    const baseFrom = tiltSpacePosOf(baseCard);
-    const travel   = Math.hypot(basePos.left - baseFrom.left, basePos.top - baseFrom.top);
-    const liftPx   = Math.min(cardHeightPx() * 0.5, Math.max(cardHeightPx() * 0.18, travel * 0.28));
+    const liftPx = stackHopHeight(positions);
     positions.forEach(pos => {
       const c = cards[pos.cardId];
       // A mid-flip card is owned by its flip animation, whose onComplete lands it.
@@ -2344,6 +2349,128 @@ export function createDnc3DEngine(options = {}) {
     }
   }
 
+  // Animates a recomposed stack into its resting slot/offsets — attachments fan
+  // out to their offset positions, the base settles in place. Cards must already
+  // be in the tilt plane for row/fan/pile regions (moveStackToTilt no-ops when
+  // they are); free-region cards always live there.
+  function settleStack(stack, dcStack, game, idMap) {
+    const base     = cards[stack.cardIds[0]];
+    const regionId = base.regionId;
+    if (!regionId) return;
+    if (REGIONS[regionId]?.type === 'free') {
+      animateFreeStackToFrac(stack, dcStack?.left ?? base.fracX ?? 0, dcStack?.top ?? base.fracY ?? 0);
+    } else {
+      moveStackToTilt(stack);
+      syncRegionOrderData(regionId, game, idMap);
+      layoutRegion(regionId, stack.id);
+      flyStackToRegionSlot(stack, regionId);
+    }
+  }
+
+  // ── Stack composition sync ─────────────────────────────────────────────────
+  // Mirrors backend stack membership into engine stacks. The per-card loop in
+  // reconcile handles group membership but not which stack a card belongs to:
+  // another player attaching a card merges two backend stacks — without this the
+  // attachment renders as a separate stack next to its target — and a detach
+  // splits one, without which the whole old stack would move when only the
+  // detached card did.
+  function syncStackCompositions(game, idMap) {
+    Object.values(game.stackById || {}).forEach(dcStack => {
+      // [dcCardId, engineCardIdx] pairs for this backend stack, in stack order.
+      const members = (dcStack.cardIds || [])
+        .map(dcId => [dcId, idMap.get(dcId)])
+        .filter(([, i]) => i !== undefined && cards[i]);
+      if (!members.length) return;
+      const desired = members.map(([, i]) => i);
+      const dirOf   = dcId => (game.cardById?.[dcId]?.attachmentDirection === 'left' ? 'left' : 'right');
+
+      // Cards in the browse fan are managed by the browse system.
+      if (desired.some(i => cards[i].regionId === '_browse')) return;
+
+      const base      = cards[desired[0]];
+      const current   = stacks[base.stackId]?.cardIds || [];
+      const sameCards = current.length === desired.length && current.every((cid, k) => cid === desired[k]);
+      const sameDirs  = members.slice(1).every(([dcId, i]) => cards[i].attachmentDirection === dirOf(dcId));
+      if (sameCards && sameDirs) return;
+
+      // Don't restructure stacks involved in a drag or mid-flight arc — the next
+      // reconcile applies the change once they settle.
+      const involvedSids = new Set(desired.map(i => cards[i].stackId));
+      let busy = false;
+      involvedSids.forEach(sid => (stacks[sid]?.cardIds || []).forEach(cid => {
+        if (cards[cid]?.liftPx > 1) busy = true;
+      }));
+      if (busy) return;
+
+      // Settle into the base's region only when that matches the backend group;
+      // otherwise leave the recomposed stack where it is and let the group-move
+      // pass below fly (or hide) it as one unit.
+      const expectedGroup = game.cardById?.[dcStack.cardIds[0]]?.groupId;
+
+      if (sameCards) {
+        // Only attachment directions changed — update and re-settle in place.
+        members.slice(1).forEach(([dcId, i]) => { cards[i].attachmentDirection = dirOf(dcId); });
+        if (base.regionId === expectedGroup) settleStack(stacks[base.stackId], dcStack, game, idMap);
+        return;
+      }
+
+      // Convert members to tilt space while their regionId still names the
+      // region their coords are relative to (it changes below). Hidden cards
+      // have stale coords; they're re-anchored to the base after the rebuild.
+      desired.forEach(i => moveCardToTilt(cards[i]));
+
+      // Split every involved engine stack into singletons. Cards expelled from
+      // the desired stack stay behind as their own stacks, re-inserted into
+      // their region so their own backend stack's iteration (or the group-move
+      // pass) picks them up from there.
+      const affectedRegions = new Set();
+      involvedSids.forEach(sid => {
+        const st = stacks[sid];
+        if (!st) return;
+        const rid = cards[st.cardIds[0]].regionId;
+        if (rid) affectedRegions.add(rid);
+        splitStack(sid).forEach(nsid => {
+          const cid = stacks[nsid].cardIds[0];
+          if (desired.includes(cid)) {
+            // Re-stacked into the rebuilt stack below — drop the interim singleton.
+            destroyStack(nsid);
+          } else if (cards[cid].regionId) {
+            regionState[cards[cid].regionId].stackIds.push(nsid);
+          }
+        });
+      });
+
+      // Rebuild the merged stack in the base card's region.
+      const newStack = createStack(desired);
+      members.slice(1).forEach(([dcId, i]) => { cards[i].attachmentDirection = dirOf(dcId); });
+      const baseRegion  = base.regionId;
+      const priorHidden = desired.map(i => !cards[i].regionId);
+      desired.forEach(i => { cards[i].regionId = baseRegion; });
+      if (baseRegion) {
+        regionState[baseRegion].stackIds.push(newStack.id);
+        // Newly revealed members have no on-screen origin — start them at the
+        // base card so they emerge from the stack they joined.
+        const basePos = tiltSpacePosOf(base);
+        desired.forEach((i, k) => {
+          if (!priorHidden[k]) return;
+          cards[i].liftEl.style.left = basePos.left + 'px';
+          cards[i].liftEl.style.top  = basePos.top + 'px';
+        });
+        setStackHidden(newStack, false);
+        if (baseRegion === expectedGroup) settleStack(newStack, dcStack, game, idMap);
+      } else {
+        setStackHidden(newStack, true);
+      }
+
+      // Close the gap in every region that lost a stack.
+      affectedRegions.forEach(rid => {
+        if (rid === baseRegion || REGIONS[rid]?.type === 'free') return;
+        syncRegionOrderData(rid, game, idMap);
+        layoutRegion(rid);
+      });
+    });
+  }
+
   // Show/hide every card in a stack at once (attachments included). Used by
   // reconcile when a stack crosses between a region this client renders and one
   // it doesn't (e.g. another player's hand <-> the shared table).
@@ -2368,6 +2495,11 @@ export function createDnc3DEngine(options = {}) {
     // cards dropped into / added to the browsed group are already in '_browse'
     // (and excluded from the group-move path below).
     refreshBrowseFromGame(game, idMap);
+
+    // Mirror backend stack membership (attach/detach by another player) before
+    // the per-card loop, so group moves and layouts operate on correctly
+    // composed stacks.
+    syncStackCompositions(game, idMap);
 
     Object.entries(cardById).forEach(([dcCardId, dcCard]) => {
       const i = idMap.get(dcCardId);
