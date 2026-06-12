@@ -5,9 +5,9 @@
 
 const SHUFFLE_URL = '/sounds/card-shuffle.mp3'; // pre-cropped slice of the source clip
 const FLIP_URL    = '/sounds/flipcard.mp3';
-const PICKUP_URL  = '/sounds/card-pickup.mp3';  // first half of the table-handling clip
-const DROP_URL    = '/sounds/card-drop.mp3';    // second half of the table-handling clip
-const VOLUME      = 0.7;
+const PICKUP_URL  = '/sounds/card-pickup.mp3';  // first 25% of "Card Deal 6"
+const DROP_URL    = '/sounds/card-drop.mp3';    // "Card Deal 3"
+const VOLUME      = 1.0;
 
 let _ctx = null;
 const _buffers = {}; // url -> Promise<AudioBuffer>, decoded once then cached
@@ -54,11 +54,11 @@ export function playShuffleSound() {
 }
 
 export function playPickupSound() {
-  playSound(PICKUP_URL, VOLUME * 0.1); // pickup is quieter than the other cues
+  playSound(PICKUP_URL, VOLUME * 1.3); // pickup is quieter than the other cues
 }
 
 export function playDropSound() {
-  playSound(DROP_URL, VOLUME * 0.5);
+  playSound(DROP_URL, VOLUME * 0.8);
 }
 
 // A single action can flip many cards in one reconcile tick (e.g. flipping a
@@ -70,5 +70,5 @@ export function playFlipSound() {
   const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
   if (now - _lastFlipAt < FLIP_DEBOUNCE_MS) return;
   _lastFlipAt = now;
-  playSound(FLIP_URL);
+  playSound(FLIP_URL, VOLUME);
 }
