@@ -147,6 +147,13 @@ export const Room = ({ slug }) => {
       if (playerN != null && playerN != undefined && playerN == payload.targetPlayerN) {
         dispatch(overridePlayerUiValues(payload.updates));
       }
+    } else if (event === "gui_update_all" && payload !== null) {
+      // Broadcast GUI updates (e.g. shuffle animation) sent to the whole room.
+      // Same per-player payload shape as "gui_update"; each client keeps the
+      // entry matching its own player.
+      if (playerN != null && playerN != undefined && playerN == payload.targetPlayerN) {
+        dispatch(overridePlayerUiValues(payload.updates));
+      }
     }
 
   }, [dispatch, history, playerN, roomSlug, sendLocalMessage]);

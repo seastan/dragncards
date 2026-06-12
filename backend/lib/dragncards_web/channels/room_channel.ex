@@ -467,8 +467,16 @@ defmodule DragnCardsWeb.RoomChannel do
   end
 
   def send_gui_message_to_player(socket, gui_update) do
-    # Send the GUI update to the specific player
-    push(socket, "gui_update", gui_update)
+    # Shuffle animations must reach every player at the table, not just the actor.
+    # Broadcast them as "gui_update_all" (not intercepted, so the payload is sent
+    # as-is); each client filters by targetPlayerN exactly like the actor-only
+    # "gui_update" path. Other GUI updates stay actor-only.
+    if get_in(gui_update, ["updates", "dnc3dShuffle"]) do
+      broadcast!(socket, "gui_update_all", gui_update)
+    else
+      # Send the GUI update to the specific player
+      push(socket, "gui_update", gui_update)
+    end
   end
 
   # Define the handle_out function for the intercepted event

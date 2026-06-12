@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { setActiveCardId, setDropdownMenu, setMouseTopBottom, setMouseXY, setScreenLeftRight, toggleMultiSelectCardId } from '../store/playerUiSlice';
 import store from '../../store';
 import { createDnc3DEngine } from './lib/engine';
+import { playShuffleSound } from './lib/sound';
 import { adaptRegions, gameL10n } from './adapters/regions';
 import { adaptGameState } from './adapters/cards';
 import { buildEngineCallbacks } from './adapters/actions';
@@ -65,6 +66,9 @@ export default function Dnc3DTable({
 
   const browseGroupId = useSelector(s => s?.gameUi?.game?.playerData?.[observingPlayerN]?.browseGroup?.id);
   const multiSelectEnabled = useSelector(s => s?.playerUi?.multiSelect?.enabled);
+  // Set by the backend (via the SHUFFLE_GROUP gui_update broadcast) whenever a
+  // group is shuffled. The nonce changes every shuffle so the effect refires.
+  const dnc3dShuffle = useSelector(s => s?.playerUi?.dnc3dShuffle);
 
   const [tokenPortals, setTokenPortals] = useState([]);
 
@@ -290,6 +294,16 @@ export default function Dnc3DTable({
     if (!engine || !game || !idMapRef.current) return;
     engine.reconcile(game, idMapRef.current);
   }, [game]);
+
+  // ── Play a shuffle riffle (+ sound) when a group is shuffled ────────────────
+  // animatePileShuffle is a no-op for non-pile groups and returns whether it
+  // actually ran a riffle, so the sound only plays when there's a visual.
+  useEffect(() => {
+    const engine = engineRef.current;
+    if (!engine || !dnc3dShuffle?.groupId) return;
+    const animated = engine.animatePileShuffle(dnc3dShuffle.groupId);
+    if (animated) playShuffleSound();
+  }, [dnc3dShuffle]);
 
   // ── Respond to tilt angle changes ──────────────────────────────────────────
   useEffect(() => {

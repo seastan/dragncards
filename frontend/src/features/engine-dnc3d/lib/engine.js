@@ -4,6 +4,7 @@ import { createProjection } from './projection';
 import { createLayout } from './layout';
 import { createOverlay } from './overlay';
 import { easeOut, easeIn, animateFlip } from './animation';
+import { playFlipSound, playPickupSound, playDropSound } from './sound';
 
 // Creates a self-contained dnc3d engine instance.
 // options.regions         — region definitions (default: DEFAULT_REGIONS for demo/sandbox mode)
@@ -63,6 +64,7 @@ export function createDnc3DEngine(options = {}) {
   let _attachTargetIconEl = null;
   let _tableSurfaceEl     = null;
   let _isDragging         = false; // true while any card drag is in progress
+  const _shufflingRegions = new Set(); // regionIds currently playing a shuffle riffle
 
   // Targeting-icon + card-arrow overlay (flat screen-space layer above the tilt).
   const _overlay = createOverlay();
@@ -739,6 +741,7 @@ export function createDnc3DEngine(options = {}) {
       if (!isDragging && Math.hypot(dx, dy) >= threshold) {
         isDragging = true;
         _isDragging = true;
+        playPickupSound(); // card lifted off (drag threshold crossed)
         if (cardEl._rotTransId) { clearTimeout(cardEl._rotTransId); cardEl._rotTransId = null; cardEl.style.transition = ''; }
         if (onDragStart) onDragStart();
 
@@ -1032,6 +1035,12 @@ export function createDnc3DEngine(options = {}) {
         const tw = parseFloat(_tiltEl.style.width);
         const th = parseFloat(_tiltEl.style.height);
 
+        // Play the card-drop sound once when the card contacts the surface,
+        // regardless of which landing path runs (liftDown or the fan/row insert
+        // path). Symmetric with the pickup sound fired at drag start.
+        let dropSoundPlayed = false;
+        const signalDrop = () => { if (!dropSoundPlayed) { dropSoundPlayed = true; playDropSound(); } };
+
         const droppedStackCards  = [...dragStackCards];
         const droppedStack       = dragStack;
         const droppedAttachSid   = hoverAttachStackId;
@@ -1064,6 +1073,7 @@ export function createDnc3DEngine(options = {}) {
             : null;
           let done = 0;
           const startTime = performance.now();
+          signalDrop(); // play the drop sound as the descent begins
           droppedStackCards.forEach(c => {
             const target     = targetByCardId?.get(c.id);
             const stackZ     = target ? (target.stackZ ?? 0) : c.pileZ;
@@ -1302,6 +1312,7 @@ export function createDnc3DEngine(options = {}) {
                 card.layoutAnimId = requestAnimationFrame(slideFrame);
               } else {
                 card.layoutAnimId = null;
+                signalDrop(); // play the drop sound as the descent begins
                 droppedStackCards.forEach(c => {
                   const myPos      = posById.get(c.id);
                   const stackZ     = myPos?.stackZ ?? 0;
@@ -1353,6 +1364,7 @@ export function createDnc3DEngine(options = {}) {
                 } else {
                   card.layoutAnimId = null;
                   let done = 0;
+                  signalDrop(); // play the drop sound as the descent begins
                   droppedStackCards.forEach((c, idx) => {
                     const myPos      = myPositions[idx];
                     const stackZ     = myPos?.stackZ ?? 0;
@@ -2058,6 +2070,15 @@ export function createDnc3DEngine(options = {}) {
       if (desired.length !== current.length) return;
       if (desired.every((sid, i) => sid === current[i])) return; // already in order
 
+      // A shuffle riffle owns this region's cards — keep the data in sync but
+      // don't lay out (the riffle snaps everything into place when it finishes).
+      // This also prevents an instant snap from yanking the riffle's animated
+      // cards mid-flight when the reordered state delta arrives.
+      if (_shufflingRegions.has(regionId)) {
+        regionState[regionId].stackIds = desired;
+        return;
+      }
+
       // Don't disturb an in-progress drag/flip/lift in this region.
       const busy = current.some(sid => {
         const c = cards[stacks[sid]?.cardIds?.[0]];
@@ -2066,8 +2087,178 @@ export function createDnc3DEngine(options = {}) {
       if (busy) return;
 
       regionState[regionId].stackIds = desired;
-      layoutRegion(regionId);
+      // Pile reorders snap instantly — the old animated path slid cards through
+      // each other in Z (ugly). A shuffle's visual is the dedicated riffle; any
+      // other pile reorder (or a riffle that finished before its order arrived)
+      // applies invisibly. Rows/fans keep their animated reorder slide.
+      layoutRegion(regionId, null, region.type === 'pile');
     });
+  }
+
+  // Play a fixed, cosmetic riffle for a pile group that was just shuffled, then
+  // snap the cards into their real (already-synced) order instantly. The
+  // animation is identical every time and carries NO information about the true
+  // permutation — a keen-eyed player can't track a card through it, because the
+  // real reorder happens only as an instant snap once the riffle ends.
+  // Returns true if a riffle actually ran (so the caller can play a sound).
+  function animatePileShuffle(groupId) {
+    const regionId = groupId;
+    const region   = REGIONS[regionId];
+    if (!_tiltEl || !region || region.type !== 'pile') return false;
+    if (_shufflingRegions.has(regionId)) return false; // already riffling
+
+    const stackIds = regionState[regionId].stackIds;
+    if (!stackIds || stackIds.length < 2) return false;
+
+    // Don't fight an in-progress drag/flip/lift in this region.
+    const busy = stackIds.some(sid => {
+      const c = cards[stacks[sid]?.cardIds?.[0]];
+      return c && (c.cardEl._animating || c.liftPx > 1);
+    });
+    if (busy) return false;
+
+    // Animate the WHOLE pile so every card visibly participates — otherwise the
+    // cards beneath the animated set just sit there as a static pile. (Cap only
+    // pathologically large piles; deep cards overlap, so the cap isn't visible.)
+    // Order is irrelevant here — the animation is cosmetic.
+    const MAX_SHUFFLE_CARDS = 60;
+    const animIds = stackIds.length > MAX_SHUFFLE_CARDS
+      ? stackIds.slice(stackIds.length - MAX_SHUFFLE_CARDS)
+      : stackIds.slice();
+    const animCards = animIds
+      .map(sid => cards[stacks[sid]?.cardIds?.[0]])
+      .filter(Boolean);
+    if (animCards.length < 2) return false;
+    const K = animCards.length;
+
+    _shufflingRegions.add(regionId);
+
+    // Cancel any in-flight per-card layout tween (e.g. a reorder snap that beat
+    // us here) and reparent into tilt space so the spread escapes the region's
+    // scroll-outer clipping.
+    animCards.forEach(c => {
+      if (c.layoutAnimId) { cancelAnimationFrame(c.layoutAnimId); c.layoutAnimId = null; }
+      moveCardToTilt(c);
+    });
+
+    // Pile centre anchor (tilt-space), matching layoutPile.
+    const rp = regionPx(regionId);
+    const cw = cardWidthPx(), ch = cardHeightPx();
+    const LEFT_BUFFER = cw * 0.15;
+    const cx = rp.x + LEFT_BUFFER + (rp.w - LEFT_BUFFER - cw) / 2;
+    const cy = rp.y + (rp.h - ch) / 2;
+
+    const stepZ = pileStackZPx(ch);                        // depth per card (= pile thickness/card)
+    const lz    = layerZPx(ch) * (region.layerIndex || 0); // region's resting depth offset
+    const sepX  = cw * 0.75;                               // horizontal separation of the two halves
+
+    // Contiguous split: the BOTTOM half of the pile and the TOP half. animCards
+    // runs bottom → top, so [0, mid) is the bottom half and [mid, K) the top half.
+    const mid        = Math.floor(K / 2);
+    const bottomHalf = animCards.slice(0, mid);
+    const topHalf    = animCards.slice(mid);
+
+    // Cosmetic reassembled order (bottom → top): interleave the two halves so the
+    // deck visibly riffles together. Slot j → resting depth lz + j*stepZ, so the
+    // rebuilt deck reaches exactly the original deck height. Order is purely
+    // cosmetic; the real (shuffled) order is snapped in instantly at the end.
+    const finalSeq = [];
+    for (let b = 0, t = 0; b < bottomHalf.length || t < topHalf.length; b++, t++) {
+      if (b < bottomHalf.length) finalSeq.push(bottomHalf[b]);
+      if (t < topHalf.length)    finalSeq.push(topHalf[t]);
+    }
+    const finalSlot = new Map(finalSeq.map((c, j) => [c, j]));
+
+    // Raise the animated cards above the resting pile for the duration.
+    const baseZ = nextTopZ();
+    animCards.forEach((c, i) => { c.liftEl.style.zIndex = baseZ + i; });
+
+    // Per-card start (resting), separated, and reassembled targets. Each half
+    // keeps its own thickness (depth runs from liftBase by stepZ per card), so a
+    // separated half is never taller than the slice of pile it came from.
+    const startPos = animCards.map(c => tiltSpacePosOf(c));
+    const startZ   = animCards.map(c => c.pileZ || 0);
+    // Separation: slide the two halves apart horizontally (bottom → right, top →
+    // left) at the same table-Y. Each half is rendered as its OWN clean stack
+    // (depth = localIdx*stepZ) so both show equal thickness — otherwise the depth
+    // cap hides the top half's thickness and the split looks lopsided. The bottom
+    // half's resting depth already equals localIdx*stepZ, so it doesn't move
+    // vertically; the top half fans its depth out to match.
+    const sepInfo  = animCards.map((c, i) => {
+      const localIdx = i < mid ? i : i - mid;
+      const capped   = Math.min(localIdx, MAX_PILE_VISUAL_DEPTH - 1);
+      return {
+        left: i < mid ? cx + sepX : cx - sepX,
+        top:  startPos[i].top,
+        z:    lz + capped * stepZ,
+      };
+    });
+    const finalInfo = animCards.map((c) => {
+      const j = finalSlot.get(c);
+      // Match layoutPile's depth cap so the rebuilt deck ends at exactly the
+      // resting height — otherwise the final instant snap jumps the height in one
+      // frame. j (uncapped) still drives the bottom-up stagger.
+      const cappedZ = lz + Math.min(j, MAX_PILE_VISUAL_DEPTH - 1) * stepZ;
+      return { left: cx, top: cy, z: cappedZ, j };
+    });
+
+    const place = (c, left, top, z) => {
+      c.liftEl.style.left = left + 'px';
+      c.liftEl.style.top  = top + 'px';
+      c.liftEl.style.transform = `translateZ(${BASE_LIFT + z}px)`;
+    };
+
+    const finish = () => {
+      _shufflingRegions.delete(regionId);
+      // Apply the real order instantly (no tween). layoutRegion's instant path
+      // reparents the cards back into the scroll-outer and places them exactly.
+      layoutRegion(regionId, null, true);
+    };
+
+    // Phase 2 — riffle together. The two halves slide back toward centre and
+    // interleave; the deck rebuilds from the bottom up (low slots settle first,
+    // so the bottom cards slide horizontally home and the rest riffle up to the
+    // original height). Re-layer by final slot so the rebuilt deck stacks right.
+    const startMerge = () => {
+      animCards.forEach(c => { c.liftEl.style.zIndex = baseZ + finalSlot.get(c); });
+      const m0      = performance.now();
+      const mergeMs = scaleDuration(340);
+      const STAGGER = 0.5;
+      const from    = animCards.map(c => tiltSpacePosOf(c));
+      const fromZ   = sepInfo.map(s => s.z);
+      (function mergeFrame(now) {
+        const t = Math.min((now - m0) / mergeMs, 1);
+        animCards.forEach((c, i) => {
+          if (c.liftEl.parentElement !== _tiltEl) return;
+          const fin   = finalInfo[i];
+          const delay = (K > 1 ? (fin.j / (K - 1)) : 0) * STAGGER; // bottom first
+          const local = Math.min(Math.max((t - delay) / (1 - STAGGER), 0), 1);
+          const e = easeOut(local);
+          const f = from[i], fz = fromZ[i];
+          place(c, f.left + (fin.left - f.left) * e, f.top + (fin.top - f.top) * e, fz + (fin.z - fz) * e);
+        });
+        if (t < 1) requestAnimationFrame(mergeFrame);
+        else finish();
+      })(m0);
+    };
+
+    // Phase 1 — separate. The top half lifts off and moves left + down beside the
+    // bottom half, which slides right; each half keeps its own height (depth).
+    const s0      = performance.now();
+    const splitMs = scaleDuration(280);
+    (function splitFrame(now) {
+      const t = Math.min((now - s0) / splitMs, 1);
+      const e = easeOut(t);
+      animCards.forEach((c, i) => {
+        if (c.liftEl.parentElement !== _tiltEl) return;
+        const f = startPos[i], fz = startZ[i], s = sepInfo[i];
+        place(c, f.left + (s.left - f.left) * e, f.top + (s.top - f.top) * e, fz + (s.z - fz) * e);
+      });
+      if (t < 1) requestAnimationFrame(splitFrame);
+      else startMerge();
+    })(s0);
+
+    return true;
   }
 
   // Animate a whole free-region stack (base + attachments) to a backend anchor
@@ -2148,6 +2339,7 @@ export function createDnc3DEngine(options = {}) {
         _snapCardToExpectedSide(card, dcCard);
       } else if (currentVisualSide !== expectedSide && !card.cardEl._animating) {
         card.cardEl._animating = true;
+        playFlipSound(); // debounced — one sound even when many cards flip at once
         const startAngle = card.cardEl._angle;
         card.cardEl._angle += 180;
         if (card.regionId === '_browse') {
@@ -2474,5 +2666,5 @@ export function createDnc3DEngine(options = {}) {
     _overlay.rebuild(game, idMap, cards);
   }
 
-  return { init, applyTilt, applyTableOpacity, setCurrentDeg, onTiltUpdated, reconcile, openBrowse, closeBrowse, updateBrowseFilter, getCardElements, syncOverlay };
+  return { init, applyTilt, applyTableOpacity, setCurrentDeg, onTiltUpdated, reconcile, openBrowse, closeBrowse, updateBrowseFilter, getCardElements, syncOverlay, animatePileShuffle };
 }
