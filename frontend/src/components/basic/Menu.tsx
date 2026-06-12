@@ -65,26 +65,20 @@ const useHoverIntent = (enabled: boolean) => {
   return { open, setOpen, hoverProps, clearTimer };
 };
 
-// Coordinates the SubMenus that share one panel so that only one is open at a
-// time. Opening is immediate (which instantly closes any sibling), while
-// closing on mouse-out is deferred by CLOSE_DELAY_MS so the pointer can travel
-// across the small gap into the flyout without it disappearing.
-interface SubMenuGroupValue {
+// Coordinates a set of sibling menus so that only one is open at a time.
+// Opening is immediate (which instantly closes any sibling), while closing on
+// mouse-out is deferred by CLOSE_DELAY_MS so the pointer can travel across the
+// small gap into the flyout without it disappearing. The same mechanism is used
+// at two levels: across the top-level menus in a MenuBar, and across the
+// SubMenus that share one panel.
+interface MenuGroupValue {
   openId: string | null;
   setOpen: (id: string | null) => void; // immediate
   scheduleClose: (id: string) => void; // deferred; only closes if still this id
   cancelClose: () => void;
 }
-const SubMenuGroupContext = React.createContext<SubMenuGroupValue | null>(null);
 
-let subMenuSeq = 0;
-const useSubMenuId = (): string => {
-  const idRef = useRef<string>();
-  if (idRef.current === undefined) idRef.current = `submenu-${subMenuSeq++}`;
-  return idRef.current;
-};
-
-const SubMenuGroupProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+const useMenuGroupState = (): MenuGroupValue => {
   const [openId, setOpenId] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -108,8 +102,25 @@ const SubMenuGroupProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     );
   };
 
+  return { openId, setOpen, scheduleClose, cancelClose };
+};
+
+// Coordinates the top-level menus that share a MenuBar.
+const MenuBarGroupContext = React.createContext<MenuGroupValue | null>(null);
+// Coordinates the SubMenus that share one panel.
+const SubMenuGroupContext = React.createContext<MenuGroupValue | null>(null);
+
+let menuNodeSeq = 0;
+const useMenuNodeId = (): string => {
+  const idRef = useRef<string>();
+  if (idRef.current === undefined) idRef.current = `menu-node-${menuNodeSeq++}`;
+  return idRef.current;
+};
+
+const SubMenuGroupProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const value = useMenuGroupState();
   return (
-    <SubMenuGroupContext.Provider value={{ openId, setOpen, scheduleClose, cancelClose }}>
+    <SubMenuGroupContext.Provider value={value}>
       {children}
     </SubMenuGroupContext.Provider>
   );
@@ -126,14 +137,19 @@ const panelClasses = "py-1 px-1 list-none m-0 bg-gray-800 border border-gray-700
 export const MenuBar: React.FC<{ className?: string; children: ReactNode }> = ({
   className,
   children,
-}) => (
-  <ul
-    role="menubar"
-    className={cx("flex h-full items-stretch list-none m-0 p-0", className)}
-  >
-    {children}
-  </ul>
-);
+}) => {
+  const group = useMenuGroupState();
+  return (
+    <MenuBarGroupContext.Provider value={group}>
+      <ul
+        role="menubar"
+        className={cx("flex h-full items-stretch list-none m-0 p-0", className)}
+      >
+        {children}
+      </ul>
+    </MenuBarGroupContext.Provider>
+  );
+};
 
 interface MenuProps {
   label: ReactNode;
@@ -149,21 +165,46 @@ export const Menu: React.FC<MenuProps> = ({
 }) => {
   const touchMode = useTouchMode();
   const ref = useRef<HTMLLIElement>(null);
-  const { open, setOpen, hoverProps, clearTimer } = useHoverIntent(!touchMode);
+  const id = useMenuNodeId();
+  const group = useContext(MenuBarGroupContext);
+
+  // Fallback for a Menu rendered outside a MenuBar group: keep the previous
+  // self-contained hover-intent behavior.
+  const fallback = useHoverIntent(!touchMode);
+
+  const open = group ? group.openId === id : fallback.open;
+
+  const close = () => {
+    if (group) group.setOpen(null);
+    else {
+      fallback.clearTimer();
+      fallback.setOpen(false);
+    }
+  };
+  const toggle = () => {
+    if (group) group.setOpen(group.openId === id ? null : id);
+    else fallback.setOpen((o) => !o);
+  };
+
+  // Entering a top-level menu immediately makes it the one open menu, instantly
+  // closing any sibling. Mouse-out closes are deferred so the pointer can travel
+  // into the panel; switching directly to a sibling cancels that and opens it.
+  const hoverProps = touchMode
+    ? {}
+    : group
+    ? {
+        onMouseEnter: () => group.setOpen(id),
+        onMouseLeave: () => group.scheduleClose(id),
+      }
+    : fallback.hoverProps;
 
   useEffect(() => {
     if (!open) return;
     const onDocClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        clearTimer();
-        setOpen(false);
-      }
+      if (ref.current && !ref.current.contains(e.target as Node)) close();
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        clearTimer();
-        setOpen(false);
-      }
+      if (e.key === "Escape") close();
     };
     document.addEventListener("mousedown", onDocClick);
     document.addEventListener("keydown", onKey);
@@ -179,7 +220,7 @@ export const Menu: React.FC<MenuProps> = ({
         type="button"
         aria-haspopup="true"
         aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggle}
         className={cx(
           "h-full px-4 flex items-center justify-center select-none font-medium",
           "bg-transparent border-0 cursor-pointer transition-colors duration-150",
@@ -194,7 +235,7 @@ export const Menu: React.FC<MenuProps> = ({
           className={cx("absolute left-0", panelClasses)}
           style={{ zIndex: 10001, minWidth: `${panelMinWidthRem}rem`, top: "100%" }}
         >
-          <MenuContext.Provider value={{ close: () => setOpen(false) }}>
+          <MenuContext.Provider value={{ close }}>
             <SubMenuGroupProvider>{children}</SubMenuGroupProvider>
           </MenuContext.Provider>
         </ul>
@@ -249,7 +290,7 @@ export const SubMenu: React.FC<SubMenuProps> = ({
 }) => {
   const touchMode = useTouchMode();
   const ref = useRef<HTMLLIElement>(null);
-  const id = useSubMenuId();
+  const id = useMenuNodeId();
   const group = useContext(SubMenuGroupContext);
 
   // Fallback for the (unexpected) case of a SubMenu rendered outside a panel
