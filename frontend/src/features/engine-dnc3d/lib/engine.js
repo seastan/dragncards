@@ -1876,9 +1876,15 @@ export function createDnc3DEngine(options = {}) {
     function updateIconHover(clientX, clientY) {
       let newHovered = null;
       for (const id of Object.keys(regionIconEls)) {
-        const rect = regionOutlineEls[id]?.getBoundingClientRect();
-        if (rect && clientX >= rect.left && clientX <= rect.right &&
-            clientY >= rect.top && clientY <= rect.bottom) {
+        // Only reveal icons when the pointer is near the region title (the
+        // vertical label hugging the region's left edge), not anywhere inside
+        // the region. Use the label's own rect, padded so it's easy to hit.
+        const rect = regionLabelEls[id]?.getBoundingClientRect();
+        if (!rect) continue;
+        const padX = rect.width  * 1.5 + 12;
+        const padY = rect.height * 0.25 + 12;
+        if (clientX >= rect.left - padX && clientX <= rect.right + padX &&
+            clientY >= rect.top  - padY && clientY <= rect.bottom + padY) {
           newHovered = id;
           break;
         }
