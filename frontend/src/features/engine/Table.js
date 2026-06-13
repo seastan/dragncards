@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { TableLayout } from "./TableLayout";
 import Dnc3DTable from "../engine-dnc3d/Dnc3DTable";
 import { useLayout } from "./hooks/useLayout";
@@ -53,6 +53,11 @@ export const Table = React.memo(({onDragEnd}) => {
   const isHost = useIsHost();
   const playerN = usePlayerN();
   const doActionList = useDoActionList();
+  // In the dnc3d renderer, tall piles near the top of the table can paint up
+  // over the TopBar strip (the stage overflows beyond its top edge by design,
+  // so lifted/flipping cards can show above the bar). When the pointer is over
+  // the TopBar, raise it above the table so those piles don't cover its buttons.
+  const [topBarHovered, setTopBarHovered] = useState(false);
   usePreloadCardImages();
   console.log('Rendering Table', playerN);
 
@@ -100,7 +105,10 @@ export const Table = React.memo(({onDragEnd}) => {
       <div className="w-full">
         <div className="w-full h-full">
           {/* Game menu bar */}
-          <div className="bg-gray-600 text-white w-full" style={{height: "6%"}}>
+          <div className="bg-gray-600 text-white w-full"
+            style={{height: "6%", position: "relative", zIndex: topBarHovered ? 50 : "auto"}}
+            onMouseEnter={() => setTopBarHovered(true)}
+            onMouseLeave={() => setTopBarHovered(false)}>
             <TopBar/>
           </div>
           {/* Table */}
