@@ -371,6 +371,18 @@ export function createLayout(state, projection, REGIONS) {
     const start      = performance.now();
     const durationMs = scaleDuration(duration);
     ensureCardParent(card);
+    // Reparenting may have moved the card between tilt space and a scroll-outer.
+    // Write the start position in the (possibly new) parent's coordinate space
+    // now, before the first rAF frame, so the element's left/top stay consistent
+    // with its parent. Otherwise a synchronous tiltSpacePosOf in the same tick
+    // (e.g. a second layout pass during one reconcile) reads the stale tilt-space
+    // value through the new scroll-outer parent and double-counts the origin —
+    // the card jumps out by the region offset, then eases back.
+    {
+      const o = originOf(card.regionId);
+      card.liftEl.style.left = (fromLeft - o.x) + 'px';
+      card.liftEl.style.top  = (fromTop  - o.y) + 'px';
+    }
     function frame(now) {
       const t = Math.min((now - start) / durationMs, 1);
       const e = easeOut(t);
