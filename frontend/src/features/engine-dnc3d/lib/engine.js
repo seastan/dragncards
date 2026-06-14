@@ -51,7 +51,7 @@ export function createDnc3DEngine(options = {}) {
   const layout = createLayout(state, projection, REGIONS);
   const {
     initLayout, regionPx, layoutFan, layoutRow, layoutPile,
-    placeCardAt, layoutRegion, setAfterLayoutHook, setScrollOuter, setIndicatorEl,
+    placeCardAt, layoutRegion, setAfterLayoutHook, setScrollOuter, setIndicatorEl, applyTokenHostRotation,
     findRegionAtPoint, insertStackAtIndex, moveCardToTilt, moveCardFromTilt, moveStackToTilt,
     animateCardTo, animateCardArc, tiltSpacePosOf, stackCardOffsets, stackBaseCardIds, stackPositionsAtAnchor,
     showInsertionIndicator, hideInsertionIndicator, clearScrollOuters,
@@ -584,6 +584,26 @@ export function createDnc3DEngine(options = {}) {
     cardEl.appendChild(back);
     liftEl.appendChild(cardEl);
 
+    // Token host. Tokens belong to the CARD, not a face, so they must stay
+    // visible whichever side is up. The faces live inside cardEl, which flips
+    // (rotateY) and exhaust-rotates (rotateZ) — and `backface-visibility:hidden`
+    // hides whichever face is turned away, taking its children with it. So we
+    // hang the token host off liftEl instead, which only ever carries position/
+    // lift translateZ (never rotateY/rotateZ): it always faces the viewer and
+    // never gets back-face-culled. A small forward translateZ lifts it just
+    // above the card faces (z≈0) so tokens paint on top in the preserve-3d
+    // context. pointer-events:none lets card hover/click pass through the
+    // full-card host; the individual token boxes re-enable pointer-events.
+    // (Exhaust rotation is re-applied to the tokens in React, reading Redux
+    // `rotation`, so the existing label/extrude counter-rotation stays correct.)
+    const tokenHost = document.createElement('div');
+    tokenHost.className     = 'dnc3d-card-tokens';
+    tokenHost.style.position      = 'absolute';
+    tokenHost.style.inset         = '0';
+    tokenHost.style.pointerEvents = 'none';
+    tokenHost.style.transform     = 'translateZ(1px)';
+    liftEl.appendChild(tokenHost);
+
     liftEl.style.left      = '0px';
     liftEl.style.top       = '0px';
     liftEl.style.zIndex    = i + 1;
@@ -597,6 +617,7 @@ export function createDnc3DEngine(options = {}) {
       liftEl,
       cardEl,
       frontEl:      front,
+      tokenHostEl:  tokenHost,
       regionId:     null,
       stackId:      null,
       attachmentDirection: null,
@@ -616,15 +637,64 @@ export function createDnc3DEngine(options = {}) {
     createStack([i]);
 
     liftEl.addEventListener('click', e => e.stopPropagation());
+    // Hover ("active") detection lives on cardEl, not liftEl, so the hit region
+    // tracks the card's actual rotated shape: cardEl carries the rotateZ
+    // (exhaust/layout) + rotateY (flip), while liftEl stays an un-rotated
+    // portrait box. Binding to liftEl made the strip above/below a sideways card
+    // register as a hover (and the rotated card's true corners go dead).
+    // The hovered state is mirrored to a class so the CSS glow follows the same
+    // rotated region (see .dnc3d-card.dnc3d-card-hovered).
+    //
+    // The hit surface is cardEl (+ its tokens), NOT liftEl. liftEl is
+    // pointer-events:none (see CSS): it's an un-rotated portrait box, so if it
+    // captured events its dead margin above/below a sideways card would (a) light
+    // the card from outside its art and (b) sit on top of — and block — a stacked
+    // neighbour beneath, so that neighbour could never take the hover. With liftEl
+    // transparent, the rotated cardEl is the only card-shaped target, and a
+    // neighbour showing through the margin receives the pointer normally.
+    //
+    // Deciding when a leave really ends the hover can't be done from
+    // relatedTarget alone: token boxes are pointer-events:auto and paint above
+    // the cards, and in a stack one card's tokens overlap a neighbour — so
+    // moving onto a token (own or a neighbour's) fires a pointerout even though
+    // the cursor is still over this card. Instead, ask the browser what's
+    // actually under the cursor and find the topmost CARD, treating tokens (and
+    // the see-through liftEl/tokenHost wrappers — none carry .dnc3d-card) as
+    // transparent. The hover ends only when that card isn't this one.
+    //
+    // pointerout (not pointerleave) is used for the end so it BUBBLES: liftEl is
+    // pointer-events:none and never a hit target itself, but pointerout from its
+    // auto descendants (cardEl, token boxes) still bubbles to a listener on it —
+    // which catches leaving the card straight off a token, the one case cardEl's
+    // own pointerleave would miss.
     // Suppress hover while dragging: re-parenting the dragged card's liftEl
     // (moveStackToTilt) fires a spurious pointerenter that would re-show the
     // GiantCard mid-drag right after onDragStart cleared it.
-    if (onCardHover)    liftEl.addEventListener('pointerenter', (e) => { if (!_isDragging) onCardHover(i, e.clientX); });
-    if (onCardHoverEnd) liftEl.addEventListener('pointerleave', () => { if (!_isDragging) onCardHoverEnd(i); });
+    const topCardElAt = (x, y) => {
+      for (const el of document.elementsFromPoint(x, y)) {
+        const ce = el.closest('.dnc3d-card');
+        if (ce) return ce;
+      }
+      return null;
+    };
+    const showCardHover = (e) => {
+      if (_isDragging) return;
+      if (cardEl.classList.contains('dnc3d-card-hovered')) return;
+      cardEl.classList.add('dnc3d-card-hovered');
+      if (onCardHover) onCardHover(i, e.clientX);
+    };
+    const endCardHover = (e) => {
+      if (e && topCardElAt(e.clientX, e.clientY) === cardEl) return;
+      if (!cardEl.classList.contains('dnc3d-card-hovered')) return;
+      cardEl.classList.remove('dnc3d-card-hovered');
+      if (onCardHoverEnd) onCardHoverEnd(i);
+    };
+    cardEl.addEventListener('pointerenter', showCardHover);
+    liftEl.addEventListener('pointerout', endCardHover);
     if (onCardHoverTopBottom) {
       liftEl.addEventListener('pointermove', (e) => {
         if (_isDragging) return;
-        const rect = liftEl.getBoundingClientRect();
+        const rect = cardEl.getBoundingClientRect();
         onCardHoverTopBottom(e.clientY < rect.top + rect.height / 2 ? 'top' : 'bottom');
       });
     }
@@ -1219,6 +1289,7 @@ export function createDnc3DEngine(options = {}) {
               c.liftEl.style.transform = `translateZ(${BASE_LIFT + (p.stackZ || 0)}px)`;
               c.cardEl._layoutRotation = p.rot;
               c.cardEl.style.transform = `perspective(300vw) rotateY(${c.cardEl._angle}deg) rotateZ(${p.rot + (c.cardEl._gameRotation || 0)}deg) scale(1)`;
+              applyTokenHostRotation(c);
             });
 
             const liftTargets = regionPositions
@@ -1273,6 +1344,12 @@ export function createDnc3DEngine(options = {}) {
           const isMultiCard   = droppedStackCards.length > 1;
           const isStackSplit  = regionType === 'fan' && isMultiCard;
 
+          // A row/fan drop has no pile to clear, so the card needn't descend the
+          // full pile-clearing dragLiftMax it was held at while dragging. Glide it
+          // down to this modest approach height during the horizontal slide so the
+          // final drop onto the slot is a short settle, not a tall plunge.
+          const approachZ = cardHeightPx() * 0.25;
+
           if (isStackSplit) {
             const oldRegionId    = droppedStackCards[0].regionId;
             const droppedCardIds = new Set(droppedStackCards.map(c => c.id));
@@ -1297,6 +1374,7 @@ export function createDnc3DEngine(options = {}) {
             }));
             const slideDur   = scaleDuration(200);
             const slideStart = performance.now();
+            const startLift  = droppedStackCards.map(c => c.liftPx);
 
             (function slideFrame(now) {
               const t  = Math.min((now - slideStart) / slideDur, 1);
@@ -1307,6 +1385,8 @@ export function createDnc3DEngine(options = {}) {
                 const from = fromPos[idx];
                 c.liftEl.style.left = (from.left + (myPos.left - from.left) * ef) + 'px';
                 c.liftEl.style.top  = (from.top  + (myPos.top  - from.top)  * ef) + 'px';
+                const glideZ = (myPos.stackZ ?? 0) + approachZ;
+                c._setLiftVisuals(startLift[idx] + (glideZ - startLift[idx]) * ef);
               });
               if (t < 1) {
                 card.layoutAnimId = requestAnimationFrame(slideFrame);
@@ -1349,6 +1429,7 @@ export function createDnc3DEngine(options = {}) {
                 left: parseFloat(c.liftEl.style.left),
                 top:  parseFloat(c.liftEl.style.top),
               }));
+              const startLift  = droppedStackCards.map(c => c.liftPx);
 
               (function slideFrame(now) {
                 const t  = Math.min((now - slideStart) / slideDur, 1);
@@ -1358,6 +1439,8 @@ export function createDnc3DEngine(options = {}) {
                   const from = fromPos[idx];
                   c.liftEl.style.left = (from.left + (myPos.left - from.left) * ef) + 'px';
                   c.liftEl.style.top  = (from.top  + (myPos.top  - from.top)  * ef) + 'px';
+                  const glideZ = (myPos.stackZ ?? 0) + approachZ;
+                  c._setLiftVisuals(startLift[idx] + (glideZ - startLift[idx]) * ef);
                 });
                 if (t < 1) {
                   card.layoutAnimId = requestAnimationFrame(slideFrame);
@@ -2524,6 +2607,7 @@ export function createDnc3DEngine(options = {}) {
           card.cardEl.style.transition = `transform ${rotDurMs}ms ease`;
           card.cardEl.style.transform =
             `perspective(300vw) rotateY(${card.cardEl._angle}deg) rotateZ(${totalRot}deg) scale(1)`;
+          applyTokenHostRotation(card);
           card.cardEl._rotTransId = setTimeout(() => {
             card.cardEl.style.transition = '';
             card.cardEl._rotTransId = null;
@@ -2695,6 +2779,10 @@ export function createDnc3DEngine(options = {}) {
             const fromTop     = parseFloat(card.liftEl.style.top)  || 0;
             const oldRegionId = card.regionId;
             moveStackToRegion(card.stackId, destGroupId);
+            // Match the backend's ordering before computing slots, so the stack
+            // flies to its real slot rather than the appended end (e.g. undoing a
+            // shuffle-into-deck returns the card to its original row position).
+            syncRegionOrderData(destGroupId, game, idMap);
             const destType = REGIONS[destGroupId]?.type;
 
             // Center the destination slot before computing the flight target so the
@@ -2904,7 +2992,7 @@ export function createDnc3DEngine(options = {}) {
   }
 
   function getCardElements() {
-    return cards.map(c => ({ id: c.id, frontEl: c.frontEl, faceW: c.faceW, faceH: c.faceH }));
+    return cards.map(c => ({ id: c.id, frontEl: c.frontEl, tokenHostEl: c.tokenHostEl, faceW: c.faceW, faceH: c.faceH }));
   }
 
   // Rebuild just the targeting/arrow overlay from game state, without running a

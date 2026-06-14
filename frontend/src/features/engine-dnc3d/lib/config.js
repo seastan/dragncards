@@ -58,6 +58,28 @@ export const PLAYER_COLORS = {
   player8: 'rgb(255,142,12)',  // Orange
 };
 
+// --- Token vertical-extrusion prototype (dnc3d only) ----------------------
+// Fakes physical height on round PNG tokens with a single alpha-aware SVG
+// filter pass (the filter primitives trace the PNG's transparency, so the
+// fake "side wall" hugs the round silhouette automatically — no assumptions
+// about token shape). Threaded CardTokens -> Tokens -> Token; the 2D engine
+// never receives the prop, so its tokens are unaffected.
+//
+// Flip TOKEN_EXTRUDE to false to disable. The wall direction is constant
+// because the live table tilt is a fixed 25° (no camera orbit), so a single
+// baked-in direction stays correct every frame. +DY points toward the bottom
+// of the screen, where the side wall of a raised object projects under a
+// forward tilt.
+export const TOKEN_EXTRUDE           = true;
+export const TOKEN_EXTRUDE_FILTER_ID = 'dnc3d-token-extrude';
+export const TOKEN_EXTRUDE_STEPS     = 4;            // # of offset copies forming the side wall
+export const TOKEN_EXTRUDE_DX        = 0;            // wall direction x, px per step
+export const TOKEN_EXTRUDE_DY        = 1;            // wall direction y, px per step (wall height ≈ STEPS*DY)
+export const TOKEN_EXTRUDE_COLOR     = '#000000';    // side-wall fill colour
+export const TOKEN_EXTRUDE_OPACITY   = 0.95;         // side-wall opacity (1 = fully opaque wall)
+export const TOKEN_EXTRUDE_GROUND_BLUR    = 1.2;     // soft contact-shadow blur (px); 0 disables
+export const TOKEN_EXTRUDE_GROUND_OPACITY = 0.35;    // soft contact-shadow opacity
+
 export const COLORS = [
   '#c0392b', '#e67e22', '#d4ac0d', '#27ae60',
   '#16a085', '#2980b9', '#8e44ad', '#e91e63',

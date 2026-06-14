@@ -324,6 +324,22 @@ export function createLayout(state, projection, REGIONS) {
   // Layout functions return tilt-space coords. placeCardAt / animateCardTo convert
   // to container-relative when placing cards inside a scroll outer.
 
+  // Keep a card's token host spun to match the card's full visual rotation —
+  // layout rotation (sideways regions) + game rotation (exhaust). The host hangs
+  // off liftEl, which never carries the card's rotateY/rotateZ, so without this
+  // the +/- token regions stay screen-aligned and "add" is always the screen-top
+  // half no matter how the card is turned. The per-token label/extrude
+  // counter-rotation (reading the Redux game rotation in React) cancels the game
+  // portion back to upright/screen-down, exactly as before. Mirroring cardEl's
+  // transition keeps the tokens spinning in lockstep with the card.
+  function applyTokenHostRotation(card) {
+    const th = card?.tokenHostEl;
+    if (!th) return;
+    const total = (card.cardEl._layoutRotation || 0) + (card.cardEl._gameRotation || 0);
+    th.style.transition = card.cardEl.style.transition || '';
+    th.style.transform  = `translateZ(1px) rotate(${total}deg)`;
+  }
+
   function placeCardAt(card, left, top, rot, zIdx, stackZ = 0) {
     ensureCardParent(card);
     // placeCardAt is the instant primitive — clear any lingering transform
@@ -340,6 +356,7 @@ export function createLayout(state, projection, REGIONS) {
     card.liftEl.style.transform = `translateZ(${BASE_LIFT + stackZ}px)`;
     card.cardEl._layoutRotation = rot;
     card.cardEl.style.transform = `perspective(300vw) rotateY(${card.cardEl._angle}deg) rotateZ(${rot + (card.cardEl._gameRotation || 0)}deg) scale(1)`;
+    applyTokenHostRotation(card);
   }
 
   function animateCardTo(card, targetLeft, targetTop, targetRot, targetZ, duration = 300, targetStackZ = 0) {
@@ -365,6 +382,7 @@ export function createLayout(state, projection, REGIONS) {
       card.liftEl.style.transform = `translateZ(${BASE_LIFT + sz}px)`;
       card.cardEl._layoutRotation = fromRot + (targetRot - fromRot) * e;
       card.cardEl.style.transform = `perspective(300vw) rotateY(${card.cardEl._angle}deg) rotateZ(${card.cardEl._layoutRotation + (card.cardEl._gameRotation || 0)}deg) scale(1)`;
+      applyTokenHostRotation(card);
       if (t < 1) {
         card.layoutAnimId = requestAnimationFrame(frame);
       } else {
@@ -425,6 +443,7 @@ export function createLayout(state, projection, REGIONS) {
       card.liftEl.style.transform = `translateZ(${BASE_LIFT + restZ + bump}px)`;
       card.cardEl._layoutRotation = fromRot + (targetRot - fromRot) * e;
       card.cardEl.style.transform = `perspective(300vw) rotateY(${card.cardEl._angle}deg) rotateZ(${card.cardEl._layoutRotation + (card.cardEl._gameRotation || 0)}deg) scale(1)`;
+      applyTokenHostRotation(card);
       if (t < 1) {
         card.layoutAnimId = requestAnimationFrame(frame);
       } else {
@@ -711,7 +730,7 @@ export function createLayout(state, projection, REGIONS) {
     stackCardOffsets, stackBaseCardIds, stackPositionsAtAnchor,
     rowTotalWidth,
     layoutRow, layoutFan, layoutPile,
-    placeCardAt, animateCardTo, animateCardArc,
+    placeCardAt, animateCardTo, animateCardArc, applyTokenHostRotation,
     insertStackAtIndex,
     setIndicatorEl, showInsertionIndicator, hideInsertionIndicator,
     setAfterLayoutHook,

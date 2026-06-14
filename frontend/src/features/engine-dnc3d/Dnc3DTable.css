@@ -318,7 +318,13 @@
 /* Lift wrapper — handles translateZ so card stays above table during flip */
 .dnc3d-card-lift {
   position: absolute;
-  pointer-events: auto;
+  /* pointer-events:none so liftEl's un-rotated portrait box never intercepts:
+     the actual hit surface is cardEl (rotated to the card's real shape) and its
+     tokens. Otherwise liftEl's dead margin above/below a sideways card would
+     swallow hovers and occlude stacked neighbours showing through it. Drag still
+     works: pointerdown bubbles up from cardEl/tokens to liftEl's listeners, and
+     pointer capture is unaffected by pointer-events. */
+  pointer-events: none;
   transform-style: preserve-3d;
   will-change: transform;
 }
@@ -327,6 +333,9 @@
   width: var(--card-w, 5vw);
   height: var(--card-h, 7vw);
   cursor: grab;
+  /* re-enable hit-testing on the card itself (liftEl above is none, and
+     pointer-events inherits). */
+  pointer-events: auto;
   border-radius: 0.4vw;
   transform-style: preserve-3d;
   will-change: transform;
@@ -355,7 +364,13 @@
   -webkit-backface-visibility: hidden;
   transition: box-shadow 120ms ease-out;
 }
-.dnc3d-card:not(.dnc3d-dragging):hover .dnc3d-card-face {
+/* Hover glow follows the card's rotated shape. The `dnc3d-card-hovered` class is
+   driven from JS (engine.js) off cardEl's pointerenter/leave — which track the
+   rotated hit region — rather than a CSS :hover on the un-rotated lift wrapper.
+   The same JS keeps the class on while the cursor crosses a token sitting over
+   the card, so the glow doesn't blink off. The card is still excluded while
+   dragging. */
+.dnc3d-card.dnc3d-card-hovered:not(.dnc3d-dragging) .dnc3d-card-face {
   box-shadow:
     inset 0 0 0 0.1vw rgba(255,255,255,0.2),
     0 0 0 1.5px rgba(255, 220, 0, 0.9),

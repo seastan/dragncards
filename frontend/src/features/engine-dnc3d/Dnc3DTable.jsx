@@ -16,13 +16,28 @@ import { Tokens } from '../engine/Tokens';
 import { MultiSelectOverlay } from '../engine/MultiSelectOverlay';
 import { Dnc3DHudChat } from './Dnc3DHudChat';
 import { Dnc3DHudBrowse } from './Dnc3DHudBrowse';
+import { Dnc3DTokenExtrudeFilter } from './Dnc3DTokenExtrudeFilter';
+import { TOKEN_EXTRUDE, TOKEN_EXTRUDE_FILTER_ID } from './lib/config';
 import './Dnc3DTable.css';
+
+// CSS `filter` value handed to each token's <img> when the extrusion prototype
+// is on; null when off so the shared Token component renders unchanged.
+const TOKEN_EXTRUDE_CSS = TOKEN_EXTRUDE ? `url(#${TOKEN_EXTRUDE_FILTER_ID})` : null;
 
 function CardTokens({ cardId, aspectRatio }) {
   const isActive = useSelector(s => s?.playerUi?.activeCardId === cardId);
+  // The token host hangs off liftEl, which never carries the card's rotateZ
+  // (layout rotation + exhaust live on cardEl). The engine spins this host's
+  // DOM element to match the card's full visual rotation (applyTokenHostRotation),
+  // so the +/- regions turn with the card instead of staying screen-top/bottom.
+  // The per-token label/extrude counter-rotation (reading Redux game rotation)
+  // cancels the game portion back to upright/screen-down.
+  // pointer-events:none keeps card hover/click alive through the full-card layer.
   return (
     <>
-      <Tokens cardId={cardId} isActive={isActive} aspectRatio={aspectRatio} />
+      <div className="absolute" style={{ inset: 0, pointerEvents: 'none' }}>
+        <Tokens cardId={cardId} isActive={isActive} aspectRatio={aspectRatio} extrudeFilter={TOKEN_EXTRUDE_CSS} />
+      </div>
       <MultiSelectOverlay cardId={cardId} />
     </>
   );
@@ -228,11 +243,11 @@ export default function Dnc3DTable({
     const cleanup = engine.init(tiltEl, tiltDegRef.current, initData);
 
     if (connected && reverseIdMap) {
-      const portals = engine.getCardElements().flatMap(({ id, frontEl, faceW, faceH }) => {
+      const portals = engine.getCardElements().flatMap(({ id, tokenHostEl, faceW, faceH }) => {
         const dcId = reverseIdMap.get(id);
-        if (!dcId || !frontEl) return [];
+        if (!dcId || !tokenHostEl) return [];
         const aspectRatio = (faceW && faceH) ? faceW / faceH : 0.72;
-        return [{ dcId, frontEl, aspectRatio }];
+        return [{ dcId, tokenHostEl, aspectRatio }];
       });
       setTokenPortals(portals);
 
@@ -330,6 +345,7 @@ export default function Dnc3DTable({
 
   return (
     <div className="dnc3d-stage">
+      {TOKEN_EXTRUDE && <Dnc3DTokenExtrudeFilter />}
       <div className="dnc3d-tilt" ref={tiltRef} />
       {game && <Dnc3DHudChat />}
       {game && <Dnc3DHudBrowse onFilterChange={handleBrowseFilterChange} />}
@@ -369,8 +385,8 @@ export default function Dnc3DTable({
         if (tableButton.visible === false) return null;
         return <TableButton key={id} tableButton={tableButton} />;
       })}
-      {tokenPortals.map(({ dcId, frontEl, aspectRatio }) =>
-        createPortal(<CardTokens cardId={dcId} aspectRatio={aspectRatio} />, frontEl, dcId)
+      {tokenPortals.map(({ dcId, tokenHostEl, aspectRatio }) =>
+        createPortal(<CardTokens cardId={dcId} aspectRatio={aspectRatio} />, tokenHostEl, dcId)
       )}
     </div>
   );
