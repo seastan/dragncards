@@ -24,7 +24,8 @@ defmodule DragnCardsGame.PlayerData do
       "prompts" => %{},
       "browseGroup" => %{
         "id" => nil,
-        "topN" => 0
+        "topN" => 0,
+        "position" => "top"
       },
       "layoutId" => layout_id,
       "layout" => game_def["layouts"][layout_id],

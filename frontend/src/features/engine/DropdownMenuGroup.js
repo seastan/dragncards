@@ -3,15 +3,13 @@ import { faArrowUp, faArrowDown, faRandom, faChevronRight, faCheck } from "@fort
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { DropdownItem, GoBack } from "./DropdownMenuHelpers";
 import "../../css/custom-dropdown.css";
-import { useDispatch, useSelector } from "react-redux";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { usePlayerIList } from "./hooks/usePlayerIList";
-import { useBrowseTopN } from "./hooks/useBrowseTopN";
 import { dragnActionLists } from "./functions/dragnActionLists";
-import { setDropdownMenu } from "../store/playerUiSlice";
 import { useSiteL10n } from "../../hooks/useSiteL10n";
 import { useGameL10n } from "./hooks/useGameL10n";
 import { Z_INDEX } from "./functions/common";
+import { useSelector } from "react-redux";
 
 export const DropdownMenuGroup = React.memo(({
   mouseX,
@@ -23,7 +21,6 @@ export const DropdownMenuGroup = React.memo(({
 }) => {
   const siteL10n = useSiteL10n();
   const gameL10n = useGameL10n();
-  const dispatch = useDispatch();
   const dropdownMenu = useSelector(state => state?.playerUi?.dropdownMenu);
   const playerN = useSelector(state => state?.playerUi?.playerN);
   const playerIList = usePlayerIList();
@@ -31,8 +28,6 @@ export const DropdownMenuGroup = React.memo(({
   const gameDef = useGameDefinition();
   const group = useSelector(state => state?.gameUi?.game?.groupById?.[menuGroup.id]);
   const numStacks = group?.stackIds?.length || 0;
-  const browseTopN = useBrowseTopN();
-  const choicesTopN = gameDef.groupMenu?.peekAtTopN || [5,10];
 
   console.log("Rendering DMGroup", group)
   const DropdownMoveTo = (props) => {
@@ -63,19 +58,16 @@ export const DropdownMenuGroup = React.memo(({
 
   const windowHeight = window.innerHeight;
   const left = mouseX < (window.innerWidth/2)  ? mouseX + windowHeight * 0.01 : mouseX - windowHeight * 0.36;
-  const rawTop = mouseY < (window.innerHeight/2) ? mouseY - windowHeight * 0.1 : mouseY - windowHeight * 0.5;
-  const top = Math.min(rawTop, window.innerHeight - (menuHeight || 0) - 8);
+  const top = mouseY < (window.innerHeight/2) ? mouseY - windowHeight * 0.1 : mouseY - windowHeight * 0.5;
 
   const actionListShuffle = [
     ["SHUFFLE_GROUP", menuGroup.id],
     ["LOG", "$ALIAS_N", " shuffled ", group.label]
   ]
 
-  const handleLookAtClick = (dropdownOptions) => {
-    browseTopN(menuGroup.id, dropdownOptions.topN);
-    dispatch(setDropdownMenu(null));
-  }
-  
+  const actionListBrowse = [
+    ["LOOK_AT", "$PLAYER_N", menuGroup.id, -1, true]
+  ];
 
   return (
     <div 
@@ -99,14 +91,7 @@ export const DropdownMenuGroup = React.memo(({
           })}
           
           {gameDef?.groupMenu?.suppress?.includes("Browse") ? null :
-            <DropdownItem topN="None" clickCallback={handleLookAtClick}>{siteL10n("Browse")}</DropdownItem>
-          }
-          {gameDef?.groupMenu?.suppress?.includes("Look at top") ? null :
-            choicesTopN.map((topN, _index) => {
-              return(
-                <DropdownItem topN={topN} clickCallback={handleLookAtClick}>{siteL10n("Look at top") + " " + topN}</DropdownItem>
-              )
-            })
+            <DropdownItem action={actionListBrowse} clickCallback={handleDropdownClick}>{siteL10n("Browse")}</DropdownItem>
           }
           {gameDef?.groupMenu?.suppress?.includes("Look at top X") ? null :
             <DropdownItem topN="X" clickCallback={handleLookAtClick}>{siteL10n("Look at top X")}</DropdownItem>
@@ -147,17 +132,14 @@ export const DropdownMenuGroup = React.memo(({
               clickCallback={handleDropdownClick}>
               {siteL10n("My Deck")}
             </DropdownItem>
-            {gameDef.groupMenu?.moveToGroupIds?.map((moveToGroupId, _moveToGroupIndex) => {
-              const resolvedGroupId = moveToGroupId.replace("playerN", playerN);
-              return (
-                <DropdownItem
-                  rightIcon={<FontAwesomeIcon icon={faChevronRight}/>}
-                  goToMenu={"moveTo"+resolvedGroupId}
-                  clickCallback={handleDropdownClick}>
-                  {gameL10n(gameDef?.groups?.[resolvedGroupId]?.label)}
-                </DropdownItem>
-              )
-            })}
+            {gameDef.groupMenu?.moveToGroupIds?.map((moveToGroupId, _moveToGroupIndex) => (
+              <DropdownItem
+                rightIcon={<FontAwesomeIcon icon={faChevronRight}/>}
+                goToMenu={"moveTo"+moveToGroupId}
+                clickCallback={handleDropdownClick}>
+                {gameL10n(gameDef?.groups?.[moveToGroupId]?.label)}
+              </DropdownItem>
+              ))}
         </div>
         }
         {activeMenu === "setVisibility" &&
@@ -190,10 +172,9 @@ export const DropdownMenuGroup = React.memo(({
         }
         {activeMenu === "moveToMy" &&
         <DropdownMoveTo destGroupId={playerN+"Deck"}/>}
-        {gameDef?.groupMenu?.moveToGroupIds?.map((moveToGroupId, _moveToGroupIndex) => {
-          const resolvedGroupId = moveToGroupId.replace("playerN", playerN);
-          return (activeMenu === "moveTo" + resolvedGroupId) && <DropdownMoveTo destGroupId={resolvedGroupId}/>;
-        })}
+        {gameDef?.groupMenu?.moveToGroupIds?.map((moveToGroupId, _moveToGroupIndex) => (
+          (activeMenu === "moveTo" + moveToGroupId) && <DropdownMoveTo destGroupId={moveToGroupId}/>
+        ))}
     </div>
   );
 })
