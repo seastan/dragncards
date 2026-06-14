@@ -897,7 +897,30 @@ export function createDnc3DEngine(options = {}) {
         .map(([id]) => id);
 
       let newHoverAttachCardId = null;
+      // Highest region layer whose elevated panel is drawn over the cursor, in
+      // screen space. Elevated regions (an elevated row, or the browse panel on
+      // its own layer) lift toward the viewer, so their on-screen footprint can't
+      // be derived from the Z=0 table projection — read it from each panel's live
+      // projected rect instead. A card may only be an attach target if nothing on
+      // a higher layer covers it; otherwise the gesture reaches through the panel
+      // to a card hidden beneath it.
+      let cursorCoverLayer = 0;
+      for (const [rid, r] of Object.entries(REGIONS)) {
+        const li = r.layerIndex || 0;
+        if (li <= cursorCoverLayer) continue;
+        // Use the region outline, which exists for every region type (including
+        // free/pile) and carries the elevation transform — scrollOuterEls only
+        // exists for row/fan, so an elevated free/pile region wouldn't register.
+        const panel = regionOutlineEls[rid];
+        if (!panel) continue;
+        const pr = panel.getBoundingClientRect();
+        if (e.clientX >= pr.left && e.clientX <= pr.right &&
+            e.clientY >= pr.top  && e.clientY <= pr.bottom) {
+          cursorCoverLayer = li;
+        }
+      }
       for (const rid of attachTargetRegions) {
+        if ((REGIONS[rid].layerIndex || 0) < cursorCoverLayer) continue;
         for (const sid of regionState[rid].stackIds) {
           if (sid === dragStack.id) continue;
           const targetStack = stacks[sid];
