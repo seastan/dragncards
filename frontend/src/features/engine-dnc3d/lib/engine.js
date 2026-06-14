@@ -65,6 +65,25 @@ export function createDnc3DEngine(options = {}) {
   let _tableSurfaceEl     = null;
   let _isDragging         = false; // true while any card drag is in progress
   const _shufflingRegions = new Set(); // regionIds currently playing a shuffle riffle
+  // Last known pointer position (screen px), kept current by the tilt pointermove
+  // listener. reconcileHover() re-reads it after each state update so the hover
+  // glow tracks whatever card is *actually* under a stationary cursor once cards
+  // move (e.g. a hotkey-discard slides the card out from under the pointer with
+  // no pointerout firing).
+  let _lastPointerX       = -1;
+  let _lastPointerY       = -1;
+  let _hoverSettleRaf     = null; // rAF id for the post-reconcile hover settle loop
+
+  // Topmost `.dnc3d-card` element under a screen point, treating tokens and the
+  // see-through liftEl/tokenHost wrappers as transparent. Shared by the per-card
+  // pointerout guard and the post-reconcile hover sweep.
+  function topCardElAtPoint(x, y) {
+    for (const el of document.elementsFromPoint(x, y)) {
+      const ce = el.closest('.dnc3d-card');
+      if (ce) return ce;
+    }
+    return null;
+  }
 
   // Targeting-icon + card-arrow overlay (flat screen-space layer above the tilt).
   const _overlay = createOverlay();
@@ -670,13 +689,7 @@ export function createDnc3DEngine(options = {}) {
     // Suppress hover while dragging: re-parenting the dragged card's liftEl
     // (moveStackToTilt) fires a spurious pointerenter that would re-show the
     // GiantCard mid-drag right after onDragStart cleared it.
-    const topCardElAt = (x, y) => {
-      for (const el of document.elementsFromPoint(x, y)) {
-        const ce = el.closest('.dnc3d-card');
-        if (ce) return ce;
-      }
-      return null;
-    };
+    const topCardElAt = topCardElAtPoint;
     const showCardHover = (e) => {
       if (_isDragging) return;
       if (cardEl.classList.contains('dnc3d-card-hovered')) return;
@@ -811,6 +824,10 @@ export function createDnc3DEngine(options = {}) {
       if (!isDragging && Math.hypot(dx, dy) >= threshold) {
         isDragging = true;
         _isDragging = true;
+        // Kill any running hover-settle loop: its ticks would otherwise resume
+        // firing once _isDragging clears at drop, hit-testing against the
+        // pre-move game state and activating the card with its stale group.
+        if (_hoverSettleRaf) { cancelAnimationFrame(_hoverSettleRaf); _hoverSettleRaf = null; }
         playPickupSound(); // card lifted off (drag threshold crossed)
         if (cardEl._rotTransId) { clearTimeout(cardEl._rotTransId); cardEl._rotTransId = null; cardEl.style.transition = ''; }
         if (onDragStart) onDragStart();
@@ -836,6 +853,12 @@ export function createDnc3DEngine(options = {}) {
 
         dragStackCards.forEach(c => {
           c.cardEl._layoutRotation = 0;
+          // Drop the hover class outright (not just rely on the :not(.dnc3d-dragging)
+          // CSS to hide it): otherwise it silently survives the whole drag, and on
+          // drop the glow reappears without onCardHover ever re-firing — so the
+          // GiantCard preview never comes back. Clearing it makes the post-drop
+          // hover sweep treat a card dropped under the cursor as a fresh hover.
+          c.cardEl.classList.remove('dnc3d-card-hovered');
           c.cardEl.classList.add('dnc3d-dragging');
           c._setLiftVisuals(c.liftPx + c._dragLiftMax() * 0.06);
           c._animateLift(c._dragLiftMax(), 180, easeOut);
@@ -1978,7 +2001,11 @@ export function createDnc3DEngine(options = {}) {
         if (hoveredIconRegion) setRegionHoverState(hoveredIconRegion, true);
       }
     }
-    function onTiltPointerMove(e) { updateIconHover(e.clientX, e.clientY); }
+    function onTiltPointerMove(e) {
+      _lastPointerX = e.clientX;
+      _lastPointerY = e.clientY;
+      updateIconHover(e.clientX, e.clientY);
+    }
     function onTiltPointerLeave() {
       if (hoveredIconRegion) { setRegionHoverState(hoveredIconRegion, false); hoveredIconRegion = null; }
     }
@@ -2989,6 +3016,66 @@ export function createDnc3DEngine(options = {}) {
     // Refresh the targeting/arrow overlay from the new game state. The overlay's
     // own rAF loop handles per-frame repositioning while cards are in motion.
     _overlay.rebuild(game, idMap, cards);
+
+    // Cards may have moved out from (or into) under a stationary cursor without
+    // any pointer event firing, so the hovered class — and the Redux active card
+    // it drives — can be stale. The moves are rAF animations that haven't run
+    // yet, so a single sweep here would hit-test stale positions; instead track
+    // the cards as they settle and re-derive hover from what's actually under
+    // the pointer at the end.
+    scheduleHoverReconcile();
+  }
+
+  // Run reconcileHover now and on each frame until card move animations have
+  // settled, so the hover glow / active card end up matching whatever card is
+  // really under the pointer after the dust settles (a hotkey-discard slides the
+  // card away over ~300ms; a drop lands one under the cursor). Transitions inside
+  // reconcileHover are guarded, so the repeated calls don't spam dispatches.
+  function scheduleHoverReconcile() {
+    if (_hoverSettleRaf) { cancelAnimationFrame(_hoverSettleRaf); _hoverSettleRaf = null; }
+    // Cover the longest move/arc animation (~360ms) plus a small buffer.
+    const deadline = performance.now() + scaleDuration(360) + 60;
+    reconcileHover();
+    const tick = (now) => {
+      reconcileHover();
+      if (now < deadline) {
+        _hoverSettleRaf = requestAnimationFrame(tick);
+      } else {
+        _hoverSettleRaf = null;
+      }
+    };
+    _hoverSettleRaf = requestAnimationFrame(tick);
+  }
+
+  // Sync the hover glow + active-card callbacks to whatever card sits under the
+  // last known pointer position. Called after each reconcile so a hotkey move
+  // (which slides a card away with no pointerout) doesn't strand the yellow glow
+  // on the moved card — and so a card newly revealed under the cursor lights up.
+  function reconcileHover() {
+    if (_isDragging) return;
+    if (_lastPointerX < 0 && _lastPointerY < 0) return; // no pointer seen yet
+    const targetEl = topCardElAtPoint(_lastPointerX, _lastPointerY);
+    let targetCard = null;
+    for (const c of cards) {
+      const shouldHover = c.cardEl === targetEl;
+      const isHovered   = c.cardEl.classList.contains('dnc3d-card-hovered');
+      if (shouldHover) targetCard = c;
+      if (shouldHover && !isHovered) {
+        c.cardEl.classList.add('dnc3d-card-hovered');
+      } else if (!shouldHover && isHovered) {
+        c.cardEl.classList.remove('dnc3d-card-hovered');
+        if (onCardHoverEnd) onCardHoverEnd(c.id);
+      }
+    }
+    // Re-assert the active card on EVERY settle tick (not just on the class
+    // transition). Dispatching the same activeCardId is a no-op in Redux, but it
+    // matters when the just-moved card is the one under the cursor: onCardMove
+    // broadcasts to the backend, so the card's groupId in game state flips a beat
+    // later — and GiantCard's group-change effect reacts to that by clearing
+    // activeCardId. A one-shot, class-guarded onCardHover here would lose that
+    // race permanently; re-asserting each tick re-activates the card once its
+    // group has settled, so the GiantCard preview comes back (and stays).
+    if (targetCard && onCardHover) onCardHover(targetCard.id, _lastPointerX);
   }
 
   function getCardElements() {
