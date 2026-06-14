@@ -1,4 +1,4 @@
-import { BASE_LIFT, pileStackZPx, MAX_PILE_VISUAL_DEPTH, layerZPx, scaleDuration, dvhPx } from './config';
+import { BASE_LIFT, pileStackZPx, MAX_PILE_VISUAL_DEPTH, layerZPx, scaleDuration, dvhPx, cardTransform } from './config';
 import { ease, easeOut } from './animation';
 
 // Attachment cards offset horizontally from their parent within a stack.
@@ -355,7 +355,7 @@ export function createLayout(state, projection, REGIONS) {
     card.pileZ                  = stackZ;
     card.liftEl.style.transform = `translateZ(${BASE_LIFT + stackZ}px)`;
     card.cardEl._layoutRotation = rot;
-    card.cardEl.style.transform = `perspective(300vw) rotateY(${card.cardEl._angle}deg) rotateZ(${rot + (card.cardEl._gameRotation || 0)}deg) scale(1)`;
+    card.cardEl.style.transform = cardTransform(card.cardEl._angle, rot + (card.cardEl._gameRotation || 0));
     applyTokenHostRotation(card);
   }
 
@@ -381,7 +381,7 @@ export function createLayout(state, projection, REGIONS) {
       card.liftEl.style.top       = (fromTop  + (targetTop  - fromTop)  * e - o.y) + 'px';
       card.liftEl.style.transform = `translateZ(${BASE_LIFT + sz}px)`;
       card.cardEl._layoutRotation = fromRot + (targetRot - fromRot) * e;
-      card.cardEl.style.transform = `perspective(300vw) rotateY(${card.cardEl._angle}deg) rotateZ(${card.cardEl._layoutRotation + (card.cardEl._gameRotation || 0)}deg) scale(1)`;
+      card.cardEl.style.transform = cardTransform(card.cardEl._angle, card.cardEl._layoutRotation + (card.cardEl._gameRotation || 0));
       applyTokenHostRotation(card);
       if (t < 1) {
         card.layoutAnimId = requestAnimationFrame(frame);
@@ -442,7 +442,7 @@ export function createLayout(state, projection, REGIONS) {
       card.liftEl.style.top       = (fromTop  + (targetTop  - fromTop)  * e - o.y) + 'px';
       card.liftEl.style.transform = `translateZ(${BASE_LIFT + restZ + bump}px)`;
       card.cardEl._layoutRotation = fromRot + (targetRot - fromRot) * e;
-      card.cardEl.style.transform = `perspective(300vw) rotateY(${card.cardEl._angle}deg) rotateZ(${card.cardEl._layoutRotation + (card.cardEl._gameRotation || 0)}deg) scale(1)`;
+      card.cardEl.style.transform = cardTransform(card.cardEl._angle, card.cardEl._layoutRotation + (card.cardEl._gameRotation || 0));
       applyTokenHostRotation(card);
       if (t < 1) {
         card.layoutAnimId = requestAnimationFrame(frame);

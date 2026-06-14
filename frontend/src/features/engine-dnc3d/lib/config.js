@@ -34,6 +34,27 @@ export function scaleDuration(ms) {
   return Math.max(1, ms * ANIMATION_SPEED_MULTIPLIER);
 }
 
+// Builds a card element's CSS transform in "own-axis" order. The in-plane
+// rotation (rotateZ — layout rotation + exhaust/game rotation) establishes the
+// card's local frame FIRST, then the flip (rotateY) is applied within it, so a
+// card always flips about its OWN vertical axis no matter how it's turned —
+// rather than always swinging left-right in screen space. A consequence is that
+// a face-down rotated card now rests at +rot instead of the old mirror's -rot.
+//
+// swingPct is the lateral arc offset during a flip; it sits between rotateZ and
+// rotateY so it tracks the card's width axis (and isn't foreshortened by the
+// in-progress flip). Every cardEl.style.transform should go through this so the
+// resting orientation and the flip animation share one convention and never
+// snap against each other.
+//   angleDeg : flip angle  (cardEl._angle)
+//   rotDeg   : in-plane rotation (layoutRotation + gameRotation)
+//   scale    : uniform scale (default 1)
+//   swingPct : lateral flip swing as % of card width (default 0)
+export function cardTransform(angleDeg, rotDeg, scale = 1, swingPct = 0) {
+  const swing = swingPct ? ` translateX(${swingPct}%)` : '';
+  return `perspective(300vw) rotateZ(${rotDeg}deg)${swing} rotateY(${angleDeg}deg) scale(${scale})`;
+}
+
 // Default region layout — used for demo/sandbox mode.
 // dragncards integration will pass regions from gameDef.layouts instead.
 export const DEFAULT_REGIONS = {

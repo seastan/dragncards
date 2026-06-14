@@ -1,4 +1,4 @@
-import { BASE_LIFT, MAX_ZOOM, GROW, FLIP, SHRINK, OVERLAP, scaleDuration } from './config';
+import { BASE_LIFT, MAX_ZOOM, GROW, FLIP, SHRINK, OVERLAP, scaleDuration, cardTransform } from './config';
 
 export function ease(t)    { return t < 0.5 ? 2*t*t : -1 + (4 - 2*t)*t; }
 export function easeOut(t) { return t * (2 - t); }
@@ -51,14 +51,14 @@ export function animateFlip(cardEl, liftEl, startAngle, onComplete, startLiftPx 
       : Math.max(0, startRestPx + peakLift * p1 - (startRestPx + peakLift - endLiftPx) * p3);
 
     liftEl.style.transform = `translateZ(${BASE_LIFT + lift}px)`;
-    cardEl.style.transform = `translateX(${tx}%) perspective(300vw) rotateY(${currentAngle}deg) rotateZ(${startLayoutRot}deg) scale(${scale})`;
+    cardEl.style.transform = cardTransform(currentAngle, startLayoutRot, scale, tx);
     cardEl.style.boxShadow = `0 ${shadowVH}vh ${shadowVH * 2}vh rgba(0,0,0,${shadowOpacity})`;
 
     if (elapsed < total) {
       requestAnimationFrame(frame);
     } else {
       liftEl.style.transform = `translateZ(${BASE_LIFT + endLiftPx}px)`;
-      cardEl.style.transform = `perspective(300vw) rotateY(${startAngle + direction * 180}deg) rotateZ(${startLayoutRot}deg) scale(1)`;
+      cardEl.style.transform = cardTransform(startAngle + direction * 180, startLayoutRot);
       cardEl.style.boxShadow = 'none';
       cardEl._animating      = false;
       if (onComplete) onComplete();
