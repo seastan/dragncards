@@ -820,8 +820,8 @@ export const getGameDefSchema = (gameDef) => {
           "_itemSchema_": {
             "_description_": "The option to suppress",
             "_type_": "string",
-            "_memberOf_": ["Shuffle", "Browse", "Look at top", "Look at top X", "Choose Random", "Set Visibility", "Move To"],
-            "_memberOfPath_": `["Browse", "Look at top", "Look at top X", "Choose Random", "Set Visibility", "Move To"]`,
+            "_memberOf_": ["Shuffle", "Browse", "Look at top", "Look at top X", "Look at bottom", "Look at bottom X", "Choose Random", "Set Visibility", "Move To"],
+            "_memberOfPath_": `["Browse", "Look at top", "Look at top X", "Look at bottom", "Look at bottom X", "Choose Random", "Set Visibility", "Move To"]`,
           }
         },
         "options": {

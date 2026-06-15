@@ -62,6 +62,7 @@ defmodule DragnCardsGame.Evaluate.Functions.LOOK_AT do
     action_list = [
       ["SET", "/playerData/#{player_i}/browseGroup/id", group_id],
       ["SET", "/playerData/#{player_i}/browseGroup/topN", top_n],
+      ["SET", "/playerData/#{player_i}/browseGroup/position", "top"],
       ["FOR_EACH_START_STOP_STEP", "$i", 0, top_n, 1,
         [
           ["VAR", "$CARD_ID", "$GAME.groupById.#{group_id}.parentCardIds.[$i]"],

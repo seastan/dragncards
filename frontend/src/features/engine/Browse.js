@@ -26,7 +26,7 @@ export const useBrowseRegion = () => {
   const playerN = usePlayerN();
   const gameDef = useGameDefinition();
   const cardTypes = gameDef?.cardTypes;
-  const maxHeight = 1; //Math.max(...Object.values(cardTypes).map(cardType => cardType?.height || 1));
+  const maxHeight = Math.max(...Object.values(cardTypes).map(cardType => cardType?.height || 1));
   const browseGroupId = useSelector(state => state?.gameUi?.game?.playerData?.[playerN]?.browseGroup?.id);
   const cardScaleFactor = useCardScaleFactor();
   return {
@@ -44,13 +44,14 @@ export const useBrowseRegion = () => {
 }
 
 
-export const Browse = React.memo(({onDragEnd}) => {
+export const Browse = React.memo(({}) => {
   const dispatch = useDispatch();
   const gameL10n = useGameL10n();
   const gameDef = useGameDefinition();
   const playerN = useSelector(state => state?.playerUi?.playerN);
   const groupId = useSelector(state => state?.gameUi?.game?.playerData?.[playerN]?.browseGroup?.id);
   const browseGroupTopN = useSelector(state => state?.gameUi?.game?.playerData?.[playerN]?.browseGroup?.topN);
+  const browseGroupPosition = useSelector(state => state?.gameUi?.game?.playerData?.[playerN]?.browseGroup?.position) || "top";
   const group = useSelector(state => state?.gameUi?.game?.groupById?.[groupId]);
   const region = useBrowseRegion();
   const game = useSelector(state => state?.gameUi?.game);
@@ -71,7 +72,7 @@ export const Browse = React.memo(({onDragEnd}) => {
   }, [])
 
   if (!group) return;
-  console.log("Rendering Browse", groupId, region, browseGroupTopN)
+  console.log("Rendering Browse", groupId, region, browseGroupTopN, browseGroupPosition)
 
   const handleBarsClick = (event) => {
     event.stopPropagation();
@@ -87,11 +88,16 @@ export const Browse = React.memo(({onDragEnd}) => {
   // rather than waiting to the update from the server
   const stopPeekingTopCard = () => {
     if (numStacks === 0) return null;
-    const stackId0 = stackIds[0];
+  
+    const stackIndex = browseGroupPosition === "bottom"
+      ? numStacks - 1
+      : 0;
+  
+    const stackId0 = stackIds[stackIndex];
     const cardIds = game["stackById"][stackId0]["cardIds"];
     const cardId0 = cardIds[0];
     const updates = [["game", "cardById", cardId0, "peeking", playerN, false]];
-    dispatch(setValues({updates: updates})) 
+    dispatch(setValues({updates: updates}))
   }
 
   const handleCloseClick = (option) => {
@@ -111,7 +117,7 @@ export const Browse = React.memo(({onDragEnd}) => {
       ["LOG", "$ALIAS_N", " shuffled ", gameL10n(group.label)+"."],
       ["SHUFFLE_GROUP", groupId]
     ];
-    doActionList(actionList, "Closed and shuffled group "+group.label);
+    doActionList(actionList);
     if (group?.onCardEnter?.currentSide === "B") stopPeekingTopCard();
   }
 
@@ -120,7 +126,7 @@ export const Browse = React.memo(({onDragEnd}) => {
       ["LOG", "$ALIAS_N", " closed ", gameL10n(group.label)+"."],
       ["STOP_LOOKING", "$PLAYER_N"],
     ];
-    doActionList(actionList, "Closed and ordered group "+group.label);
+    doActionList(actionList);
     if (group?.onCardEnter?.currentSide === "B") stopPeekingTopCard();
   }
 
@@ -129,7 +135,7 @@ export const Browse = React.memo(({onDragEnd}) => {
       ["LOG", "$ALIAS_N", " is still peeking at ", gameL10n(group.label)+"."],
       ["STOP_LOOKING", "$PLAYER_N", "keepPeeking"]
     ];
-    doActionList(actionList, "Closed and kept peeking at group "+group.label);
+    doActionList(actionList);
   }
 
   const handleSelectClick = (event) => {
@@ -145,7 +151,17 @@ export const Browse = React.memo(({onDragEnd}) => {
   var browseGroupTopNint = isNormalInteger(browseGroupTopN) ? parseInt(browseGroupTopN) : numStacks;
   if (browseGroupTopNint < 0) browseGroupTopNint = numStacks;
   if (browseGroupTopNint > numStacks) browseGroupTopNint = numStacks;
-  var filteredStackIndices = [...Array(browseGroupTopNint).keys()];
+  var filteredStackIndices;
+
+  if (browseGroupPosition === "bottom") {
+    const startIndex = Math.max(numStacks - browseGroupTopNint, 0);
+    filteredStackIndices = Array.from(
+      { length: numStacks - startIndex },
+      (_, i) => startIndex + i
+    );
+  } else {
+    filteredStackIndices = [...Array(browseGroupTopNint).keys()];
+  }
   
   // Filter by selected card type
   if (searchForProperty === "Other") {
@@ -207,7 +223,7 @@ export const Browse = React.memo(({onDragEnd}) => {
                 <span 
                   className="absolute pb-2 overflow-hidden" 
                   style={{fontSize: "1.5dvh", top: "50%", left: "50%", transform: `translate(-50%, -70%) rotate(90deg)`, whiteSpace: "nowrap"}}>
-                  (Top)
+                  {browseGroupPosition === "bottom" ? "(Bottom)" : "(Top)"}
                 </span>
               </div>
           </div>
@@ -216,7 +232,6 @@ export const Browse = React.memo(({onDragEnd}) => {
               groupId={groupId}
               region={region}
               selectedStackIndices={filteredStackIndices}
-              onDragEnd={onDragEnd}
             />
           </div>
         </div>
