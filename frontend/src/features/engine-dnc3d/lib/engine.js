@@ -99,6 +99,7 @@ export function createDnc3DEngine(options = {}) {
   const regionOutlineEls = {};
   const regionIconEls    = {};
   const regionLabelEls   = {};
+  const regionCountEls   = {}; // pile regions only: card-count badge shown on hover
   const sentinelEls      = {};
   const arrowEls         = {}; // { start, end } per scrollable region
   const stackZoneEls     = new Map();
@@ -1965,6 +1966,15 @@ export function createDnc3DEngine(options = {}) {
       label.textContent = r.label || id;
       outline.appendChild(label);
       regionLabelEls[id] = label;
+      if (r.type === 'pile') {
+        // Appended to tiltEl (not the outline) so it shares the cards' 3D space
+        // and isn't clipped by the outline; positioned + raised in Z on hover.
+        const count = document.createElement('span');
+        count.className = 'dnc3d-region-count';
+        count.textContent = '0';
+        tiltEl.appendChild(count);
+        regionCountEls[id] = count;
+      }
       tiltEl.appendChild(outline);
       regionOutlineEls[id] = outline;
 
@@ -2011,7 +2021,13 @@ export function createDnc3DEngine(options = {}) {
       arrowEls[id] = { start: startArrow, end: endArrow };
     });
 
-    setAfterLayoutHook(id => { updateSentinel(id); updateScrollArrows(id); });
+    setAfterLayoutHook(id => {
+      updateSentinel(id);
+      updateScrollArrows(id);
+      // Keep a hovered pile's count badge live when its contents change without
+      // pointer movement (e.g. discarding the top card via a hotkey).
+      if (id === hoveredCountRegion) updateCountBadge(id);
+    });
 
     // ── Arrow hover-scroll and touch-scroll ─────────────────────────────────
     let arrowScrollRaf  = null;
@@ -2101,13 +2117,71 @@ export function createDnc3DEngine(options = {}) {
         if (hoveredIconRegion) setRegionHoverState(hoveredIconRegion, true);
       }
     }
+    // ── Pile card-count badge hover ───────────────────────────────────────────
+    // Total cards across every stack in a pile region.
+    function pileCardCount(id) {
+      const sids = regionState[id]?.stackIds || [];
+      let n = 0;
+      for (const sid of sids) n += (stacks[sid]?.cardIds.length || 0);
+      return n;
+    }
+    let hoveredCountRegion = null;
+    // Refresh the count text + badge placement for a pile region. Safe to call any
+    // time the pile's contents change (e.g. a card discarded via hotkey, with no
+    // pointer movement) — invoked both on hover and from the after-layout hook.
+    function updateCountBadge(id) {
+      const el = regionCountEls[id];
+      if (!el) return;
+      const cnt = pileCardCount(id);
+      el.textContent = String(cnt);
+      // Anchor: midpoint of the bottom edge of the pile's BOTTOM card, mirroring
+      // layoutPile's box (LEFT_BUFFER inset, vertically centered).
+      const rp = regionPx(id);
+      const cw = cardWidthPx(), ch = cardHeightPx();
+      const leftBuffer = cw * 0.15;
+      const ax = rp.x + leftBuffer + (rp.w - leftBuffer) / 2;
+      const ay = rp.y + (rp.h + ch) / 2;
+      const lz = layerZPx(ch) * (REGIONS[id].layerIndex || 0);
+      const zBottom = BASE_LIFT + lz; // bottom card's Z
+      // Raise the badge above the pile's top card so cards don't occlude it,
+      // but re-project so it still lands on the bottom card's bottom-edge point:
+      // project the anchor to screen at the bottom card's Z, then find the
+      // tilt-space coords at the raised Z that map to that same screen point.
+      const capped = Math.min(Math.max(cnt - 1, 0), MAX_PILE_VISUAL_DEPTH - 1);
+      const zTop = zBottom + capped * pileStackZPx(ch) + Math.max(2, pileStackZPx(ch));
+      const scr  = tableToScreen(ax, ay, zBottom, _tiltEl, _currentDeg);
+      const proj = screenToTableAtZ(scr.x, scr.y, zTop, _tiltEl, _currentDeg);
+      el.style.left = proj.x + 'px';
+      el.style.top  = proj.y + 'px';
+      el.style.transform = `translate(-50%, -100%) translateZ(${zTop}px)`;
+    }
+    function updateCountHover(clientX, clientY) {
+      // hoverRegionAt honors 3D layer stacking, so we get the region the pointer
+      // is actually over (not one occluded by an elevated panel).
+      const { region } = hoverRegionAt(clientX, clientY);
+      const newHovered = (region && REGIONS[region]?.type === 'pile') ? region : null;
+      if (newHovered !== hoveredCountRegion) {
+        if (hoveredCountRegion && regionCountEls[hoveredCountRegion]) regionCountEls[hoveredCountRegion].style.opacity = '0';
+        hoveredCountRegion = newHovered;
+      }
+      if (hoveredCountRegion && regionCountEls[hoveredCountRegion]) {
+        updateCountBadge(hoveredCountRegion);
+        regionCountEls[hoveredCountRegion].style.opacity = '1';
+      }
+    }
+    function clearCountHover() {
+      if (hoveredCountRegion && regionCountEls[hoveredCountRegion]) regionCountEls[hoveredCountRegion].style.opacity = '0';
+      hoveredCountRegion = null;
+    }
     function onTiltPointerMove(e) {
       _lastPointerX = e.clientX;
       _lastPointerY = e.clientY;
       updateIconHover(e.clientX, e.clientY);
+      updateCountHover(e.clientX, e.clientY);
     }
     function onTiltPointerLeave() {
       if (hoveredIconRegion) { setRegionHoverState(hoveredIconRegion, false); hoveredIconRegion = null; }
+      clearCountHover();
     }
     tiltEl.addEventListener('pointermove',  onTiltPointerMove);
     tiltEl.addEventListener('pointerleave', onTiltPointerLeave);
@@ -2258,6 +2332,7 @@ export function createDnc3DEngine(options = {}) {
       Object.keys(regionOutlineEls).forEach(k => delete regionOutlineEls[k]);
       Object.keys(regionIconEls).forEach(k => delete regionIconEls[k]);
       Object.keys(regionLabelEls).forEach(k => delete regionLabelEls[k]);
+      Object.keys(regionCountEls).forEach(k => delete regionCountEls[k]);
       stackZoneEls.clear();
       clearScrollOuters();
       setAfterLayoutHook(null);

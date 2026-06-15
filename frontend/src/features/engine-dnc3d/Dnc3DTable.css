@@ -284,6 +284,30 @@
      1px  1px 0 rgba(0,0,0,0.8);
 }
 
+/* Card-count badge centered on the bottom edge of a pile's bottom card; revealed
+   on hover. left/top are set in JS (they depend on card dimensions). */
+.dnc3d-region-count {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  min-width: 1.4vw;
+  padding: 0.15vw 0.45vw;
+  background: rgba(0,0,0,0.7);
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 999px;
+  color: rgba(255,255,255,0.95);
+  font: bold 0.8vw/1 sans-serif;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+  text-shadow:
+    -1px -1px 0 rgba(0,0,0,0.8),
+     1px -1px 0 rgba(0,0,0,0.8),
+    -1px  1px 0 rgba(0,0,0,0.8),
+     1px  1px 0 rgba(0,0,0,0.8);
+}
+
 .dnc3d-region-icons {
   display: flex;
   position: absolute;
