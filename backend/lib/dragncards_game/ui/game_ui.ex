@@ -1163,6 +1163,13 @@ defmodule DragnCardsGame.GameUI do
       group_size = Enum.count(get_stack_ids(game, group_id))
 
       new_card = Card.card_from_card_details(load_list_item["cardDetails"], game_def, load_list_item["databaseId"], group_id)
+      # Optional per-item starting side (e.g. spawning a card by its side B name);
+      # falls back to the group's defaultSideUp when not specified.
+      new_card =
+        case load_list_item["currentSide"] do
+          nil -> new_card
+          side -> put_in(new_card["currentSide"], side)
+        end
       new_stack = Stack.stack_from_card(new_card)
 
       game = update_card(game, new_card, trace)
@@ -1354,7 +1361,8 @@ defmodule DragnCardsGame.GameUI do
         "quantity" => quantity,
         "loadGroupId" => loadGroupId,
         "left" => load_list_item["left"],
-        "top" => load_list_item["top"]
+        "top" => load_list_item["top"],
+        "currentSide" => load_list_item["currentSide"]
       }
 
     end)
