@@ -73,6 +73,12 @@ export function createDnc3DEngine(options = {}) {
   let _lastPointerX       = -1;
   let _lastPointerY       = -1;
   let _hoverSettleRaf     = null; // rAF id for the post-reconcile hover settle loop
+  // True while a full-screen overlay (e.g. the hotkey panel shown on Tab) covers
+  // the table. The overlay sits above the cards, so pointer events stop reaching
+  // them with no pointerout firing — which would strand the hover glow. While
+  // suppressed we drop the glow and stop re-adding it; on release we re-derive
+  // hover from wherever the cursor actually is (see setHoverSuppressed).
+  let _hoverSuppressed    = false;
 
   // Topmost `.dnc3d-card` element under a screen point, treating tokens and the
   // see-through liftEl/tokenHost wrappers as transparent. Shared by the per-card
@@ -596,10 +602,22 @@ export function createDnc3DEngine(options = {}) {
     updateBrowseFilter(next.map(e => e.dcStackIndex));
   }
 
+  // Apply (or clear) a card's borderColor halo — the dnc3d equivalent of the 2D
+  // engine's borderColor box-shadow. Set on a dedicated child element so it never
+  // collides with the face hover glow or the inline lift/drag drop-shadow.
+  function applyBorderGlow(card, color) {
+    card.borderColor = color || null;
+    const el = card.borderGlowEl;
+    if (!el) return;
+    el.style.boxShadow = color
+      ? `0 0 0 0.12vw ${color}, 0 0 0.7vw 0.25vw ${color}`
+      : 'none';
+  }
+
   // ── Card creation ──────────────────────────────────────────────────────────
-  // cardInfo: { id, frontImageUrl?, backImageUrl?, angle?, faceW?, faceH? }
+  // cardInfo: { id, frontImageUrl?, backImageUrl?, angle?, faceW?, faceH?, borderColor? }
   function createCard(tiltEl, cardInfo) {
-    const { id: i, frontImageUrl, backImageUrl, angle = 0, faceW = null, faceH = null } = cardInfo;
+    const { id: i, frontImageUrl, backImageUrl, angle = 0, faceW = null, faceH = null, borderColor = null } = cardInfo;
     const color = COLORS[i % COLORS.length];
 
     const liftEl = document.createElement('div');
@@ -632,6 +650,12 @@ export function createDnc3DEngine(options = {}) {
       back.style.backgroundPosition = 'center';
     }
 
+    // borderColor halo host. Painted FIRST (behind the faces) so its outer glow
+    // shows around the card edges while the opaque face covers the interior.
+    const borderGlow = document.createElement('div');
+    borderGlow.className = 'dnc3d-card-border-glow';
+
+    cardEl.appendChild(borderGlow);
     cardEl.appendChild(front);
     cardEl.appendChild(back);
     liftEl.appendChild(cardEl);
@@ -682,9 +706,12 @@ export function createDnc3DEngine(options = {}) {
       dragOffFromPrimary: { dx: 0, dy: 0 },
       faceW,
       faceH,
+      borderGlowEl: borderGlow,
+      borderColor:  null,
     };
     cards.push(card);
     applyCardDims(card);
+    applyBorderGlow(card, borderColor);
 
     createStack([i]);
 
@@ -725,6 +752,7 @@ export function createDnc3DEngine(options = {}) {
     const topCardElAt = topCardElAtPoint;
     const showCardHover = (e) => {
       if (_isDragging) return;
+      if (_hoverSuppressed) return;
       if (cardEl.classList.contains('dnc3d-card-hovered')) return;
       cardEl.classList.add('dnc3d-card-hovered');
       if (onCardHover) onCardHover(i, e.clientX);
@@ -2108,6 +2136,18 @@ export function createDnc3DEngine(options = {}) {
     }
     window.addEventListener('wheel', onWheel, { passive: false });
 
+    // While an overlay suppresses hover, the table's own pointermove no longer
+    // fires (the overlay is the event target), so _lastPointerX/Y would go stale
+    // and reconcileHover on release would light the wrong card. A window-level
+    // listener still receives the bubbled pointermove, keeping coords current so
+    // release re-derives hover at the cursor's real position. No-op otherwise.
+    function onWindowPointerMove(e) {
+      if (!_hoverSuppressed) return;
+      _lastPointerX = e.clientX;
+      _lastPointerY = e.clientY;
+    }
+    window.addEventListener('pointermove', onWindowPointerMove);
+
     // ── Initial card placement ────────────────────────────────────────────────
     if (initData.assignments) {
       // Real mode: place cards from adapter assignments
@@ -2202,6 +2242,7 @@ export function createDnc3DEngine(options = {}) {
       tiltEl.removeEventListener('pointermove',  onTiltPointerMove);
       tiltEl.removeEventListener('pointerleave', onTiltPointerLeave);
       window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('pointermove', onWindowPointerMove);
       if (_tableSurfaceEl) { _tableSurfaceEl.parentElement?.removeChild(_tableSurfaceEl); _tableSurfaceEl = null; }
       _overlay.unmount();
       while (tiltEl.firstChild) tiltEl.removeChild(tiltEl.firstChild);
@@ -2971,6 +3012,12 @@ export function createDnc3DEngine(options = {}) {
         applyCardDims(card);
       }
 
+      // 3b. borderColor halo (set/cleared by automation, players, etc.)
+      const newBorderColor = dcCard.borderColor || null;
+      if (card.borderColor !== newBorderColor) {
+        applyBorderGlow(card, newBorderColor);
+      }
+
       // 4. Group / visibility change. A card may move by another player between a
       // region this client renders and one it doesn't (e.g. another player moving
       // a card from their hand to the shared table, or back the other way).
@@ -3125,6 +3172,7 @@ export function createDnc3DEngine(options = {}) {
   // on the moved card — and so a card newly revealed under the cursor lights up.
   function reconcileHover() {
     if (_isDragging) return;
+    if (_hoverSuppressed) return;
     if (_lastPointerX < 0 && _lastPointerY < 0) return; // no pointer seen yet
     const targetEl = topCardElAtPoint(_lastPointerX, _lastPointerY);
     let targetCard = null;
@@ -3150,6 +3198,28 @@ export function createDnc3DEngine(options = {}) {
     if (targetCard && onCardHover) onCardHover(targetCard.id, _lastPointerX);
   }
 
+  // Called by the React layer when a full-screen overlay opens/closes over the
+  // table (e.g. the hotkey panel on Tab). On open: drop the hover glow + active
+  // card so nothing stays lit behind the overlay. On close: re-derive hover from
+  // the cursor's current position (kept fresh by the window pointermove listener
+  // below, which still fires while the cursor is over the overlay), so a card
+  // under the pointer re-lights and one elsewhere stays dark.
+  function setHoverSuppressed(suppressed) {
+    if (suppressed === _hoverSuppressed) return;
+    _hoverSuppressed = suppressed;
+    if (suppressed) {
+      if (_hoverSettleRaf) { cancelAnimationFrame(_hoverSettleRaf); _hoverSettleRaf = null; }
+      for (const c of cards) {
+        if (c.cardEl.classList.contains('dnc3d-card-hovered')) {
+          c.cardEl.classList.remove('dnc3d-card-hovered');
+          if (onCardHoverEnd) onCardHoverEnd(c.id);
+        }
+      }
+    } else {
+      scheduleHoverReconcile();
+    }
+  }
+
   function getCardElements() {
     return cards.map(c => ({ id: c.id, frontEl: c.frontEl, tokenHostEl: c.tokenHostEl, faceW: c.faceW, faceH: c.faceH }));
   }
@@ -3161,5 +3231,5 @@ export function createDnc3DEngine(options = {}) {
     _overlay.rebuild(game, idMap, cards);
   }
 
-  return { init, applyTilt, applyTableOpacity, setCurrentDeg, onTiltUpdated, reconcile, openBrowse, closeBrowse, updateBrowseFilter, getCardElements, syncOverlay, animatePileShuffle };
+  return { init, applyTilt, applyTableOpacity, setCurrentDeg, onTiltUpdated, reconcile, openBrowse, closeBrowse, updateBrowseFilter, getCardElements, syncOverlay, animatePileShuffle, setHoverSuppressed };
 }

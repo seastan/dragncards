@@ -23,8 +23,9 @@ export function resolveImageUrl(face, gameDef, language) {
 // Converts dragncards game state into the format expected by the dnc3d engine's init.
 //
 // Returns:
-//   cardDescriptors — array of { id, frontImageUrl, backImageUrl, angle }
-//                     indexed 0..N, one per card in game.cardById
+//   cardDescriptors — array of { id, frontImageUrl, backImageUrl, angle,
+//                     faceW, faceH, borderColor } indexed 0..N, one per card
+//                     in game.cardById
 //   assignments     — { [groupId]: [{ cardIds: [int,...], attachmentDirections, fracX, fracY }] }
 //   idMap           — Map<dcCardId, dnc3dIndex> for mapping action callbacks back
 export function adaptGameState(game, layoutRegions, gameDef, language, observingPlayerN, numPlayers) {
@@ -62,6 +63,7 @@ export function adaptGameState(game, layoutRegions, gameDef, language, observing
       angle,
       faceW,
       faceH,
+      borderColor: card.borderColor || null,
     };
   });
 

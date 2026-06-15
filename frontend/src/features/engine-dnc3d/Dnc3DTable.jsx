@@ -84,6 +84,10 @@ export default function Dnc3DTable({
   // Set by the backend (via the SHUFFLE_GROUP gui_update broadcast) whenever a
   // group is shuffled. The nonce changes every shuffle so the effect refires.
   const dnc3dShuffle = useSelector(s => s?.playerUi?.dnc3dShuffle);
+  // The hotkey overlay (held Tab) covers the table; while it's up the engine
+  // should drop its hover glow rather than strand it on a card the cursor can no
+  // longer reach.
+  const hotkeyOverlayOpen = useSelector(s => !!s?.playerUi?.keypress?.Tab);
 
   const [tokenPortals, setTokenPortals] = useState([]);
 
@@ -319,6 +323,13 @@ export default function Dnc3DTable({
     const animated = engine.animatePileShuffle(dnc3dShuffle.groupId);
     if (animated) playShuffleSound();
   }, [dnc3dShuffle]);
+
+  // ── Suppress hover glow while the hotkey overlay (Tab) is open ──────────────
+  // On open the engine drops the glow + active card; on close it re-derives hover
+  // from the cursor's current position, so the card under the pointer re-lights.
+  useEffect(() => {
+    engineRef.current?.setHoverSuppressed(hotkeyOverlayOpen);
+  }, [hotkeyOverlayOpen]);
 
   // ── Respond to tilt angle changes ──────────────────────────────────────────
   useEffect(() => {

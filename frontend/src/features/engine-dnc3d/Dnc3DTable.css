@@ -377,6 +377,23 @@
     0 0 10px 4px rgba(255, 200, 0, 0.45);
 }
 
+/* Colored halo for a card whose `borderColor` property is set (the dnc3d
+   equivalent of the 2D engine's box-shadow glow). It lives on its own element,
+   coplanar with — but painted behind — the faces, so its outer glow shows
+   around the card edges without colliding with the face hover glow or the
+   lift/drag drop-shadow that engine.js sets inline on the card itself. The
+   box-shadow color is set inline from JS (applyBorderGlow). backface-visibility
+   stays visible so the (symmetric) halo persists while the card is flipped. */
+.dnc3d-card-border-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  backface-visibility: visible;
+  -webkit-backface-visibility: visible;
+  transition: box-shadow 120ms ease-out;
+}
+
 .dnc3d-card-back {
   background: #1a3a6b;
   transform: rotateY(180deg);
