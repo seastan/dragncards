@@ -38,7 +38,8 @@ defmodule DragnCardsGame.Evaluate.Functions.STOP_LOOKING do
     browse_group_id = Evaluate.evaluate(game, "$GAME.playerData.#{player_i}.browseGroup.id", trace ++ ["browse_group_id"])
     if browse_group_id do
       game = Evaluate.evaluate(game, ["SET", "/playerData/#{player_i}/browseGroup/id", nil], trace ++ ["set_browse_group_id"])
-      game = Evaluate.evaluate(game, ["SET", "/playerData/#{player_i}/browseGroup/topN", nil], trace ++ ["set_browse_group_top_n"])
+      game = Evaluate.evaluate(game, ["SET", "/playerData/#{player_i}/browseGroup/topN", 0], trace ++ ["set_browse_group_top_n"])
+      game = Evaluate.evaluate(game, ["SET", "/playerData/#{player_i}/browseGroup/position", "top"], trace ++ ["set_browse_group_position"])
       if option == "keepPeeking" do
         game
       else
