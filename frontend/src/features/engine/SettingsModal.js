@@ -41,12 +41,13 @@ export const uiSettings = {
   },
   "rendererEngine": {
     "id": "rendererEngine",
-    "label": "rendererEngine",
+    "label": "Render Mode",
     "type": "option",
+    "segmented": true,
     "default": "default",
     "options": [
-      { "id": "default", "label": "rendererDefault" },
-      { "id": "dnc3d",   "label": "rendererDnc3d"  }
+      { "id": "default", "label": "2D" },
+      { "id": "dnc3d",   "label": "3D" }
     ]
   }
 }
@@ -367,6 +368,34 @@ const SettingsModalFormElement = ({val, settingObj, setFunction, l10n}) => {
           />
       );
     case 'option':
+      // Segmented button group (opt-in via `segmented: true`); all other option
+      // settings keep the standard dropdown.
+      if (settingObj.segmented) {
+        return (
+          <div className="inline-flex gap-1 rounded-md bg-gray-800 p-1">
+            {settingObj.options.map(option => {
+              const selected = val === option.id;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() =>
+                    setFunction(prevSettings => ({...prevSettings, [settingObj.id]: option.id}))
+                  }
+                  className={
+                    "rounded px-3 py-1 text-sm transition-colors " +
+                    (selected
+                      ? "bg-blue-800 text-white shadow"
+                      : "text-gray-300 hover:bg-gray-700 hover:text-white")
+                  }
+                >
+                  {l10n(option.label)}
+                </button>
+              );
+            })}
+          </div>
+        );
+      }
       return (
         <select
           className="p-2 w-48 text-black"
