@@ -97,6 +97,39 @@ export function createDnc3DEngine(options = {}) {
   const arrowEls         = {}; // { start, end } per scrollable region
   const stackZoneEls     = new Map();
 
+  // Resolve which region a screen point is over, honoring 3D layer stacking.
+  // findRegionAtPoint projects the point onto the Z=0 table plane — correct for
+  // the base layer, but it reaches *through* an elevated region (the browse
+  // panel, or any region with layerIndex >= 1) to whatever sits behind it,
+  // because an elevated panel's on-screen footprint doesn't match its Z=0 rect.
+  // So start from the Z=0 result, then prefer any higher-layer region whose live
+  // on-screen outline actually covers the point, and re-project the point onto
+  // that region's elevated plane so callers get coordinates in its own space.
+  // Returns { region, cx, cy } where cx/cy are tilt-space px on region's plane.
+  function hoverRegionAt(clientX, clientY) {
+    if (!_tiltEl) return { region: null, cx: 0, cy: 0 };
+    const tw = parseFloat(_tiltEl.style.width);
+    const th = parseFloat(_tiltEl.style.height);
+    const tp0 = screenToTableAtZ(clientX, clientY, 0, _tiltEl, _currentDeg);
+    let region = findRegionAtPoint(tp0.x / tw * 100, tp0.y / th * 100);
+    let layer  = region ? (REGIONS[region].layerIndex || 0) : 0;
+    let cx = tp0.x, cy = tp0.y;
+    for (const [rid, r] of Object.entries(REGIONS)) {
+      const li = r.layerIndex || 0;
+      if (li <= layer) continue;
+      const el = regionOutlineEls[rid];
+      if (!el) continue;
+      const pr = el.getBoundingClientRect();
+      if (clientX >= pr.left && clientX <= pr.right && clientY >= pr.top && clientY <= pr.bottom) {
+        region = rid;
+        layer  = li;
+        const tp = screenToTableAtZ(clientX, clientY, layerZPx(cardHeightPx()) * li, _tiltEl, _currentDeg);
+        cx = tp.x; cy = tp.y;
+      }
+    }
+    return { region, cx, cy };
+  }
+
   // ── Browse state ───────────────────────────────────────────────────────────
   let _browseGroupId         = null;
   let _browseAllEngineStacks = []; // [{ engineStackId, dcStackIndex }]
@@ -1110,14 +1143,19 @@ export function createDnc3DEngine(options = {}) {
         currentInsertRegion = null;
         setDropGlow(null);
       } else {
-        const hoverRegion = findRegionAtPoint(cx / tw * 100, cy / th * 100);
+        // Screen-space region lookup so the drop target/line follow what's drawn
+        // on top — an elevated region (browse panel, layerIndex>=1 row) rather
+        // than whatever the cursor's Z=0 projection passes through behind it.
+        // hr.cx/hr.cy are projected onto that region's plane for the insert index.
+        const hr          = hoverRegionAt(e.clientX, e.clientY);
+        const hoverRegion = hr.region;
         const hoverType   = hoverRegion ? REGIONS[hoverRegion].type : null;
         const droppable   = hoverRegion && hoverRegion !== _browseGroupId &&
           (hoverType === 'row' || hoverType === 'fan' || hoverType === 'pile');
         // The insertion line only applies to ordered regions (rows/fans); piles
         // stack in place, so they glow but get no line.
         if (droppable && (hoverType === 'row' || hoverType === 'fan')) {
-          currentInsertIdx    = showInsertionIndicator(hoverRegion, cx, cy, dragStack.id);
+          currentInsertIdx    = showInsertionIndicator(hoverRegion, hr.cx, hr.cy, dragStack.id);
           currentInsertRegion = hoverRegion;
           // Mirror the line into the screen-space overlay so it stays visible on
           // top of the dragged card instead of being hidden beneath it.
@@ -1173,12 +1211,10 @@ export function createDnc3DEngine(options = {}) {
         hoverAttachCardId   = null;
         hoverAttachSide     = null;
 
-        // Determine the drop region from the cursor projected onto the table
-        // surface (Z=0), matching the live hover feedback during the drag.
-        const dropTp = screenToTableAtZ(e.clientX, e.clientY, 0, _tiltEl, _currentDeg);
-        const dropCX = dropTp.x / tw * 100;
-        const dropCY = dropTp.y / th * 100;
-        const _rawTargetRegion = findRegionAtPoint(dropCX, dropCY);
+        // Determine the drop region in screen space, honoring 3D layer stacking,
+        // so the drop matches the live hover feedback and lands in the region
+        // drawn on top rather than one an elevated panel merely covers.
+        const _rawTargetRegion = hoverRegionAt(e.clientX, e.clientY).region;
         // Treat the browse home region as empty while it's being browsed.
         const targetRegionId = (_rawTargetRegion === _browseGroupId) ? null : _rawTargetRegion;
 
@@ -1524,14 +1560,27 @@ export function createDnc3DEngine(options = {}) {
             let cbInsertIdx = droppedInsertIdx;
             if (targetRegionId === '_browse' && _browseGroupId) {
               cbRegion = _browseGroupId;
-              const vis = regionState['_browse']?.stackIds || [];
-              if (cbInsertIdx < vis.length) {
-                const entry = _browseAllEngineStacks.find(x => x.engineStackId === vis[cbInsertIdx]);
-                if (entry) cbInsertIdx = entry.dcStackIndex;
+              // Map the visible browse slot to a backend stack index. insertStackAtIndex
+              // has already placed the dragged stack at droppedInsertIdx, so read the
+              // index from the *neighbour* it was inserted before — never the dragged
+              // stack itself, whose dcStackIndex is its origin (the old bug that sent
+              // the origin index back as the destination). MOVE_STACK deletes the stack
+              // from its origin before inserting, so when the origin sits before the
+              // neighbour the neighbour's index shifts down one — mirror that here.
+              const draggedSid = droppedStack.id;
+              const vis = (regionState['_browse']?.stackIds || []).filter(sid => sid !== draggedSid);
+              const dcIndexOf = sid => _browseAllEngineStacks.find(x => x.engineStackId === sid)?.dcStackIndex;
+              const origDc = dcIndexOf(draggedSid);
+              if (droppedInsertIdx < vis.length) {
+                const neighborDc = dcIndexOf(vis[droppedInsertIdx]);
+                if (neighborDc != null) {
+                  cbInsertIdx = (origDc != null && origDc < neighborDc) ? neighborDc - 1 : neighborDc;
+                }
+              } else if (vis.length) {
+                const lastDc = dcIndexOf(vis[vis.length - 1]);
+                if (lastDc != null) cbInsertIdx = (origDc != null && origDc < lastDc) ? lastDc : lastDc + 1;
               } else {
-                const last = vis[vis.length - 1];
-                const entry = last ? _browseAllEngineStacks.find(x => x.engineStackId === last) : null;
-                if (entry) cbInsertIdx = entry.dcStackIndex + 1;
+                cbInsertIdx = 0;
               }
             }
             onCardMove(c0.id, c0.prevPos._regionId, cbRegion, null, null, cbInsertIdx);
