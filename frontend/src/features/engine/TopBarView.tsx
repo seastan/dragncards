@@ -6,7 +6,13 @@ import { setShowHotkeys, setShowModal } from "../store/playerUiSlice";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { usePlayerIList } from "./hooks/usePlayerIList";
 import { useSiteL10n } from "../../hooks/useSiteL10n";
-import { keysDiv } from "./functions/common";
+
+// Keyboard shortcuts shown in a dropdown menu use muted, right-aligned text
+// (the standard menu convention), unlike the boxed keycaps used in the Hotkeys
+// help modal.
+const Shortcut = ({ children }: { children: React.ReactNode }) => (
+  <span className="ml-2 text-xs text-gray-400">{children}</span>
+);
 
 export const TopBarView = React.memo(() => {
   const siteL10n = useSiteL10n();
@@ -17,14 +23,11 @@ export const TopBarView = React.memo(() => {
     <Menu label={siteL10n("view")}>
       <MenuItem onClick={() => dispatch(setShowHotkeys(true))}>
         <span>{siteL10n("hotkeys")}</span>
-        {keysDiv("Tab", "ml-2")}
+        <Shortcut>Tab</Shortcut>
       </MenuItem>
       <MenuItem onClick={() => dispatch(setShowModal("settings"))}>
         <span>{siteL10n("preferences")}</span>
-        <span className="flex items-center">
-          {keysDiv("Shift", "ml-2")}
-          {keysDiv("Tab")}
-        </span>
+        <Shortcut>Shift + Tab</Shortcut>
       </MenuItem>
 
       <SubMenu label={siteL10n("shared")}>
