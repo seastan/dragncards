@@ -629,10 +629,17 @@ export function createLayout(state, projection, REGIONS) {
     let line;
     if (m === 0) {
       line = regionOrigin + regionExtent / 2;
+    } else if (insertIdx >= m) {
+      // No card to the right — sit just past the trailing edge of the last card.
+      line = start + slotOf(m - 1) * spacing + cardDim + 2;
+    } else if (type === 'fan') {
+      // Fans overlap their cards once crowded, so a midpoint line would float in
+      // the overlap and read ambiguously. Align it with the leading edge of the
+      // card to the right of the insertion point — the card the dropped stack
+      // would land in front of. (With no overlap this equals the old midpoint.)
+      line = start + slotOf(insertIdx) * spacing - 2;
     } else if (insertIdx === 0) {
       line = start + slotOf(0) * spacing - 2;
-    } else if (insertIdx >= m) {
-      line = start + slotOf(m - 1) * spacing + cardDim + 2;
     } else {
       const slotA = slotOf(insertIdx - 1);
       const slotB = slotOf(insertIdx);
