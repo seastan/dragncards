@@ -86,7 +86,11 @@ export function adaptRegions(layoutRegions, observingPlayerN, numPlayers, groupB
       ...(region.showMenu != null       ? { showMenu:        region.showMenu }       : {}),
       ...(region.direction              ? { direction:       region.direction }      : {}),
       ...(region.layerIndex             ? { layerIndex:      region.layerIndex }     : {}),
+      // Region CSS comes from the game definition's `style` object (mirrors how
+      // TableRegion spreads `region.style`). `backgroundColor` is kept only for
+      // the engine's built-in demo regions, which use it as a top-level field.
       ...(region.backgroundColor        ? { backgroundColor: region.backgroundColor }: {}),
+      ...(region.style                  ? { style:           region.style }          : {}),
     };
   });
   return regions;

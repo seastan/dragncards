@@ -333,11 +333,21 @@ export function createLayout(state, projection, REGIONS) {
   // portion back to upright/screen-down, exactly as before. Mirroring cardEl's
   // transition keeps the tokens spinning in lockstep with the card.
   function applyTokenHostRotation(card) {
-    const th = card?.tokenHostEl;
-    if (!th) return;
-    const total = (card.cardEl._layoutRotation || 0) + (card.cardEl._gameRotation || 0);
-    th.style.transition = card.cardEl.style.transition || '';
-    th.style.transform  = `translateZ(1px) rotate(${total}deg)`;
+    if (!card) return;
+    const total      = (card.cardEl._layoutRotation || 0) + (card.cardEl._gameRotation || 0);
+    const transition = card.cardEl.style.transition || '';
+    const th = card.tokenHostEl;
+    if (th) {
+      th.style.transition = transition;
+      th.style.transform  = `translateZ(1px) rotate(${total}deg)`;
+    }
+    // The ability-bolt host follows the same full rotation so the bolt tracks the
+    // card's rotated top-right corner (mirrors the 2D AbilityButton).
+    const ah = card.abilityHostEl;
+    if (ah) {
+      ah.style.transition = transition;
+      ah.style.transform  = `translateZ(2px) rotate(${total}deg)`;
+    }
   }
 
   function placeCardAt(card, left, top, rot, zIdx, stackZ = 0) {

@@ -7,6 +7,7 @@
 // interchangeably below.
 
 import store from '../../../store';
+import { dragnActionLists } from '../../engine/functions/dragnActionLists';
 
 export function buildEngineCallbacks(doActionList, reverseIdMap) {
   function getGame() {
@@ -95,6 +96,26 @@ export function buildEngineCallbacks(doActionList, reverseIdMap) {
         ["LOG", "$ALIAS_N", " flipped ", sideName, "."],
         ["SET", `/cardById/${dcCardId}/currentSide`, newSide],
       ], `Flipped card ${dcCardId} to side ${newSide}`);
+    },
+
+    // Lightning-bolt clicked — trigger the current face's automation ability.
+    // Mirrors AbilityButton.handleAbilityClick in the 2D engine.
+    onTriggerAbility: (dnc3dCardId) => {
+      const dcCardId = dcCardIdFor(dnc3dCardId);
+      if (!dcCardId) return;
+
+      const game = getGame();
+      const card = game?.cardById?.[dcCardId];
+      if (!card) return;
+
+      const currentSide = card.currentSide || 'A';
+      const ability     = card.sides?.[currentSide]?.ability ?? null;
+      if (ability == null) return;
+
+      doActionList(
+        dragnActionLists.triggerAutomationAbility(ability, dcCardId, currentSide),
+        `Triggered ability of card ${dcCardId}`,
+      );
     },
   };
 }

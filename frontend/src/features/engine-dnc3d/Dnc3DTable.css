@@ -103,10 +103,25 @@
 
 .dnc3d-region-outline.dnc3d-region-elevated {
   border-color: rgba(255,255,255,0.45);
+}
+
+/* Region background fill: carries a region's background color / game-def `style`
+   and sits just BELOW the cards of its layer, so the color paints behind the
+   cards rather than over them (the outline above keeps the border/label/icons/
+   glow). Positioned + colored inline by the engine. */
+.dnc3d-region-fill {
+  position: absolute;
+  border-radius: 0.3vw;
+  box-sizing: border-box;
+  pointer-events: none;
+  transform-style: preserve-3d;
+}
+
+/* Elevated regions read as a solid panel floating above the table; the fill is
+   that surface, with cards resting on top. */
+.dnc3d-region-fill.dnc3d-region-elevated {
   /* DEBUG: see cards behind elevated regions. Remove when done. */
   opacity: 0.9;
-  /* Opaque panel so an elevated region reads as a solid surface floating above
-     the table. Regions with an explicit backgroundColor override this inline. */
   background: #1f2937;
   box-shadow:
     0 16px 48px rgba(0,0,0,0.65),
@@ -338,6 +353,32 @@
 }
 .dnc3d-region-icon-btn:hover { background: rgba(255,255,255,0.2); }
 .dnc3d-region-icon-btn svg { width: 65%; height: 65%; }
+
+/* Lightning-bolt ability affordance — dnc3d port of the 2D AbilityButton.
+   Sits at the top-right of its host (.dnc3d-card-ability-host), which fills the
+   card box and is spun to match the card's rotation, so the bolt tracks the
+   rotated corner. The host is pointer-events:none, so the bolt re-enables its
+   own. Shown only on hover (by JS). */
+.dnc3d-card-ability {
+  position: absolute;
+  top: 0;
+  right: 0;
+  transform: translate(40%, -40%);
+  align-items: center;
+  justify-content: center;
+  width: 2vw;
+  height: 2vw;
+  border-radius: 50%;
+  background: rgba(75,85,99,0.95);
+  border: 1px solid rgba(255,255,255,0.35);
+  color: rgba(229,231,235,0.95);
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 0.15vw 0.4vw rgba(0,0,0,0.5);
+  z-index: 50;
+}
+.dnc3d-card-ability:hover { background: #b91c1c; color: #fff; }
+.dnc3d-card-ability svg { width: 58%; height: 58%; }
 
 /* Lift wrapper — handles translateZ so card stays above table during flip */
 .dnc3d-card-lift {

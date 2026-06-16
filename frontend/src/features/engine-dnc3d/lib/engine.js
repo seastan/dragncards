@@ -6,12 +6,26 @@ import { createOverlay } from './overlay';
 import { easeOut, easeIn, animateFlip } from './animation';
 import { playFlipSound, playPickupSound, playDropSound } from './sound';
 
+// Applies a game-definition region `style` CSS object (mirrors how TableRegion
+// spreads `region.style`) onto a region's outline element. Accepts both
+// camelCase (`backgroundColor`) and kebab-case (`background-color`) keys, since
+// the game-def schema documents the kebab form.
+function applyRegionStyle(el, style) {
+  if (!style || typeof style !== 'object') return;
+  for (const [key, value] of Object.entries(style)) {
+    if (value == null) continue;
+    if (key.includes('-')) el.style.setProperty(key, value);
+    else el.style[key] = value;
+  }
+}
+
 // Creates a self-contained dnc3d engine instance.
 // options.regions         — region definitions (default: DEFAULT_REGIONS for demo/sandbox mode)
 // options.onCardMove      — callback(cardId, fromRegionId, toRegionId, fracX, fracY, insertIdx)
 // options.getCardName     — callback(cardId) → display name of a card (for the attach label)
 // options.onAttach        — callback(cardId, targetCardId, side)
 // options.onFlip          — callback(cardId)
+// options.onTriggerAbility — callback(cardId) fired when a card's bolt affordance is clicked
 // options.onCardClick     — callback(cardId, clientX, clientY) fired on click (no drag)
 // options.onCardHover     — callback(cardId) fired on pointerenter
 // options.onCardHoverEnd  — callback(cardId) fired on pointerleave
@@ -25,6 +39,7 @@ export function createDnc3DEngine(options = {}) {
   const onCardMove    = options.onCardMove || null;
   const onAttach      = options.onAttach   || null;
   const onFlip        = options.onFlip        || null;
+  const onTriggerAbility = options.onTriggerAbility || null;
   const onCardClick    = options.onCardClick    || null;
   const onCardHover         = options.onCardHover         || null;
   const onCardHoverEnd      = options.onCardHoverEnd      || null;
@@ -97,6 +112,7 @@ export function createDnc3DEngine(options = {}) {
 
   const scrollOuterEls   = {};
   const regionOutlineEls = {};
+  const regionFillEls    = {}; // per-region background fill; sits BELOW the cards
   const regionIconEls    = {};
   const regionLabelEls   = {};
   const regionCountEls   = {}; // pile regions only: card-count badge shown on hover
@@ -463,6 +479,7 @@ export function createDnc3DEngine(options = {}) {
 
     // Hide the home region's table DOM so it doesn't appear as a drop target.
     for (const el of [scrollOuterEls[browseGroupId], regionOutlineEls[browseGroupId],
+                      regionFillEls[browseGroupId],
                       regionIconEls[browseGroupId], regionLabelEls[browseGroupId]]) {
       if (el) el.style.display = 'none';
     }
@@ -521,6 +538,7 @@ export function createDnc3DEngine(options = {}) {
 
     // Restore the home region's table DOM.
     for (const el of [scrollOuterEls[homeGroupId], regionOutlineEls[homeGroupId],
+                      regionFillEls[homeGroupId],
                       regionIconEls[homeGroupId], regionLabelEls[homeGroupId]]) {
       if (el) el.style.display = '';
     }
@@ -615,10 +633,19 @@ export function createDnc3DEngine(options = {}) {
       : 'none';
   }
 
+  // Show the lightning-bolt affordance only while the card is hovered and its
+  // current face has a triggerable ability — mirrors the 2D AbilityButton, which
+  // renders only when `isActive && hasAbility`.
+  function syncAbilityBtn(card) {
+    if (!card.abilityBtnEl) return;
+    const show = card.hasAbility && card.cardEl.classList.contains('dnc3d-card-hovered');
+    card.abilityBtnEl.style.display = show ? 'flex' : 'none';
+  }
+
   // ── Card creation ──────────────────────────────────────────────────────────
-  // cardInfo: { id, frontImageUrl?, backImageUrl?, angle?, faceW?, faceH?, borderColor? }
+  // cardInfo: { id, frontImageUrl?, backImageUrl?, angle?, faceW?, faceH?, borderColor?, hasAbility? }
   function createCard(tiltEl, cardInfo) {
-    const { id: i, frontImageUrl, backImageUrl, angle = 0, faceW = null, faceH = null, borderColor = null } = cardInfo;
+    const { id: i, frontImageUrl, backImageUrl, angle = 0, faceW = null, faceH = null, borderColor = null, hasAbility = false } = cardInfo;
     const color = COLORS[i % COLORS.length];
 
     const liftEl = document.createElement('div');
@@ -681,6 +708,34 @@ export function createDnc3DEngine(options = {}) {
     tokenHost.style.transform     = 'translateZ(1px)';
     liftEl.appendChild(tokenHost);
 
+    // Lightning-bolt ability affordance (dnc3d port of the 2D AbilityButton).
+    // The bolt lives inside a host that fills the card box and is spun to match
+    // the card's full rotateZ (layout + exhaust) by applyTokenHostRotation — so
+    // it follows the card's rotation like the 2D button. The host hangs off liftEl
+    // (never carries rotateY), so the bolt always faces the viewer and isn't
+    // back-face-culled on flip. Hidden until the card is hovered AND its current
+    // face has a triggerable ability (see syncAbilityBtn).
+    const abilityHost = document.createElement('div');
+    abilityHost.className     = 'dnc3d-card-ability-host';
+    abilityHost.style.position      = 'absolute';
+    abilityHost.style.inset         = '0';
+    abilityHost.style.pointerEvents = 'none';
+    abilityHost.style.transform     = 'translateZ(2px)';
+    const abilityBtn = document.createElement('div');
+    abilityBtn.className   = 'dnc3d-card-ability';
+    abilityBtn.style.display = 'none';
+    abilityBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 1.5 4 13.2h6.2L9 22.5 20 10.2h-6.6z"/></svg>';
+    // Don't let a press on the bolt start a card drag (liftEl pointerdown) or, on
+    // release, register as a card click that opens the card menu.
+    abilityBtn.addEventListener('pointerdown', e => e.stopPropagation());
+    abilityBtn.addEventListener('pointerup',   e => e.stopPropagation());
+    abilityBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (onTriggerAbility) onTriggerAbility(i);
+    });
+    abilityHost.appendChild(abilityBtn);
+    liftEl.appendChild(abilityHost);
+
     liftEl.style.left      = '0px';
     liftEl.style.top       = '0px';
     liftEl.style.zIndex    = i + 1;
@@ -709,6 +764,9 @@ export function createDnc3DEngine(options = {}) {
       faceH,
       borderGlowEl: borderGlow,
       borderColor:  null,
+      abilityBtnEl:  abilityBtn,
+      abilityHostEl: abilityHost,
+      hasAbility:   !!_playerN && !!hasAbility,
     };
     cards.push(card);
     applyCardDims(card);
@@ -756,12 +814,14 @@ export function createDnc3DEngine(options = {}) {
       if (_hoverSuppressed) return;
       if (cardEl.classList.contains('dnc3d-card-hovered')) return;
       cardEl.classList.add('dnc3d-card-hovered');
+      syncAbilityBtn(card);
       if (onCardHover) onCardHover(i, e.clientX);
     };
     const endCardHover = (e) => {
       if (e && topCardElAt(e.clientX, e.clientY) === cardEl) return;
       if (!cardEl.classList.contains('dnc3d-card-hovered')) return;
       cardEl.classList.remove('dnc3d-card-hovered');
+      syncAbilityBtn(card);
       if (onCardHoverEnd) onCardHoverEnd(i);
     };
     cardEl.addEventListener('pointerenter', showCardHover);
@@ -886,6 +946,10 @@ export function createDnc3DEngine(options = {}) {
       if (!isDragging && Math.hypot(dx, dy) >= threshold) {
         isDragging = true;
         _isDragging = true;
+        // Drop the hover state (and its bolt affordance) on the card being
+        // lifted so it doesn't ride along with the drag.
+        cardEl.classList.remove('dnc3d-card-hovered');
+        syncAbilityBtn(card);
         // Kill any running hover-settle loop: its ticks would otherwise resume
         // firing once _isDragging clears at drop, hit-testing against the
         // pre-move game state and activating the card with its stale group.
@@ -1929,13 +1993,32 @@ export function createDnc3DEngine(options = {}) {
     }
 
     Object.entries(REGIONS).forEach(([id, r]) => {
+      // Region background fill. A separate element carrying the region's
+      // background color and game-def `style`, positioned just BELOW the cards
+      // of this region's layer so it paints behind them (never over them).
+      // The outline below stays on top for the border, label, menu icons and
+      // drop glow. For elevated regions the fill sits coplanar with the outline
+      // (appended first, so the outline's border paints over the fill panel).
+      const fill = document.createElement('div');
+      fill.className = 'dnc3d-region-fill';
+      const fillZ = r.layerIndex > 0 ? layerZPx(cardHeightPx()) * r.layerIndex - 1 : 0;
+      fill.style.transform = `translateZ(${fillZ}px)`;
+      if (r.layerIndex > 0) fill.classList.add('dnc3d-region-elevated');
+      if (r.backgroundColor) fill.style.backgroundColor = r.backgroundColor;
+      applyRegionStyle(fill, r.style);
+      fill.style.left   = r.left   + '%';
+      fill.style.top    = r.top    + '%';
+      fill.style.width  = r.width  + '%';
+      fill.style.height = r.height + '%';
+      tiltEl.appendChild(fill);
+      regionFillEls[id] = fill;
+
       const outline = document.createElement('div');
       outline.className = 'dnc3d-region-outline';
       if (r.layerIndex > 0) {
         outline.classList.add('dnc3d-region-elevated');
         outline.style.transform = `translateZ(${layerZPx(cardHeightPx()) * r.layerIndex - 1}px)`;
       }
-      if (r.backgroundColor) outline.style.backgroundColor = r.backgroundColor;
       outline.style.left   = r.left   + '%';
       outline.style.top    = r.top    + '%';
       outline.style.width  = r.width  + '%';
@@ -3091,6 +3174,14 @@ export function createDnc3DEngine(options = {}) {
       const newBorderColor = dcCard.borderColor || null;
       if (card.borderColor !== newBorderColor) {
         applyBorderGlow(card, newBorderColor);
+      }
+
+      // 3c. Ability affordance: the current face's ability can change (flip, or
+      // automation adding/removing one). Re-sync the bolt's visibility.
+      const newHasAbility = !!_playerN && currentFace.ability != null;
+      if (card.hasAbility !== newHasAbility) {
+        card.hasAbility = newHasAbility;
+        syncAbilityBtn(card);
       }
 
       // 4. Group / visibility change. A card may move by another player between a

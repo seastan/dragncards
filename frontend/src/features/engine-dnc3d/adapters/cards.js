@@ -64,6 +64,9 @@ export function adaptGameState(game, layoutRegions, gameDef, language, observing
       faceW,
       faceH,
       borderColor: card.borderColor || null,
+      // Whether the current face has a triggerable automation ability — drives
+      // the lightning-bolt affordance shown on hover (mirrors the 2D AbilityButton).
+      hasAbility: currentFace.ability !== undefined && currentFace.ability !== null,
     };
   });
 
