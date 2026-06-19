@@ -1265,7 +1265,10 @@ defmodule DragnCardsGame.GameUI do
       new_stack_ids = get_stack_ids(new_game, group_id)
       # Check if the number of stacks in the deck has changed, and if so, we shuffle
       if group["shuffleOnLoad"] && length(old_stack_ids) != length(new_stack_ids) do
-        acc = shuffle_group(acc, group_id)
+        # Use SHUFFLE_GROUP (not the bare shuffle_group helper) so that the
+        # pendingGuiUpdates dnc3dShuffle signal is emitted, triggering the
+        # pile riffle animation in the 3D engine after cards finish spawning.
+        acc = Evaluate.evaluate(acc, ["SHUFFLE_GROUP", group_id], [])
         Evaluate.evaluate(acc, ["LOG", get_alias_n(new_game), " shuffled ", l10n(acc, game_def, group["label"]), "."], [])
       else
         acc

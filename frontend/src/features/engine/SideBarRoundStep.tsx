@@ -109,10 +109,17 @@ export const SideBarRoundStep = React.memo(({ stepId, triggerCardIds }: Props) =
       {hasReminder && <ReminderButton triggerCardIds={triggerCardIds!} stepId={stepId} />}
       {/* Label reveals as an absolute flyout on hover so the narrow rail never reflows. */}
       <div
-        className={`absolute left-full top-0 h-full items-center px-3 whitespace-nowrap rounded-md border border-gray-700 shadow-xl ${
+        className={`absolute left-full top-0 h-full flex items-center px-3 whitespace-nowrap rounded-md border border-gray-700 shadow-xl ${
           isRoundStep ? "bg-red-700 text-white" : "bg-gray-800 text-gray-100"
-        } ${hovering ? "flex" : "hidden"}`}
-        style={{ zIndex: 2, marginLeft: hasReminder ? "2.7dvh" : "0.25rem" }}
+        }`}
+        style={{
+          zIndex: 2,
+          marginLeft: hasReminder ? "2.7dvh" : "0.25rem",
+          clipPath: hovering ? "inset(0 0% 0 0 round 0.375rem)" : "inset(0 100% 0 0 round 0.375rem)",
+          opacity: hovering ? 1 : 0,
+          pointerEvents: hovering ? "auto" : "none",
+          transition: "clip-path 0.2s ease-out, opacity 0.15s ease-out",
+        }}
       >
         {gameL10n(stepInfo.label)}
       </div>

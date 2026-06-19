@@ -98,6 +98,9 @@ export default function Dnc3DTable({
   // cards on subsequent re-inits and give them the spawn-drop animation.
   // null on first render so first-load cards don't all animate simultaneously.
   const prevCardIdsRef  = useRef(null);
+  // Tracks the nonce of the most recently handled (or committed-to) shuffle signal
+  // so stale dnc3dShuffle in Redux can't re-trigger the riffle on later re-inits.
+  const lastShuffleNonceRef = useRef(null);
   const tiltDegRef = useRef(tiltDeg);
   tiltDegRef.current = tiltDeg;
 
@@ -289,7 +292,22 @@ export default function Dnc3DTable({
         const newEngineIds = newDcCardIds
           .map(dcId => idMapRef.current.get(dcId))
           .filter(i => i !== undefined);
-        if (newEngineIds.length > 0) engine.spawnCards(newEngineIds);
+        if (newEngineIds.length > 0) {
+          engine.spawnCards(newEngineIds);
+          // If a dnc3dShuffle signal arrived before this re-init (gui_update_all
+          // can beat state_update due to Phoenix's intercept queue), the shuffle
+          // effect fired against the old engine (stackIds=0) and bailed without
+          // committing to a nonce. Pick it up here and defer past spawn (~600ms).
+          const ps = store.getState().playerUi?.dnc3dShuffle;
+          if (ps?.groupId && ps.nonce !== lastShuffleNonceRef.current) {
+            lastShuffleNonceRef.current = ps.nonce;
+            const groupId = ps.groupId;
+            setTimeout(() => {
+              if (engineRef.current !== engine) return;
+              engine.animatePileShuffle(groupId, () => playShuffleSound());
+            }, 600);
+          }
+        }
       }
     } else {
       setTokenPortals([]);
@@ -355,8 +373,15 @@ export default function Dnc3DTable({
   useEffect(() => {
     const engine = engineRef.current;
     if (!engine || !dnc3dShuffle?.groupId) return;
-    const animated = engine.animatePileShuffle(dnc3dShuffle.groupId);
-    if (animated) playShuffleSound();
+    // Skip if we already committed to handling this exact shuffle (e.g. the
+    // re-init effect already scheduled a post-spawn retry for the same nonce).
+    if (dnc3dShuffle.nonce === lastShuffleNonceRef.current) return;
+    const result = engine.animatePileShuffle(dnc3dShuffle.groupId, () => playShuffleSound());
+    // 'deferred' means the engine scheduled a _spawning retry (with our onStart
+    // callback), so sound will play automatically. true means it started now.
+    // false means stackIds=0 (wrong engine) — leave nonce uncommitted so the
+    // re-init effect can pick it up.
+    if (result !== false) lastShuffleNonceRef.current = dnc3dShuffle.nonce;
   }, [dnc3dShuffle]);
 
   // ── Suppress hover glow while the hotkey overlay (Tab) is open ──────────────

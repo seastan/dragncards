@@ -2525,7 +2525,9 @@ export function createDnc3DEngine(options = {}) {
   // permutation — a keen-eyed player can't track a card through it, because the
   // real reorder happens only as an instant snap once the riffle ends.
   // Returns true if a riffle actually ran (so the caller can play a sound).
-  function animatePileShuffle(groupId) {
+  // onStart: optional callback fired the moment the riffle begins (use it to play
+  // the shuffle sound, which needs to come from the React layer).
+  function animatePileShuffle(groupId, onStart = null) {
     const regionId = groupId;
     const region   = REGIONS[regionId];
     if (!_tiltEl || !region || region.type !== 'pile') return false;
@@ -2533,6 +2535,15 @@ export function createDnc3DEngine(options = {}) {
 
     const stackIds = regionState[regionId].stackIds;
     if (!stackIds || stackIds.length < 2) return false;
+
+    // If cards are still spawn-animating (e.g. shuffleOnLoad), defer until they
+    // land. Thread onStart through so the sound still plays when the retry fires.
+    const spawning = stackIds.some(sid => cards[stacks[sid]?.cardIds?.[0]]?._spawning);
+    if (spawning) {
+      const retryMs = scaleDuration(600);
+      setTimeout(() => { if (!_shufflingRegions.has(regionId)) animatePileShuffle(groupId, onStart); }, retryMs);
+      return 'deferred';
+    }
 
     // Don't fight an in-progress drag/flip/lift in this region.
     const busy = stackIds.some(sid => {
@@ -2556,6 +2567,7 @@ export function createDnc3DEngine(options = {}) {
     const K = animCards.length;
 
     _shufflingRegions.add(regionId);
+    if (onStart) onStart(); // e.g. play the shuffle sound from React
 
     // Cancel any in-flight per-card layout tween (e.g. a reorder snap that beat
     // us here) and reparent into tilt space so the spread escapes the region's
@@ -2961,12 +2973,13 @@ export function createDnc3DEngine(options = {}) {
     const DROP_DUR_MS  = scaleDuration(500);
 
     card._spawnCanceled = false;
+    card._spawning      = true;
     card.liftPx = SPAWN_HEIGHT;
     card.liftEl.style.opacity = '0';
     card._setLiftVisuals(SPAWN_HEIGHT);
 
     waitForCardImage(card).then(() => {
-      if (card._spawnCanceled) return;
+      if (card._spawnCanceled) { card._spawning = false; return; }
       if (!card.liftEl.parentElement) return;
       const startTime = performance.now();
       function frame(now) {
@@ -2976,12 +2989,17 @@ export function createDnc3DEngine(options = {}) {
         card.liftEl.style.opacity = tFade < 1 ? (tFade * (2 - tFade)).toFixed(3) : '';
         // Z: easeIn drop over the full duration (gravity feel).
         card._setLiftVisuals(SPAWN_HEIGHT * (1 - t * t));
+        // Suppress the drop shadow during spawn — multiple cards falling into the same
+        // pile position would stack their shadows into a black blob. The opacity fade
+        // already conveys the "arriving from above" feel.
+        card.cardEl.style.boxShadow = 'none';
         if (t < 1) {
           card.layoutAnimId = requestAnimationFrame(frame);
         } else {
           card.layoutAnimId = null;
           card.liftEl.style.opacity = '';
           card._setLiftVisuals(0);
+          card._spawning = false;
           playDropSound();
           if (onLand) onLand();
         }
@@ -3577,6 +3595,7 @@ export function createDnc3DEngine(options = {}) {
     // waitForCardImage, leaving layoutAnimId null during the image-load gap. This
     // flag closes that window so the spawn callback bails if despawn won first.
     card._spawnCanceled = true;
+    card._spawning      = false;
     if (card.layoutAnimId) { cancelAnimationFrame(card.layoutAnimId); card.layoutAnimId = null; }
     card._cancelLift();
     const RISE_HEIGHT = card._dragLiftMax() * 2.5;
@@ -3597,6 +3616,8 @@ export function createDnc3DEngine(options = {}) {
       // (1 - t²). The card lifts quickly off the table and decelerates near the top,
       // mirroring how the spawn card falls slowly at first then accelerates to land.
       card._setLiftVisuals(RISE_HEIGHT * (2 * t - t * t));
+      // Suppress drop shadow during despawn for the same reason as spawn — piles.
+      card.cardEl.style.boxShadow = 'none';
       // Opacity: hold at 1 for first half, easeIn fade-out for second half —
       // mirror of the spawn's easeOut fade-in over the first half.
       const tFade = Math.max(0, (t - 0.5) * 2);
