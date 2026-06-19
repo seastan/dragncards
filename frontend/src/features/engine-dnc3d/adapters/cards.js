@@ -1,5 +1,20 @@
 import { formatGroupId } from './regions';
 
+// Converts any dragncards position format (0–1 number, "50%" string, "1/20"
+// fraction string) to a 0–1 tilt-relative decimal fraction, or null if absent.
+function parseFrac(val) {
+  if (val == null) return null;
+  if (typeof val === 'number') return isNaN(val) ? null : val;
+  if (typeof val === 'string') {
+    if (val.endsWith('%')) { const n = parseFloat(val); return isNaN(n) ? null : n / 100; }
+    const m = val.match(/^(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)$/);
+    if (m) return parseFloat(m[1]) / parseFloat(m[2]);
+    const n = parseFloat(val);
+    return isNaN(n) ? null : n;
+  }
+  return null;
+}
+
 // Resolves a card face's imageUrl using the gameDef prefix/language system,
 // mirroring the logic in useVisibleFaceSrc without needing React hooks.
 export function resolveImageUrl(face, gameDef, language) {
@@ -101,8 +116,8 @@ export function adaptGameState(game, layoutRegions, gameDef, language, observing
       stacks.push({
         cardIds: dnc3dCardIds,
         attachmentDirections,
-        fracX: stack.left  ?? null,
-        fracY: stack.top   ?? null,
+        fracX: parseFrac(stack.left),
+        fracY: parseFrac(stack.top),
       });
     });
 

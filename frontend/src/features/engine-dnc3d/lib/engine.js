@@ -19,6 +19,24 @@ function applyRegionStyle(el, style) {
   }
 }
 
+// Converts any dragncards position format to a 0-1 tilt-relative fraction.
+// Game definitions and the 2D engine write stack.left/top as CSS strings ("50%")
+// or fraction strings ("1/20"); the 3D engine stores its own drags as plain
+// numbers (0–1).  All three forms must be accepted wherever dcStack.left/top
+// are read, otherwise string * tiltW = NaN and cards land at the top-left corner.
+function parseFrac(val, fallback = 0) {
+  if (val == null) return fallback;
+  if (typeof val === 'number') return isNaN(val) ? fallback : val;
+  if (typeof val === 'string') {
+    if (val.endsWith('%')) { const n = parseFloat(val); return isNaN(n) ? fallback : n / 100; }
+    const m = val.match(/^(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)$/);
+    if (m) return parseFloat(m[1]) / parseFloat(m[2]);
+    const n = parseFloat(val);
+    return isNaN(n) ? fallback : n;
+  }
+  return fallback;
+}
+
 // Creates a self-contained dnc3d engine instance.
 // options.regions         — region definitions (default: DEFAULT_REGIONS for demo/sandbox mode)
 // options.onCardMove      — callback(cardId, fromRegionId, toRegionId, fracX, fracY, insertIdx)
@@ -2764,7 +2782,7 @@ export function createDnc3DEngine(options = {}) {
     const regionId = base.regionId;
     if (!regionId) return;
     if (REGIONS[regionId]?.type === 'free') {
-      animateFreeStackToFrac(stack, dcStack?.left ?? base.fracX ?? 0, dcStack?.top ?? base.fracY ?? 0);
+      animateFreeStackToFrac(stack, parseFrac(dcStack?.left ?? base.fracX), parseFrac(dcStack?.top ?? base.fracY));
     } else {
       moveStackToTilt(stack);
       syncRegionOrderData(regionId, game, idMap);
@@ -3004,7 +3022,12 @@ export function createDnc3DEngine(options = {}) {
       if (!card || !card.cardEl) return;
 
       // 1. Game rotation (exhaustion, rotation token, etc.)
-      const newGameRot = dcCard.rotation || 0;
+      // Per-player rotation takes precedence over the global rotation value,
+      // mirroring the useCardRotation hook used by the 2D engine.
+      const rotByPlayer = dcCard.rotationByPlayer;
+      const newGameRot = (rotByPlayer && _playerN !== null && rotByPlayer[_playerN] !== undefined)
+        ? rotByPlayer[_playerN]
+        : (dcCard.rotation || 0);
       if (card.cardEl._gameRotation !== newGameRot) {
         card.cardEl._gameRotation = newGameRot;
         if (!card.cardEl._animating) {
@@ -3125,10 +3148,10 @@ export function createDnc3DEngine(options = {}) {
             if (dcStack?.left != null && _tiltEl) {
               const tiltW = parseFloat(_tiltEl.style.width)  || 1;
               const tiltH = parseFloat(_tiltEl.style.height) || 1;
-              card.fracX = dcStack.left;
-              card.fracY = dcStack.top ?? 0;
-              slideTargetLeft = dcStack.left * tiltW;
-              slideTargetTop  = (dcStack.top ?? 0) * tiltH;
+              card.fracX = parseFrac(dcStack.left);
+              card.fracY = parseFrac(dcStack.top);
+              slideTargetLeft = card.fracX * tiltW;
+              slideTargetTop  = card.fracY * tiltH;
             }
           } else if (regionType) {
             // Row/fan/pile regions: compute target from the layout engine.
@@ -3205,10 +3228,10 @@ export function createDnc3DEngine(options = {}) {
               if (dcStack?.left != null && _tiltEl) {
                 const tiltW = parseFloat(_tiltEl.style.width)  || 1;
                 const tiltH = parseFloat(_tiltEl.style.height) || 1;
-                card.fracX = dcStack.left;
-                card.fracY = dcStack.top ?? 0;
-                slideTargetLeft = dcStack.left * tiltW;
-                slideTargetTop  = (dcStack.top ?? 0) * tiltH;
+                card.fracX = parseFrac(dcStack.left);
+                card.fracY = parseFrac(dcStack.top);
+                slideTargetLeft = card.fracX * tiltW;
+                slideTargetTop  = card.fracY * tiltH;
               }
             } else if (destType) {
               const layoutFn = destType === 'row' ? layoutRow : destType === 'fan' ? layoutFan : layoutPile;
@@ -3329,7 +3352,7 @@ export function createDnc3DEngine(options = {}) {
                 // Lay out the whole stack so attachments follow with their offsets
                 // and the region's layer Z (moveStackToRegion above already moved
                 // every card in the stack, so this runs once per stack).
-                animateFreeStackToFrac(stacks[card.stackId], dcStack.left, dcStack.top ?? 0, wasHidden);
+                animateFreeStackToFrac(stacks[card.stackId], parseFrac(dcStack.left), parseFrac(dcStack.top), wasHidden);
               }
             } else {
               // Match the backend's ordering before computing slots, so the stack
@@ -3377,20 +3400,22 @@ export function createDnc3DEngine(options = {}) {
           && stacks[card.stackId]?.cardIds[0] === card.id) {
         const dcStack = stackById[dcCard.stackId];
         if (dcStack?.left != null && _tiltEl) {
-          const dx = Math.abs((dcStack.left  ?? 0) - (card.fracX || 0));
-          const dy = Math.abs((dcStack.top   ?? 0) - (card.fracY || 0));
+          const fracXNew = parseFrac(dcStack.left);
+          const fracYNew = parseFrac(dcStack.top);
+          const dx = Math.abs(fracXNew - (card.fracX || 0));
+          const dy = Math.abs(fracYNew - (card.fracY || 0));
           if (dx > 0.001 || dy > 0.001) {
             if (!card.cardEl._animating) {
-              animateFreeStackToFrac(stacks[card.stackId], dcStack.left, dcStack.top ?? 0);
+              animateFreeStackToFrac(stacks[card.stackId], fracXNew, fracYNew);
             } else {
               const tiltW = parseFloat(_tiltEl.style.width);
               const tiltH = parseFloat(_tiltEl.style.height);
-              card.fracX = dcStack.left;
-              card.fracY = dcStack.top ?? 0;
+              card.fracX = fracXNew;
+              card.fracY = fracYNew;
               // A flip animation is running and owns liftEl.style.transform and
               // cardEl.style.transform. Slide only X/Y so there is no conflict.
-              const targetLeft = dcStack.left * tiltW;
-              const targetTop  = (dcStack.top ?? 0) * tiltH;
+              const targetLeft = fracXNew * tiltW;
+              const targetTop  = fracYNew * tiltH;
               const fromLeft   = parseFloat(card.liftEl.style.left) || 0;
               const fromTop    = parseFloat(card.liftEl.style.top)  || 0;
               if (Math.abs(targetLeft - fromLeft) > 1 || Math.abs(targetTop - fromTop) > 1) {
