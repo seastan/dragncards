@@ -197,8 +197,12 @@ export function createDnc3DEngine(options = {}) {
     const fw  = card.faceW || _cardDefaultW;
     const fh  = card.faceH || _cardDefaultH;
     const dvh = window.innerHeight / 100;
-    card.cardEl.style.setProperty('--card-w', (fw * _cardSize * _zoomFactor * dvh) + 'px');
-    card.cardEl.style.setProperty('--card-h', (fh * _cardSize * _zoomFactor * dvh) + 'px');
+    const w = fw * _cardSize * _zoomFactor * dvh;
+    const h = fh * _cardSize * _zoomFactor * dvh;
+    card.cardEl.style.setProperty('--card-w', w + 'px');
+    card.cardEl.style.setProperty('--card-h', h + 'px');
+    card.renderedW = w;
+    card.renderedH = h;
   }
 
   // ── Tilt geometry ──────────────────────────────────────────────────────────
@@ -633,6 +637,16 @@ export function createDnc3DEngine(options = {}) {
       : 'none';
   }
 
+  // Returns true if a card is interactable in its pile (i.e. it IS the top card,
+  // or it is not in a pile region at all). Non-top pile cards should not receive
+  // hover, active-card callbacks, or be draggable.
+  function isTopPileCard(card) {
+    const regionId = card.regionId;
+    if (!regionId || REGIONS[regionId]?.type !== 'pile') return true;
+    const stackIds = regionState[regionId].stackIds;
+    return stackIds.length === 0 || card.stackId === stackIds[stackIds.length - 1];
+  }
+
   // Show the lightning-bolt affordance only while the card is hovered and its
   // current face has a triggerable ability — mirrors the 2D AbilityButton, which
   // renders only when `isActive && hasAbility`.
@@ -762,6 +776,8 @@ export function createDnc3DEngine(options = {}) {
       dragOffFromPrimary: { dx: 0, dy: 0 },
       faceW,
       faceH,
+      renderedW:    null,
+      renderedH:    null,
       borderGlowEl: borderGlow,
       borderColor:  null,
       abilityBtnEl:  abilityBtn,
@@ -812,6 +828,7 @@ export function createDnc3DEngine(options = {}) {
     const showCardHover = (e) => {
       if (_isDragging) return;
       if (_hoverSuppressed) return;
+      if (!isTopPileCard(card)) return;
       if (cardEl.classList.contains('dnc3d-card-hovered')) return;
       cardEl.classList.add('dnc3d-card-hovered');
       syncAbilityBtn(card);
@@ -829,6 +846,7 @@ export function createDnc3DEngine(options = {}) {
     if (onCardHoverTopBottom) {
       liftEl.addEventListener('pointermove', (e) => {
         if (_isDragging) return;
+        if (!isTopPileCard(card)) return;
         const rect = cardEl.getBoundingClientRect();
         onCardHoverTopBottom(e.clientY < rect.top + rect.height / 2 ? 'top' : 'bottom');
       });
@@ -944,6 +962,7 @@ export function createDnc3DEngine(options = {}) {
       const threshold = Math.min(window.innerWidth, window.innerHeight) * 0.005;
 
       if (!isDragging && Math.hypot(dx, dy) >= threshold) {
+        if (!isTopPileCard(card)) return; // non-top pile cards are not draggable
         isDragging = true;
         _isDragging = true;
         // Drop the hover state (and its bolt affordance) on the card being
@@ -2656,8 +2675,8 @@ export function createDnc3DEngine(options = {}) {
         c.fracX = pos.left / tiltW;
         c.fracY = pos.top  / tiltH;
         // instant: a freshly-revealed card has no on-screen origin to slide from,
-        // so snap it into place rather than animating from the (0,0) origin.
-        if (instant) placeCardAt(c, pos.left, pos.top, pos.rot, pos.zIndex, pos.stackZ);
+        // so place it at its target position then spawn-drop it in from above.
+        if (instant) { placeCardAt(c, pos.left, pos.top, pos.rot, pos.zIndex, pos.stackZ); moveCardToTilt(c); spawnDropCard(c, () => moveCardFromTilt(c)); }
         else animateCardArc(c, pos.left, pos.top, pos.rot, pos.zIndex, 360, pos.stackZ, liftPx);
       });
   }
@@ -2866,6 +2885,96 @@ export function createDnc3DEngine(options = {}) {
     stack.cardIds.forEach(cid => {
       const c = cards[cid];
       if (c?.liftEl) c.liftEl.style.display = hidden ? 'none' : '';
+    });
+  }
+
+  // Returns a Promise that resolves once the card's visible-face image has
+  // finished loading (or immediately if there is no image / it is already cached).
+  // A 3-second safety timeout prevents the spawn animation from being blocked
+  // forever if the image fetch fails silently.
+  function waitForCardImage(card) {
+    const showingBack = ((((card.cardEl._angle % 360) + 360) % 360) === 180);
+    const faceEl = showingBack
+      ? card.cardEl.querySelector('.dnc3d-card-back')
+      : card.frontEl;
+    const bgImg = faceEl?.style.backgroundImage;
+    const match = bgImg?.match(/url\(['"]?([^'")\s]+)['"]?\)/);
+    if (!match) return Promise.resolve();
+    return new Promise(resolve => {
+      let done = false;
+      const finish = () => { if (!done) { done = true; resolve(); } };
+      const img = new Image();
+      img.onload = finish;
+      img.onerror = finish;
+      img.src = match[1];
+      if (img.complete) finish();
+      setTimeout(finish, 3000);
+    });
+  }
+
+  // Animates a freshly-revealed card dropping in from above the table. The card
+  // must already be placed at its final X/Y AND reparented into the tilt plane
+  // (not a scroll-outer) before this is called — the elevated Z would otherwise
+  // be clipped by the scroll-outer's overflow, the same reason drag uses
+  // moveCardToTilt. onLand is called after the drop sound (use it to reparent
+  // the card back into the scroll-outer via moveCardFromTilt).
+  // Fade-in and drop run concurrently: opacity reaches 1 at the midpoint of the
+  // drop so the card is fully visible for the second half of the fall.
+  function spawnDropCard(card, onLand) {
+    if (card.layoutAnimId) { cancelAnimationFrame(card.layoutAnimId); card.layoutAnimId = null; }
+    card._cancelLift();
+    const SPAWN_HEIGHT = card._dragLiftMax() * 2.5;
+    const DROP_DUR_MS  = scaleDuration(500);
+
+    card._spawnCanceled = false;
+    card.liftPx = SPAWN_HEIGHT;
+    card.liftEl.style.opacity = '0';
+    card._setLiftVisuals(SPAWN_HEIGHT);
+
+    waitForCardImage(card).then(() => {
+      if (card._spawnCanceled) return;
+      if (!card.liftEl.parentElement) return;
+      const startTime = performance.now();
+      function frame(now) {
+        const t = Math.min((now - startTime) / DROP_DUR_MS, 1);
+        // Opacity: easeOut over the first half of the drop (t 0→0.5 → opacity 0→1).
+        const tFade = Math.min(t * 2, 1);
+        card.liftEl.style.opacity = tFade < 1 ? (tFade * (2 - tFade)).toFixed(3) : '';
+        // Z: easeIn drop over the full duration (gravity feel).
+        card._setLiftVisuals(SPAWN_HEIGHT * (1 - t * t));
+        if (t < 1) {
+          card.layoutAnimId = requestAnimationFrame(frame);
+        } else {
+          card.layoutAnimId = null;
+          card.liftEl.style.opacity = '';
+          card._setLiftVisuals(0);
+          playDropSound();
+          if (onLand) onLand();
+        }
+      }
+      card.layoutAnimId = requestAnimationFrame(frame);
+    });
+  }
+
+  // Places each card in a stack at its layout slot in a structured region, then
+  // applies a spawn-drop entrance animation. Used for cards that were previously
+  // in an unrendered group and are now becoming visible for the first time.
+  function spawnDropStack(stack, regionId) {
+    if (!stack) return;
+    const type     = REGIONS[regionId]?.type;
+    const layoutFn = type === 'row' ? layoutRow : type === 'fan' ? layoutFan
+                   : type === 'pile' ? layoutPile : null;
+    if (!layoutFn) return;
+    const idSet     = new Set(stack.cardIds);
+    const positions = layoutFn(regionId).filter(p => idSet.has(p.cardId));
+    positions.forEach(pos => {
+      const c = cards[pos.cardId];
+      if (!c || c.cardEl._animating) return;
+      placeCardAt(c, pos.left, pos.top, pos.rot, pos.zIndex, pos.stackZ || 0);
+      // Reparent into the tilt plane so the elevated card escapes the
+      // scroll-outer's clipping — same technique as drag (moveStackToTilt).
+      moveCardToTilt(c);
+      spawnDropCard(c, () => moveCardFromTilt(c));
     });
   }
 
@@ -3231,7 +3340,10 @@ export function createDnc3DEngine(options = {}) {
               // card sliding out into the clipped overflow.
               scrollStackToCenter(expectedGroupId, card.stackId);
               if (wasHidden) {
-                layoutRegion(expectedGroupId, null, true);
+                // Slide existing cards into their new slots (excluding the
+                // arriving stack), then spawn-drop the new cards in from above.
+                layoutRegion(expectedGroupId, card.stackId);
+                spawnDropStack(stacks[card.stackId], expectedGroupId);
               } else {
                 // Slide the region's existing cards into their new slots, leaving
                 // the arriving stack out, then fly it in along a lift arc.
@@ -3242,11 +3354,15 @@ export function createDnc3DEngine(options = {}) {
           }
           if (oldRegionId && oldRegionId !== expectedGroupId) layoutRegion(oldRegionId);
         } else if (card.regionId && card.regionId !== '_browse') {
-          // The card moved into a region this client doesn't render — pull its
-          // whole stack out and hide it so it doesn't linger where it was.
+          // The card moved into a region this client doesn't render — lift its
+          // whole stack off the table and animate it away before hiding.
           const oldRegionId = card.regionId;
+          const stackToHide = stacks[card.stackId];
+          // Move to tilt-space BEFORE nulling regionId so originOf() still has
+          // the old region to compute the correct coordinate offset.
+          stackToHide?.cardIds.forEach(cid => { const c = cards[cid]; if (c) moveCardToTilt(c); });
           moveStackToRegion(card.stackId, null);
-          setStackHidden(stacks[card.stackId], true);
+          despawnRiseStack(stackToHide);
           layoutRegion(oldRegionId);
         }
       }
@@ -3343,7 +3459,7 @@ export function createDnc3DEngine(options = {}) {
     const targetEl = topCardElAtPoint(_lastPointerX, _lastPointerY);
     let targetCard = null;
     for (const c of cards) {
-      const shouldHover = c.cardEl === targetEl;
+      const shouldHover = c.cardEl === targetEl && isTopPileCard(c);
       const isHovered   = c.cardEl.classList.contains('dnc3d-card-hovered');
       if (shouldHover) targetCard = c;
       if (shouldHover && !isHovered) {
@@ -3397,5 +3513,113 @@ export function createDnc3DEngine(options = {}) {
     _overlay.rebuild(game, idMap, cards);
   }
 
-  return { init, applyTilt, applyTableOpacity, setCurrentDeg, onTiltUpdated, reconcile, openBrowse, closeBrowse, updateBrowseFilter, getCardElements, syncOverlay, animatePileShuffle, setHoverSuppressed };
+  // Spawn-drop a list of cards by engine index. Called after a re-init when the
+  // caller knows which cards are brand-new (not present in the previous cardById).
+  // Cards that aren't in a rendered region are skipped.
+  function spawnCards(engineIndices) {
+    for (const i of engineIndices) {
+      const card = cards[i];
+      if (!card || !card.regionId || card.cardEl._animating) continue;
+      moveCardToTilt(card);
+      spawnDropCard(card, () => moveCardFromTilt(card));
+    }
+  }
+
+  // Inverse of spawnDropCard — animates a card rising off the table and fading
+  // out. The card must already be in the tilt plane (call moveCardToTilt first).
+  // Rise uses easeOut (quick launch, decelerates at the top), the mirror of the
+  // easeIn drop. Opacity holds at 1 for the first half then fades to 0 so the
+  // card is fully visible as it lifts and gone by the time it stops rising.
+  // onDone is called when the animation completes (use it to hide or remove the card).
+  function despawnRiseCard(card, onDone) {
+    // Cancel any pending spawn animation — spawnDropCard defers its RAF behind
+    // waitForCardImage, leaving layoutAnimId null during the image-load gap. This
+    // flag closes that window so the spawn callback bails if despawn won first.
+    card._spawnCanceled = true;
+    if (card.layoutAnimId) { cancelAnimationFrame(card.layoutAnimId); card.layoutAnimId = null; }
+    card._cancelLift();
+    const RISE_HEIGHT = card._dragLiftMax() * 2.5;
+    const RISE_DUR_MS = scaleDuration(500);
+
+    // Reset display+opacity synchronously. The card may have been mid-spawn
+    // (opacity:'0', display:'none') or in some other transient state.
+    card.liftEl.style.display  = '';
+    card.liftEl.style.opacity  = '';
+    card._setLiftVisuals(0);
+
+    playPickupSound();
+
+    const startTime = performance.now();
+    function frame(now) {
+      const t = Math.min((now - startTime) / RISE_DUR_MS, 1);
+      // Z: easeOut rise (2t - t²) — true time-reverse of the spawn drop's easeIn
+      // (1 - t²). The card lifts quickly off the table and decelerates near the top,
+      // mirroring how the spawn card falls slowly at first then accelerates to land.
+      card._setLiftVisuals(RISE_HEIGHT * (2 * t - t * t));
+      // Opacity: hold at 1 for first half, easeIn fade-out for second half —
+      // mirror of the spawn's easeOut fade-in over the first half.
+      const tFade = Math.max(0, (t - 0.5) * 2);
+      card.liftEl.style.opacity = tFade > 0 ? (1 - tFade * tFade).toFixed(3) : '';
+      if (t < 1) {
+        card.layoutAnimId = requestAnimationFrame(frame);
+      } else {
+        card.layoutAnimId = null;
+        card.liftEl.style.opacity = '0';
+        card._setLiftVisuals(0);
+        if (onDone) onDone();
+      }
+    }
+    card.layoutAnimId = requestAnimationFrame(frame);
+  }
+
+  // Despawn-rise every card in a stack. Cards must already be in the tilt plane.
+  // Hides each card after its rise completes.
+  function despawnRiseStack(stack) {
+    if (!stack) return;
+    stack.cardIds.forEach(cid => {
+      const c = cards[cid];
+      if (!c) return;
+      despawnRiseCard(c, () => { c.liftEl.style.display = 'none'; });
+    });
+  }
+
+  // Despawn-animate a list of cards by engine index. Intended for the engine
+  // re-init path (cardCount change) where the engine is about to be torn down:
+  // reparents each card's liftEl into a ghost-tilt container appended to the
+  // stage so the elements survive the engine cleanup (which only clears tiltEl),
+  // then removes them when their animations complete.
+  function despawnCards(engineIndices) {
+    const stage = _tiltEl?.parentElement;
+    if (!stage) return;
+
+    const toAnimate = [];
+    for (const i of engineIndices) {
+      const card = cards[i];
+      if (!card || !card.liftEl || !card.liftEl.parentElement || !card.regionId) continue;
+      toAnimate.push(card);
+    }
+    if (toAnimate.length === 0) return;
+
+    // Ghost-tilt: a sibling of tiltEl with the same geometry and CSS class so
+    // the reparented cards keep their 3D-correct appearance after engine cleanup.
+    const ghostTilt = document.createElement('div');
+    ghostTilt.className = 'dnc3d-tilt';
+    ghostTilt.style.cssText = _tiltEl.style.cssText;
+    ghostTilt.style.pointerEvents = 'none';
+    stage.appendChild(ghostTilt);
+
+    let completed = 0;
+    toAnimate.forEach(card => {
+      moveCardToTilt(card); // convert scroll-outer-relative coords to tilt-space
+      ghostTilt.appendChild(card.liftEl);
+      despawnRiseCard(card, () => {
+        if (card.liftEl.parentElement === ghostTilt) ghostTilt.removeChild(card.liftEl);
+        if (++completed === toAnimate.length && ghostTilt.parentElement === stage) {
+          stage.removeChild(ghostTilt);
+        }
+      });
+    });
+  }
+
+  return { init, applyTilt, applyTableOpacity, setCurrentDeg, onTiltUpdated, reconcile, openBrowse, closeBrowse, updateBrowseFilter, getCardElements, syncOverlay, animatePileShuffle, setHoverSuppressed, spawnCards, despawnCards };
 }

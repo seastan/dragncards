@@ -53,11 +53,24 @@ export function playShuffleSound() {
   playSound(SHUFFLE_URL);
 }
 
+let _lastPickupAt = 0;
+const PICKUP_DEBOUNCE_MS = 100;
 export function playPickupSound() {
+  const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  if (now - _lastPickupAt < PICKUP_DEBOUNCE_MS) return;
+  _lastPickupAt = now;
   playSound(PICKUP_URL, VOLUME * 1.3); // pickup is quieter than the other cues
 }
 
+// Multiple cards spawning at once (e.g. loading a deck) each call playDropSound
+// as they land. Collapse those into one sound within a short window, the same
+// way playFlipSound handles a whole-group flip.
+let _lastDropAt = 0;
+const DROP_DEBOUNCE_MS = 100;
 export function playDropSound() {
+  const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  if (now - _lastDropAt < DROP_DEBOUNCE_MS) return;
+  _lastDropAt = now;
   playSound(DROP_URL, VOLUME * 0.8);
 }
 

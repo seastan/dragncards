@@ -91,9 +91,13 @@ export default function Dnc3DTable({
 
   const [tokenPortals, setTokenPortals] = useState([]);
 
-  const tiltRef    = useRef(null);
-  const engineRef  = useRef(null);
-  const idMapRef   = useRef(null);
+  const tiltRef         = useRef(null);
+  const engineRef       = useRef(null);
+  const idMapRef        = useRef(null);
+  // Tracks dcCardIds seen on the previous init so we can detect newly-spawned
+  // cards on subsequent re-inits and give them the spawn-drop animation.
+  // null on first render so first-load cards don't all animate simultaneously.
+  const prevCardIdsRef  = useRef(null);
   const tiltDegRef = useRef(tiltDeg);
   tiltDegRef.current = tiltDeg;
 
@@ -240,6 +244,15 @@ export default function Dnc3DTable({
       idMapRef.current = null;
     }
 
+    // Detect cards that are new since the last init so we can spawn-animate them
+    // after init. null prevCardIdsRef means this is the very first load — skip
+    // animating to avoid all cards dropping in simultaneously on game start.
+    const currCardIdSet = new Set(Object.keys(g?.cardById || {}));
+    const newDcCardIds = prevCardIdsRef.current !== null
+      ? [...currCardIdSet].filter(id => !prevCardIdsRef.current.has(id))
+      : [];
+    prevCardIdsRef.current = currCardIdSet;
+
     const engine = createDnc3DEngine(engineOptions);
     engineRef.current = engine;
 
@@ -270,6 +283,14 @@ export default function Dnc3DTable({
       if (idMapRef.current && gameRef.current) {
         engine.syncOverlay(gameRef.current, idMapRef.current);
       }
+
+      // Spawn-animate any cards that didn't exist on the previous init.
+      if (newDcCardIds.length > 0 && idMapRef.current) {
+        const newEngineIds = newDcCardIds
+          .map(dcId => idMapRef.current.get(dcId))
+          .filter(i => i !== undefined);
+        if (newEngineIds.length > 0) engine.spawnCards(newEngineIds);
+      }
     } else {
       setTokenPortals([]);
     }
@@ -281,6 +302,20 @@ export default function Dnc3DTable({
     window.addEventListener('resize', handleResize);
 
     return () => {
+      // Despawn-animate cards that were removed from cardById before the engine
+      // tears down. prevCardIdsRef still holds the old set (updated in the body
+      // above, which hasn't run yet). gameRef.current is already the new state.
+      const oldSet = prevCardIdsRef.current;
+      if (oldSet && engineRef.current && idMapRef.current) {
+        const newSet = new Set(Object.keys(gameRef.current?.cardById || {}));
+        const removedDcIds = [...oldSet].filter(id => !newSet.has(id));
+        if (removedDcIds.length > 0) {
+          const removedEngineIds = removedDcIds
+            .map(id => idMapRef.current.get(id))
+            .filter(i => i !== undefined);
+          if (removedEngineIds.length > 0) engineRef.current.despawnCards(removedEngineIds);
+        }
+      }
       setTokenPortals([]);
       cleanup();
       window.removeEventListener('resize', handleResize);

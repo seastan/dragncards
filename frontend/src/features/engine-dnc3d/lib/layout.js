@@ -316,7 +316,19 @@ export function createLayout(state, projection, REGIONS) {
     stackIds.forEach((sid, slotIdx) => {
       const stack = stacks[sid];
       const cappedIdx = Math.min(slotIdx, MAX_PILE_VISUAL_DEPTH - 1);
-      positions.push(...stackPositionsAtAnchor(stack, cx, cy, slotIdx * 100, cappedIdx * pileStackZPx(ch) + lz));
+      const rawPositions = stackPositionsAtAnchor(stack, cx, cy, slotIdx * 100, cappedIdx * pileStackZPx(ch) + lz);
+      rawPositions.forEach(pos => {
+        const card = cards[pos.cardId];
+        const rw = card.renderedW, rh = card.renderedH;
+        // Landscape root card: rotate 90° so it aligns with portrait neighbors,
+        // and re-center it on the same slot center that portrait cards use.
+        if (rw && rh && rw > rh * 1.05 && !card.attachmentDirection) {
+          pos.rot  = 90;
+          pos.left = cx + (cw - rw) / 2;
+          pos.top  = cy + (ch - rh) / 2;
+        }
+        positions.push(pos);
+      });
     });
     return positions;
   }

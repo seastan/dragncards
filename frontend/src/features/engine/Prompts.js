@@ -154,6 +154,9 @@ export const Prompts = React.memo(({
         console.log("Clearing multi-select card ids because the top prompt does not have a selectCards input");
         dispatch(clearMultiSelectCardIds());
       }
+    } else if (multiSelect.enabled) {
+      dispatch(setMultiSelectEnabled(false));
+      dispatch(clearMultiSelectCardIds());
     }
   }, [sortedPromptIds, prompts]);
   
