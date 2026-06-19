@@ -19,11 +19,8 @@ function applyRegionStyle(el, style) {
   }
 }
 
-// Converts any dragncards position format to a 0-1 tilt-relative fraction.
-// Game definitions and the 2D engine write stack.left/top as CSS strings ("50%")
-// or fraction strings ("1/20"); the 3D engine stores its own drags as plain
-// numbers (0–1).  All three forms must be accepted wherever dcStack.left/top
-// are read, otherwise string * tiltW = NaN and cards land at the top-left corner.
+// Converts any dragncards coordinate format (number, "50%", "1/20") to a 0-1 fraction.
+// Format-only — no coordinate-system conversion.
 function parseFrac(val, fallback = 0) {
   if (val == null) return fallback;
   if (typeof val === 'number') return isNaN(val) ? fallback : val;
@@ -54,6 +51,22 @@ function parseFrac(val, fallback = 0) {
 // options.zoomFactor      — user zoom setting as a multiplier; default 1.0
 export function createDnc3DEngine(options = {}) {
   const REGIONS       = options.regions    || DEFAULT_REGIONS;
+
+  // Converts a dcStack.left/top value to a 0-1 tilt-relative fraction.
+  // Number values are already tilt-relative (stored by 3D drag in onCardMove).
+  // String values ("50%", "1/20") are region-relative (2D engine / game def) —
+  // convert using the region's own tilt-relative bounds from REGIONS (0-100 scale).
+  function dcPosFrac(val, regionId, isTop, fallback = 0) {
+    if (val == null) return fallback;
+    if (typeof val === 'number') return isNaN(val) ? fallback : val;
+    const pct = parseFrac(val, fallback);
+    const region = REGIONS[regionId];
+    if (!region) return pct;
+    return isTop
+      ? (region.top  + pct * region.height) / 100
+      : (region.left + pct * region.width)  / 100;
+  }
+
   const onCardMove    = options.onCardMove || null;
   const onAttach      = options.onAttach   || null;
   const onFlip        = options.onFlip        || null;
@@ -2782,7 +2795,10 @@ export function createDnc3DEngine(options = {}) {
     const regionId = base.regionId;
     if (!regionId) return;
     if (REGIONS[regionId]?.type === 'free') {
-      animateFreeStackToFrac(stack, parseFrac(dcStack?.left ?? base.fracX), parseFrac(dcStack?.top ?? base.fracY));
+      const rawL = dcStack?.left, rawT = dcStack?.top;
+      animateFreeStackToFrac(stack,
+        rawL != null ? dcPosFrac(rawL, regionId, false) : (base.fracX ?? 0),
+        rawT != null ? dcPosFrac(rawT, regionId, true)  : (base.fracY ?? 0));
     } else {
       moveStackToTilt(stack);
       syncRegionOrderData(regionId, game, idMap);
@@ -3148,8 +3164,8 @@ export function createDnc3DEngine(options = {}) {
             if (dcStack?.left != null && _tiltEl) {
               const tiltW = parseFloat(_tiltEl.style.width)  || 1;
               const tiltH = parseFloat(_tiltEl.style.height) || 1;
-              card.fracX = parseFrac(dcStack.left);
-              card.fracY = parseFrac(dcStack.top);
+              card.fracX = dcPosFrac(dcStack.left, card.regionId, false);
+              card.fracY = dcPosFrac(dcStack.top,  card.regionId, true);
               slideTargetLeft = card.fracX * tiltW;
               slideTargetTop  = card.fracY * tiltH;
             }
@@ -3228,8 +3244,8 @@ export function createDnc3DEngine(options = {}) {
               if (dcStack?.left != null && _tiltEl) {
                 const tiltW = parseFloat(_tiltEl.style.width)  || 1;
                 const tiltH = parseFloat(_tiltEl.style.height) || 1;
-                card.fracX = parseFrac(dcStack.left);
-                card.fracY = parseFrac(dcStack.top);
+                card.fracX = dcPosFrac(dcStack.left, destGroupId, false);
+                card.fracY = dcPosFrac(dcStack.top,  destGroupId, true);
                 slideTargetLeft = card.fracX * tiltW;
                 slideTargetTop  = card.fracY * tiltH;
               }
@@ -3352,7 +3368,7 @@ export function createDnc3DEngine(options = {}) {
                 // Lay out the whole stack so attachments follow with their offsets
                 // and the region's layer Z (moveStackToRegion above already moved
                 // every card in the stack, so this runs once per stack).
-                animateFreeStackToFrac(stacks[card.stackId], parseFrac(dcStack.left), parseFrac(dcStack.top), wasHidden);
+                animateFreeStackToFrac(stacks[card.stackId], dcPosFrac(dcStack.left, expectedGroupId, false), dcPosFrac(dcStack.top, expectedGroupId, true), wasHidden);
               }
             } else {
               // Match the backend's ordering before computing slots, so the stack
@@ -3400,8 +3416,8 @@ export function createDnc3DEngine(options = {}) {
           && stacks[card.stackId]?.cardIds[0] === card.id) {
         const dcStack = stackById[dcCard.stackId];
         if (dcStack?.left != null && _tiltEl) {
-          const fracXNew = parseFrac(dcStack.left);
-          const fracYNew = parseFrac(dcStack.top);
+          const fracXNew = dcPosFrac(dcStack.left, card.regionId, false);
+          const fracYNew = dcPosFrac(dcStack.top,  card.regionId, true);
           const dx = Math.abs(fracXNew - (card.fracX || 0));
           const dy = Math.abs(fracYNew - (card.fracY || 0));
           if (dx > 0.001 || dy > 0.001) {

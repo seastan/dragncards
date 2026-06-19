@@ -1,7 +1,7 @@
 import { formatGroupId } from './regions';
 
-// Converts any dragncards position format (0–1 number, "50%" string, "1/20"
-// fraction string) to a 0–1 tilt-relative decimal fraction, or null if absent.
+// Converts any dragncards coordinate format (number, "50%", "1/20") to a 0-1 fraction.
+// Format-only — no coordinate-system conversion.
 function parseFrac(val) {
   if (val == null) return null;
   if (typeof val === 'number') return isNaN(val) ? null : val;
@@ -13,6 +13,18 @@ function parseFrac(val) {
     return isNaN(n) ? null : n;
   }
   return null;
+}
+
+// Converts a stack.left/top position value to a 0-1 tilt-relative fraction.
+// Number values are already tilt-relative (stored by 3D drag in onCardMove).
+// String values ("50%", "1/20") are region-relative (2D engine / game def) —
+// convert using the enclosing region's tilt-relative bounds.
+function stackPosToFrac(val, regionOrigin, regionSize) {
+  if (val == null) return null;
+  if (typeof val === 'number') return isNaN(val) ? null : val;
+  const pct = parseFrac(val);
+  if (pct == null) return null;
+  return regionOrigin + pct * regionSize;
 }
 
 // Resolves a card face's imageUrl using the gameDef prefix/language system,
@@ -99,6 +111,13 @@ export function adaptGameState(game, layoutRegions, gameDef, language, observing
     const group = groupById[groupId];
     const stacks = [];
 
+    // Region bounds as 0-1 tilt-relative fractions, for converting region-relative
+    // string positions (from 2D engine / game def) to tilt-relative fractions.
+    const rLeft = parseFrac(region.left)   ?? 0;
+    const rTop  = parseFrac(region.top)    ?? 0;
+    const rW    = parseFrac(region.width)  ?? 1;
+    const rH    = parseFrac(region.height) ?? 1;
+
     (group.stackIds || []).forEach(stackId => {
       const stack = stackById[stackId];
       if (!stack) return;
@@ -116,8 +135,8 @@ export function adaptGameState(game, layoutRegions, gameDef, language, observing
       stacks.push({
         cardIds: dnc3dCardIds,
         attachmentDirections,
-        fracX: parseFrac(stack.left),
-        fracY: parseFrac(stack.top),
+        fracX: stackPosToFrac(stack.left, rLeft, rW),
+        fracY: stackPosToFrac(stack.top,  rTop,  rH),
       });
     });
 
