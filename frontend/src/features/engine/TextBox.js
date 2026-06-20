@@ -17,7 +17,6 @@ export const TextBox = React.memo(({
         width: convertToPercentage(textBoxLayoutInfo.width),
         height: convertToPercentage(textBoxLayoutInfo.height),
         zIndex: hover ? Z_INDEX.Modal : Z_INDEX.TextBox,
-        ...(hover ? { position: 'fixed' } : {}),
         ...customStyle,
       }}>
       {gameL10n(textBoxLayoutInfo.label)}
