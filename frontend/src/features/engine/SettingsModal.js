@@ -49,6 +49,16 @@ export const uiSettings = {
       { "id": "default", "label": "2D" },
       { "id": "dnc3d",   "label": "3D" }
     ]
+  },
+  "tableAngle": {
+    "id": "tableAngle",
+    "label": "Table Angle",
+    "type": "slider",
+    "min": 0,
+    "max": 45,
+    "step": 1,
+    "default": 25,
+    "visibleWhen": { "rendererEngine": "dnc3d" }
   }
 }
 
@@ -306,11 +316,15 @@ const SettingModalTable = React.memo(({settings, currentKeyVals, defaultKeyVals,
           <th className={baseClassName}>Current</th>
           <th className={baseClassName}>Default</th>
         </tr>
-        {Object.keys(settings).map((propertyId, index) => {
+        {Object.keys(settings).reduce((rows, propertyId, index) => {
           const settingObj = settings[propertyId];
-          const bgColour = index % 2 === 0 ? "bg-gray-500" : "bg-gray-600";
+          if (settingObj.visibleWhen) {
+            const visible = Object.entries(settingObj.visibleWhen).every(([k, v]) => currentKeyVals[k] === v);
+            if (!visible) return rows;
+          }
+          const bgColour = rows.length % 2 === 0 ? "bg-gray-500" : "bg-gray-600";
           const className = baseClassName + " " + bgColour;
-          return (
+          rows.push(
             <tr key={propertyId}>
               <td className={className}>
                 {l10n(settingObj.label)}
@@ -322,8 +336,9 @@ const SettingModalTable = React.memo(({settings, currentKeyVals, defaultKeyVals,
                 <SettingsModalFormElement val={defaultKeyVals[settingObj.id]} settingObj={settingObj} setFunction={setDefaultFunction} l10n={l10n}/>
               </td>
             </tr>
-          )
-        })}
+          );
+          return rows;
+        }, [])}
       </tbody>
     </table>
   )
@@ -410,6 +425,26 @@ const SettingsModalFormElement = ({val, settingObj, setFunction, l10n}) => {
           ))}
         </select>
       );
+    case 'slider': {
+      const sliderVal = val ?? settingObj.default ?? 0;
+      return (
+        <div className="flex items-center gap-2">
+          <input
+            type="range"
+            min={settingObj.min ?? 0}
+            max={settingObj.max ?? 100}
+            step={settingObj.step ?? 1}
+            value={sliderVal}
+            className="w-24 accent-blue-500"
+            onChange={(e) => {
+              const newValue = parseInt(e.target.value);
+              setFunction(prevSettings => ({...prevSettings, [settingObj.id]: newValue}));
+            }}
+          />
+          <span className="text-xs w-8 text-right tabular-nums">{sliderVal}°</span>
+        </div>
+      );
+    }
     case 'boolean':
       return (
         <ToggleSwitch

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Z_INDEX } from "./functions/common";
 import { TableLayout } from "./TableLayout";
 import Dnc3DTable from "../engine-dnc3d/Dnc3DTable";
 import { useLayout } from "./hooks/useLayout";
@@ -50,6 +51,7 @@ export const Table = React.memo(({onDragEnd}) => {
   const layout      = useLayout();
   const game        = useSelector(state => state?.gameUi?.game);
   const rendererEngine = useSelector(state => state?.playerUi?.userSettings?.rendererEngine);
+  const tableAngle     = useSelector(state => state?.playerUi?.userSettings?.tableAngle ?? 25);
   const isHost = useIsHost();
   const playerN = usePlayerN();
   const doActionList = useDoActionList();
@@ -106,7 +108,7 @@ export const Table = React.memo(({onDragEnd}) => {
         <div className="w-full h-full">
           {/* Game menu bar */}
           <div className="bg-gray-600 text-white w-full"
-            style={{height: "6%", position: "relative", zIndex: topBarHovered ? 50 : "auto"}}
+            style={{height: "6%", position: "relative", zIndex: topBarHovered ? Z_INDEX.DropdownMenu : "auto"}}
             onMouseEnter={() => setTopBarHovered(true)}
             onMouseLeave={() => setTopBarHovered(false)}>
             <TopBar/>
@@ -115,6 +117,7 @@ export const Table = React.memo(({onDragEnd}) => {
           <div className="relative w-full" style={{height: touchMode ? "82%" : "94%"}}>
             {rendererEngine === 'dnc3d'
               ? <Dnc3DTable
+                  tiltDeg={tableAngle}
                   game={game}
                   layoutRegions={layout?.regions}
                   layoutTextBoxes={layout?.textBoxes}
