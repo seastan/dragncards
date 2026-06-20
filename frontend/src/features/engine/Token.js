@@ -120,6 +120,8 @@ export const Token = React.memo(({
                 }}
                 onMouseOver={() => setButtonDownVisible(true)}
                 onMouseLeave={() => setButtonDownVisible(false)}
+                onPointerDown={(e) => e.stopPropagation()}
+                onPointerUp={(e) => e.stopPropagation()}
                 onClick={(event) => clickArrow(event,-1)}
                 onDoubleClick={(event) => handleDoubleClick(event)}>
                 <FontAwesomeIcon 
@@ -146,6 +148,8 @@ export const Token = React.memo(({
                 }}
                 onMouseOver={() => setButtonUpVisible(true)}
                 onMouseLeave={() => setButtonUpVisible(false)}
+                onPointerDown={(e) => e.stopPropagation()}
+                onPointerUp={(e) => e.stopPropagation()}
                 onClick={(event) => clickArrow(event,1)}
                 onDoubleClick={(event) => handleDoubleClick(event)}>
                 <FontAwesomeIcon 

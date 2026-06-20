@@ -882,6 +882,12 @@ export function createDnc3DEngine(options = {}) {
       if (onCardHoverEnd) onCardHoverEnd(i);
     };
     cardEl.addEventListener('pointerenter', showCardHover);
+    // Tokens are siblings of cardEl (not children), so entering from outside
+    // onto a token never fires cardEl's pointerenter. pointerover bubbles, so
+    // we catch that case here: only trigger when arriving from outside liftEl.
+    liftEl.addEventListener('pointerover', (e) => {
+      if (!liftEl.contains(e.relatedTarget)) showCardHover(e);
+    });
     liftEl.addEventListener('pointerout', endCardHover);
     if (onCardHoverTopBottom) {
       liftEl.addEventListener('pointermove', (e) => {
