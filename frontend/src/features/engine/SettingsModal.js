@@ -58,6 +58,7 @@ export const uiSettings = {
     "max": 45,
     "step": 1,
     "default": 25,
+    "live": true,
     "visibleWhen": { "rendererEngine": "dnc3d" }
   }
 }
@@ -347,6 +348,7 @@ const SettingModalTable = React.memo(({settings, currentKeyVals, defaultKeyVals,
 const SettingsModalFormElement = ({val, settingObj, setFunction, l10n}) => {
   const dispatch = useDispatch();
   const user = useProfile();
+  const userSettings = useSelector(state => state?.playerUi?.userSettings);
   switch (settingObj.type) {
     case 'integer':
       return (
@@ -439,6 +441,9 @@ const SettingsModalFormElement = ({val, settingObj, setFunction, l10n}) => {
             onChange={(e) => {
               const newValue = parseInt(e.target.value);
               setFunction(prevSettings => ({...prevSettings, [settingObj.id]: newValue}));
+              if (settingObj.live) {
+                dispatch(setUserSettings({...userSettings, [settingObj.id]: newValue}));
+              }
             }}
           />
           <span className="text-xs w-8 text-right tabular-nums">{sliderVal}°</span>
