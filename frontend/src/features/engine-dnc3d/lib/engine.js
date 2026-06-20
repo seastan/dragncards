@@ -1,4 +1,4 @@
-import { COLORS, BASE_LIFT, pileStackZPx, MAX_PILE_VISUAL_DEPTH, layerZPx, DEFAULT_REGIONS, scaleDuration, ATTACH_WIGGLE_DVH, DRAG_EDGE_SCROLL_SPEED, GROW, FLIP, OVERLAP, cardTransform } from './config';
+import { COLORS, BASE_LIFT, pileStackZPx, MAX_PILE_VISUAL_DEPTH, layerZPx, DEFAULT_REGIONS, scaleDuration, ATTACH_WIGGLE_DVH, DRAG_EDGE_SCROLL_SPEED, GROW, FLIP, OVERLAP, cardTransform, cardHeightScaleForTilt } from './config';
 import { createState } from './state';
 import { createProjection } from './projection';
 import { createLayout } from './layout';
@@ -234,6 +234,14 @@ export function createDnc3DEngine(options = {}) {
     card.cardEl.style.setProperty('--card-h', h + 'px');
     card.renderedW = w;
     card.renderedH = h;
+    card.cardEl._heightScale = cardHeightScaleForTilt(_currentDeg);
+    if (!card.cardEl._animating) {
+      card.cardEl.style.transform = cardTransform(
+        card.cardEl._angle,
+        (card.cardEl._layoutRotation || 0) + (card.cardEl._gameRotation || 0),
+        1, 0, card.cardEl._heightScale
+      );
+    }
   }
 
   // ── Tilt geometry ──────────────────────────────────────────────────────────
@@ -496,7 +504,7 @@ export function createDnc3DEngine(options = {}) {
     card.cardEl._angle += 180;
     card.cardEl.style.transition = '';
     card.cardEl.style.transform =
-      cardTransform(card.cardEl._angle, (card.cardEl._layoutRotation || 0) + (card.cardEl._gameRotation || 0));
+      cardTransform(card.cardEl._angle, (card.cardEl._layoutRotation || 0) + (card.cardEl._gameRotation || 0), 1, 0, card.cardEl._heightScale || 1);
   }
 
   // Opens the browse fan for a group, moving its cards to the browse region.
@@ -785,7 +793,8 @@ export function createDnc3DEngine(options = {}) {
     liftEl.style.top       = '0px';
     liftEl.style.zIndex    = i + 1;
     liftEl.style.transform = `translateZ(${BASE_LIFT}px)`;
-    cardEl.style.transform = cardTransform(angle, 0);
+    cardEl._heightScale    = cardHeightScaleForTilt(_currentDeg);
+    cardEl.style.transform = cardTransform(angle, 0, 1, 0, cardEl._heightScale);
 
     tiltEl.appendChild(liftEl);
 
@@ -898,7 +907,7 @@ export function createDnc3DEngine(options = {}) {
       card.liftPx = z_px;
       const frac = z_px / dragLiftMax();
       liftEl.style.transform = `translateZ(${BASE_LIFT + card.pileZ + z_px}px) translateX(${x_px}px)`;
-      cardEl.style.transform = cardTransform(cardEl._angle, (cardEl._layoutRotation || 0) + (cardEl._gameRotation || 0), 1 + 0.1 * frac);
+      cardEl.style.transform = cardTransform(cardEl._angle, (cardEl._layoutRotation || 0) + (cardEl._gameRotation || 0), 1 + 0.1 * frac, 0, cardEl._heightScale || 1);
       cardEl.style.boxShadow = frac > 0.01
         ? `0 ${frac * 1.1}vh ${frac * 2.5}vh rgba(0,0,0,0.6)`
         : 'none';
@@ -1513,7 +1522,7 @@ export function createDnc3DEngine(options = {}) {
               c.liftEl.style.zIndex    = p.zIndex;
               c.liftEl.style.transform = `translateZ(${BASE_LIFT + (p.stackZ || 0)}px)`;
               c.cardEl._layoutRotation = p.rot;
-              c.cardEl.style.transform = cardTransform(c.cardEl._angle, p.rot + (c.cardEl._gameRotation || 0));
+              c.cardEl.style.transform = cardTransform(c.cardEl._angle, p.rot + (c.cardEl._gameRotation || 0), 1, 0, c.cardEl._heightScale || 1);
               applyTokenHostRotation(c);
             });
 
@@ -3070,7 +3079,7 @@ export function createDnc3DEngine(options = {}) {
           const rotDurMs = scaleDuration(300);
           card.cardEl.style.transition = `transform ${rotDurMs}ms ease`;
           card.cardEl.style.transform =
-            cardTransform(card.cardEl._angle, totalRot);
+            cardTransform(card.cardEl._angle, totalRot, 1, 0, card.cardEl._heightScale || 1);
           applyTokenHostRotation(card);
           card.cardEl._rotTransId = setTimeout(() => {
             card.cardEl.style.transition = '';

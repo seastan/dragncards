@@ -51,14 +51,14 @@ export function animateFlip(cardEl, liftEl, startAngle, onComplete, startLiftPx 
       : Math.max(0, startRestPx + peakLift * p1 - (startRestPx + peakLift - endLiftPx) * p3);
 
     liftEl.style.transform = `translateZ(${BASE_LIFT + lift}px)`;
-    cardEl.style.transform = cardTransform(currentAngle, startLayoutRot, scale, tx);
+    cardEl.style.transform = cardTransform(currentAngle, startLayoutRot, scale, tx, cardEl._heightScale || 1);
     cardEl.style.boxShadow = `0 ${shadowVH}vh ${shadowVH * 2}vh rgba(0,0,0,${shadowOpacity})`;
 
     if (elapsed < total) {
       requestAnimationFrame(frame);
     } else {
       liftEl.style.transform = `translateZ(${BASE_LIFT + endLiftPx}px)`;
-      cardEl.style.transform = cardTransform(startAngle + direction * 180, startLayoutRot);
+      cardEl.style.transform = cardTransform(startAngle + direction * 180, startLayoutRot, 1, 0, cardEl._heightScale || 1);
       cardEl.style.boxShadow = 'none';
       cardEl._animating      = false;
       if (onComplete) onComplete();

@@ -377,7 +377,7 @@ export function createLayout(state, projection, REGIONS) {
     card.pileZ                  = stackZ;
     card.liftEl.style.transform = `translateZ(${BASE_LIFT + stackZ}px)`;
     card.cardEl._layoutRotation = rot;
-    card.cardEl.style.transform = cardTransform(card.cardEl._angle, rot + (card.cardEl._gameRotation || 0));
+    card.cardEl.style.transform = cardTransform(card.cardEl._angle, rot + (card.cardEl._gameRotation || 0), 1, 0, card.cardEl._heightScale || 1);
     applyTokenHostRotation(card);
   }
 
@@ -415,7 +415,7 @@ export function createLayout(state, projection, REGIONS) {
       card.liftEl.style.top       = (fromTop  + (targetTop  - fromTop)  * e - o.y) + 'px';
       card.liftEl.style.transform = `translateZ(${BASE_LIFT + sz}px)`;
       card.cardEl._layoutRotation = fromRot + (targetRot - fromRot) * e;
-      card.cardEl.style.transform = cardTransform(card.cardEl._angle, card.cardEl._layoutRotation + (card.cardEl._gameRotation || 0));
+      card.cardEl.style.transform = cardTransform(card.cardEl._angle, card.cardEl._layoutRotation + (card.cardEl._gameRotation || 0), 1, 0, card.cardEl._heightScale || 1);
       applyTokenHostRotation(card);
       if (t < 1) {
         card.layoutAnimId = requestAnimationFrame(frame);
@@ -476,7 +476,7 @@ export function createLayout(state, projection, REGIONS) {
       card.liftEl.style.top       = (fromTop  + (targetTop  - fromTop)  * e - o.y) + 'px';
       card.liftEl.style.transform = `translateZ(${BASE_LIFT + restZ + bump}px)`;
       card.cardEl._layoutRotation = fromRot + (targetRot - fromRot) * e;
-      card.cardEl.style.transform = cardTransform(card.cardEl._angle, card.cardEl._layoutRotation + (card.cardEl._gameRotation || 0));
+      card.cardEl.style.transform = cardTransform(card.cardEl._angle, card.cardEl._layoutRotation + (card.cardEl._gameRotation || 0), 1, 0, card.cardEl._heightScale || 1);
       applyTokenHostRotation(card);
       if (t < 1) {
         card.layoutAnimId = requestAnimationFrame(frame);

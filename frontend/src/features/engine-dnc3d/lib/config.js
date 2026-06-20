@@ -18,6 +18,11 @@ export const LAYER_Z_FRAC      = 0.7;   // fraction of card height per layerInde
 export const dvhPx        = () => window.innerHeight / 100;
 export const pileStackZPx = (cardH) => PILE_STACK_Z_FRAC * cardH;
 export const layerZPx     = (cardH) => LAYER_Z_FRAC * cardH;
+// Height scale factor applied to cards based on table tilt angle.
+// At 0°: ×0.9 (−10%), at 45°: ×1.1 (+10%), linear between.
+// Adjust the 0.9 / 0.2 constants to tune the effect.
+export const cardHeightScaleForTilt = (deg) =>
+  0.9 + (Math.min(Math.max(deg, 0), 45) / 45) * 0.2;
 export const ANIMATION_SPEED_MULTIPLIER = 1;
 export const ATTACH_WIGGLE_DVH = 8; // horizontal wiggle on card attachment, in dvh
 export const DRAG_EDGE_SCROLL_SPEED = 0.048; // auto-scroll speed when dragging near region edge, as fraction of card width per frame (~60fps)
@@ -50,9 +55,10 @@ export function scaleDuration(ms) {
 //   rotDeg   : in-plane rotation (layoutRotation + gameRotation)
 //   scale    : uniform scale (default 1)
 //   swingPct : lateral flip swing as % of card width (default 0)
-export function cardTransform(angleDeg, rotDeg, scale = 1, swingPct = 0) {
+export function cardTransform(angleDeg, rotDeg, scale = 1, swingPct = 0, heightScale = 1) {
   const swing = swingPct ? ` translateX(${swingPct}%)` : '';
-  return `perspective(300vw) rotateZ(${rotDeg}deg)${swing} rotateY(${angleDeg}deg) scale(${scale})`;
+  const hs    = heightScale !== 1 ? ` scaleY(${heightScale})` : '';
+  return `perspective(300vw) rotateZ(${rotDeg}deg)${swing} rotateY(${angleDeg}deg) scale(${scale})${hs}`;
 }
 
 // Default region layout — used for demo/sandbox mode.
