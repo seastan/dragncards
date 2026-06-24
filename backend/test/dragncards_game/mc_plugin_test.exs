@@ -726,4 +726,145 @@ defmodule DragnCardsGame.McPluginTest do
     #IO.puts length(res["groupById"]["sharedEncounterDeck"]["parentCardIds"])
     assert length(res["groupById"]["player1Engaged"]["stackIds"]) == 1
   end
+
+  # ── mc4db import tests ─────────────────────────────────────────────────────
+
+  @tag :build_mc4db_face
+  test "BUILD_MC4DB_FACE constructs face from mock card JSON", %{game: game} do
+    mock_card = %{
+      "name" => "Iron Man",
+      "type_name" => "Hero",
+      "imagesrc" => "/cards/ironman.jpg",
+      "health" => 15,
+      "hand_size" => 6,
+      "boost" => nil,
+      "threat" => nil
+    }
+
+    result = Evaluate.evaluate(game, [
+      ["VAR", "$CARD_JSON", mock_card],
+      ["VAR", "$BASE_URL", "https://mc4db.merlindumesnil.net"],
+      ["BUILD_MC4DB_FACE", "$CARD_JSON", "$BASE_URL"]
+    ])
+
+    assert result["name"] == "Iron Man"
+    assert result["type"] == "Hero"
+    assert result["imageUrl"] == "https://mc4db.merlindumesnil.net/cards/ironman.jpg"
+    assert result["hitPointsFixed"] == 15
+    assert result["handSize"] == 6
+    assert result["nemesisMinion"] == "false"
+    assert result["permanent"] == "false"
+    assert result["toughness"] == "false"
+    assert result["acceleration"] == nil
+    assert result["startingThreatFixed"] == nil
+
+    IO.puts("BUILD_MC4DB_FACE: name=#{result["name"]}, type=#{result["type"]}, imageUrl=#{result["imageUrl"]}")
+  end
+
+  @tag :load_cards_with_card_details
+  test "LOAD_CARDS accepts inline cardDetails for two-sided hero and single-sided allies", %{game: game} do
+    hero_a = %{
+      "name" => "Test Hero",
+      "type" => "Hero",
+      "imageUrl" => "https://mc4db.merlindumesnil.net/cards/hero_a.jpg",
+      "hitPointsFixed" => 12,
+      "handSize" => 5,
+      "accelerationFixed" => nil, "accelerationScaling" => nil, "acceleration" => nil,
+      "amplify" => nil, "crisis" => nil, "hazard" => nil, "hitPointsScaling" => nil,
+      "nemesisMinion" => "false", "permanent" => "false", "startingThreatFixed" => nil,
+      "startingThreatScaling" => nil, "toughness" => "false", "victory" => nil
+    }
+    hero_b = %{
+      "name" => "Test Alter-Ego",
+      "type" => "Alter-Ego",
+      "imageUrl" => "https://mc4db.merlindumesnil.net/cards/hero_b.jpg",
+      "hitPointsFixed" => nil,
+      "handSize" => 6,
+      "accelerationFixed" => nil, "accelerationScaling" => nil, "acceleration" => nil,
+      "amplify" => nil, "crisis" => nil, "hazard" => nil, "hitPointsScaling" => nil,
+      "nemesisMinion" => "false", "permanent" => "false", "startingThreatFixed" => nil,
+      "startingThreatScaling" => nil, "toughness" => "false", "victory" => nil
+    }
+    ally_a = %{
+      "name" => "Test Ally",
+      "type" => "Ally",
+      "imageUrl" => "https://mc4db.merlindumesnil.net/cards/ally.jpg",
+      "hitPointsFixed" => 3,
+      "handSize" => nil,
+      "accelerationFixed" => nil, "accelerationScaling" => nil, "acceleration" => nil,
+      "amplify" => nil, "crisis" => nil, "hazard" => nil, "hitPointsScaling" => nil,
+      "nemesisMinion" => "false", "permanent" => "false", "startingThreatFixed" => nil,
+      "startingThreatScaling" => nil, "toughness" => "false", "victory" => nil
+    }
+
+    hero_item = %{"databaseId" => nil, "quantity" => 1, "loadGroupId" => "player1Play1",
+                  "cardDetails" => %{"A" => hero_a, "B" => hero_b}}
+    ally_item = %{"databaseId" => nil, "quantity" => 2, "loadGroupId" => "player1Deck",
+                  "cardDetails" => %{"A" => ally_a}}
+
+    # Disable automation so the postLoadActionList doesn't try to auto-load a real deck for "Test Hero"
+    game = Evaluate.evaluate(game, ["SET", "/automationEnabled", false])
+    res = Evaluate.evaluate(game, ["LOAD_CARDS", ["LIST", hero_item, ally_item]])
+
+    assert length(res["groupById"]["player1Play1"]["stackIds"]) == 1
+    assert length(res["groupById"]["player1Deck"]["stackIds"]) == 2
+
+    hero_card_id = Evaluate.evaluate(res, ["GET_CARD_ID", "player1Play1", 0, 0])
+    hero = res["cardById"][hero_card_id]
+    assert hero["sides"]["A"]["name"] == "Test Hero"
+    assert hero["sides"]["A"]["type"] == "Hero"
+    assert hero["sides"]["A"]["imageUrl"] == "https://mc4db.merlindumesnil.net/cards/hero_a.jpg"
+    assert hero["sides"]["B"]["name"] == "Test Alter-Ego"
+    assert hero["sides"]["B"]["type"] == "Alter-Ego"
+
+    ally_card_id = Evaluate.evaluate(res, ["GET_CARD_ID", "player1Deck", 0, 0])
+    ally = res["cardById"][ally_card_id]
+    assert ally["sides"]["A"]["name"] == "Test Ally"
+    assert ally["sides"]["A"]["imageUrl"] == "https://mc4db.merlindumesnil.net/cards/ally.jpg"
+
+    IO.puts("Hero A: #{hero["sides"]["A"]["name"]}, B: #{hero["sides"]["B"]["name"]}")
+    IO.puts("Ally: #{ally["sides"]["A"]["name"]}")
+  end
+
+  @tag :import_mc4db_deck
+  test "importMc4dbDeck end-to-end with real mc4db API", %{game: game} do
+    url = "https://mc4db.merlindumesnil.net/api/public/decklist/61.json"
+
+    res = try do
+      Evaluate.evaluate(game, [
+        ["DEFINE", "$PROMPT_INPUT", url],
+        ["ACTION_LIST", "importMc4dbDeck"]
+      ])
+    rescue
+      e ->
+        IO.puts("HTTP request failed (offline env?): #{Exception.message(e)}")
+        nil
+    end
+
+    if res == nil do
+      IO.puts("Skipping end-to-end assertions — could not reach mc4db")
+      assert true
+    else
+      IO.puts("Deck size: #{length(res["groupById"]["player1Deck"]["stackIds"])}")
+      IO.puts("Play area size: #{length(res["groupById"]["player1Play1"]["stackIds"])}")
+
+      assert length(res["groupById"]["player1Play1"]["stackIds"]) == 1
+      assert length(res["groupById"]["player1Deck"]["stackIds"]) > 0
+
+      hero_card_id = Evaluate.evaluate(res, ["GET_CARD_ID", "player1Play1", 0, 0])
+      hero = res["cardById"][hero_card_id]
+
+      assert hero["sides"]["A"]["name"] != nil
+      assert hero["sides"]["B"]["name"] != nil
+      assert is_binary(hero["sides"]["A"]["imageUrl"])
+      assert String.starts_with?(hero["sides"]["A"]["imageUrl"], "https://mc4db.merlindumesnil.net")
+
+      IO.puts("Hero A: #{hero["sides"]["A"]["name"]}")
+      IO.puts("Hero B: #{hero["sides"]["B"]["name"]}")
+      IO.puts("imageUrl: #{hero["sides"]["A"]["imageUrl"]}")
+
+      Enum.each(res["messages"], fn msg -> IO.puts(msg) end)
+    end
+  end
+
 end

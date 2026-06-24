@@ -32,7 +32,36 @@ defmodule DragnCardsGame.Evaluate.Functions.SHUFFLE_GROUP do
     group_id = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["group_id"])
     stack_ids = game["groupById"][group_id]["stackIds"]
     shuffled_stack_ids = stack_ids |> Enum.shuffle
-    Evaluate.evaluate(game, ["SET", "/groupById/#{group_id}/stackIds", ["LIST"] ++ shuffled_stack_ids], trace)
+    game = Evaluate.evaluate(game, ["SET", "/groupById/#{group_id}/stackIds", ["LIST"] ++ shuffled_stack_ids], trace)
+
+    # Notify clients that this group was shuffled so the dnc3d engine can play a
+    # shuffle animation (pile regions only). Modeled on SELECT_CARDS: append one
+    # entry per seated player to pendingGuiUpdates. The room channel broadcasts
+    # shuffle updates to everyone (see send_gui_message handling), and each client
+    # keeps the entry matching its own player via the targetPlayerN filter. The
+    # nonce makes every shuffle a distinct value so a repeat shuffle of the same
+    # group still triggers the client-side effect.
+    num_players = game["numPlayers"] || 0
+    nonce = System.unique_integer([:monotonic, :positive])
+    gui_updates =
+      if num_players > 0 do
+        Enum.map(1..num_players, fn i ->
+          %{
+            "targetPlayerN" => "player" <> Integer.to_string(i),
+            "updates" => %{
+              "dnc3dShuffle" => %{
+                "groupId" => group_id,
+                "nonce" => nonce
+              }
+            }
+          }
+        end)
+      else
+        []
+      end
+
+    existing_gui_updates = Map.get(game, "pendingGuiUpdates", [])
+    Map.put(game, "pendingGuiUpdates", existing_gui_updates ++ gui_updates)
   end
 
 

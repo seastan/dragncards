@@ -38,6 +38,28 @@ export const uiSettings = {
     "label": "touchMode",
     "type": "boolean",
     "default": false
+  },
+  "rendererEngine": {
+    "id": "rendererEngine",
+    "label": "Render Mode",
+    "type": "option",
+    "segmented": true,
+    "default": "dnc3d",
+    "options": [
+      { "id": "default", "label": "2D" },
+      { "id": "dnc3d",   "label": "3D" }
+    ]
+  },
+  "tableAngle": {
+    "id": "tableAngle",
+    "label": "Table Angle",
+    "type": "slider",
+    "min": 0,
+    "max": 45,
+    "step": 1,
+    "default": 25,
+    "live": true,
+    "visibleWhen": { "rendererEngine": "dnc3d" }
   }
 }
 
@@ -295,11 +317,15 @@ const SettingModalTable = React.memo(({settings, currentKeyVals, defaultKeyVals,
           <th className={baseClassName}>Current</th>
           <th className={baseClassName}>Default</th>
         </tr>
-        {Object.keys(settings).map((propertyId, index) => {
+        {Object.keys(settings).reduce((rows, propertyId, index) => {
           const settingObj = settings[propertyId];
-          const bgColour = index % 2 === 0 ? "bg-gray-500" : "bg-gray-600";
+          if (settingObj.visibleWhen) {
+            const visible = Object.entries(settingObj.visibleWhen).every(([k, v]) => currentKeyVals[k] === v);
+            if (!visible) return rows;
+          }
+          const bgColour = rows.length % 2 === 0 ? "bg-gray-500" : "bg-gray-600";
           const className = baseClassName + " " + bgColour;
-          return (
+          rows.push(
             <tr key={propertyId}>
               <td className={className}>
                 {l10n(settingObj.label)}
@@ -311,8 +337,9 @@ const SettingModalTable = React.memo(({settings, currentKeyVals, defaultKeyVals,
                 <SettingsModalFormElement val={defaultKeyVals[settingObj.id]} settingObj={settingObj} setFunction={setDefaultFunction} l10n={l10n}/>
               </td>
             </tr>
-          )
-        })}
+          );
+          return rows;
+        }, [])}
       </tbody>
     </table>
   )
@@ -321,6 +348,7 @@ const SettingModalTable = React.memo(({settings, currentKeyVals, defaultKeyVals,
 const SettingsModalFormElement = ({val, settingObj, setFunction, l10n}) => {
   const dispatch = useDispatch();
   const user = useProfile();
+  const userSettings = useSelector(state => state?.playerUi?.userSettings);
   switch (settingObj.type) {
     case 'integer':
       return (
@@ -357,6 +385,34 @@ const SettingsModalFormElement = ({val, settingObj, setFunction, l10n}) => {
           />
       );
     case 'option':
+      // Segmented button group (opt-in via `segmented: true`); all other option
+      // settings keep the standard dropdown.
+      if (settingObj.segmented) {
+        return (
+          <div className="inline-flex gap-1 rounded-md bg-gray-800 p-1">
+            {settingObj.options.map(option => {
+              const selected = val === option.id;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() =>
+                    setFunction(prevSettings => ({...prevSettings, [settingObj.id]: option.id}))
+                  }
+                  className={
+                    "rounded px-3 py-1 text-sm transition-colors " +
+                    (selected
+                      ? "bg-blue-800 text-white shadow"
+                      : "text-gray-300 hover:bg-gray-700 hover:text-white")
+                  }
+                >
+                  {l10n(option.label)}
+                </button>
+              );
+            })}
+          </div>
+        );
+      }
       return (
         <select
           className="p-2 w-48 text-black"
@@ -371,6 +427,29 @@ const SettingsModalFormElement = ({val, settingObj, setFunction, l10n}) => {
           ))}
         </select>
       );
+    case 'slider': {
+      const sliderVal = val ?? settingObj.default ?? 0;
+      return (
+        <div className="flex items-center gap-2">
+          <input
+            type="range"
+            min={settingObj.min ?? 0}
+            max={settingObj.max ?? 100}
+            step={settingObj.step ?? 1}
+            value={sliderVal}
+            className="w-24 accent-blue-500"
+            onChange={(e) => {
+              const newValue = parseInt(e.target.value);
+              setFunction(prevSettings => ({...prevSettings, [settingObj.id]: newValue}));
+              if (settingObj.live) {
+                dispatch(setUserSettings({...userSettings, [settingObj.id]: newValue}));
+              }
+            }}
+          />
+          <span className="text-xs w-8 text-right tabular-nums">{sliderVal}°</span>
+        </div>
+      );
+    }
     case 'boolean':
       return (
         <ToggleSwitch

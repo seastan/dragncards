@@ -10,6 +10,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGripLines } from "@fortawesome/free-solid-svg-icons";
 import { setPromptVisible } from "../store/gameUiSlice";
 import { useSetPluginSetting } from "./hooks/useSetPluginSetting";
+import { usePlugin } from "./hooks/usePlugin";
 import { useVisiblePrompts } from "./hooks/useVisiblePrompts";
 import { clearMultiSelectCardIds, setMultiSelectEnabled, setTyping } from "../store/playerUiSlice";
 import store from "../../store";
@@ -71,6 +72,7 @@ export const Prompt = React.memo(({
   const gameL10n = useGameL10n();
   const gameL10nRich = useGameL10nRich();
   const richText = useRichText();
+  const plugin = usePlugin();
   const setPluginSetting = useSetPluginSetting();
   const multiSelect = useSelector(state => state.playerUi.multiSelect);
   const [promptTextInput, setPromptTextInput] = useState(null);
@@ -103,6 +105,13 @@ export const Prompt = React.memo(({
     runCode(option.code, gameL10n(option.label));
     if (option.dontShowAgain == true) {
       setPluginSetting("game", {dontShowAgainPromptIds: {[promptId]: true}});
+      // Also write to localStorage so the setting takes effect immediately on
+      // page refresh, before the async profile fetch completes.
+      try {
+        const key = `dontShowAgainPromptIds_${plugin?.id}`;
+        const existing = JSON.parse(localStorage.getItem(key) || "{}");
+        localStorage.setItem(key, JSON.stringify({...existing, [promptId]: true}));
+      } catch {}
     }
   }
 
@@ -154,6 +163,9 @@ export const Prompts = React.memo(({
         console.log("Clearing multi-select card ids because the top prompt does not have a selectCards input");
         dispatch(clearMultiSelectCardIds());
       }
+    } else if (multiSelect.enabled) {
+      dispatch(setMultiSelectEnabled(false));
+      dispatch(clearMultiSelectCardIds());
     }
   }, [sortedPromptIds, prompts]);
   

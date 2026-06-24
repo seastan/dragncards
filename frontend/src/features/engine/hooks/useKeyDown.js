@@ -1,7 +1,7 @@
 import { useContext, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import BroadcastContext from '../../../contexts/BroadcastContext';
-import { clearMultiSelectCardIds, defaultKeypress, setKeypress, setKeypressAlt, setKeypressCommand, setKeypressControl, setKeypressShift, setKeypressSpace, setKeypressTab, setPreHotkeyActiveCardGroupId, setShowModal } from '../../store/playerUiSlice';
+import { clearMultiSelectCardIds, defaultKeypress, setActiveCardId, setKeypress, setKeypressAlt, setKeypressCommand, setKeypressControl, setKeypressShift, setKeypressSpace, setKeypressTab, setPreHotkeyActiveCardGroupId, setShowModal } from '../../store/playerUiSlice';
 import { useAddToken } from './useAddToken';
 import { useDoActionList } from './useDoActionList';
 import { dragnHotkeys, useDoDragnHotkey } from './useDragnHotkeys';
@@ -78,6 +78,11 @@ export const useKeyDown = () => {
                 dispatch(setShowModal("settings"));
                 return;
             } else {
+                // The hotkey overlay covers the table, so drop the hovered
+                // card's highlight/active status while it is open. It gets
+                // re-evaluated against the cursor position on Tab release
+                // (see RoomGame's keyup handler).
+                dispatch(setActiveCardId(null));
                 dispatch(setKeypressTab(unix_sec));
                 return;
             }

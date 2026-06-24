@@ -29,10 +29,23 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
     <title>DragnCards</title>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MY4HHNLSYB"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-MY4HHNLSYB');
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root" class="flex flex-col max-w-full h-full overflow-hidden" style="height:100dvh"></div>
+    <!-- overflow:clip (not hidden): hidden is still a scroll container the browser
+         can scroll programmatically (scrollIntoView / scroll-anchoring), which in
+         the dnc3d engine shifts the whole app up when a card dropped near the
+         viewport edge animates its flip. clip clips identically but is never
+         scrollable, so the table can't drift. -->
+    <div id="root" class="flex flex-col max-w-full h-full" style="height:100dvh;overflow:clip"></div>
     <!--
       This HTML file is a template.
       If you open it directly in the browser, you will see an empty page.

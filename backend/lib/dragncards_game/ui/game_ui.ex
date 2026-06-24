@@ -1163,6 +1163,13 @@ defmodule DragnCardsGame.GameUI do
       group_size = Enum.count(get_stack_ids(game, group_id))
 
       new_card = Card.card_from_card_details(load_list_item["cardDetails"], game_def, load_list_item["databaseId"], group_id)
+      # Optional per-item starting side (e.g. spawning a card by its side B name);
+      # falls back to the group's defaultSideUp when not specified.
+      new_card =
+        case load_list_item["currentSide"] do
+          nil -> new_card
+          side -> put_in(new_card["currentSide"], side)
+        end
       new_stack = Stack.stack_from_card(new_card)
 
       game = update_card(game, new_card, trace)
@@ -1258,7 +1265,10 @@ defmodule DragnCardsGame.GameUI do
       new_stack_ids = get_stack_ids(new_game, group_id)
       # Check if the number of stacks in the deck has changed, and if so, we shuffle
       if group["shuffleOnLoad"] && length(old_stack_ids) != length(new_stack_ids) do
-        acc = shuffle_group(acc, group_id)
+        # Use SHUFFLE_GROUP (not the bare shuffle_group helper) so that the
+        # pendingGuiUpdates dnc3dShuffle signal is emitted, triggering the
+        # pile riffle animation in the 3D engine after cards finish spawning.
+        acc = Evaluate.evaluate(acc, ["SHUFFLE_GROUP", group_id], [])
         Evaluate.evaluate(acc, ["LOG", get_alias_n(new_game), " shuffled ", l10n(acc, game_def, group["label"]), "."], [])
       else
         acc
@@ -1354,7 +1364,8 @@ defmodule DragnCardsGame.GameUI do
         "quantity" => quantity,
         "loadGroupId" => loadGroupId,
         "left" => load_list_item["left"],
-        "top" => load_list_item["top"]
+        "top" => load_list_item["top"],
+        "currentSide" => load_list_item["currentSide"]
       }
 
     end)

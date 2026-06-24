@@ -14,6 +14,7 @@ export const Token = React.memo(({
     showButtons,
     zIndex,
     aspectRatio,
+    extrudeFilter = null,
 }) => {
 
     const doActionList = useDoActionList();
@@ -81,6 +82,19 @@ export const Token = React.memo(({
                 width: tokenDef.width,
                 //height: `${22*(1-0.6*(0.7-aspectRatio))}%`,
                 zIndex: showButtons ? zIndex + 1 : "",
+                isolation: extrudeFilter ? "isolate" : undefined,
+                // dnc3d: the token host (liftEl child) is pointer-events:none so the
+                // card stays hoverable/clickable through it; re-enable hit-testing on
+                // this small token box so its +/- arrows and drag still work.
+                pointerEvents: extrudeFilter ? "auto" : undefined,
+                // dnc3d: the token box isn't a descendant of cardEl, so it can't
+                // inherit the card's `cursor: grab`. A token grab still drags the
+                // card (pointerdown bubbles to liftEl), so match the card's cursor
+                // — otherwise hovering a token (incl. one overlapping a parent
+                // card in a stack) flips the cursor back to the default arrow.
+                cursor: extrudeFilter ? "grab" : undefined,
+                // dnc3d: shrink tokens 20% in place (origin defaults to center).
+                transform: extrudeFilter ? "scale(0.8)" : undefined,
                 display: showButtons || (amount!==0 && amount!==null && amount!==undefined) ? "block" : "none"}}>
             <div
                 className="flex absolute text-white text-center w-full h-full items-center justify-center"
@@ -102,9 +116,12 @@ export const Token = React.memo(({
                     opacity: buttonDownVisible ? "65%" : "0%",
                     display: showButtons ? "block" : "none",
                     zIndex: zIndex + 2,
+                    cursor: extrudeFilter ? "pointer" : undefined,
                 }}
                 onMouseOver={() => setButtonDownVisible(true)}
                 onMouseLeave={() => setButtonDownVisible(false)}
+                onPointerDown={(e) => e.stopPropagation()}
+                onPointerUp={(e) => e.stopPropagation()}
                 onClick={(event) => clickArrow(event,-1)}
                 onDoubleClick={(event) => handleDoubleClick(event)}>
                 <FontAwesomeIcon 
@@ -127,9 +144,12 @@ export const Token = React.memo(({
                     opacity: buttonUpVisible ? "65%" : "0%",
                     display: showButtons ? "block" : "none",
                     zIndex: zIndex + 2,
+                    cursor: extrudeFilter ? "pointer" : undefined,
                 }}
                 onMouseOver={() => setButtonUpVisible(true)}
                 onMouseLeave={() => setButtonUpVisible(false)}
+                onPointerDown={(e) => e.stopPropagation()}
+                onPointerUp={(e) => e.stopPropagation()}
                 onClick={(event) => clickArrow(event,1)}
                 onDoubleClick={(event) => handleDoubleClick(event)}>
                 <FontAwesomeIcon 
@@ -142,9 +162,25 @@ export const Token = React.memo(({
                     icon={faChevronUp}
                 />
             </div>
-            <img 
+            {/* Token art. With extrudeFilter set the <img> establishes its own
+                stacking context, which would otherwise paint over the label
+                (it's the last child). The isolated wrapper + negative z-index
+                pushes it behind the number/buttons without disturbing their
+                static-position layout.
+
+                The counter-rotation keeps the extrusion wall pointing
+                screen-down on rotated (e.g. exhausted) cards: CSS applies the
+                `filter` in the img's LOCAL space, then its `transform`. The
+                card face rotates the token by +rotation, so rotating the img by
+                -rotation cancels it — the wall's fixed downward offset lands
+                screen-down again. (Round token art is unchanged by the spin.) */}
+            <img
                 className="block h-full"
-                src={tokenDef.imageUrl}/> 
+                style={extrudeFilter
+                    ? { filter: extrudeFilter, overflow: "visible", position: "relative", zIndex: -1,
+                        transform: `rotate(${-(rotation || 0)}deg)` }
+                    : undefined}
+                src={tokenDef.imageUrl}/>
         </div>
         </Draggable>
     )

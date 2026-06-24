@@ -124,13 +124,14 @@ defmodule DragnCardsWeb.RoomChannel do
 
     new_state = GameUIServer.state(room_slug)
 
-    # Process any pending GUI updates
+    # Capture pending GUI updates before broadcasting the state. notify_update
+    # must fire first so clients re-build their engine with the new card set
+    # before any GUI effects (e.g. dnc3dShuffle animation) trigger against it.
+    # Reading here (before notify_update) is safe because game_action already
+    # cleared pendingGuiUpdates at the top of the action and only this action
+    # re-populated them; process_update (called inside notify_update) does not
+    # clear them, so they remain readable from new_state.
     pending_gui_updates = get_in(new_state, ["game", "pendingGuiUpdates"])
-    if is_list(pending_gui_updates) and length(pending_gui_updates) > 0 do
-      Enum.each(pending_gui_updates, fn gui_update ->
-        send_gui_message_to_player(socket, gui_update)
-      end)
-    end
 
     # If round changed, save replay asynchronously
     if get_in(new_state, ["game", "roundNumber"]) != get_in(old_state, ["game", "roundNumber"]) do
@@ -141,7 +142,16 @@ defmodule DragnCardsWeb.RoomChannel do
       end)
     end
 
+    # State update first — clients need the new game state before GUI effects fire.
     notify_update(socket, room_slug, user_id, old_state, options["description"])
+
+    # GUI updates after — ensures dnc3dShuffle fires against an engine that
+    # already has the new card set (critical when shuffleOnLoad triggers on load).
+    if is_list(pending_gui_updates) and length(pending_gui_updates) > 0 do
+      Enum.each(pending_gui_updates, fn gui_update ->
+        send_gui_message_to_player(socket, gui_update)
+      end)
+    end
 
     {:reply, {:ok, "game_action"}, socket}
   end
@@ -467,8 +477,16 @@ defmodule DragnCardsWeb.RoomChannel do
   end
 
   def send_gui_message_to_player(socket, gui_update) do
-    # Send the GUI update to the specific player
-    push(socket, "gui_update", gui_update)
+    # Shuffle animations must reach every player at the table, not just the actor.
+    # Broadcast them as "gui_update_all" (not intercepted, so the payload is sent
+    # as-is); each client filters by targetPlayerN exactly like the actor-only
+    # "gui_update" path. Other GUI updates stay actor-only.
+    if get_in(gui_update, ["updates", "dnc3dShuffle"]) do
+      broadcast!(socket, "gui_update_all", gui_update)
+    else
+      # Send the GUI update to the specific player
+      push(socket, "gui_update", gui_update)
+    end
   end
 
   # Define the handle_out function for the intercepted event
