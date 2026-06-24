@@ -11,12 +11,15 @@ import { buildEngineCallbacks } from './adapters/actions';
 import { useBrowseTopN } from '../engine/hooks/useBrowseTopN';
 import { convertToPercentage, Z_INDEX } from '../engine/functions/common';
 import { TableButton } from '../engine/TableButton';
+import { Alert } from '../engine/Alert';
 import { Prompts } from '../engine/Prompts';
 import { Tokens } from '../engine/Tokens';
 import { MultiSelectOverlay } from '../engine/MultiSelectOverlay';
 import { Dnc3DHudChat } from './Dnc3DHudChat';
 import { Dnc3DHudBrowse } from './Dnc3DHudBrowse';
 import { Dnc3DTokenExtrudeFilter } from './Dnc3DTokenExtrudeFilter';
+import { FadeTextCard } from '../engine/FadeTextCard';
+import { FadeTextPlayer } from '../engine/FadeTextPlayer';
 import { TOKEN_EXTRUDE, TOKEN_EXTRUDE_FILTER_ID } from './lib/config';
 import './Dnc3DTable.css';
 
@@ -38,6 +41,7 @@ function CardTokens({ cardId, aspectRatio }) {
       <div className="absolute" style={{ inset: 0, pointerEvents: 'none' }}>
         <Tokens cardId={cardId} isActive={isActive} aspectRatio={aspectRatio} extrudeFilter={TOKEN_EXTRUDE_CSS} />
       </div>
+      <FadeTextCard cardId={cardId} />
       <MultiSelectOverlay cardId={cardId} />
     </>
   );
@@ -423,7 +427,9 @@ export default function Dnc3DTable({
       {/* Player prompts — self-contained draggable overlay (reads visible prompts
           from Redux, renders null when there are none). Positioned relative to
           the stage, same as in the 2D TableLayout. */}
+      {game && <Alert />}
       {game && <Prompts />}
+      {game && <FadeTextPlayer />}
       {/* Hover TextBox overlays — screen-space, positioned relative to the stage.
           Like the other 3D engines (pixi/r3f), only hover textboxes are drawn:
           non-hover ones live on the tilted table surface, which this renderer

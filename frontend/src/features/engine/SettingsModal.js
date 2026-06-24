@@ -44,7 +44,7 @@ export const uiSettings = {
     "label": "Render Mode",
     "type": "option",
     "segmented": true,
-    "default": "default",
+    "default": "dnc3d",
     "options": [
       { "id": "default", "label": "2D" },
       { "id": "dnc3d",   "label": "3D" }

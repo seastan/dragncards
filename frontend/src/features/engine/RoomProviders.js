@@ -38,14 +38,14 @@ export const RoomProviders = ({ gameBroadcast, chatBroadcast }) => {
   }, [playerN, myUser])
 
   useEffect(() => {
-
     const databaseUiSettings = myUser?.plugin_settings?.[pluginId]?.ui;
     if (databaseUiSettings) {
       console.log("Setting user settings from database", userSettings, databaseUiSettings)
       const mergedSettings = {...userSettings, ...databaseUiSettings};
       dispatch(setUserSettings(mergedSettings));
     }
-  }, [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myUser?.id, pluginId])
 
   const gameBackgroundUrl = gameDef?.backgroundUrl;
   const playerUiBackgroundUrl = useSelector(state => state?.playerUi?.userSettings?.backgroundUrl);

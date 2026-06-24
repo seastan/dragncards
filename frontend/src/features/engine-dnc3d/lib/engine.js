@@ -187,6 +187,16 @@ export function createDnc3DEngine(options = {}) {
   // ── Browse state ───────────────────────────────────────────────────────────
   let _browseGroupId         = null;
   let _browseAllEngineStacks = []; // [{ engineStackId, dcStackIndex }]
+  // Set of engine stack IDs that are currently visible after the last filter
+  // call. null means updateBrowseFilter hasn't run yet this browse session.
+  let _browseVisibleStackIds = null;
+  // Snapshot of visible stack IDs saved at the end of each refreshBrowseFromGame
+  // (and openBrowse) call. Unlike _browseVisibleStackIds, this is NOT updated by
+  // React-side updateBrowseFilter calls, so it's immune to the race where the
+  // child onFilterChange effect fires with new numStacks (N-1) but the engine still
+  // has the old _browseAllEngineStacks (N entries) — which would hide the bottom
+  // card (old dcStackIndex N-1 not in the child's new filter [0..N-2]).
+  let _browseReconcileVisibleIds = null;
 
   function _makeBrowseRegion() {
     const tiltH    = parseFloat(_tiltEl?.style.height) || window.innerHeight;
@@ -545,9 +555,19 @@ export function createDnc3DEngine(options = {}) {
       });
     });
 
+    // Apply the topN limit from Redux game state. The React filter effect in
+    // Dnc3DHudBrowse fires before this effect (children before parents), so it
+    // runs while browse is still closed and is a no-op. Reading topN here and
+    // applying it directly ensures only the intended cards are shown from the start.
+    const browseTopNRaw = game?.playerData?.[_playerN]?.browseGroup?.topN;
+    const numBrowseStacks = _browseAllEngineStacks.length;
+    const _isNormalInt = (v) => { const n = Math.floor(Number(v)); return n !== Infinity && n === v && n >= 0; };
+    let topNint = _isNormalInt(browseTopNRaw) ? parseInt(browseTopNRaw) : numBrowseStacks;
+    if (topNint < 0 || topNint > numBrowseStacks) topNint = numBrowseStacks;
     // instant: opening browse is a "peek" ability, not a physical move — the
     // cards should appear in the fan rather than sliding in from their home pile.
-    updateBrowseFilter(_browseAllEngineStacks.map(e => e.dcStackIndex), true);
+    updateBrowseFilter([...Array(topNint).keys()], true);
+    _browseReconcileVisibleIds = new Set(regionState['_browse'].stackIds);
   }
 
   // Closes browse, restoring all cards to their home region. game/idMap (from the
@@ -591,6 +611,8 @@ export function createDnc3DEngine(options = {}) {
     delete regionState['_browse'];
     _browseGroupId = null;
     _browseAllEngineStacks = [];
+    _browseVisibleStackIds = null;
+    _browseReconcileVisibleIds = null;
   }
 
   // Updates which stacks are visible in the browse fan.
@@ -610,6 +632,7 @@ export function createDnc3DEngine(options = {}) {
       stack.cardIds.forEach(cid => { if (cards[cid]?.liftEl) cards[cid].liftEl.style.display = visible ? '' : 'none'; });
       if (visible) regionState['_browse'].stackIds.push(engineStackId);
     });
+    _browseVisibleStackIds = new Set(regionState['_browse'].stackIds);
     // A card mid-flight from a drag-drop (liftPx > 1) lives in the tilt plane and
     // is owned by the drop/flip logic. Laying it out here would re-home it into
     // the scroll-outer via ensureCardParent — which doesn't convert coordinates,
@@ -660,8 +683,25 @@ export function createDnc3DEngine(options = {}) {
       }
     });
 
+    // Use the reconcile snapshot (not _browseVisibleStackIds) to determine which
+    // cards were visible. _browseVisibleStackIds may be corrupted: React's child
+    // onFilterChange effect fires BEFORE this parent reconcile effect, and it calls
+    // updateBrowseFilter with new numStacks (N-1) indices while _browseAllEngineStacks
+    // still has N entries — hiding the bottom card (old dcStackIndex N-1 not in the
+    // child's [0..N-2] filter). _browseReconcileVisibleIds is immune because it is
+    // only updated here and in openBrowse, never by React-side filter calls.
+    // Cards new to this reconcile tick (added by another player, not in the old
+    // _browseAllEngineStacks) are shown by default; the child filter effect in the
+    // same commit corrects their visibility if they don't match the search.
+    const oldEngineIds  = new Set(_browseAllEngineStacks.map(e => e.engineStackId));
+    const prevReconcile = _browseReconcileVisibleIds;
+    const visibleIndices = prevReconcile !== null
+      ? next.filter(e => prevReconcile.has(e.engineStackId) || !oldEngineIds.has(e.engineStackId))
+           .map(e => e.dcStackIndex)
+      : next.map(e => e.dcStackIndex);
     _browseAllEngineStacks = next;
-    updateBrowseFilter(next.map(e => e.dcStackIndex));
+    updateBrowseFilter(visibleIndices);
+    _browseReconcileVisibleIds = new Set(regionState['_browse'].stackIds);
   }
 
   // Apply (or clear) a card's borderColor halo — the dnc3d equivalent of the 2D
