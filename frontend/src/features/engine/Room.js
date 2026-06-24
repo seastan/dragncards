@@ -107,7 +107,7 @@ export const Room = ({ slug }) => {
       dispatch(setPlayerInfo(payload));
     } else if (event === "users_changed" && payload !== null) {
       dispatch(setSockets(payload));
-    } else if (event === "unable_to_get_state_on_join") {
+    } else if (event === "room_unavailable" || event === "unable_to_get_state_on_join") {
       if (!retriedRef.current) {
         // First failure: the websocket may be on the old backend while the room was
         // created on the new one (post-deploy mismatch). Reconnect and retry once.
