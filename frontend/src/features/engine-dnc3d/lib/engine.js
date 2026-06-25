@@ -133,6 +133,12 @@ export function createDnc3DEngine(options = {}) {
     for (const el of document.elementsFromPoint(x, y)) {
       const ce = el.closest('.dnc3d-card');
       if (ce) return ce;
+      // abilityBtn/abilityHost are siblings of cardEl inside liftEl, not
+      // descendants — closest('.dnc3d-card') returns null for them. Resolve
+      // via the shared liftEl ancestor so hovering over the bolt keeps the
+      // card active and lets reconcileHover find the right card.
+      const le = el.closest('.dnc3d-card-lift');
+      if (le) return le.querySelector('.dnc3d-card');
     }
     return null;
   }
@@ -816,14 +822,14 @@ export function createDnc3DEngine(options = {}) {
     abilityBtn.className   = 'dnc3d-card-ability';
     abilityBtn.style.display = 'none';
     abilityBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 1.5 4 13.2h6.2L9 22.5 20 10.2h-6.6z"/></svg>';
-    // Don't let a press on the bolt start a card drag (liftEl pointerdown) or, on
-    // release, register as a card click that opens the card menu.
-    abilityBtn.addEventListener('pointerdown', e => e.stopPropagation());
-    abilityBtn.addEventListener('pointerup',   e => e.stopPropagation());
-    abilityBtn.addEventListener('click', e => {
-      e.stopPropagation();
-      if (onTriggerAbility) onTriggerAbility(i);
-    });
+    // Don't let a press on the bolt start a card drag or open the card menu.
+    // preventDefault on pointerdown suppresses mousedown so the browser won't
+    // start text-selection when the user presses here and drags (no pointer
+    // capture was set by the liftEl fallback, and user-select:none alone isn't
+    // enough for some drag gestures). Trigger fires on pointerup instead of
+    // click because preventDefault on pointerdown suppresses the synthetic click.
+    abilityBtn.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); });
+    abilityBtn.addEventListener('pointerup',   e => { e.stopPropagation(); if (onTriggerAbility) onTriggerAbility(i); });
     abilityHost.appendChild(abilityBtn);
     liftEl.appendChild(abilityHost);
 
@@ -1015,7 +1021,10 @@ export function createDnc3DEngine(options = {}) {
     let autoScrollDir       = 0;
     let autoScrollRegion    = null;
 
-    liftEl.addEventListener('pointerdown', (e) => {
+    // Exposed on card so the tiltEl-level pointerdown fallback (below, near init's
+    // tiltEl event bindings) can call it when Chrome's input pipeline fails to
+    // deliver the event to cardEl inside a scroll-outer.
+    function startDragFn(e) {
       e.preventDefault();
       startX = e.clientX;
       startY = e.clientY;
@@ -1037,7 +1046,9 @@ export function createDnc3DEngine(options = {}) {
       grabOffScreenX   = e.clientX - cardScreen.x;
       grabOffScreenY   = e.clientY - cardScreen.y;
       liftEl.setPointerCapture(e.pointerId);
-    });
+    }
+    card.startDragFn = startDragFn;
+    liftEl.addEventListener('pointerdown', startDragFn);
 
     liftEl.addEventListener('pointermove', (e) => {
       if (!liftEl.hasPointerCapture(e.pointerId)) return;
@@ -2278,7 +2289,13 @@ export function createDnc3DEngine(options = {}) {
     // ── Region icon hover ────────────────────────────────────────────────────
     let hoveredIconRegion = null;
     function setRegionHoverState(id, hovered) {
-      if (regionIconEls[id])  regionIconEls[id].style.opacity  = hovered ? '1' : '0';
+      if (regionIconEls[id]) {
+        regionIconEls[id].style.opacity = hovered ? '1' : '0';
+        // Toggle a class to enable pointer-events on the buttons (which are
+        // pointer-events:none in CSS by default). Container-level pointer-events
+        // can't gate children per spec — must act on the buttons themselves.
+        regionIconEls[id].classList.toggle('dnc3d-icons-shown', hovered);
+      }
       if (regionLabelEls[id]) regionLabelEls[id].style.opacity = hovered ? '0' : '';
     }
     function updateIconHover(clientX, clientY) {
@@ -2364,6 +2381,11 @@ export function createDnc3DEngine(options = {}) {
       _lastPointerY = e.clientY;
       updateIconHover(e.clientX, e.clientY);
       updateCountHover(e.clientX, e.clientY);
+      // Chrome's input-event hit-test doesn't reach cards inside scroll outers
+      // (row/fan regions), so pointerenter never fires on them and the hover glow
+      // stays dark. document.elementsFromPoint DOES find them correctly, so call
+      // reconcileHover on every move as the reliable fallback for those cards.
+      reconcileHover();
     }
     function onTiltPointerLeave() {
       if (hoveredIconRegion) { setRegionHoverState(hoveredIconRegion, false); hoveredIconRegion = null; }
@@ -2371,6 +2393,44 @@ export function createDnc3DEngine(options = {}) {
     }
     tiltEl.addEventListener('pointermove',  onTiltPointerMove);
     tiltEl.addEventListener('pointerleave', onTiltPointerLeave);
+    // Chrome's 3D hit-test doesn't deliver pointerdown to cards inside scroll
+    // outers — the event lands on the scroll outer itself (pointer-events:auto).
+    // Catch it here: if the target is a scroll outer, use elementsFromPoint to
+    // find the real card and invoke its drag-start handler so the card's own
+    // liftEl captures the pointer and the existing pointermove/up handlers take
+    // over — identical to the native path for pile cards.
+    tiltEl.addEventListener('pointerdown', (e) => {
+      // Ability button fallback: Chrome can't deliver pointer events to elements
+      // inside scroll outers, so the bolt never receives native pointerdown.
+      // Use getBoundingClientRect geometry to detect the press and trigger on
+      // pointerup (matching the bolt's own handler, which also uses pointerup).
+      for (const c of cards) {
+        if (!c.abilityBtnEl || c.abilityBtnEl.style.display === 'none') continue;
+        const r = c.abilityBtnEl.getBoundingClientRect();
+        if (e.clientX >= r.left && e.clientX <= r.right &&
+            e.clientY >= r.top  && e.clientY <= r.bottom) {
+          e.preventDefault();
+          const cid = c.id;
+          const upHandler = () => {
+            window.removeEventListener('pointerup', upHandler, true);
+            if (onTriggerAbility) onTriggerAbility(cid);
+          };
+          window.addEventListener('pointerup', upHandler, true);
+          return;
+        }
+      }
+      // Chrome's 3D hit-test sometimes delivers the event directly to tiltEl
+      // instead of the scroll outer or card — e.target.closest('.dnc3d-region-scroll-outer')
+      // would return null in that case and the old guard exited too early.
+      // Use elementsFromPoint to find the real card, then guard on whether
+      // THAT card lives inside a scroll outer. Cards in pile/fan regions have
+      // their own liftEl listeners, so this fallback is only for row/grid cards.
+      const foundCardEl = topCardElAtPoint(e.clientX, e.clientY);
+      if (!foundCardEl || !foundCardEl.closest('.dnc3d-region-scroll-outer')) return;
+      e.preventDefault();
+      const foundCard = cards.find(c => c.cardEl === foundCardEl);
+      if (foundCard?.startDragFn) foundCard.startDragFn(e);
+    });
 
     // ── Wheel scroll ────────────────────────────────────────────────────────
     function onWheel(e) {
@@ -3576,8 +3636,10 @@ export function createDnc3DEngine(options = {}) {
       if (shouldHover) targetCard = c;
       if (shouldHover && !isHovered) {
         c.cardEl.classList.add('dnc3d-card-hovered');
+        syncAbilityBtn(c);
       } else if (!shouldHover && isHovered) {
         c.cardEl.classList.remove('dnc3d-card-hovered');
+        syncAbilityBtn(c);
         if (onCardHoverEnd) onCardHoverEnd(c.id);
       }
     }
@@ -3590,6 +3652,19 @@ export function createDnc3DEngine(options = {}) {
     // race permanently; re-asserting each tick re-activates the card once its
     // group has settled, so the GiantCard preview comes back (and stays).
     if (targetCard && onCardHover) onCardHover(targetCard.id, _lastPointerX);
+
+    // Synthesize ability-button hover for Chrome — its compositor-based hit-test
+    // can't deliver :hover to elements inside scroll outers, so we use
+    // getBoundingClientRect to check geometry and toggle a class instead.
+    for (const c of cards) {
+      if (!c.abilityBtnEl) continue;
+      const visible = c.abilityBtnEl.style.display !== 'none';
+      if (!visible) { c.abilityBtnEl.classList.remove('dnc3d-card-ability-hovered'); continue; }
+      const r   = c.abilityBtnEl.getBoundingClientRect();
+      const over = _lastPointerX >= r.left && _lastPointerX <= r.right &&
+                   _lastPointerY >= r.top  && _lastPointerY <= r.bottom;
+      c.abilityBtnEl.classList.toggle('dnc3d-card-ability-hovered', over);
+    }
   }
 
   // Called by the React layer when a full-screen overlay opens/closes over the

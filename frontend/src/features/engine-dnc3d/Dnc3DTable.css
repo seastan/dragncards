@@ -23,6 +23,11 @@
      children (HUD, cards, attach icons). */
   z-index: 0;
   background: #111;
+  /* Prevent browser text-selection when the user drags over token labels or
+     other text nodes on the table (e.g. when a pointer-events:auto element
+     inside a scroll outer intercepts pointerdown before our fallback handler
+     can set pointer capture). */
+  user-select: none;
 }
 
 .dnc3d-tilt {
@@ -130,8 +135,19 @@
 
 .dnc3d-region-scroll-outer {
   position: absolute;
-  overflow: hidden;
-  pointer-events: none;
+  /* clip (not hidden): overflow:hidden creates a "grouping element" that
+     flattens children in a preserve-3d parent per the CSS Transforms spec.
+     overflow:clip avoids that grouping. */
+  overflow: clip;
+  /* pointer-events must NOT be none here. Chrome's 3D hit-testing on a
+     preserve-3d element descends at most one level through pointer-events:none
+     elements. With scrollOuter as none, the chain is tiltEl → scrollOuter
+     (none, depth-1) → liftEl (none, depth-2) → cardEl — Chrome gives up at
+     depth-2 and never delivers events to cardEl. Leaving pointer-events at
+     the default (auto) lets Chrome's 3D ray-cast stop at scrollOuter (a
+     valid auto target), then do a normal 2D refinement hit-test within it
+     that correctly finds cardEl through the none liftEl. Firefox is more
+     lenient and works either way. */
 }
 
 .dnc3d-region-scroll-sentinel {
@@ -349,6 +365,11 @@
   border-radius: 3px;
   color: rgba(255,255,255,0.8);
   cursor: pointer;
+  /* Invisible by default — don't steal events from cards at the region edge. */
+  pointer-events: none;
+}
+/* Only interactive when the icons are shown (JS toggles .dnc3d-icons-shown). */
+.dnc3d-icons-shown .dnc3d-region-icon-btn {
   pointer-events: auto;
 }
 .dnc3d-region-icon-btn:hover { background: rgba(255,255,255,0.2); }
@@ -377,7 +398,8 @@
   box-shadow: 0 0.15vw 0.4vw rgba(0,0,0,0.5);
   z-index: 50;
 }
-.dnc3d-card-ability:hover { background: #b91c1c; color: #fff; }
+.dnc3d-card-ability:hover,
+.dnc3d-card-ability.dnc3d-card-ability-hovered { background: #b91c1c; color: #fff; }
 .dnc3d-card-ability svg { width: 58%; height: 58%; }
 
 /* Lift wrapper — handles translateZ so card stays above table during flip */
