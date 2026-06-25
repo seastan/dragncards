@@ -756,9 +756,8 @@ export function createDnc3DEngine(options = {}) {
     const front = document.createElement('div');
     front.className = 'dnc3d-card-face dnc3d-card-front';
     if (frontImageUrl) {
-      front.style.backgroundImage    = `url(${frontImageUrl})`;
-      front.style.backgroundSize     = 'cover';
-      front.style.backgroundPosition = 'center';
+      front.style.backgroundImage = `url(${frontImageUrl})`;
+      front.style.backgroundSize  = '100% 100%';
     } else {
       front.style.backgroundColor = color;
     }
@@ -766,9 +765,8 @@ export function createDnc3DEngine(options = {}) {
     const back = document.createElement('div');
     back.className = 'dnc3d-card-face dnc3d-card-back';
     if (backImageUrl) {
-      back.style.backgroundImage    = `url(${backImageUrl})`;
-      back.style.backgroundSize     = 'cover';
-      back.style.backgroundPosition = 'center';
+      back.style.backgroundImage = `url(${backImageUrl})`;
+      back.style.backgroundSize  = '100% 100%';
     }
 
     // borderColor halo host. Painted FIRST (behind the faces) so its outer glow
