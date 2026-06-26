@@ -130,6 +130,19 @@ export function createDnc3DEngine(options = {}) {
   // see-through liftEl/tokenHost wrappers as transparent. Shared by the per-card
   // pointerout guard and the post-reconcile hover sweep.
   function topCardElAtPoint(x, y) {
+    // Determine the highest elevated region (layerIndex > 0) whose screen
+    // projection covers the cursor. Cards from lower layers are visually
+    // behind that panel and must not light up as hover targets.
+    let coverLayer = 0;
+    for (const [rid, r] of Object.entries(REGIONS)) {
+      const li = r.layerIndex || 0;
+      if (li <= coverLayer) continue;
+      const panel = regionOutlineEls[rid];
+      if (!panel) continue;
+      const pr = panel.getBoundingClientRect();
+      if (x >= pr.left && x <= pr.right && y >= pr.top && y <= pr.bottom) coverLayer = li;
+    }
+
     // Check visible scroll arrows by geometry first — Chrome's compositor-based
     // hit-test inside preserve-3d containers doesn't reliably surface them first
     // in elementsFromPoint (same issue as ability buttons).
@@ -145,13 +158,25 @@ export function createDnc3DEngine(options = {}) {
       if (el.classList.contains('dnc3d-region-scroll-arrow') &&
           el.classList.contains('dnc3d-scroll-visible')) return null;
       const ce = el.closest('.dnc3d-card');
-      if (ce) return ce;
+      if (ce) {
+        if (coverLayer > 0) {
+          const card = cards.find(c => c.cardEl === ce);
+          if ((REGIONS[card?.regionId]?.layerIndex || 0) < coverLayer) continue;
+        }
+        return ce;
+      }
       // abilityBtn/abilityHost are siblings of cardEl inside liftEl, not
       // descendants — closest('.dnc3d-card') returns null for them. Resolve
       // via the shared liftEl ancestor so hovering over the bolt keeps the
       // card active and lets reconcileHover find the right card.
       const le = el.closest('.dnc3d-card-lift');
-      if (le) return le.querySelector('.dnc3d-card');
+      if (le) {
+        if (coverLayer > 0) {
+          const card = cards.find(c => c.liftEl === le);
+          if ((REGIONS[card?.regionId]?.layerIndex || 0) < coverLayer) continue;
+        }
+        return le.querySelector('.dnc3d-card');
+      }
     }
     return null;
   }
@@ -602,7 +627,13 @@ export function createDnc3DEngine(options = {}) {
       // Skip stacks that were dropped into another region while browse was open.
       if (cards[stack.cardIds[0]]?.regionId !== '_browse') return;
       stack.cardIds.forEach(cid => { if (cards[cid]?.liftEl) cards[cid].liftEl.style.display = ''; });
-      if (regionState[homeGroupId]) moveStackToRegion(engineStackId, homeGroupId);
+      if (regionState[homeGroupId]) {
+        moveStackToRegion(engineStackId, homeGroupId);
+      } else {
+        // homeGroupId is not a rendered region — park cards so they're not left with regionId '_browse'
+        // (which would crash reconcile if a parked card needs to flip after REGIONS['_browse'] is deleted).
+        stack.cardIds.forEach(cid => { if (cards[cid]) cards[cid].regionId = null; });
+      }
     });
 
     // instant: closing browse is the inverse "peek" — cards should reappear in
@@ -699,6 +730,19 @@ export function createDnc3DEngine(options = {}) {
       const stack = stacks[engineStackId];
       if (stack && cards[stack.cardIds[0]]?.regionId !== '_browse') {
         moveStackToRegion(engineStackId, '_browse');
+      }
+    });
+
+    // Park stacks that were in browse but are no longer in the browse group (e.g.
+    // moved to an off-table region via the HUD menu). Without this, they stay
+    // with regionId '_browse', and when closeBrowse later deletes regionState['_browse'],
+    // any attempt by reconcile to move them crashes on regionState['_browse'].stackIds.
+    const nextEngineIds = new Set(next.map(e => e.engineStackId));
+    _browseAllEngineStacks.forEach(({ engineStackId }) => {
+      if (nextEngineIds.has(engineStackId)) return;
+      const stack = stacks[engineStackId];
+      if (stack && cards[stack.cardIds[0]]?.regionId === '_browse') {
+        moveStackToRegion(engineStackId, null);
       }
     });
 
@@ -2413,6 +2457,33 @@ export function createDnc3DEngine(options = {}) {
     // liftEl captures the pointer and the existing pointermove/up handlers take
     // over — identical to the native path for pile cards.
     tiltEl.addEventListener('pointerdown', (e) => {
+      // Region icon button fallback: elevated regions (layerIndex > 0) have a
+      // scroll outer sitting at a higher Z than the outline that hosts the
+      // icons, so Chrome's 3D hit-test finds the scroll outer first and
+      // native pointer events never reach the icon buttons. Detect by 2D
+      // geometry when icons are shown and fire on pointerup (matching the
+      // native click path of base-layer icon buttons).
+      if (hoveredIconRegion && (REGIONS[hoveredIconRegion]?.layerIndex || 0) > 0) {
+        const iconsEl = regionIconEls[hoveredIconRegion];
+        if (iconsEl?.classList.contains('dnc3d-icons-shown')) {
+          const btns = iconsEl.querySelectorAll('.dnc3d-region-icon-btn');
+          for (const btn of btns) {
+            const br = btn.getBoundingClientRect();
+            if (e.clientX >= br.left && e.clientX <= br.right &&
+                e.clientY >= br.top  && e.clientY <= br.bottom) {
+              const px = e.clientX, py = e.clientY;
+              const upHandler = () => {
+                window.removeEventListener('pointerup', upHandler, true);
+                // btn.click() synthesises clientX/Y=0; dispatch a real MouseEvent
+                // so onGroupMenu receives the correct screen coordinates.
+                btn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: px, clientY: py }));
+              };
+              window.addEventListener('pointerup', upHandler, true);
+              return;
+            }
+          }
+        }
+      }
       // Ability button fallback: Chrome can't deliver pointer events to elements
       // inside scroll outers, so the bolt never receives native pointerdown.
       // Use getBoundingClientRect geometry to detect the press and trigger on
@@ -3244,7 +3315,7 @@ export function createDnc3DEngine(options = {}) {
         playFlipSound(); // debounced — one sound even when many cards flip at once
         const startAngle = card.cardEl._angle;
         card.cardEl._angle += 180;
-        if (card.regionId === '_browse') {
+        if (card.regionId === '_browse' && REGIONS['_browse']) {
           // Card flipping inside the browse fan (e.g. dropped face-down into a
           // face-up browse). refreshBrowseFromGame may have just started a layout
           // animation on this card — cancel it so it doesn't fight the flip (the

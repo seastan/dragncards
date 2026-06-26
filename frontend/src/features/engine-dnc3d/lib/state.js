@@ -76,7 +76,7 @@ export function createState(REGIONS) {
     const stack = stacks[stackId];
     if (!stack) return;
     const oldRegionId = cards[stack.cardIds[0]].regionId;
-    if (oldRegionId) {
+    if (oldRegionId && regionState[oldRegionId]) {
       const arr = regionState[oldRegionId].stackIds;
       const idx = arr.indexOf(stackId);
       if (idx !== -1) arr.splice(idx, 1);
