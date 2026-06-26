@@ -76,16 +76,18 @@ export function adaptRegions(layoutRegions, observingPlayerN, numPlayers, groupB
     const type = TYPE_MAP[region.type] || 'free';
     const rawLabel   = groupById[groupId]?.tableLabel || null;
     const tableLabel = rawLabel ? gameL10n(rawLabel, gameDef, language) : null;
+    const canHaveAttachments = groupById[groupId]?.canHaveAttachments;
     regions[groupId] = {
       left:   toPercent(region.left),
       top:    toPercent(region.top),
       width:  toPercent(region.width),
       height: toPercent(region.height),
       type,
-      ...(tableLabel                    ? { label:           tableLabel }           : {}),
-      ...(region.showMenu != null       ? { showMenu:        region.showMenu }       : {}),
-      ...(region.direction              ? { direction:       region.direction }      : {}),
-      ...(region.layerIndex             ? { layerIndex:      region.layerIndex }     : {}),
+      ...(tableLabel                    ? { label:             tableLabel }             : {}),
+      ...(region.showMenu != null       ? { showMenu:          region.showMenu }         : {}),
+      ...(region.direction              ? { direction:         region.direction }        : {}),
+      ...(region.layerIndex             ? { layerIndex:        region.layerIndex }       : {}),
+      ...(canHaveAttachments != null    ? { canHaveAttachments }                         : {}),
       // Region CSS comes from the game definition's `style` object (mirrors how
       // TableRegion spreads `region.style`). `backgroundColor` is kept only for
       // the engine's built-in demo regions, which use it as a top-level field.
