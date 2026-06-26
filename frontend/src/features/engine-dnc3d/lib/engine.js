@@ -130,7 +130,20 @@ export function createDnc3DEngine(options = {}) {
   // see-through liftEl/tokenHost wrappers as transparent. Shared by the per-card
   // pointerout guard and the post-reconcile hover sweep.
   function topCardElAtPoint(x, y) {
+    // Check visible scroll arrows by geometry first — Chrome's compositor-based
+    // hit-test inside preserve-3d containers doesn't reliably surface them first
+    // in elementsFromPoint (same issue as ability buttons).
+    for (const arrows of Object.values(arrowEls)) {
+      for (const arrowEl of [arrows.start, arrows.end]) {
+        if (!arrowEl.classList.contains('dnc3d-scroll-visible')) continue;
+        const r = arrowEl.getBoundingClientRect();
+        if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return null;
+      }
+    }
     for (const el of document.elementsFromPoint(x, y)) {
+      // Firefox surfaces the arrow correctly in elementsFromPoint; keep as fallback.
+      if (el.classList.contains('dnc3d-region-scroll-arrow') &&
+          el.classList.contains('dnc3d-scroll-visible')) return null;
       const ce = el.closest('.dnc3d-card');
       if (ce) return ce;
       // abilityBtn/abilityHost are siblings of cardEl inside liftEl, not
@@ -2238,7 +2251,7 @@ export function createDnc3DEngine(options = {}) {
       const isV  = r.direction === 'vertical';
       const total    = scrollTotalExtent(arrowScrollId);
       const maxScroll = Math.max(0, total - (isV ? rp.h : rp.w));
-      const speed    = (isV ? rp.h : rp.w) * 0.5 / 60; // 50% region width per second at 60fps
+      const speed    = window.innerHeight * 50 / 100 / 60; // 10dvh per second at 60fps
       const delta    = (arrowScrollDir === 'end' ? 1 : -1) * speed;
       const newOff   = Math.min(Math.max((regionState[arrowScrollId].scrollOffset || 0) + delta, 0), maxScroll);
       if (newOff !== regionState[arrowScrollId].scrollOffset) {
@@ -2433,6 +2446,11 @@ export function createDnc3DEngine(options = {}) {
     });
 
     // ── Wheel scroll ────────────────────────────────────────────────────────
+    // Coalesce layout calls to one per rAF — trackpad fires raw events far
+    // faster than 60 fps, so calling layoutRegion synchronously on each event
+    // causes jank.
+    let _wheelRafId = null;
+    let _wheelPendingId = null;
     function onWheel(e) {
       for (const [id] of Object.entries(sentinelEls)) {
         const rect = regionOutlineEls[id].getBoundingClientRect();
@@ -2443,13 +2461,22 @@ export function createDnc3DEngine(options = {}) {
         const total      = scrollTotalExtent(id);
         const maxScroll  = Math.max(0, total - (vert ? rp.h : rp.w));
         if (maxScroll === 0) continue;
-        const delta  = e.deltaMode === 1 ? e.deltaY * 30 : e.deltaMode === 2 ? e.deltaY * 300 : e.deltaY;
+        const rawDelta = vert ? e.deltaY : (e.deltaX || e.deltaY);
+        const delta    = e.deltaMode === 1 ? rawDelta * 30 : e.deltaMode === 2 ? rawDelta * 300 : rawDelta;
         const newOff = Math.min(Math.max((regionState[id].scrollOffset || 0) + delta, 0), maxScroll);
         regionState[id].scrollOffset = newOff;
         const s = sentinelEls[id];
         s._syncing = true;
         if (vert) s.el.scrollTop = newOff; else s.el.scrollLeft = newOff;
-        layoutRegion(id);
+        _wheelPendingId = id;
+        if (!_wheelRafId) {
+          _wheelRafId = requestAnimationFrame(() => {
+            _wheelRafId = null;
+            const pending = _wheelPendingId;
+            _wheelPendingId = null;
+            if (pending) layoutRegion(pending);
+          });
+        }
         e.preventDefault();
         break;
       }
@@ -2562,6 +2589,7 @@ export function createDnc3DEngine(options = {}) {
       tiltEl.removeEventListener('pointermove',  onTiltPointerMove);
       tiltEl.removeEventListener('pointerleave', onTiltPointerLeave);
       window.removeEventListener('wheel', onWheel);
+      if (_wheelRafId) { cancelAnimationFrame(_wheelRafId); _wheelRafId = null; }
       window.removeEventListener('pointermove', onWindowPointerMove);
       if (_tableSurfaceEl) { _tableSurfaceEl.parentElement?.removeChild(_tableSurfaceEl); _tableSurfaceEl = null; }
       _overlay.unmount();

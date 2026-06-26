@@ -88,7 +88,7 @@ export const TopBarUser = React.memo(({ playerI }: { playerI: string }) => {
   };
 
   const neutralBtn = "bg-gray-700 hover:bg-gray-600 text-gray-200 cursor-pointer";
-  const activeBtn = "bg-blue-800 hover:bg-blue-700 text-white cursor-pointer";
+  const activeBtn = "bg-gray-500 hover:bg-gray-400 text-blue-200 cursor-pointer";
 
   const sitButton = () => {
     if (!isLoggedIn) {
