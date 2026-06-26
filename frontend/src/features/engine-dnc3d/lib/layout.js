@@ -116,7 +116,7 @@ export function createLayout(state, projection, REGIONS) {
   function rowTotalWidth(regionId) {
     const stackIds = regionState[regionId].stackIds;
     if (!stackIds.length) return regionPx(regionId).w;
-    const GAP         = cardWidthPx() * 0.1;
+    const GAP         = cardWidthPx() * -0.15;
     const LEFT_BUFFER = cardWidthPx() * 0.15;
     const total = stackIds.reduce((sum, sid) => {
       const { leftExt, rightExt } = stackExtents(sid);
@@ -214,7 +214,7 @@ export function createLayout(state, projection, REGIONS) {
       return positions;
     }
 
-    const GAP         = cw * 0.1;
+    const GAP         = cw * -0.15;
     const LEFT_BUFFER = cw * 0.15;
     const totalW      = rowTotalWidth(regionId);
     const midY        = rp.y + (rp.h - ch) / 2;
@@ -536,7 +536,7 @@ export function createLayout(state, projection, REGIONS) {
 
     // ── Horizontal row: per-stack extents, variable anchor spacing ──────────────
     if (!vert && type === 'row') {
-      const GAP         = cw * 0.1;
+      const GAP         = cw * -0.15;
       const LEFT_BUFFER = cw * 0.15;
       const allExtents  = stackIds.map(sid => stackExtents(sid));
       const totalW      = allExtents.reduce((s, e) => s + e.leftExt + e.rightExt, 0) + (n - 1) * GAP + LEFT_BUFFER;

@@ -108,7 +108,7 @@ export const Table = React.memo(({onDragEnd}) => {
         <div className="w-full h-full">
           {/* Game menu bar */}
           <div className="bg-gray-600 text-white w-full"
-            style={{height: "6%", position: "relative", zIndex: topBarHovered ? Z_INDEX.DropdownMenu : "auto"}}
+            style={{height: "6%", position: "relative", zIndex: topBarHovered ? Z_INDEX.TopBarHover : "auto"}}
             onMouseEnter={() => setTopBarHovered(true)}
             onMouseLeave={() => setTopBarHovered(false)}>
             <TopBar/>
