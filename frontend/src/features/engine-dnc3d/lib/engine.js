@@ -779,6 +779,29 @@ export function createDnc3DEngine(options = {}) {
       : 'none';
   }
 
+  // Blue glow + jiggle played when a card's automation trigger fires (mirrors the
+  // 2D engine's glowing-vibrating StyledCard animation).
+  function playTriggeredAnimation(card) {
+    const el = card.cardEl;
+    if (el._triggeredAnimId) cancelAnimationFrame(el._triggeredAnimId);
+    card.borderGlowEl.classList.add('dnc3d-card-triggered');
+    const startTime = performance.now();
+    const duration  = 750;
+    function frame(now) {
+      const t = Math.min((now - startTime) / duration, 1);
+      const jiggleDeg = 3 * Math.sin(t * Math.PI * 6) * (1 - t);
+      const totalRot = (el._layoutRotation || 0) + (el._gameRotation || 0) + jiggleDeg;
+      el.style.transform = cardTransform(el._angle, totalRot, 1, 0, el._heightScale || 1);
+      if (t < 1) {
+        el._triggeredAnimId = requestAnimationFrame(frame);
+      } else {
+        el._triggeredAnimId = null;
+        card.borderGlowEl.classList.remove('dnc3d-card-triggered');
+      }
+    }
+    el._triggeredAnimId = requestAnimationFrame(frame);
+  }
+
   // Returns true if a card is interactable in its pile (i.e. it IS the top card,
   // or it is not in a pile region at all). Non-top pile cards should not receive
   // hover, active-card callbacks, or be draggable.
@@ -809,12 +832,14 @@ export function createDnc3DEngine(options = {}) {
 
     const cardEl = document.createElement('div');
     cardEl.className = 'dnc3d-card';
-    cardEl._angle          = angle;
-    cardEl._animating      = false;
-    cardEl._layoutRotation = 0;
-    cardEl._gameRotation   = 0;
-    cardEl._rotTransId     = null;
-    cardEl._peeking        = false;
+    cardEl._angle               = angle;
+    cardEl._animating           = false;
+    cardEl._layoutRotation      = 0;
+    cardEl._gameRotation        = 0;
+    cardEl._rotTransId          = null;
+    cardEl._peeking             = false;
+    cardEl._triggeredTimestamp  = null;
+    cardEl._triggeredAnimId     = null;
 
     const front = document.createElement('div');
     front.className = 'dnc3d-card-face dnc3d-card-front';
@@ -1013,7 +1038,8 @@ export function createDnc3DEngine(options = {}) {
     function setLiftVisuals(z_px, x_px = 0) {
       card.liftPx = z_px;
       const frac = z_px / dragLiftMax();
-      liftEl.style.transform = `translateZ(${BASE_LIFT + card.pileZ + z_px}px) translateX(${x_px}px)`;
+      const _tilt = card._dragTilt || 0;
+      liftEl.style.transform = `translateZ(${BASE_LIFT + card.pileZ + z_px}px) translateX(${x_px}px)${_tilt ? ` rotateZ(${_tilt}deg)` : ''}`;
       cardEl.style.transform = cardTransform(cardEl._angle, (cardEl._layoutRotation || 0) + (cardEl._gameRotation || 0), 1 + 0.1 * frac, 0, cardEl._heightScale || 1);
       cardEl.style.boxShadow = frac > 0.01
         ? `0 ${frac * 1.1}vh ${frac * 2.5}vh rgba(0,0,0,0.6)`
@@ -1055,6 +1081,8 @@ export function createDnc3DEngine(options = {}) {
     let grabOffScreenX = 0, grabOffScreenY = 0;
     let startX = 0, startY = 0;
     let isDragging = false;
+    let prevDragX = 0;
+    let dragTiltAngle = 0;
     let dragZ = i + 1;
     let currentInsertRegion = null;
     let currentInsertIdx    = -1;
@@ -1117,6 +1145,8 @@ export function createDnc3DEngine(options = {}) {
         if (!isTopPileCard(card)) return; // non-top pile cards are not draggable
         isDragging = true;
         _isDragging = true;
+        prevDragX = e.clientX;
+        dragTiltAngle = 0;
         // Drop the hover state (and its bolt affordance) on the card being
         // lifted so it doesn't ride along with the drag.
         cardEl.classList.remove('dnc3d-card-hovered');
@@ -1170,9 +1200,15 @@ export function createDnc3DEngine(options = {}) {
       const primaryLeft = tp.x;
       const primaryTop  = tp.y;
 
+      const dxFrame = e.clientX - prevDragX;
+      prevDragX = e.clientX;
+      dragTiltAngle = dragTiltAngle * 0.85 + Math.tanh(dxFrame * 0.08) * 2;
+
       dragStackCards.forEach(c => {
         c.liftEl.style.left = (primaryLeft + c.dragOffFromPrimary.dx) + 'px';
         c.liftEl.style.top  = (primaryTop  + c.dragOffFromPrimary.dy) + 'px';
+        c._dragTilt = dragTiltAngle;
+        c.liftEl.style.transform = `translateZ(${BASE_LIFT + c.liftPx}px) rotateZ(${dragTiltAngle}deg)`;
       });
 
       const tw = parseFloat(_tiltEl.style.width);
@@ -1436,7 +1472,11 @@ export function createDnc3DEngine(options = {}) {
 
     liftEl.addEventListener('pointerup', (e) => {
       liftEl.releasePointerCapture(e.pointerId);
-      dragStackCards.forEach(c => c.cardEl.classList.remove('dnc3d-dragging'));
+      dragTiltAngle = 0;
+      dragStackCards.forEach(c => {
+        c.cardEl.classList.remove('dnc3d-dragging');
+        c._dragTilt = 0;
+      });
 
       _attachTargetIconEl?.classList.remove('dnc3d-is-visible');
 
@@ -3549,6 +3589,13 @@ export function createDnc3DEngine(options = {}) {
       const newBorderColor = dcCard.borderColor || null;
       if (card.borderColor !== newBorderColor) {
         applyBorderGlow(card, newBorderColor);
+      }
+
+      // 3b2. Triggered animation: blue glow + jiggle when automation fires.
+      const newTs = dcCard.triggeredTimestamp ?? null;
+      if (newTs !== null && newTs !== card.cardEl._triggeredTimestamp) {
+        card.cardEl._triggeredTimestamp = newTs;
+        playTriggeredAnimation(card);
       }
 
       // 3c. Ability affordance: the current face's ability can change (flip, or

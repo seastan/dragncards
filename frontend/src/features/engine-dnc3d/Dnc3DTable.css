@@ -636,3 +636,17 @@
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
+
+/* Blue glow pulse played on borderGlowEl when a card's automation trigger fires.
+   Mirrors the 2D engine's glowing-vibrating animation (Card.js). The jiggle is
+   driven in JS (playTriggeredAnimation) so it composes with the card's live 3D
+   transform without overriding it. */
+@keyframes dnc3d-triggered-glow {
+  0%   { box-shadow: 0 0 5px rgba(0, 123, 255, 0.8); }
+  40%  { box-shadow: 0 0 20px 5px rgba(0, 123, 255, 0.9); }
+  88%  { box-shadow: 0 0 30px 8px rgba(0, 123, 255, 0); }
+  100% { box-shadow: none; }
+}
+.dnc3d-card-border-glow.dnc3d-card-triggered {
+  animation: dnc3d-triggered-glow 0.75s ease-out forwards;
+}
