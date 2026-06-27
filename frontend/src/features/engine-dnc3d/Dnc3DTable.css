@@ -65,8 +65,7 @@
 
 .dnc3d-region-outline {
   position: absolute;
-  border: 1px dotted rgba(255,255,255,0.2);
-  border-radius: 0.3vw;
+  border: none;
   pointer-events: none;
   transform: translateZ(0.5px);
   transform-style: preserve-3d;
@@ -106,9 +105,6 @@
   opacity: 1;
 }
 
-.dnc3d-region-outline.dnc3d-region-elevated {
-  border-color: rgba(255,255,255,0.45);
-}
 
 /* Region background fill: carries a region's background color / game-def `style`
    and sits just BELOW the cards of its layer, so the color paints behind the
@@ -116,7 +112,6 @@
    glow). Positioned + colored inline by the engine. */
 .dnc3d-region-fill {
   position: absolute;
-  border-radius: 0.3vw;
   box-sizing: border-box;
   pointer-events: none;
   transform-style: preserve-3d;
@@ -372,7 +367,8 @@
 .dnc3d-icons-shown .dnc3d-region-icon-btn {
   pointer-events: auto;
 }
-.dnc3d-region-icon-btn:hover { background: rgba(255,255,255,0.2); }
+.dnc3d-region-icon-btn:hover,
+.dnc3d-region-icon-btn.dnc3d-icon-btn-hovered { background: rgba(255,255,255,0.2); }
 .dnc3d-region-icon-btn svg { width: 65%; height: 65%; }
 
 /* Lightning-bolt ability affordance — dnc3d port of the 2D AbilityButton.
@@ -588,7 +584,6 @@
   color: rgba(255, 255, 255, 0.7);
 }
 
-.dnc3d-stack-zone { position: absolute; pointer-events: none; }
 
 /* ── Targeting + arrow overlay ──────────────────────────────────────────────
    A flat screen-space layer over the tilted table. Sits above the cards but

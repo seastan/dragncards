@@ -34,6 +34,17 @@ export const DropdownMenuGroup = React.memo(({
   const browseTopN = useBrowseTopN();
   const choicesTopN = gameDef.groupMenu?.peekAtTopN || [5,10];
 
+  const regionEntry = useSelector(state => {
+    const regions = state?.gameUi?.game?.playerData?.[playerN]?.layout?.regions;
+    if (!regions) return null;
+    for (const [key, region] of Object.entries(regions)) {
+      if (!region.groupId) continue;
+      const resolvedId = region.groupId.replace(/playerN/g, playerN);
+      if (resolvedId === menuGroup.id) return { key, type: region.type };
+    }
+    return null;
+  });
+
   console.log("Rendering DMGroup", group)
   const DropdownMoveTo = (props) => {
     return (
@@ -113,6 +124,20 @@ export const DropdownMenuGroup = React.memo(({
           }
           {gameDef?.groupMenu?.suppress?.includes("Choose Random") ? null :
             <DropdownItem action={dragnActionLists.chooseRandom(menuGroup.id)} clickCallback={handleDropdownClick}>{siteL10n("Choose Random")}</DropdownItem>
+          }
+          {regionEntry?.type === "row" && !gameDef?.groupMenu?.suppress?.includes("Convert to Fan") &&
+            <DropdownItem
+              action={[["SET", `/playerData/$PLAYER_N/layout/regions/${regionEntry.key}/type`, "fan"]]}
+              clickCallback={handleDropdownClick}>
+              {siteL10n("Convert to Fan")}
+            </DropdownItem>
+          }
+          {regionEntry?.type === "fan" && !gameDef?.groupMenu?.suppress?.includes("Convert to Row") &&
+            <DropdownItem
+              action={[["SET", `/playerData/$PLAYER_N/layout/regions/${regionEntry.key}/type`, "row"]]}
+              clickCallback={handleDropdownClick}>
+              {siteL10n("Convert to Row")}
+            </DropdownItem>
           }
           {gameDef?.groupMenu?.suppress?.includes("Set Visibility") ? null :
             <DropdownItem
