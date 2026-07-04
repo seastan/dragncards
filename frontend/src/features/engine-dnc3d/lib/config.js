@@ -22,7 +22,7 @@ export const layerZPx     = (cardH) => LAYER_Z_FRAC * cardH;
 // At 0°: ×0.9 (−10%), at 45°: ×1.1 (+10%), linear between.
 // Adjust the 0.9 / 0.2 constants to tune the effect.
 export const cardHeightScaleForTilt = (deg) =>
-  0.9 + (Math.min(Math.max(deg, 0), 45) / 45) * 0.2;
+ 1 + (Math.min(Math.max(deg, 0), 45) / 45) * 0.2;
 export const ANIMATION_SPEED_MULTIPLIER = 1;
 export const ATTACH_WIGGLE_DVH = 8; // horizontal wiggle on card attachment, in dvh
 export const DRAG_EDGE_SCROLL_SPEED = 0.048; // auto-scroll speed when dragging near region edge, as fraction of card width per frame (~60fps)

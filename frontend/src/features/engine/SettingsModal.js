@@ -59,7 +59,8 @@ export const uiSettings = {
     "step": 1,
     "default": 25,
     "live": true,
-    "visibleWhen": { "rendererEngine": "dnc3d" }
+    "visibleWhen": { "rendererEngine": "dnc3d" },
+    "note": "On smaller screens, applying a tilt to the table may make card images appear slightly blurry."
   }
 }
 
@@ -430,23 +431,28 @@ const SettingsModalFormElement = ({val, settingObj, setFunction, l10n}) => {
     case 'slider': {
       const sliderVal = val ?? settingObj.default ?? 0;
       return (
-        <div className="flex items-center gap-2">
-          <input
-            type="range"
-            min={settingObj.min ?? 0}
-            max={settingObj.max ?? 100}
-            step={settingObj.step ?? 1}
-            value={sliderVal}
-            className="w-24 accent-blue-500"
-            onChange={(e) => {
-              const newValue = parseInt(e.target.value);
-              setFunction(prevSettings => ({...prevSettings, [settingObj.id]: newValue}));
-              if (settingObj.live) {
-                dispatch(setUserSettings({...userSettings, [settingObj.id]: newValue}));
-              }
-            }}
-          />
-          <span className="text-xs w-8 text-right tabular-nums">{sliderVal}°</span>
+        <div>
+          <div className="flex items-center gap-2">
+            <input
+              type="range"
+              min={settingObj.min ?? 0}
+              max={settingObj.max ?? 100}
+              step={settingObj.step ?? 1}
+              value={sliderVal}
+              className="w-24 accent-blue-500"
+              onChange={(e) => {
+                const newValue = parseInt(e.target.value);
+                setFunction(prevSettings => ({...prevSettings, [settingObj.id]: newValue}));
+                if (settingObj.live) {
+                  dispatch(setUserSettings({...userSettings, [settingObj.id]: newValue}));
+                }
+              }}
+            />
+            <span className="text-xs w-8 text-right tabular-nums">{sliderVal}°</span>
+          </div>
+          {settingObj.note && (
+            <div className="text-xs text-gray-300 mt-1">{l10n(settingObj.note)}</div>
+          )}
         </div>
       );
     }

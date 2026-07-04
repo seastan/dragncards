@@ -230,17 +230,13 @@ export function createDnc3DEngine(options = {}) {
 
   // ── Browse state ───────────────────────────────────────────────────────────
   let _browseGroupId         = null;
-  let _browseAllEngineStacks = []; // [{ engineStackId, dcStackIndex }]
+  let _browseAllEngineStacks = []; // [{ engineStackId, dcStackIndex, dcStackId }]
   // Set of engine stack IDs that are currently visible after the last filter
   // call. null means updateBrowseFilter hasn't run yet this browse session.
+  // Keyed by stable engine stack IDs so it remains correct even when React's child
+  // filter effect fires before the parent reconcile effect (the N→N-1 dcStackIndex
+  // shift that corrupted the old index-based approach does not affect ID lookups).
   let _browseVisibleStackIds = null;
-  // Snapshot of visible stack IDs saved at the end of each refreshBrowseFromGame
-  // (and openBrowse) call. Unlike _browseVisibleStackIds, this is NOT updated by
-  // React-side updateBrowseFilter calls, so it's immune to the race where the
-  // child onFilterChange effect fires with new numStacks (N-1) but the engine still
-  // has the old _browseAllEngineStacks (N entries) — which would hide the bottom
-  // card (old dcStackIndex N-1 not in the child's new filter [0..N-2]).
-  let _browseReconcileVisibleIds = null;
 
   function _makeBrowseRegion() {
     const tiltH    = parseFloat(_tiltEl?.style.height) || window.innerHeight;
@@ -554,11 +550,21 @@ export function createDnc3DEngine(options = {}) {
     const peeking      = !!(_playerN && dcCard.peeking && dcCard.peeking[_playerN]);
     const expectedSide = peeking ? 'A' : (dcCard.currentSide || 'A');
     const visualSide   = ((((card.cardEl._angle % 360) + 360) % 360) === 180) ? 'B' : 'A';
-    if (visualSide === expectedSide) return;
-    card.cardEl._angle += 180;
+    if (visualSide !== expectedSide) card.cardEl._angle += 180;
+    // Sync face dims to the displayed side — a peeked face-down landscape card
+    // needs side A's dimensions, not the back's portrait dims.
+    const displayedFace = dcCard.sides?.[expectedSide] || {};
+    const newFaceW = displayedFace.width  || null;
+    const newFaceH = displayedFace.height || null;
     card.cardEl.style.transition = '';
-    card.cardEl.style.transform =
-      cardTransform(card.cardEl._angle, (card.cardEl._layoutRotation || 0) + (card.cardEl._gameRotation || 0), 1, 0, card.cardEl._heightScale || 1);
+    if (card.faceW !== newFaceW || card.faceH !== newFaceH) {
+      card.faceW = newFaceW;
+      card.faceH = newFaceH;
+      applyCardDims(card); // sets --card-w/h and cardTransform with current _angle
+    } else if (visualSide !== expectedSide) {
+      card.cardEl.style.transform =
+        cardTransform(card.cardEl._angle, (card.cardEl._layoutRotation || 0) + (card.cardEl._gameRotation || 0), 1, 0, card.cardEl._heightScale || 1);
+    }
   }
 
   // Opens the browse fan for a group, moving its cards to the browse region.
@@ -589,7 +595,7 @@ export function createDnc3DEngine(options = {}) {
       if (firstEngineIdx === undefined) return;
       const card = cards[firstEngineIdx];
       if (!card) return;
-      _browseAllEngineStacks.push({ engineStackId: card.stackId, dcStackIndex });
+      _browseAllEngineStacks.push({ engineStackId: card.stackId, dcStackIndex, dcStackId });
       moveStackToRegion(card.stackId, '_browse');
       // Snap every card in the stack to its revealed side before reconcile runs,
       // so opening browse doesn't animate a flip while the region rises into place.
@@ -610,8 +616,7 @@ export function createDnc3DEngine(options = {}) {
     if (topNint < 0 || topNint > numBrowseStacks) topNint = numBrowseStacks;
     // instant: opening browse is a "peek" ability, not a physical move — the
     // cards should appear in the fan rather than sliding in from their home pile.
-    updateBrowseFilter([...Array(topNint).keys()], true);
-    _browseReconcileVisibleIds = new Set(regionState['_browse'].stackIds);
+    updateBrowseFilter(_browseAllEngineStacks.slice(0, topNint).map(e => e.dcStackId), true);
   }
 
   // Closes browse, restoring all cards to their home region. game/idMap (from the
@@ -662,23 +667,26 @@ export function createDnc3DEngine(options = {}) {
     _browseGroupId = null;
     _browseAllEngineStacks = [];
     _browseVisibleStackIds = null;
-    _browseReconcileVisibleIds = null;
   }
 
   // Updates which stacks are visible in the browse fan.
-  // filteredDcStackIndices: array of indices into the original group.stackIds.
+  // filteredDcStackIds: array of dc stack IDs (from group.stackIds) that should be visible.
+  //   Using stable dc stack IDs rather than positional indices is immune to the N→N-1
+  //   index shift: React's child filter effect fires before the parent reconcile effect,
+  //   so _browseAllEngineStacks may still have N old entries while the group has N-1.
+  //   Positional indices shift in that window; dc stack IDs do not.
   // instant: place cards with no slide animation (used when first opening browse).
-  function updateBrowseFilter(filteredDcStackIndices, instant = false) {
+  function updateBrowseFilter(filteredDcStackIds, instant = false) {
     if (!_browseGroupId || !regionState['_browse']) return;
-    const filteredSet = new Set(filteredDcStackIndices);
+    const filteredSet = new Set(filteredDcStackIds);
     regionState['_browse'].stackIds = [];
-    _browseAllEngineStacks.forEach(({ engineStackId, dcStackIndex }) => {
+    _browseAllEngineStacks.forEach(({ engineStackId, dcStackId }) => {
       const stack = stacks[engineStackId];
       if (!stack) return;
       // Skip stacks that were dropped into another region while browse was open;
       // touching their display here would hide a card that's now on the table.
       if (cards[stack.cardIds[0]]?.regionId !== '_browse') return;
-      const visible = filteredSet.has(dcStackIndex);
+      const visible = filteredSet.has(dcStackId);
       stack.cardIds.forEach(cid => { if (cards[cid]?.liftEl) cards[cid].liftEl.style.display = visible ? '' : 'none'; });
       if (visible) regionState['_browse'].stackIds.push(engineStackId);
     });
@@ -713,7 +721,7 @@ export function createDnc3DEngine(options = {}) {
       if (firstEngineIdx === undefined) return;
       const card = cards[firstEngineIdx];
       if (!card) return;
-      next.push({ engineStackId: card.stackId, dcStackIndex });
+      next.push({ engineStackId: card.stackId, dcStackIndex, dcStackId });
     });
 
     // No-op when the membership and order are unchanged — avoids re-laying-out
@@ -746,25 +754,18 @@ export function createDnc3DEngine(options = {}) {
       }
     });
 
-    // Use the reconcile snapshot (not _browseVisibleStackIds) to determine which
-    // cards were visible. _browseVisibleStackIds may be corrupted: React's child
-    // onFilterChange effect fires BEFORE this parent reconcile effect, and it calls
-    // updateBrowseFilter with new numStacks (N-1) indices while _browseAllEngineStacks
-    // still has N entries — hiding the bottom card (old dcStackIndex N-1 not in the
-    // child's [0..N-2] filter). _browseReconcileVisibleIds is immune because it is
-    // only updated here and in openBrowse, never by React-side filter calls.
-    // Cards new to this reconcile tick (added by another player, not in the old
-    // _browseAllEngineStacks) are shown by default; the child filter effect in the
-    // same commit corrects their visibility if they don't match the search.
-    const oldEngineIds  = new Set(_browseAllEngineStacks.map(e => e.engineStackId));
-    const prevReconcile = _browseReconcileVisibleIds;
-    const visibleIndices = prevReconcile !== null
-      ? next.filter(e => prevReconcile.has(e.engineStackId) || !oldEngineIds.has(e.engineStackId))
-           .map(e => e.dcStackIndex)
-      : next.map(e => e.dcStackIndex);
+    // _browseVisibleStackIds is keyed by engine stack ID (stable) rather than
+    // dcStackIndex (positional), so it remains correct even after the child filter
+    // effect fires before this reconcile effect with shifted N-1 indices.
+    // Cards new to this tick (added by another player, not in oldEngineIds) are
+    // shown by default; the next child filter effect corrects them if needed.
+    const oldEngineIds      = new Set(_browseAllEngineStacks.map(e => e.engineStackId));
+    const prevVisible       = _browseVisibleStackIds;
+    const visibleDcStackIds = next
+      .filter(e => prevVisible === null || prevVisible.has(e.engineStackId) || !oldEngineIds.has(e.engineStackId))
+      .map(e => e.dcStackId);
     _browseAllEngineStacks = next;
-    updateBrowseFilter(visibleIndices);
-    _browseReconcileVisibleIds = new Set(regionState['_browse'].stackIds);
+    updateBrowseFilter(visibleDcStackIds);
   }
 
   // Apply (or clear) a card's borderColor halo — the dnc3d equivalent of the 2D
@@ -3575,8 +3576,11 @@ export function createDnc3DEngine(options = {}) {
         }
       }
 
-      // 3. Per-card face dimensions (update when side changes)
-      const currentFace = dcCard.sides?.[dcCard.currentSide] || {};
+      // 3. Per-card face dimensions (update when displayed side changes).
+      // Use expectedSide (from section 2) rather than dcCard.currentSide so that
+      // peeked face-down landscape cards get their front (side A) dimensions
+      // instead of the back's portrait dims being applied every reconcile tick.
+      const currentFace = dcCard.sides?.[expectedSide] || {};
       const newFaceW    = currentFace.width  || null;
       const newFaceH    = currentFace.height || null;
       if (card.faceW !== newFaceW || card.faceH !== newFaceH) {
