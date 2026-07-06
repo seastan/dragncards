@@ -41,6 +41,9 @@ const useChannel = (
   channelTopic: string,
   onMessage: (event: any, payload: any) => void,
   myUserId: number | null | undefined,
+  // Bump this to force a fresh channel.join() over the current socket connection,
+  // e.g. after reconnecting the socket to pick up a different backend instance.
+  retryKey: number = 0,
 ) => {
   const socket = useContext(SocketContext);
   const onMessageRef = useRef(onMessage);
@@ -59,7 +62,7 @@ const useChannel = (
       doCleanup = joinChannel(socket, channelTopic, onMessageRef, setBroadcast, myUserId);
     }
     return doCleanup;
-  }, [channelTopic, socket, myUserId]);
+  }, [channelTopic, socket, myUserId, retryKey]);
 
   return broadcast;
 };
