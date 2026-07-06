@@ -35,8 +35,11 @@ export const Dnc3DHudBrowse = ({ onFilterChange }) => {
     setSearchForText('');
   }, [groupId]);
 
-  // Mirror Browse.js filtering logic, producing an array of visible stack indices.
-  const filteredStackIndices = useMemo(() => {
+  // Mirror Browse.js filtering logic, producing an array of visible dc stack IDs.
+  // Using dc stack IDs (not positional indices) keeps the engine filter call stable
+  // even when this child effect fires before the parent's reconcile effect — the
+  // engine matches by ID so there is no N→N-1 positional-index shift issue.
+  const filteredStackIds = useMemo(() => {
     if (!group || !game || !groupId) return [];
     const stackIds    = group.stackIds || [];
     const numStacks   = stackIds.length;
@@ -71,12 +74,12 @@ export const Dnc3DHudBrowse = ({ onFilterChange }) => {
       });
     }
 
-    return indices;
+    return indices.map(i => stackIds[i]);
   }, [group, game, groupId, browseGroupTopN, searchForProperty, searchForText, gameDef, playerN]);
 
   useEffect(() => {
-    onFilterChange?.(filteredStackIndices);
-  }, [filteredStackIndices, onFilterChange]);
+    onFilterChange?.(filteredStackIds);
+  }, [filteredStackIds, onFilterChange]);
 
   if (!group || !groupId) return null;
 

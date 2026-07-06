@@ -89,7 +89,9 @@ else
   echo "==> Building frontend..."
   cd frontend
   npm run build:css
-  npm run build
+  # This box has only ~2GB RAM, so Node auto-caps its heap near 1GB and the
+  # webpack (craco) build OOMs. Raise the heap limit; the extra spills into swap.
+  NODE_OPTIONS="--max-old-space-size=3072" npm run build
   cp -r /var/www/dragncards.com/dragncards/frontend/build/* /var/www/dragncards.com/html/
   cd ..
 fi
