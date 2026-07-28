@@ -91,8 +91,16 @@ export function createState(REGIONS) {
   );
 
   // ── Z-ordering ──────────────────────────────────────────────────────────────
+  // Single monotonic source of truth for stacking order. EVERY z-index handed to
+  // a card must come from here — deriving one from anything else (e.g. a card's
+  // id) puts cards on a scale this counter knows nothing about, and the most
+  // recently placed stack then fails to land on top.
   let _topZ = 10;
-  function nextTopZ() { return ++_topZ; }
+  // Reserves `count` values and returns the TOP of the range.
+  function nextTopZ(count = 1) { _topZ += count; return _topZ; }
+  // Reserves `count` values and returns the BASE of the range, i.e. the caller
+  // owns base+1 … base+count (the convention stackPositionsAtAnchor expects).
+  function nextZBase(count = 1) { const base = _topZ; _topZ += count; return base; }
 
-  return { cards, stacks, regionState, createStack, destroyStack, splitStack, attachStack, moveStackToRegion, nextTopZ };
+  return { cards, stacks, regionState, createStack, destroyStack, splitStack, attachStack, moveStackToRegion, nextTopZ, nextZBase };
 }

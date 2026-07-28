@@ -89,7 +89,7 @@ export function createDnc3DEngine(options = {}) {
 
   // ── Sub-system instances ───────────────────────────────────────────────────
   const state = createState(REGIONS);
-  const { cards, stacks, regionState, createStack, destroyStack, splitStack, attachStack, moveStackToRegion, nextTopZ } = state;
+  const { cards, stacks, regionState, createStack, destroyStack, splitStack, attachStack, moveStackToRegion, nextTopZ, nextZBase } = state;
 
   const projection = createProjection();
   const { cardWidthPx, cardHeightPx, stagePx, screenToTableAtZ, tableToScreen, setTiltDims, setCardDims, setStageDims } = projection;
@@ -1556,7 +1556,7 @@ export function createDnc3DEngine(options = {}) {
 
         function stackTargets(stack, resolveTarget) {
           const n = stack.cardIds.length;
-          const topZ = nextTopZ() + n;
+          const topZ = nextTopZ(n);
           return stack.cardIds.map((cid, cardIdx) => {
             const c = cards[cid];
             const target = resolveTarget(c, cardIdx);
@@ -2638,7 +2638,11 @@ export function createDnc3DEngine(options = {}) {
             // region's opaque panel.
             const anchorLeft = (baseCard.fracX || 0) * tiltW;
             const anchorTop  = (baseCard.fracY || 0) * tiltH;
-            stackPositionsAtAnchor(stack, anchorLeft, anchorTop, baseCard.id + 1, layerOffset)
+            // Reserve from the shared counter (not the card's id) so initial
+            // layering shares one scale with every later drop — otherwise a
+            // dropped card's z (counter-based, small) sits under untouched
+            // cards whose z came from a large card id.
+            stackPositionsAtAnchor(stack, anchorLeft, anchorTop, nextZBase(stack.cardIds.length), layerOffset)
               .forEach(pos => {
                 const c = cards[pos.cardId];
                 if (!c) return;
@@ -2960,7 +2964,11 @@ export function createDnc3DEngine(options = {}) {
     const tiltW = parseFloat(_tiltEl.style.width);
     const tiltH = parseFloat(_tiltEl.style.height);
     const layerOffset = layerZPx(cardHeightPx()) * (REGIONS[baseCard.regionId]?.layerIndex || 0);
-    const positions = stackPositionsAtAnchor(stack, fracX * tiltW, fracY * tiltH, baseCard.id + 1, layerOffset);
+    // A stack that moves rises to the top of the free region, matching the local
+    // drop path (and the 2D engine). Reserving from the shared counter keeps that
+    // true for server-driven moves too — another player's move, an undo, or the
+    // echo of our own drop all land above whatever was already there.
+    const positions = stackPositionsAtAnchor(stack, fracX * tiltW, fracY * tiltH, nextZBase(stack.cardIds.length), layerOffset);
     const liftPx = stackHopHeight(positions);
     positions.forEach(pos => {
         const c = cards[pos.cardId];

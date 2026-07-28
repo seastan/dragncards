@@ -1,8 +1,12 @@
 import { BASE_LIFT, pileStackZPx, MAX_PILE_VISUAL_DEPTH, layerZPx, scaleDuration, dvhPx, cardTransform } from './config';
 import { ease, easeOut } from './animation';
 
-// Attachment cards offset horizontally from their parent within a stack.
-const ATTACH_OFFSET_X = 0.22; // fraction of card width per side-specific attachment index
+// How far each attachment peeks out past the stack's current edge, as a fraction
+// of card width. Matches the 2D renderer, which peeks a fixed ATTACHMENT_OFFSET
+// (3.5dvh) against a default card width of cardDefaultW * cardSize (0.72 * 16 =
+// 11.52dvh) → 3.5/11.52 ≈ 0.30. Expressed as a fraction here so the peek scales
+// with zoom instead of shrinking relative to the cards.
+const ATTACH_OFFSET_X = 0.50;
 
 export function createLayout(state, projection, REGIONS) {
   const { cards, stacks, regionState } = state;
@@ -135,21 +139,29 @@ export function createLayout(state, projection, REGIONS) {
   // where left/top are tilt-space coordinates.
 
   function stackCardOffsets(stack) {
-    const cw = cardWidthPx();
-    let leftCount = 0;
-    let rightCount = 0;
+    const cw   = cardWidthPx();
+    const peek = cw * ATTACH_OFFSET_X;
+    let leftEdge  = 0;
+    let rightEdge = cards[stack.cardIds[0]]?.renderedW || cw;
 
     return stack.cardIds.map((cid, cardIdx) => {
       if (cardIdx === 0) return { cardId: cid, dx: 0, dy: 0 };
 
-      const direction = cards[cid]?.attachmentDirection;
+      const card      = cards[cid];
+      const direction = card?.attachmentDirection;
       if (direction === 'left') {
-        leftCount += 1;
-        return { cardId: cid, dx: -leftCount * cw * ATTACH_OFFSET_X, dy: 0 };
+        leftEdge -= peek;
+        return { cardId: cid, dx: leftEdge, dy: 0 };
       }
       if (direction === 'right') {
-        rightCount += 1;
-        return { cardId: cid, dx: rightCount * cw * ATTACH_OFFSET_X, dy: 0 };
+        // Align the card's own (possibly narrower) right edge so it always
+        // peeks out past the stack's current right edge, rather than offsetting
+        // by a fraction of the shared default card width — otherwise narrow
+        // attachments get fully hidden behind a wider parent/sibling.
+        const width = card?.renderedW || cw;
+        const dx = rightEdge - width + peek;
+        rightEdge += peek;
+        return { cardId: cid, dx, dy: 0 };
       }
       return { cardId: cid, dx: 0, dy: 0 };
     });
