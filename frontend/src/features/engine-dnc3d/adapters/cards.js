@@ -1,4 +1,5 @@
 import { formatGroupId } from './regions';
+import { normalizeAttachDirection } from '../lib/config';
 
 // Converts any dragncards coordinate format (number, "50%", "1/20") to a 0-1 fraction.
 // Format-only — no coordinate-system conversion.
@@ -53,7 +54,7 @@ export function resolveImageUrl(face, gameDef, language) {
 //   cardDescriptors — array of { id, frontImageUrl, backImageUrl, angle,
 //                     faceW, faceH, borderColor } indexed 0..N, one per card
 //                     in game.cardById
-//   assignments     — { [groupId]: [{ cardIds: [int,...], attachmentDirections, fracX, fracY }] }
+//   assignments     — { [groupId]: [{ cardIds: [int,...], attachmentDirections, lookingUnder, fracX, fracY }] }
 //   idMap           — Map<dcCardId, dnc3dIndex> for mapping action callbacks back
 export function adaptGameState(game, layoutRegions, gameDef, language, observingPlayerN, numPlayers) {
   const { cardById = {}, stackById = {}, groupById = {} } = game || {};
@@ -127,14 +128,13 @@ export function adaptGameState(game, layoutRegions, gameDef, language, observing
         .filter(id => id !== undefined);
       if (!dnc3dCardIds.length) return;
 
-      const attachmentDirections = (stack.cardIds || []).slice(1).map(dcId => {
-        const dir = cardById[dcId]?.attachmentDirection;
-        return (dir === 'left' || dir === 'right') ? dir : 'right';
-      });
+      const attachmentDirections = (stack.cardIds || []).slice(1)
+        .map(dcId => normalizeAttachDirection(cardById[dcId]?.attachmentDirection));
 
       stacks.push({
         cardIds: dnc3dCardIds,
         attachmentDirections,
+        lookingUnder: !!stack.lookingUnder,
         fracX: stackPosToFrac(stack.left, rLeft, rW),
         fracY: stackPosToFrac(stack.top,  rTop,  rH),
       });

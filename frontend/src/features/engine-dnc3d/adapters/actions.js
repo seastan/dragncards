@@ -98,6 +98,23 @@ export function buildEngineCallbacks(doActionList, reverseIdMap) {
       ], `Flipped card ${dcCardId} to side ${newSide}`);
     },
 
+    // "N behind" badge clicked — fan the stack's hidden attachments out, or tuck
+    // them back. Mirrors the look/hide-under action lists in the 2D Stack.
+    onLookUnder: (dnc3dCardId, lookingUnder) => {
+      const dcCardId = dcCardIdFor(dnc3dCardId);
+      if (!dcCardId) return;
+
+      const stackId = getGame()?.cardById?.[dcCardId]?.stackId;
+      if (stackId == null) return;
+
+      doActionList([
+        ["LOG", "$ALIAS_N",
+          lookingUnder ? " fanned out the cards under " : " hid the cards under ",
+          ["FACEUP_NAME_FROM_STACK_ID", stackId], "."],
+        ["SET", `/stackById/${stackId}/lookingUnder`, lookingUnder],
+      ], `${lookingUnder ? 'Looked' : 'Stopped looking'} under stack ${stackId}`);
+    },
+
     // Lightning-bolt clicked — trigger the current face's automation ability.
     // Mirrors AbilityButton.handleAbilityClick in the 2D engine.
     onTriggerAbility: (dnc3dCardId) => {

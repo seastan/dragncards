@@ -16,7 +16,7 @@ export const TopBarUserCounter = React.memo(({ playerI, playerProperty, imageUrl
   const gameL10n = useGameL10n();
   const backEndValue = useSelector((state: any) => state?.gameUi?.game?.playerData?.[playerI]?.[playerProperty]);
   const playerN = useSelector((state: any) => state?.playerUi?.playerN);
-  const touchMode = useSelector((state: any) => state?.playerUi?.touchMode);
+  const touchMode = useSelector((state: any) => state?.playerUi?.userSettings?.touchMode);
 
   const handleCommit = (newValue: number, totalDelta: number) => {
     if (totalDelta === 0) return;

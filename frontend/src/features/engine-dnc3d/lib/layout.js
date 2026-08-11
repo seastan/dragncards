@@ -7,6 +7,10 @@ import { ease, easeOut } from './animation';
 // 11.52dvh) → 3.5/11.52 ≈ 0.30. Expressed as a fraction here so the peek scales
 // with zoom instead of shrinking relative to the cards.
 const ATTACH_OFFSET_X = 0.50;
+// Vertical equivalent for top/bottom attachments, as a fraction of card height.
+// Chosen so the peek is the same on-screen distance as ATTACH_OFFSET_X on a
+// default portrait card (w/h ≈ 0.72), keeping the two axes visually consistent.
+const ATTACH_OFFSET_Y = 0.36;
 
 export function createLayout(state, projection, REGIONS) {
   const { cards, stacks, regionState } = state;
@@ -95,38 +99,88 @@ export function createLayout(state, projection, REGIONS) {
     return REGIONS[regionId]?.direction === 'vertical';
   }
 
-  // Returns how far a stack visually extends left and right of its anchor point.
-  // Slots are always sized for the landscape width (ch) so that cards can be
-  // exhausted/rotated without overlapping neighbours.
-  function stackExtents(sid) {
-    const stack   = stacks[sid];
-    const offsets = stackCardOffsets(stack);
-    const dxs     = offsets.map(o => o.dx);
-    const cw      = cardWidthPx();
-    const ch      = cardHeightPx();
-
-    // Each slot is ch wide, centered on the card element's center (anchor.x + cw/2).
-    // leftEdge is (cw-ch)/2 — negative when ch > cw, meaning the slot extends left of anchor.
-    const leftEdge  = (cw - ch) / 2;
-    const rightEdge = (cw + ch) / 2;
-
-    return {
-      leftExt:  Math.max(-leftEdge,   -Math.min(0, ...dxs)),
-      rightExt: Math.max(rightEdge, Math.max(0, ...dxs) + cw),
-    };
+  // A card's rendered box. Cards render at their own face aspect ratio (see
+  // applyCardDims), which can differ a lot from the global default — a tall
+  // skinny card is both taller and narrower — so any layout that must not clip
+  // has to measure the card rather than assume the default box. Falls back to
+  // the default for cards with no face data yet (demo mode, pre-measure).
+  function cardBox(cardId) {
+    const card = cards[cardId];
+    const w    = card?.renderedW || cardWidthPx();
+    const h    = card?.renderedH || cardHeightPx();
+    // Cards are scaleY'd up as the table tilts (cardHeightScaleForTilt) to undo
+    // the perspective foreshortening. That scale is about the card's center —
+    // .dnc3d-card takes the default transform-origin — so the card's visible box
+    // overhangs its element box by half the growth at BOTH ends. `over` is that
+    // overhang: a card laid out flush with an edge has it clipped away, so any
+    // layout that anchors against an edge has to leave room for it.
+    const hs   = card?.cardEl?._heightScale || 1;
+    const over = (hs - 1) * h / 2;
+    return { w, h, over };
   }
 
-  // Total visual width of all stacks in a horizontal row region (includes left buffer).
-  function rowTotalWidth(regionId) {
+  // Returns how far a stack visually extends on each side of its anchor point.
+  // Horizontally the slot is sized for the base card's rotation sweep — an
+  // exhausted card turns 90° about its own center, so it needs max(w, h) of
+  // width to clear its neighbours; vertically a portrait card is never taller
+  // rotated than upright, so the rendered heights alone bound the slot. The
+  // sweep deliberately measures the unscaled height, so a row's along-axis
+  // spacing doesn't breathe in and out as the table tilts.
+  function stackExtents(sid) {
+    const stack = stacks[sid];
+    const base  = cardBox(stack.cardIds[0]);
+
+    // The sweep box is centered on the base card's own center (anchor.x + w/2),
+    // so it reaches (sweep - w)/2 left of the anchor. For a default portrait
+    // card this reduces to exactly the old (cw-ch)/2 … (cw+ch)/2 slot.
+    const sweep = Math.max(base.w, base.h);
+    let leftExt   = (sweep - base.w) / 2;
+    let rightExt  = (sweep + base.w) / 2;
+    let topExt    = 0;
+    let bottomExt = 0;
+
+    // Top/bottom carry the tilt overhang so the stack's *visible* edges — not
+    // its element boxes — are what the row packs against its region.
+    stackCardOffsets(stack).forEach(({ cardId, dx, dy }) => {
+      const { w, h, over } = cardBox(cardId);
+      leftExt   = Math.max(leftExt,   -dx);
+      rightExt  = Math.max(rightExt,  dx + w);
+      topExt    = Math.max(topExt,    over - dy);
+      bottomExt = Math.max(bottomExt, dy + h + over);
+    });
+
+    return { leftExt, rightExt, topExt, bottomExt };
+  }
+
+  // Gap between adjacent stacks in a row region, along the row's axis. Negative
+  // horizontally (slots are ch wide for rotation headroom, so they may overlap);
+  // vertically it reproduces the old uniform ch * 1.1 slot spacing.
+  function rowGap(vert) {
+    return vert ? cardHeightPx() * 0.1 : cardWidthPx() * -0.15;
+  }
+  // Buffer before the first stack, so its leading edge isn't flush with the region.
+  function rowStartBuffer(vert) {
+    return vert ? 0 : cardWidthPx() * 0.15;
+  }
+  // Extents of a stack along the row's axis: near = toward the row's start.
+  function rowStackExtents(sid, vert) {
+    const e = stackExtents(sid);
+    return vert
+      ? { nearExt: e.topExt,  farExt: e.bottomExt }
+      : { nearExt: e.leftExt, farExt: e.rightExt };
+  }
+
+  // Total visual extent of all stacks in a row region along its axis
+  // (width for a horizontal row, height for a vertical one), including the buffer.
+  function rowTotalExtent(regionId) {
     const stackIds = regionState[regionId].stackIds;
-    if (!stackIds.length) return regionPx(regionId).w;
-    const GAP         = cardWidthPx() * -0.15;
-    const LEFT_BUFFER = cardWidthPx() * 0.15;
+    const vert     = isVertical(regionId);
+    if (!stackIds.length) return vert ? regionPx(regionId).h : regionPx(regionId).w;
     const total = stackIds.reduce((sum, sid) => {
-      const { leftExt, rightExt } = stackExtents(sid);
-      return sum + leftExt + rightExt;
+      const { nearExt, farExt } = rowStackExtents(sid, vert);
+      return sum + nearExt + farExt;
     }, 0);
-    return total + (stackIds.length - 1) * GAP + LEFT_BUFFER;
+    return total + (stackIds.length - 1) * rowGap(vert) + rowStartBuffer(vert);
   }
 
   function regionLayerZ(regionId) {
@@ -139,10 +193,15 @@ export function createLayout(state, projection, REGIONS) {
   // where left/top are tilt-space coordinates.
 
   function stackCardOffsets(stack) {
-    const cw   = cardWidthPx();
-    const peek = cw * ATTACH_OFFSET_X;
-    let leftEdge  = 0;
-    let rightEdge = cards[stack.cardIds[0]]?.renderedW || cw;
+    const cw    = cardWidthPx();
+    const ch    = cardHeightPx();
+    const peekX = cw * ATTACH_OFFSET_X;
+    const peekY = ch * ATTACH_OFFSET_Y;
+    const base  = cards[stack.cardIds[0]];
+    let leftEdge   = 0;
+    let rightEdge  = base?.renderedW || cw;
+    let topEdge    = 0;
+    let bottomEdge = base?.renderedH || ch;
 
     return stack.cardIds.map((cid, cardIdx) => {
       if (cardIdx === 0) return { cardId: cid, dx: 0, dy: 0 };
@@ -150,39 +209,69 @@ export function createLayout(state, projection, REGIONS) {
       const card      = cards[cid];
       const direction = card?.attachmentDirection;
       if (direction === 'left') {
-        leftEdge -= peek;
+        leftEdge -= peekX;
         return { cardId: cid, dx: leftEdge, dy: 0 };
       }
-      if (direction === 'right') {
-        // Align the card's own (possibly narrower) right edge so it always
-        // peeks out past the stack's current right edge, rather than offsetting
-        // by a fraction of the shared default card width — otherwise narrow
-        // attachments get fully hidden behind a wider parent/sibling.
-        const width = card?.renderedW || cw;
-        const dx = rightEdge - width + peek;
-        rightEdge += peek;
-        return { cardId: cid, dx, dy: 0 };
+      if (direction === 'top') {
+        topEdge -= peekY;
+        return { cardId: cid, dx: 0, dy: topEdge };
       }
-      return { cardId: cid, dx: 0, dy: 0 };
+      if (direction === 'bottom') {
+        // Same "align the card's own far edge" reasoning as `right`, on the Y axis.
+        const height = card?.renderedH || ch;
+        const dy = bottomEdge - height + peekY;
+        bottomEdge += peekY;
+        return { cardId: cid, dx: 0, dy };
+      }
+      if (direction === 'behind') {
+        // Hidden under the parent — the stack's z-order (base card highest,
+        // attachments descending) already tucks it completely away. While the
+        // stack is being looked under, the hidden cards fan downward at half a
+        // peek each, exactly as the 2D renderer fans them.
+        if (!stack.lookingUnder) return { cardId: cid, dx: 0, dy: 0, behind: true };
+        const height = card?.renderedH || ch;
+        const dy = bottomEdge - height + peekY / 2;
+        bottomEdge += peekY / 2;
+        return { cardId: cid, dx: 0, dy, behind: true };
+      }
+      // 'right', and the fallback for a card with no direction recorded yet.
+      // Align the card's own (possibly narrower) right edge so it always
+      // peeks out past the stack's current right edge, rather than offsetting
+      // by a fraction of the shared default card width — otherwise narrow
+      // attachments get fully hidden behind a wider parent/sibling.
+      const width = card?.renderedW || cw;
+      const dx = rightEdge - width + peekX;
+      rightEdge += peekX;
+      return { cardId: cid, dx, dy: 0 };
     });
   }
 
+  // The outermost card on each side of a stack — the card whose edge the attach
+  // hit-test measures against, so a new attachment lands outside the existing ones.
   function stackBaseCardIds(stack) {
-    if (!stack?.cardIds?.length) return { leftCardId: null, rightCardId: null };
+    if (!stack?.cardIds?.length) {
+      return { leftCardId: null, rightCardId: null, topCardId: null, bottomCardId: null };
+    }
 
     const parentCardId = stack.cardIds[0];
-    let leftCardId = parentCardId;
-    let rightCardId = parentCardId;
-    let leftMostDx = 0;
-    let rightMostDx = 0;
+    let leftCardId   = parentCardId;
+    let rightCardId  = parentCardId;
+    let topCardId    = parentCardId;
+    let bottomCardId = parentCardId;
+    let leftMostDx   = 0;
+    let rightMostDx  = 0;
+    let topMostDy    = 0;
+    let bottomMostDy = 0;
 
-    stackCardOffsets(stack).forEach(({ cardId, dx }) => {
+    stackCardOffsets(stack).forEach(({ cardId, dx, dy }) => {
       const direction = cards[cardId]?.attachmentDirection;
-      if (direction === 'left' && dx < leftMostDx) { leftMostDx = dx; leftCardId = cardId; }
-      if (direction === 'right' && dx > rightMostDx) { rightMostDx = dx; rightCardId = cardId; }
+      if (direction === 'left'   && dx < leftMostDx)   { leftMostDx   = dx; leftCardId   = cardId; }
+      if (direction === 'right'  && dx > rightMostDx)  { rightMostDx  = dx; rightCardId  = cardId; }
+      if (direction === 'top'    && dy < topMostDy)    { topMostDy    = dy; topCardId    = cardId; }
+      if (direction === 'bottom' && dy > bottomMostDy) { bottomMostDy = dy; bottomCardId = cardId; }
     });
 
-    return { leftCardId, rightCardId };
+    return { leftCardId, rightCardId, topCardId, bottomCardId };
   }
 
   function stackPositionsAtAnchor(stack, anchorLeft, anchorTop, zIndexBase, stackZBase = 0) {
@@ -202,49 +291,50 @@ export function createLayout(state, projection, REGIONS) {
     const stackIds = regionState[regionId].stackIds;
     const n        = stackIds.length;
     if (!n) return [];
-    const cw = cardWidthPx(), ch = cardHeightPx();
     const lz = regionLayerZ(regionId);
 
-    if (isVertical(regionId)) {
-      const spacing = ch * 1.1;
-      const totalH  = (n - 1) * spacing + ch;
-      const midX    = rp.x + (rp.w - cw) / 2;
-      let startY;
-      if (totalH <= rp.h) {
-        startY = rp.y + (rp.h - totalH) / 2;
-      } else {
-        const maxScroll = totalH - rp.h;
-        const rs = regionState[regionId];
-        rs.scrollOffset = Math.min(Math.max(rs.scrollOffset || 0, 0), maxScroll);
-        startY = rp.y - rs.scrollOffset;
-      }
-      const positions = [];
-      stackIds.forEach((sid, slotIdx) => {
-        const stack = stacks[sid];
-        positions.push(...stackPositionsAtAnchor(stack, midX, startY + slotIdx * spacing, slotIdx * 100, lz));
-      });
-      return positions;
-    }
+    // Both orientations walk their axis stack by stack, spacing each slot by that
+    // stack's own extents so attachments (left/right in a horizontal row,
+    // top/bottom in a vertical one) push their neighbours out of the way.
+    const vert   = isVertical(regionId);
+    const GAP    = rowGap(vert);
+    const BUFFER = rowStartBuffer(vert);
+    const total  = rowTotalExtent(regionId);
+    const size   = vert ? rp.h : rp.w;
+    const origin = vert ? rp.y : rp.x;
+    // The cross-axis position: rows center each stack across their short side,
+    // measured on that stack's base card so an odd-sized card sits centered on
+    // its own box rather than on the default one. No tilt overhang term here —
+    // the scale is symmetric about the center, so centering the element box
+    // centers the visible box too.
+    const crossOf = (sid) => {
+      const base = cardBox(stacks[sid].cardIds[0]);
+      return vert ? rp.x + (rp.w - base.w) / 2 : rp.y + (rp.h - base.h) / 2;
+    };
 
-    const GAP         = cw * -0.15;
-    const LEFT_BUFFER = cw * 0.15;
-    const totalW      = rowTotalWidth(regionId);
-    const midY        = rp.y + (rp.h - ch) / 2;
-    let startVisualX;
-    if (totalW <= rp.w) {
-      startVisualX = rp.x + LEFT_BUFFER;
-    } else {
-      const maxScroll = totalW - rp.w;
-      const rs = regionState[regionId];
-      rs.scrollOffset = Math.min(Math.max(rs.scrollOffset || 0, 0), maxScroll);
-      startVisualX = rp.x + LEFT_BUFFER - rs.scrollOffset;
-    }
+    // Both orientations start flush against the region's leading edge, matching
+    // the 2D renderer (a row region there is plain block flow from the top/left).
+    // Centering a vertical row would push a taller-than-default card down past
+    // the region's clipped bottom edge.
+    const maxScroll = Math.max(0, total - size);
+    const rs        = regionState[regionId];
+    rs.scrollOffset = Math.min(Math.max(rs.scrollOffset || 0, 0), maxScroll);
+    const start     = origin + BUFFER - rs.scrollOffset;
+
     const positions = [];
-    let x = startVisualX;
+    let pos = start;
     stackIds.forEach((sid, slotIdx) => {
-      const { leftExt, rightExt } = stackExtents(sid);
-      positions.push(...stackPositionsAtAnchor(stacks[sid], x + leftExt, midY, slotIdx * 100, lz));
-      x += leftExt + rightExt + GAP;
+      const { nearExt, farExt } = rowStackExtents(sid, vert);
+      const anchor = pos + nearExt;
+      const cross  = crossOf(sid);
+      positions.push(...stackPositionsAtAnchor(
+        stacks[sid],
+        vert ? cross : anchor,
+        vert ? anchor : cross,
+        slotIdx * 100,
+        lz,
+      ));
+      pos += nearExt + farExt + GAP;
     });
     return positions;
   }
@@ -316,28 +406,64 @@ export function createLayout(state, projection, REGIONS) {
     return positions;
   }
 
-  function layoutPile(regionId) {
+  // A region's `rotation` game-def key, normalized into [0, 360). Only pile
+  // regions honor it today; every other layout ignores it, so authors who set it
+  // elsewhere get no effect rather than a broken row.
+  function regionRotation(regionId) {
+    const raw = REGIONS[regionId]?.rotation;
+    if (!raw) return 0;
+    return ((raw % 360) + 360) % 360;
+  }
+
+  // Geometry of a pile region's single card slot. A pile rotated a quarter turn
+  // lies on its side, so its slot is landscape (ch wide by cw tall); 0/180 keep
+  // the upright portrait slot. Shared with the engine so the count badge and the
+  // shuffle riffle anchor on exactly the same box layoutPile uses.
+  function pileSlot(regionId) {
     const rp          = regionPx(regionId);
-    const stackIds    = regionState[regionId].stackIds;
     const cw          = cardWidthPx(), ch = cardHeightPx();
+    const rot         = regionRotation(regionId);
+    const sideways    = rot % 180 === 90;
+    const slotW       = sideways ? ch : cw;
+    const slotH       = sideways ? cw : ch;
     const LEFT_BUFFER = cw * 0.15;
-    const cx          = rp.x + LEFT_BUFFER + (rp.w - LEFT_BUFFER - cw) / 2;
-    const cy          = rp.y + (rp.h - ch) / 2;
+    const x           = rp.x + LEFT_BUFFER + (rp.w - LEFT_BUFFER - slotW) / 2;
+    const y           = rp.y + (rp.h - slotH) / 2;
+    return {
+      rot, sideways, slotW, slotH,
+      // Slot centre, and the top-left a default-sized (cw x ch) upright card box
+      // needs to sit centred on it — the anchor stack offsets build from.
+      centerX: x + slotW / 2,
+      centerY: y + slotH / 2,
+      left: x + (slotW - cw) / 2,
+      top:  y + (slotH - ch) / 2,
+      bottom: y + slotH,
+    };
+  }
+
+  function layoutPile(regionId) {
+    const stackIds = regionState[regionId].stackIds;
+    const ch       = cardHeightPx();
+    const slot     = pileSlot(regionId);
     const lz       = regionLayerZ(regionId);
     const positions = [];
     stackIds.forEach((sid, slotIdx) => {
       const stack = stacks[sid];
       const cappedIdx = Math.min(slotIdx, MAX_PILE_VISUAL_DEPTH - 1);
-      const rawPositions = stackPositionsAtAnchor(stack, cx, cy, slotIdx * 100, cappedIdx * pileStackZPx(ch) + lz);
+      const rawPositions = stackPositionsAtAnchor(stack, slot.left, slot.top, slotIdx * 100, cappedIdx * pileStackZPx(ch) + lz);
       rawPositions.forEach(pos => {
         const card = cards[pos.cardId];
         const rw = card.renderedW, rh = card.renderedH;
-        // Landscape root card: rotate 90° so it aligns with portrait neighbors,
-        // and re-center it on the same slot center that portrait cards use.
-        if (rw && rh && rw > rh * 1.05 && !card.attachmentDirection) {
-          pos.rot  = 90;
-          pos.left = cx + (cw - rw) / 2;
-          pos.top  = cy + (ch - rh) / 2;
+        // A landscape root card turns 90° to line up with its portrait
+        // neighbours; the region's own rotation then turns that upright slot.
+        const landscape = !!(rw && rh && rw > rh * 1.05);
+        const rot = (slot.rot + (landscape ? 90 : 0)) % 360;
+        // Re-center the card's own box on the slot center — rotation is about
+        // that center, and cards may render at their own size.
+        if (rw && rh && rot && !card.attachmentDirection) {
+          pos.rot  = rot;
+          pos.left = slot.centerX - rw / 2;
+          pos.top  = slot.centerY - rh / 2;
         }
         positions.push(pos);
       });
@@ -546,84 +672,77 @@ export function createLayout(state, projection, REGIONS) {
     const ownIdx = excludeStackId !== null ? stackIds.indexOf(excludeStackId) : -1;
     const m = ownIdx !== -1 ? n - 1 : n;
 
-    // ── Horizontal row: per-stack extents, variable anchor spacing ──────────────
-    if (!vert && type === 'row') {
-      const GAP         = cw * -0.15;
-      const LEFT_BUFFER = cw * 0.15;
-      const allExtents  = stackIds.map(sid => stackExtents(sid));
-      const totalW      = allExtents.reduce((s, e) => s + e.leftExt + e.rightExt, 0) + (n - 1) * GAP + LEFT_BUFFER;
-      let startVisualX;
-      if (totalW <= rp.w) {
-        startVisualX = rp.x + LEFT_BUFFER;
-      } else {
-        const maxScroll = totalW - rp.w;
-        const scrollOff = Math.min(Math.max(regionState[regionId].scrollOffset || 0, 0), maxScroll);
-        startVisualX = rp.x + LEFT_BUFFER - scrollOff;
-      }
+    // ── Rows: per-stack extents, variable anchor spacing (mirrors layoutRow) ────
+    if (type === 'row') {
+      const GAP        = rowGap(vert);
+      const BUFFER     = rowStartBuffer(vert);
+      const allExtents = stackIds.map(sid => rowStackExtents(sid, vert));
+      const total      = allExtents.reduce((s, e) => s + e.nearExt + e.farExt, 0) + (n - 1) * GAP + BUFFER;
+      const size       = vert ? rp.h : rp.w;
+      const origin     = vert ? rp.y : rp.x;
+      // Half a stack's own extent along the row axis — the midpoint the drag has
+      // to cross to land after that stack. Per-stack so an odd-sized card's
+      // midpoint tracks the card the pointer actually sees.
+      const halfOf     = (sid) => {
+        const base = cardBox(stacks[sid].cardIds[0]);
+        return (vert ? base.h : base.w) / 2;
+      };
+      const maxScroll = Math.max(0, total - size);
+      const scrollOff = Math.min(Math.max(regionState[regionId].scrollOffset || 0, 0), maxScroll);
+      const start     = origin + BUFFER - scrollOff;
 
       const anchors = [];
-      let x = startVisualX;
+      let p = start;
       for (let i = 0; i < n; i++) {
-        anchors.push(x + allExtents[i].leftExt);
-        x += allExtents[i].leftExt + allExtents[i].rightExt + GAP;
+        anchors.push(p + allExtents[i].nearExt);
+        p += allExtents[i].nearExt + allExtents[i].farExt + GAP;
       }
 
+      const dragCenter = vert ? dragCenterYTilt : dragCenterXTilt;
       let rawInsertIdx = 0;
       for (let i = 0; i < n; i++) {
-        if (dragCenterXTilt > anchors[i] + cw / 2) rawInsertIdx = i + 1;
+        if (dragCenter > anchors[i] + halfOf(stackIds[i])) rawInsertIdx = i + 1;
       }
       const insertIdx = (ownIdx !== -1 && ownIdx < rawInsertIdx) ? rawInsertIdx - 1 : rawInsertIdx;
       const slotOf    = (j) => (ownIdx !== -1 && j >= ownIdx) ? j + 1 : j;
 
-      let lineX;
+      let line;
       if (m === 0) {
-        lineX = rp.x + rp.w / 2;
+        line = origin + size / 2;
       } else if (insertIdx === 0) {
         const s0 = slotOf(0);
-        lineX = anchors[s0] - allExtents[s0].leftExt - 2;
+        line = anchors[s0] - allExtents[s0].nearExt - 2;
       } else if (insertIdx >= m) {
         const sL = slotOf(m - 1);
-        lineX = anchors[sL] + allExtents[sL].rightExt + 2;
+        line = anchors[sL] + allExtents[sL].farExt + 2;
       } else {
         const sA = slotOf(insertIdx - 1), sB = slotOf(insertIdx);
-        lineX = (anchors[sA] + allExtents[sA].rightExt + anchors[sB] - allExtents[sB].leftExt) / 2;
+        line = (anchors[sA] + allExtents[sA].farExt + anchors[sB] - allExtents[sB].nearExt) / 2;
       }
-      return { insertIdx, lineX };
+      return vert ? { insertIdx, lineY: line } : { insertIdx, lineX: line };
     }
 
-    // ── Uniform-spacing path (vertical row, horizontal fan, vertical fan) ───────
+    // ── Uniform-spacing path (horizontal fan, vertical fan) ─────────────────────
     let start, spacing, cardDim, regionExtent, regionOrigin;
-    if (vert) {
+    if (vert) { // vertical fan
       cardDim       = ch;
       regionExtent  = rp.h;
       regionOrigin  = rp.y;
-      if (type === 'row') {
-        spacing         = ch * 1.1;
-        const totalH    = (n - 1) * spacing + ch;
-        if (totalH <= rp.h) {
-          start = rp.y + (rp.h - totalH) / 2;
+      const minSpacing = ch * 0.20;
+      if (n * ch <= rp.h) {
+        start   = rp.y;
+        spacing = ch;
+      } else {
+        const overlapSpacing = n > 1 ? (rp.h - ch) / (n - 1) : ch;
+        if (overlapSpacing >= minSpacing) {
+          start   = rp.y;
+          spacing = overlapSpacing;
         } else {
+          const totalH    = (n - 1) * minSpacing + ch;
           const maxScroll = totalH - rp.h;
           const scrollOff = Math.min(Math.max(regionState[regionId].scrollOffset || 0, 0), maxScroll);
-          start = rp.y - scrollOff;
-        }
-      } else { // fan
-        const minSpacing = ch * 0.20;
-        if (n * ch <= rp.h) {
-          start   = rp.y;
-          spacing = ch;
-        } else {
-          const overlapSpacing = n > 1 ? (rp.h - ch) / (n - 1) : ch;
-          if (overlapSpacing >= minSpacing) {
-            start   = rp.y;
-            spacing = overlapSpacing;
-          } else {
-            const totalH    = (n - 1) * minSpacing + ch;
-            const maxScroll = totalH - rp.h;
-            const scrollOff = Math.min(Math.max(regionState[regionId].scrollOffset || 0, 0), maxScroll);
-            start   = rp.y - scrollOff;
-            spacing = minSpacing;
-          }
+          start   = rp.y - scrollOff;
+          spacing = minSpacing;
         }
       }
     } else { // horizontal fan
@@ -781,8 +900,8 @@ export function createLayout(state, projection, REGIONS) {
     setScrollOuter, clearScrollOuters,
     tiltSpacePosOf, ensureCardParent, moveCardToTilt, moveCardFromTilt, moveStackToTilt,
     stackCardOffsets, stackBaseCardIds, stackPositionsAtAnchor,
-    rowTotalWidth,
-    layoutRow, layoutFan, layoutPile,
+    rowTotalExtent,
+    layoutRow, layoutFan, layoutPile, pileSlot,
     placeCardAt, animateCardTo, animateCardArc, applyTokenHostRotation,
     insertStackAtIndex,
     setIndicatorEl, showInsertionIndicator, hideInsertionIndicator,

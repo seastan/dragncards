@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { convertToPercentage, Z_INDEX } from '../engine/functions/common';
 import { useLayout } from '../engine/hooks/useLayout';
 import MessageBox from '../messages/MessageBox';
@@ -8,6 +9,7 @@ var delayBroadcast;
 
 export const Dnc3DHudChat = React.memo(() => {
   const layout = useLayout();
+  const touchMode = useSelector(state => !!state?.playerUi?.userSettings?.touchMode);
   const [chatHover, setChatHover] = useState(false);
   // Delayed version of chatHover: becomes false only after the height transition
   // completes, so MessageLines scrolls to bottom on the final collapsed height.
@@ -42,6 +44,14 @@ export const Dnc3DHudChat = React.memo(() => {
     document.addEventListener('keydown', reset, { once: true });
   };
 
+  // The expand gesture is hover-with-a-delay, which a finger can never produce —
+  // so on a touchscreen the chat log would be stuck at its collapsed height.
+  // Swap in a tap toggle (and drop the hover handlers, since mobile browsers
+  // synthesise a mouseenter on tap that would fight the toggle).
+  const expandProps = touchMode
+    ? { onClick: () => setChatHover(prev => !prev) }
+    : { onMouseEnter: handleStartChatHover, onMouseLeave: handleStopChatHover };
+
   return (
     <div
       className="absolute"
@@ -62,8 +72,7 @@ export const Dnc3DHudChat = React.memo(() => {
           zIndex: chatHover ? Z_INDEX.ChatHover : 0,
           transition: 'height 300ms ease-out',
         }}
-        onMouseEnter={handleStartChatHover}
-        onMouseLeave={handleStopChatHover}
+        {...expandProps}
         onContextMenu={handleContextMenu}
       >
         <MessageBox hover={scrollHover} />

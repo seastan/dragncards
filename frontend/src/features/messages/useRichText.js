@@ -181,6 +181,36 @@ const renderToken = (token, key, { cardDb, cardById, urlPrefix, defaultImgHeight
   return <span key={key}>{token}</span>;
 };
 
+const tokenToPlainText = (token, { cardDb, cardById }) => {
+  if (token.startsWith("img:")) return "";
+
+  if (token.startsWith("link:cardId:")) {
+    const rest = token.slice(12);
+    const colonIdx = rest.indexOf(":");
+    const gameCardId = colonIdx !== -1 ? rest.slice(0, colonIdx) : rest;
+    const side = colonIdx !== -1 ? rest.slice(colonIdx + 1) : "A";
+    return cardById?.[gameCardId]?.sides?.[side]?.name || gameCardId;
+  }
+
+  if (token.startsWith("link:cardDbId:")) {
+    const rest = token.slice(14);
+    const colonIdx = rest.indexOf(":");
+    const dbId = colonIdx !== -1 ? rest.slice(0, colonIdx) : rest;
+    const side = colonIdx !== -1 ? rest.slice(colonIdx + 1) : "A";
+    return cardDb?.[dbId]?.[side]?.name || dbId;
+  }
+
+  if (token.startsWith("link:")) {
+    const rest = token.slice(5);
+    const protocolEnd = rest.indexOf("://");
+    const searchFrom = protocolEnd !== -1 ? protocolEnd + 3 : 0;
+    const labelSepIdx = rest.indexOf(":", searchFrom);
+    return labelSepIdx !== -1 ? rest.slice(labelSepIdx + 1) : rest;
+  }
+
+  return token;
+};
+
 const applyPlayerAliasColoring = (text, keyPrefix) => {
   const regex = /\[player\d+\/[^\]]+\]/g;
   const parts = text.split(regex);
@@ -203,6 +233,25 @@ const applyPlayerAliasColoring = (text, keyPrefix) => {
 
     return acc;
   }, []);
+};
+
+// Same token/label/alias processing as useRichText, but flattened to a plain string
+// suitable for the clipboard: images are dropped and links become their label.
+export const usePlainText = () => {
+  const formatLabelsInText = useFormatLabelsInText();
+  const cardDb = useCardDb();
+  const cardById = useSelector(state => state?.gameUi?.game?.cardById);
+
+  return (text) => {
+    if (!text) return "";
+    const labelsFormatted = formatLabelsInText(text);
+    return splitByTokens(labelsFormatted)
+      .map(segment => segment.isToken
+        ? tokenToPlainText(segment.text, { cardDb, cardById })
+        : segment.text.replace(/\[player\d+\/([^\]]+)\]/g, "[$1]"))
+      .join("")
+      .trim();
+  };
 };
 
 export const useRichText = () => {

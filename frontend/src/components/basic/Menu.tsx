@@ -27,8 +27,11 @@ interface MenuContextValue {
 }
 const MenuContext = React.createContext<MenuContextValue>({ close: () => {} });
 
+// The live setting is playerUi.userSettings.touchMode — playerUi.touchMode is a
+// vestigial field that is never written, so reading it kept the menus in
+// hover-open mode even with touch mode on.
 const useTouchMode = (): boolean =>
-  useSelector((state: any) => !!state?.playerUi?.touchMode);
+  useSelector((state: any) => !!state?.playerUi?.userSettings?.touchMode);
 
 // Hover-intent open/close: opening is immediate, but closing is deferred by a
 // short delay so that briefly crossing the small gap between a trigger and its

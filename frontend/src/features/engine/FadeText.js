@@ -1,5 +1,26 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import styled, { keyframes, css } from "styled-components";
+
+// Animation timings (ms)
+export const FADE_IN_MS = 200;
+export const FADE_OUT_MS = 200;
+export const DEFAULT_HOLD_MS = 600;
+// A hold duration of PERSISTENT_HOLD_MS means "stay until bumped by the next message"
+export const PERSISTENT_HOLD_MS = -1;
+
+/**
+ * Normalizes a fadeText entry from the game state into {text, holdMs}.
+ * Entries are either plain strings (no duration given) or
+ * {text, duration} where duration is in seconds (-1 = stay until bumped).
+ */
+export const normalizeFadeMessage = (entry) => {
+  if (typeof entry === "string") return { text: entry, holdMs: DEFAULT_HOLD_MS };
+  const text = entry?.text ?? "";
+  const duration = entry?.duration;
+  if (typeof duration !== "number") return { text, holdMs: DEFAULT_HOLD_MS };
+  if (duration < 0) return { text, holdMs: PERSISTENT_HOLD_MS };
+  return { text, holdMs: duration * 1000 };
+};
 
 // Keyframe for fade in with scale
 const fadeInScale = keyframes`
@@ -51,8 +72,11 @@ const FadeTextInner = styled.div`
  * @param {object} style - Additional styles to apply
  * @param {string} className - Additional CSS classes
  * @param {object} gameDef - Game definition object containing token definitions
+ * @param {number} holdMs - How long to hold the text before fading out (in ms).
+ *                          PERSISTENT_HOLD_MS (-1) holds until `dismissed` becomes true.
+ * @param {boolean} dismissed - When true, fade out now (used to bump a persistent message)
  */
-export const FadeText = React.memo(({ text, onComplete, delay = 0, style = {}, className = "", gameDef = null }) => {
+export const FadeText = React.memo(({ text, onComplete, delay = 0, style = {}, className = "", gameDef = null, holdMs = DEFAULT_HOLD_MS, dismissed = false }) => {
   const [phase, setPhase] = useState('fadeIn');
   const [started, setStarted] = useState(false);
 
@@ -94,6 +118,12 @@ export const FadeText = React.memo(({ text, onComplete, delay = 0, style = {}, c
 
   const contentParts = parseTextWithTokens(text);
 
+  // Keep the latest onComplete without restarting the animation timers
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  });
+
   useEffect(() => {
     // Start animation after delay
     const startTimer = setTimeout(() => {
@@ -106,31 +136,44 @@ export const FadeText = React.memo(({ text, onComplete, delay = 0, style = {}, c
   useEffect(() => {
     if (!started) return;
 
+    const timers = [];
+
     // Fade in phase
     setPhase('fadeIn');
 
-    const fadeInTimer = setTimeout(() => {
+    timers.push(setTimeout(() => {
       // Hold phase
       setPhase('hold');
 
-      const holdTimer = setTimeout(() => {
+      // Persistent messages hold until they are dismissed by the next message
+      if (holdMs < 0) return;
+
+      timers.push(setTimeout(() => {
         // Fade out phase
         setPhase('fadeOut');
 
-        const fadeOutTimer = setTimeout(() => {
+        timers.push(setTimeout(() => {
           // Animation complete
-          if (onComplete) onComplete();
-        }, 200); // Fade out duration
+          if (onCompleteRef.current) onCompleteRef.current();
+        }, FADE_OUT_MS));
+      }, holdMs));
+    }, FADE_IN_MS));
 
-        return () => clearTimeout(fadeOutTimer);
-      }, 600); // Hold duration
+    return () => timers.forEach(clearTimeout);
+  }, [started, holdMs]);
 
-      return () => clearTimeout(holdTimer);
-    }, 200); // Fade in duration
+  // Bumped by a newer message: fade out early
+  useEffect(() => {
+    if (!started || !dismissed) return;
 
-    return () => clearTimeout(fadeInTimer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [started]);
+    setPhase('fadeOut');
+
+    const fadeOutTimer = setTimeout(() => {
+      if (onCompleteRef.current) onCompleteRef.current();
+    }, FADE_OUT_MS);
+
+    return () => clearTimeout(fadeOutTimer);
+  }, [started, dismissed]);
 
   if (!started) return null;
 

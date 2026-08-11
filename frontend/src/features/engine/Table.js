@@ -13,6 +13,7 @@ import { SideBar } from "./SideBar";
 import { Hotkeys } from "./Hotkeys";
 import { DropdownMenu } from "./DropdownMenu";
 import { TouchBarBottom } from "./TouchBarBottom";
+import { TouchModePrompt } from "./TouchModePrompt";
 
 import "../../css/custom-dropdown.css";
 import { TooltipModal } from "./TooltipModal";
@@ -131,13 +132,15 @@ export const Table = React.memo(({onDragEnd}) => {
             <FadeTextPlayer/>
           </div>
           {/* Touch Bar */}
-          {touchMode && <div className="relative bg-gray-700 w-full" style={{height: "12%"}}>
+          {touchMode && <div className="relative w-full" style={{height: "12%"}}>
               <TouchBarBottom/>
           </div>}
         </div>
       </div>
       {/* Card hover view */}
       <GiantCard/>
+      {/* One-time offer to switch on touch mode, shown only on touch devices */}
+      <TouchModePrompt/>
       {showModal === "card" ? <SpawnExistingCardModal/> : null}
       {showModal === "prebuilt_deck" ? <SpawnPrebuiltModal/> : null}
       {showModal === "public_deck" ? <SpawnPublicDeckModal/> : null}

@@ -9,6 +9,10 @@ import { adaptRegions, gameL10n } from './adapters/regions';
 import { adaptGameState } from './adapters/cards';
 import { buildEngineCallbacks } from './adapters/actions';
 import { useBrowseTopN } from '../engine/hooks/useBrowseTopN';
+import { useTouchAction } from '../engine/hooks/useTouchAction';
+import { useHandleTouchAction } from '../engine/hooks/useHandleTouchAction';
+import { useGetDefaultActionForCard } from '../engine/hooks/useGetDefaultAction';
+import { DefaultActionLabel } from '../engine/DefaultActionLabel';
 import { convertToPercentage, Z_INDEX } from '../engine/functions/common';
 import { TableButton } from '../engine/TableButton';
 import { Alert } from '../engine/Alert';
@@ -41,6 +45,11 @@ function CardTokens({ cardId, aspectRatio }) {
       <div className="absolute" style={{ inset: 0, pointerEvents: 'none' }}>
         <Tokens cardId={cardId} isActive={isActive} aspectRatio={aspectRatio} extrudeFilter={TOKEN_EXTRUDE_CSS} />
       </div>
+      {/* Touch mode's "tap again to <action>" hint. Renders null outside touch
+          mode, so this costs nothing on desktop. The token host is the only
+          per-card DOM the React tree owns in this renderer, which makes it the
+          mounting point for anything that has to sit on a specific card. */}
+      <DefaultActionLabel cardId={cardId} counterRotate />
       <FadeTextCard cardId={cardId} />
       <MultiSelectOverlay cardId={cardId} />
     </>
@@ -68,6 +77,10 @@ export default function Dnc3DTable({
 }) {
   const dispatch         = useDispatch();
   const browseTopN       = useBrowseTopN();
+  const touchMode        = useSelector(s => !!s?.playerUi?.userSettings?.touchMode);
+  const touchAction      = useTouchAction();
+  const handleTouchAction     = useHandleTouchAction();
+  const getDefaultActionForCard = useGetDefaultActionForCard();
   const observingPlayerN = useSelector(s => s?.playerUi?.observingPlayerN);
   const numPlayers       = useSelector(s => s?.gameUi?.game?.numPlayers);
   const cardSize         = useSelector(s => {
@@ -123,6 +136,10 @@ export default function Dnc3DTable({
   const tableBackgroundUrlRef = useRef(tableBackgroundUrl);
   const browseGroupIdRef      = useRef(browseGroupId);
   const multiSelectEnabledRef = useRef(multiSelectEnabled);
+  const touchModeRef          = useRef(touchMode);
+  const touchActionRef        = useRef(touchAction);
+  const handleTouchActionRef  = useRef(handleTouchAction);
+  const getDefaultActionRef   = useRef(getDefaultActionForCard);
   gameRef.current            = game;
   layoutRef.current          = layoutRegions;
   gameDefRef.current         = gameDef;
@@ -135,6 +152,10 @@ export default function Dnc3DTable({
   tableBackgroundUrlRef.current = tableBackgroundUrl;
   browseGroupIdRef.current      = browseGroupId;
   multiSelectEnabledRef.current = multiSelectEnabled;
+  touchModeRef.current          = touchMode;
+  touchActionRef.current        = touchAction;
+  handleTouchActionRef.current  = handleTouchAction;
+  getDefaultActionRef.current   = getDefaultActionForCard;
 
   // Re-initialize the engine whenever the card set changes.
   // This handles: switching to dnc3d after cards are loaded, and loading a
@@ -155,7 +176,7 @@ export default function Dnc3DTable({
       .map(k => {
         const r = regions[k];
         if (r?.visible === false || !r?.groupId) return null;
-        return `${r.groupId}|${r.type}|${r.layerIndex || 0}|${r.direction || ''}|${r.left}|${r.top}|${r.width}|${r.height}`;
+        return `${r.groupId}|${r.type}|${r.layerIndex || 0}|${r.direction || ''}|${r.rotation || 0}|${r.left}|${r.top}|${r.width}|${r.height}`;
       })
       .filter(Boolean)
       .sort()
@@ -195,6 +216,7 @@ export default function Dnc3DTable({
         cardSize:           cardSizeRef.current,
         zoomFactor:         zoomFactorRef.current,
         tableBackgroundUrl: tableBackgroundUrlRef.current,
+        touchMode:          touchModeRef.current,
         cardDefaultH,
         cardDefaultW,
         onCardClick:    (engineId, clientX, clientY) => {
@@ -210,6 +232,28 @@ export default function Dnc3DTable({
           const card = gameRef.current?.cardById?.[dcId];
           console.log('dnc3d card click', card);
           const title = card?.sides?.[card?.currentSide]?.name || '';
+          // Touch mode: same three-way branch as CardMouseRegion.handleClick in
+          // the 2D engine, so the touch bar and default actions behave
+          // identically in both renderers.
+          //   1. A touch-bar action is armed → apply it to the tapped card.
+          //   2. The card is already active → run its default action.
+          //   3. Otherwise → activate it and open its menu (the branch below).
+          // The 2D engine's step 2 relies on hover having made the card active;
+          // with no hover on a touchscreen, step 3's own dispatch is what arms it,
+          // so the first tap selects and the second acts.
+          if (touchModeRef.current && card) {
+            if (touchActionRef.current) {
+              handleTouchActionRef.current(card);
+              return;
+            }
+            if (store.getState().playerUi?.activeCardId === dcId) {
+              const defaultAction = getDefaultActionRef.current(card);
+              if (defaultAction?.actionList) {
+                doActionListRef.current(defaultAction.actionList, `Default action for ${title}`);
+                return;
+              }
+            }
+          }
           dispatch(setMouseXY({ x: clientX, y: clientY }));
           dispatch(setActiveCardId(dcId));
           dispatch(setScreenLeftRight(clientX > window.innerWidth / 2 ? 'right' : 'left'));
@@ -387,6 +431,14 @@ export default function Dnc3DTable({
     // re-init effect can pick it up.
     if (result !== false) lastShuffleNonceRef.current = dnc3dShuffle.nonce;
   }, [dnc3dShuffle]);
+
+  // ── Track the touchMode setting ────────────────────────────────────────────
+  // Touch mode can be flipped mid-game from Settings (or from the first-run
+  // prompt), so the engine is told about the change rather than only reading it
+  // at init — the init effect only re-runs on deck/region changes.
+  useEffect(() => {
+    engineRef.current?.setTouchMode(touchMode);
+  }, [touchMode]);
 
   // ── Suppress hover glow while the hotkey overlay (Tab) is open ──────────────
   // On open the engine drops the glow + active card; on close it re-derives hover

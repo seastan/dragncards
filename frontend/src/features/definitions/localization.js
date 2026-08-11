@@ -521,6 +521,87 @@ export const siteL10n = {
     "German": "Berührungsmodus",
     "Chinese": "触摸模式"
   },
+  "touchModePromptTitle": {
+    "English": "Touchscreen detected",
+    "French": "Écran tactile détecté",
+    "Spanish": "Pantalla táctil detectada",
+    "Portuguese": "Ecrã tátil detetado",
+    "Italian": "Schermo touch rilevato",
+    "German": "Touchscreen erkannt",
+    "Chinese": "检测到触摸屏"
+  },
+  "touchModePromptBody": {
+    "English": "Turn on touch mode for bigger targets and a tap-friendly action bar.",
+    "French": "Activez le mode tactile pour des cibles plus grandes et une barre d'actions adaptée.",
+    "Spanish": "Activa el modo táctil para objetivos más grandes y una barra de acciones táctil.",
+    "Portuguese": "Ative o modo de toque para alvos maiores e uma barra de ações adaptada.",
+    "Italian": "Attiva la modalità touch per bersagli più grandi e una barra azioni adatta al tocco.",
+    "German": "Aktiviere den Berührungsmodus für größere Ziele und eine tippfreundliche Aktionsleiste.",
+    "Chinese": "开启触摸模式，获得更大的点击区域和便于轻触的操作栏。"
+  },
+  "touchModePromptEnable": {
+    "English": "Turn on",
+    "French": "Activer",
+    "Spanish": "Activar",
+    "Portuguese": "Ativar",
+    "Italian": "Attiva",
+    "German": "Aktivieren",
+    "Chinese": "开启"
+  },
+  "touchModePromptDismiss": {
+    "English": "Not now",
+    "French": "Pas maintenant",
+    "Spanish": "Ahora no",
+    "Portuguese": "Agora não",
+    "Italian": "Non ora",
+    "German": "Nicht jetzt",
+    "Chinese": "暂不"
+  },
+  "addToHomeScreenTitle": {
+    "English": "Add DragnCards to your home screen",
+    "French": "Ajoutez DragnCards à votre écran d'accueil",
+    "Spanish": "Añade DragnCards a tu pantalla de inicio",
+    "Portuguese": "Adicione o DragnCards ao seu ecrã principal",
+    "Italian": "Aggiungi DragnCards alla schermata home",
+    "German": "Füge DragnCards zu deinem Startbildschirm hinzu",
+    "Chinese": "将 DragnCards 添加到主屏幕"
+  },
+  "addToHomeScreenBodyIos": {
+    "English": "Tap Share, then \"Add to Home Screen\" — the browser bars disappear and you get the whole table.",
+    "French": "Touchez Partager, puis « Sur l'écran d'accueil » — les barres du navigateur disparaissent et vous gagnez toute la table.",
+    "Spanish": "Toca Compartir y luego «Añadir a pantalla de inicio»: las barras del navegador desaparecen y ganas toda la mesa.",
+    "Portuguese": "Toque em Partilhar e depois em \"Adicionar ao ecrã principal\" — as barras do navegador desaparecem e ganha a mesa toda.",
+    "Italian": "Tocca Condividi, poi \"Aggiungi a Home\" — le barre del browser spariscono e guadagni tutto il tavolo.",
+    "German": "Tippe auf Teilen und dann auf „Zum Home-Bildschirm“ — die Browserleisten verschwinden und du bekommst den ganzen Tisch.",
+    "Chinese": "点击“分享”，然后选择“添加到主屏幕”——浏览器栏会消失，桌面空间更大。"
+  },
+  "addToHomeScreenBodyAndroid": {
+    "English": "Open the browser menu, then \"Add to Home screen\" — the browser bars disappear and you get the whole table.",
+    "French": "Ouvrez le menu du navigateur, puis « Ajouter à l'écran d'accueil » — les barres du navigateur disparaissent et vous gagnez toute la table.",
+    "Spanish": "Abre el menú del navegador y elige «Añadir a pantalla de inicio»: las barras del navegador desaparecen y ganas toda la mesa.",
+    "Portuguese": "Abra o menu do navegador e escolha \"Adicionar ao ecrã principal\" — as barras do navegador desaparecem e ganha a mesa toda.",
+    "Italian": "Apri il menu del browser, poi \"Aggiungi a schermata Home\" — le barre del browser spariscono e guadagni tutto il tavolo.",
+    "German": "Öffne das Browsermenü und wähle „Zum Startbildschirm hinzufügen“ — die Browserleisten verschwinden und du bekommst den ganzen Tisch.",
+    "Chinese": "打开浏览器菜单，选择“添加到主屏幕”——浏览器栏会消失，桌面空间更大。"
+  },
+  "addToHomeScreenInstall": {
+    "English": "Install",
+    "French": "Installer",
+    "Spanish": "Instalar",
+    "Portuguese": "Instalar",
+    "Italian": "Installa",
+    "German": "Installieren",
+    "Chinese": "安装"
+  },
+  "touchTapTo": {
+    "English": "Tap to",
+    "French": "Toucher pour",
+    "Spanish": "Toca para",
+    "Portuguese": "Toque para",
+    "Italian": "Tocca per",
+    "German": "Tippen zum",
+    "Chinese": "轻触以"
+  },
   "enable": {
     "English": "Enable",
     "French": "Activer",

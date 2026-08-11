@@ -23,8 +23,14 @@ export const layerZPx     = (cardH) => LAYER_Z_FRAC * cardH;
 // Adjust the 0.9 / 0.2 constants to tune the effect.
 export const cardHeightScaleForTilt = (deg) =>
  1 + (Math.min(Math.max(deg, 0), 45) / 45) * 0.2;
+// Attachment directions, matching the 2D engine's card menu. Anything else
+// (including a card that has none recorded yet) attaches to the right.
+export const ATTACH_DIRECTIONS = ['left', 'right', 'top', 'bottom', 'behind'];
+export const normalizeAttachDirection = (dir) =>
+  ATTACH_DIRECTIONS.includes(dir) ? dir : 'right';
+
 export const ANIMATION_SPEED_MULTIPLIER = 1;
-export const ATTACH_WIGGLE_DVH = 8; // horizontal wiggle on card attachment, in dvh
+export const ATTACH_WIGGLE_DVH = 8; // wiggle along the attach axis on card attachment, in dvh
 export const DRAG_EDGE_SCROLL_SPEED = 0.048; // auto-scroll speed when dragging near region edge, as fraction of card width per frame (~60fps)
 export const MAX_ZOOM  = 0.3;
 export const GROW      = 100;

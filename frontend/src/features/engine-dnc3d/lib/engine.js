@@ -1,10 +1,13 @@
-import { COLORS, BASE_LIFT, pileStackZPx, MAX_PILE_VISUAL_DEPTH, layerZPx, DEFAULT_REGIONS, scaleDuration, ATTACH_WIGGLE_DVH, DRAG_EDGE_SCROLL_SPEED, GROW, FLIP, OVERLAP, cardTransform, cardHeightScaleForTilt } from './config';
+import { COLORS, BASE_LIFT, pileStackZPx, MAX_PILE_VISUAL_DEPTH, layerZPx, DEFAULT_REGIONS, scaleDuration, ATTACH_WIGGLE_DVH, DRAG_EDGE_SCROLL_SPEED, GROW, FLIP, OVERLAP, cardTransform, cardHeightScaleForTilt, ATTACH_DIRECTIONS, normalizeAttachDirection } from './config';
 import { createState } from './state';
 import { createProjection } from './projection';
 import { createLayout } from './layout';
 import { createOverlay } from './overlay';
 import { easeOut, easeIn, animateFlip } from './animation';
 import { playFlipSound, playPickupSound, playDropSound } from './sound';
+
+// Marker classes on the card the attach gesture is currently targeting.
+const ATTACH_HOVER_CLASSES = ATTACH_DIRECTIONS.map(dir => `dnc3d-attach-hover-${dir}`);
 
 // Applies a game-definition region `style` CSS object (mirrors how TableRegion
 // spreads `region.style`) onto a region's outline element. Accepts both
@@ -41,6 +44,8 @@ function parseFrac(val, fallback = 0) {
 // options.onAttach        — callback(cardId, targetCardId, side)
 // options.onFlip          — callback(cardId)
 // options.onTriggerAbility — callback(cardId) fired when a card's bolt affordance is clicked
+// options.onLookUnder     — callback(parentCardId, lookingUnder) fired when a stack's
+//                           "N behind" badge is clicked
 // options.onCardClick     — callback(cardId, clientX, clientY) fired on click (no drag)
 // options.onCardHover     — callback(cardId) fired on pointerenter
 // options.onCardHoverEnd  — callback(cardId) fired on pointerleave
@@ -49,6 +54,8 @@ function parseFrac(val, fallback = 0) {
 // options.cardDefaultH    — card height in cardSize units (e.g. 1.0); default 1.0
 // options.cardDefaultW    — card width  in cardSize units (e.g. 0.72); default 0.72
 // options.zoomFactor      — user zoom setting as a multiplier; default 1.0
+// options.touchMode       — true on a touchscreen: hover-gated affordances become
+//                           tap-driven / always-on (see setTouchMode)
 export function createDnc3DEngine(options = {}) {
   const REGIONS       = options.regions    || DEFAULT_REGIONS;
 
@@ -71,6 +78,7 @@ export function createDnc3DEngine(options = {}) {
   const onAttach      = options.onAttach   || null;
   const onFlip        = options.onFlip        || null;
   const onTriggerAbility = options.onTriggerAbility || null;
+  const onLookUnder      = options.onLookUnder      || null;
   const onCardClick    = options.onCardClick    || null;
   const onCardHover         = options.onCardHover         || null;
   const onCardHoverEnd      = options.onCardHoverEnd      || null;
@@ -96,12 +104,12 @@ export function createDnc3DEngine(options = {}) {
 
   const layout = createLayout(state, projection, REGIONS);
   const {
-    initLayout, regionPx, layoutFan, layoutRow, layoutPile,
+    initLayout, regionPx, layoutFan, layoutRow, layoutPile, pileSlot,
     placeCardAt, layoutRegion, setAfterLayoutHook, setScrollOuter, setIndicatorEl, applyTokenHostRotation,
     findRegionAtPoint, insertStackAtIndex, moveCardToTilt, moveCardFromTilt, moveStackToTilt,
     animateCardTo, animateCardArc, tiltSpacePosOf, stackCardOffsets, stackBaseCardIds, stackPositionsAtAnchor,
     showInsertionIndicator, hideInsertionIndicator, clearScrollOuters,
-    rowTotalWidth,
+    rowTotalExtent,
   } = layout;
 
   // ── Engine-level state ─────────────────────────────────────────────────────
@@ -118,6 +126,11 @@ export function createDnc3DEngine(options = {}) {
   // no pointerout firing).
   let _lastPointerX       = -1;
   let _lastPointerY       = -1;
+  // Whether the last pointer to touch the table was a finger. A finger has no
+  // resting position: _lastPointerX/Y freeze wherever it was lifted, so letting
+  // the hover machinery keep running off those stale coords would re-activate
+  // whatever card happens to sit under the last tap after every state update.
+  let _lastPointerWasTouch = false;
   let _hoverSettleRaf     = null; // rAF id for the post-reconcile hover settle loop
   // True while a full-screen overlay (e.g. the hotkey panel shown on Tab) covers
   // the table. The overlay sits above the cards, so pointer events stop reaching
@@ -125,6 +138,11 @@ export function createDnc3DEngine(options = {}) {
   // suppressed we drop the glow and stop re-adding it; on release we re-derive
   // hover from wherever the cursor actually is (see setHoverSuppressed).
   let _hoverSuppressed    = false;
+  // Touch mode. A finger produces no hover, so every affordance the renderer
+  // normally reveals on hover (region eye/menu icons, pile count badges, the
+  // ability bolt) would be unreachable. In touch mode those are driven by taps
+  // and by always-on visibility instead — see setTouchMode.
+  let _touchMode          = options.touchMode || false;
 
   // Topmost `.dnc3d-card` element under a screen point, treating tokens and the
   // see-through liftEl/tokenHost wrappers as transparent. Shared by the per-card
@@ -191,6 +209,12 @@ export function createDnc3DEngine(options = {}) {
   const regionIconEls    = {};
   const regionLabelEls   = {};
   const regionCountEls   = {}; // pile regions only: card-count badge shown on hover
+  // Which region currently has its icon strip / count badge revealed. Engine
+  // scope rather than init scope so setTouchMode can clear them when the mode
+  // flips — otherwise the "did it change?" guards in updateIconHover /
+  // updateCountHover would see a stale region and skip re-showing it.
+  let hoveredIconRegion  = null;
+  let hoveredCountRegion = null;
   const sentinelEls      = {};
   const arrowEls         = {}; // { start, end } per scrollable region
 
@@ -379,10 +403,7 @@ export function createDnc3DEngine(options = {}) {
     const cw   = cardWidthPx(), ch = cardHeightPx();
     const rp   = regionPx(regionId);
     const vert = r.direction === 'vertical';
-    if (r.type === 'row') {
-      if (vert) return n > 0 ? (n - 1) * ch * 1.1 + ch : rp.h;
-      return rowTotalWidth(regionId);
-    }
+    if (r.type === 'row') return rowTotalExtent(regionId);
     if (r.type === 'fan') {
       const dim        = vert ? ch : cw;
       const size       = vert ? rp.h : rp.w;
@@ -813,12 +834,49 @@ export function createDnc3DEngine(options = {}) {
     return stackIds.length === 0 || card.stackId === stackIds[stackIds.length - 1];
   }
 
+  // How far a pointer must travel before a press counts as a drag rather than a
+  // tap. The same number decides the opposite question at pointerup (below it,
+  // the press opens the card menu), so the two must stay in lockstep — anything
+  // in the gap between two different thresholds would either do nothing or
+  // both drop AND open the menu. Fingers wobble far more than a cursor, so
+  // touch gets a wider deadzone; without it, ordinary taps register as drags.
+  function dragThreshold(e) {
+    const base = Math.min(window.innerWidth, window.innerHeight) * 0.005;
+    return e?.pointerType === 'touch' ? base * 3 : base;
+  }
+
   // Show the lightning-bolt affordance only while the card is hovered and its
   // current face has a triggerable ability — mirrors the 2D AbilityButton, which
   // renders only when `isActive && hasAbility`.
+  // Touch mode has no hover, so the bolt would be permanently unreachable; there
+  // it shows whenever the card has an ability.
+  // Refresh every card's "N behind" badge: only a stack parent with cards
+  // attached `behind` shows one, and the arrow points down while they're hidden,
+  // up while the stack is fanned out. Cheap enough to run wholesale after any
+  // change to stack composition or look-under state.
+  function syncBehindBadges() {
+    cards.forEach(card => {
+      const badge = card.behindBadgeEl;
+      if (!badge) return;
+      const stack = stacks[card.stackId];
+      const isParent = stack?.cardIds?.[0] === card.id;
+      const numBehind = isParent
+        ? stack.cardIds.filter(cid => cards[cid]?.attachmentDirection === 'behind').length
+        : 0;
+      if (!numBehind || !card.regionId) {
+        badge.style.display = 'none';
+        return;
+      }
+      badge.style.display = 'flex';
+      badge.querySelector('.dnc3d-behind-count').textContent = numBehind;
+      badge.classList.toggle('dnc3d-behind-open', !!stack.lookingUnder);
+    });
+  }
+
   function syncAbilityBtn(card) {
     if (!card.abilityBtnEl) return;
-    const show = card.hasAbility && card.cardEl.classList.contains('dnc3d-card-hovered');
+    const show = card.hasAbility &&
+      (_touchMode || card.cardEl.classList.contains('dnc3d-card-hovered'));
     card.abilityBtnEl.style.display = show ? 'flex' : 'none';
   }
 
@@ -916,6 +974,30 @@ export function createDnc3DEngine(options = {}) {
     abilityHost.appendChild(abilityBtn);
     liftEl.appendChild(abilityHost);
 
+    // "N behind" badge (dnc3d port of the 2D Stack's look-under control). Cards
+    // attached `behind` sit exactly under their parent and are otherwise
+    // invisible, so the parent card carries a count that fans them out on click.
+    // Hung off liftEl (like the tokens) so it rides the card's position without
+    // any layout bookkeeping, and stays upright when the card exhausts — the 2D
+    // badge likewise sits outside the rotating card. Hidden unless this card is
+    // a stack parent with hidden attachments (see syncBehindBadge).
+    const behindBadge = document.createElement('div');
+    behindBadge.className     = 'dnc3d-behind-badge';
+    behindBadge.style.display = 'none';
+    behindBadge.innerHTML =
+      '<span class="dnc3d-behind-count"></span>' +
+      '<svg class="dnc3d-behind-arrow" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
+      '<path d="M12 20 4 9h16z"/></svg>';
+    // Same press handling as the ability bolt: don't start a card drag, and act
+    // on pointerup since preventDefault kills the synthetic click.
+    behindBadge.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); });
+    behindBadge.addEventListener('pointerup',   e => {
+      e.stopPropagation();
+      const stack = stacks[cards[i]?.stackId];
+      if (stack && onLookUnder) onLookUnder(i, !stack.lookingUnder);
+    });
+    liftEl.appendChild(behindBadge);
+
     liftEl.style.left      = '0px';
     liftEl.style.top       = '0px';
     liftEl.style.zIndex    = i + 1;
@@ -949,6 +1031,7 @@ export function createDnc3DEngine(options = {}) {
       borderColor:  null,
       abilityBtnEl:  abilityBtn,
       abilityHostEl: abilityHost,
+      behindBadgeEl: behindBadge,
       hasAbility:   !!_playerN && !!hasAbility,
     };
     cards.push(card);
@@ -991,6 +1074,13 @@ export function createDnc3DEngine(options = {}) {
     // Suppress hover while dragging: re-parenting the dragged card's liftEl
     // (moveStackToTilt) fires a spurious pointerenter that would re-show the
     // GiantCard mid-drag right after onDragStart cleared it.
+    // A touch pointer fires pointerenter on press and pointerout on release, so
+    // the glow still works as press feedback — but the CALLBACKS must not fire.
+    // onCardHover sets activeCardId, which would make the very first tap on a
+    // card also count as "this card is already active", firing its default
+    // action instead of just selecting it. Selection stays purely tap-driven
+    // (see onCardClick), matching CardMouseRegion's isRecentTouch guard in 2D.
+    const isTouchEvent = (e) => e?.pointerType === 'touch';
     const topCardElAt = topCardElAtPoint;
     const showCardHover = (e) => {
       if (_isDragging) return;
@@ -999,14 +1089,14 @@ export function createDnc3DEngine(options = {}) {
       if (cardEl.classList.contains('dnc3d-card-hovered')) return;
       cardEl.classList.add('dnc3d-card-hovered');
       syncAbilityBtn(card);
-      if (onCardHover) onCardHover(i, e.clientX);
+      if (onCardHover && !isTouchEvent(e)) onCardHover(i, e.clientX);
     };
     const endCardHover = (e) => {
       if (e && topCardElAt(e.clientX, e.clientY) === cardEl) return;
       if (!cardEl.classList.contains('dnc3d-card-hovered')) return;
       cardEl.classList.remove('dnc3d-card-hovered');
       syncAbilityBtn(card);
-      if (onCardHoverEnd) onCardHoverEnd(i);
+      if (onCardHoverEnd && !isTouchEvent(e)) onCardHoverEnd(i);
     };
     cardEl.addEventListener('pointerenter', showCardHover);
     // Tokens are siblings of cardEl (not children), so entering from outside
@@ -1036,11 +1126,11 @@ export function createDnc3DEngine(options = {}) {
       return maxLayerZ + (MAX_PILE_VISUAL_DEPTH - 1) * pileStackZPx(cardHeightPx()) + window.innerHeight * 0.04;
     }
 
-    function setLiftVisuals(z_px, x_px = 0) {
+    function setLiftVisuals(z_px, x_px = 0, y_px = 0) {
       card.liftPx = z_px;
       const frac = z_px / dragLiftMax();
       const _tilt = card._dragTilt || 0;
-      liftEl.style.transform = `translateZ(${BASE_LIFT + card.pileZ + z_px}px) translateX(${x_px}px)${_tilt ? ` rotateZ(${_tilt}deg)` : ''}`;
+      liftEl.style.transform = `translateZ(${BASE_LIFT + card.pileZ + z_px}px) translate(${x_px}px, ${y_px}px)${_tilt ? ` rotateZ(${_tilt}deg)` : ''}`;
       cardEl.style.transform = cardTransform(cardEl._angle, (cardEl._layoutRotation || 0) + (cardEl._gameRotation || 0), 1 + 0.1 * frac, 0, cardEl._heightScale || 1);
       cardEl.style.boxShadow = frac > 0.01
         ? `0 ${frac * 1.1}vh ${frac * 2.5}vh rgba(0,0,0,0.6)`
@@ -1048,7 +1138,7 @@ export function createDnc3DEngine(options = {}) {
     }
 
     function animateLift(target, duration, easing, onComplete, options = {}) {
-      const { wiggleXPx = 0, settleProgressAt = 1, onSettle = null, startTime = null } = options;
+      const { wiggleXPx = 0, wiggleYPx = 0, settleProgressAt = 1, onSettle = null, startTime = null } = options;
       if (liftAnimId) { cancelAnimationFrame(liftAnimId); liftAnimId = null; }
       const from  = card.liftPx;
       const start = startTime ?? performance.now();
@@ -1060,13 +1150,13 @@ export function createDnc3DEngine(options = {}) {
           ? Math.min(t / settleProgressAt, 1)
           : 1;
         if (!settled && settleT >= 1) { settled = true; if (onSettle) onSettle(); }
-        const x = wiggleXPx ? Math.sin(t * Math.PI) * wiggleXPx : 0;
-        setLiftVisuals(from + (target - from) * easing(settleT), x);
+        const wiggle = (wiggleXPx || wiggleYPx) ? Math.sin(t * Math.PI) : 0;
+        setLiftVisuals(from + (target - from) * easing(settleT), wiggle * wiggleXPx, wiggle * wiggleYPx);
         if (t < 1) {
           liftAnimId = requestAnimationFrame(frame);
         } else {
           liftAnimId = null;
-          setLiftVisuals(target, 0);
+          setLiftVisuals(target, 0, 0);
           if (onComplete) onComplete();
         }
       }
@@ -1140,9 +1230,8 @@ export function createDnc3DEngine(options = {}) {
       if (!liftEl.hasPointerCapture(e.pointerId)) return;
       const dx = e.clientX - startX;
       const dy = e.clientY - startY;
-      const threshold = Math.min(window.innerWidth, window.innerHeight) * 0.005;
 
-      if (!isDragging && Math.hypot(dx, dy) >= threshold) {
+      if (!isDragging && Math.hypot(dx, dy) >= dragThreshold(e)) {
         if (!isTopPileCard(card)) return; // non-top pile cards are not draggable
         isDragging = true;
         _isDragging = true;
@@ -1253,61 +1342,86 @@ export function createDnc3DEngine(options = {}) {
           cursorCoverLayer = li;
         }
       }
+      // Holding ctrl/cmd attaches behind the target instead of beside it, and
+      // widens the target to the whole card — the 2D engine's ctrl+combine.
+      const attachBehind = e.ctrlKey || e.metaKey;
       for (const rid of attachTargetRegions) {
         if ((REGIONS[rid].layerIndex || 0) < cursorCoverLayer) continue;
+        // Which sides this region accepts, mirroring the 2D engine: a row only
+        // attaches along its own axis, a free region takes all four.
+        const isRow = REGIONS[rid].type === 'row';
+        const vert  = REGIONS[rid].direction === 'vertical';
+        const sides = isRow ? (vert ? ['top', 'bottom'] : ['left', 'right'])
+                            : ['left', 'right', 'top', 'bottom'];
+        // With all four sides live, keep each zone to the middle of its edge so
+        // the corners stay unambiguous. Two-sided regions use the full edge, as
+        // they always have.
+        const crossLimited = sides.length === 4;
+
         for (const sid of regionState[rid].stackIds) {
           if (sid === dragStack.id) continue;
           const targetStack = stacks[sid];
-          const { leftCardId, rightCardId } = stackBaseCardIds(targetStack);
-          const leftBaseCard = cards[leftCardId];
-          const rightBaseCard = cards[rightCardId];
-          const leftRect = leftBaseCard?.liftEl.getBoundingClientRect();
-          const rightRect = rightBaseCard?.liftEl.getBoundingClientRect();
+          if (!targetStack?.cardIds?.length) continue;
+          const edgeCardIds = stackBaseCardIds(targetStack);
+          const edgeCardOn  = (side) => cards[{
+            left: edgeCardIds.leftCardId,   right:  edgeCardIds.rightCardId,
+            top:  edgeCardIds.topCardId,    bottom: edgeCardIds.bottomCardId,
+          }[side]];
 
-          if (!leftRect?.width || !rightRect?.width) continue;
-
-          if (REGIONS[rid].type === 'row') {
-            const rp   = regionPx(rid);
-            const vert = REGIONS[rid].direction === 'vertical';
+          // Skip stacks scrolled out of their row's viewport.
+          if (isRow) {
+            const rp = regionPx(rid);
             if (vert) {
-              const ch = cardHeightPx();
-              const ly = parseFloat(leftBaseCard.liftEl.style.top)  || 0;
-              const ry = parseFloat(rightBaseCard.liftEl.style.top) || 0;
-              const stackTop    = Math.min(ly, ry);
-              const stackBottom = Math.max(ly, ry) + ch;
+              const stackTop    = parseFloat(edgeCardOn('top')?.liftEl.style.top) || 0;
+              const stackBottom = (parseFloat(edgeCardOn('bottom')?.liftEl.style.top) || 0) + cardHeightPx();
               if (stackBottom <= 0 || stackTop >= rp.h) continue;
             } else {
-              const cw = cardWidthPx();
-              const lx = parseFloat(leftBaseCard.liftEl.style.left)  || 0;
-              const rx = parseFloat(rightBaseCard.liftEl.style.left) || 0;
-              const stackLeft  = Math.min(lx, rx);
-              const stackRight = Math.max(lx, rx) + cw;
+              const stackLeft  = parseFloat(edgeCardOn('left')?.liftEl.style.left) || 0;
+              const stackRight = (parseFloat(edgeCardOn('right')?.liftEl.style.left) || 0) + cardWidthPx();
               if (stackRight <= 0 || stackLeft >= rp.w) continue;
             }
           }
 
-          const leftInY = e.clientY >= leftRect.top && e.clientY <= leftRect.bottom;
-          const leftRelX = e.clientX - leftRect.left;
-          const leftInX = leftRelX >= 0 && leftRelX <= leftRect.width;
-          const inLeftZone = leftInY && leftInX && leftRelX < leftRect.width / 2 && leftRelX > leftRect.width / 5;
+          // The zone for a side is the outer band of that edge card's near half,
+          // measured on the card's own projected rect.
+          const zoneHit = (side) => {
+            const rect = edgeCardOn(side)?.liftEl.getBoundingClientRect();
+            if (!rect?.width || !rect?.height) return false;
+            const relX = e.clientX - rect.left;
+            const relY = e.clientY - rect.top;
+            if (relX < 0 || relX > rect.width || relY < 0 || relY > rect.height) return false;
+            const alongX = relX > rect.width  / 5 && relX < rect.width  * 4 / 5;
+            const alongY = relY > rect.height / 5 && relY < rect.height * 4 / 5;
+            switch (side) {
+              case 'left':   return relX <  rect.width  / 2 && relX > rect.width  / 5 && (!crossLimited || alongY);
+              case 'right':  return relX >= rect.width  / 2 && relX < rect.width  * 4 / 5 && (!crossLimited || alongY);
+              case 'top':    return relY <  rect.height / 2 && relY > rect.height / 5 && (!crossLimited || alongX);
+              case 'bottom': return relY >= rect.height / 2 && relY < rect.height * 4 / 5 && (!crossLimited || alongX);
+              default:       return false;
+            }
+          };
 
-          const rightInY = e.clientY >= rightRect.top && e.clientY <= rightRect.bottom;
-          const rightRelX = e.clientX - rightRect.left;
-          const rightInX = rightRelX >= 0 && rightRelX <= rightRect.width;
-          const inRightZone = rightInY && rightInX && rightRelX >= rightRect.width / 2 && rightRelX < rightRect.width * 4 / 5;
-
-          if (inLeftZone) {
+          const hitSide = sides.find(zoneHit);
+          if (hitSide) {
             newHoverAttachStackId = sid;
-            newHoverAttachCardId = leftCardId;
-            newHoverAttachSide = 'left';
+            newHoverAttachCardId  = edgeCardOn(hitSide).id;
+            newHoverAttachSide    = attachBehind ? 'behind' : hitSide;
             break;
           }
 
-          if (inRightZone) {
-            newHoverAttachStackId = sid;
-            newHoverAttachCardId = rightCardId;
-            newHoverAttachSide = 'right';
-            break;
+          // Ctrl anywhere over the target's parent card attaches behind it, so a
+          // behind-attach doesn't require finding an edge band.
+          if (attachBehind) {
+            const parentCard = cards[targetStack.cardIds[0]];
+            const rect = parentCard?.liftEl.getBoundingClientRect();
+            if (rect?.width &&
+                e.clientX >= rect.left && e.clientX <= rect.right &&
+                e.clientY >= rect.top  && e.clientY <= rect.bottom) {
+              newHoverAttachStackId = sid;
+              newHoverAttachCardId  = parentCard.id;
+              newHoverAttachSide    = 'behind';
+              break;
+            }
           }
         }
         if (newHoverAttachStackId !== null) break;
@@ -1319,8 +1433,7 @@ export function createDnc3DEngine(options = {}) {
         hoverAttachSide !== newHoverAttachSide
       ) {
         if (hoverAttachCardId !== null && cards[hoverAttachCardId]) {
-          cards[hoverAttachCardId].cardEl
-            .classList.remove('dnc3d-attach-hover-left', 'dnc3d-attach-hover-right');
+          cards[hoverAttachCardId].cardEl.classList.remove(...ATTACH_HOVER_CLASSES);
         }
         hoverAttachStackId = newHoverAttachStackId;
         hoverAttachCardId = newHoverAttachCardId;
@@ -1342,15 +1455,21 @@ export function createDnc3DEngine(options = {}) {
             const cardPos  = tiltSpacePosOf(targetCard);
             const cardLeft = cardPos.left;
             const cardTop  = cardPos.top;
-            const edgeX = newHoverAttachSide === 'left' ? cardLeft : cardLeft + cw;
+            // The icon sits on the edge the attachment will land against — the
+            // card's center for a behind-attach, which has no edge of its own.
+            const edgeX = newHoverAttachSide === 'left'  ? cardLeft
+                        : newHoverAttachSide === 'right' ? cardLeft + cw
+                        : cardLeft + cw / 2;
+            const edgeYTilt = newHoverAttachSide === 'top'    ? cardTop
+                            : newHoverAttachSide === 'bottom' ? cardTop + ch
+                            : cardTop + ch / 2;
             const iconZ = (dragStackCards[0]?.liftPx ?? 0) + window.innerHeight * 0.02;
 
             const rad  = _currentDeg * Math.PI / 180;
             const cosA = Math.cos(rad), sinA = Math.sin(rad);
             const P    = stagePx();
             const vh   = window.innerHeight;
-            const targetMidY = cardTop + ch / 2;
-            const sy = vh / 2 + (targetMidY * cosA - vh / 2) * P / (P - targetMidY * sinA);
+            const sy = vh / 2 + (edgeYTilt * cosA - vh / 2) * P / (P - edgeYTilt * sinA);
             const dy = sy - vh / 2;
             const ty_icon = (P * sy - iconZ * (dy * cosA - P * sinA)) / (P * cosA + dy * sinA);
 
@@ -1362,7 +1481,7 @@ export function createDnc3DEngine(options = {}) {
             // Font scales with the icon so the label reads consistently at any zoom.
             _attachTargetIconEl.style.fontSize  = (iconSize * 0.22) + 'px';
 
-            // Populate the grow-out label: "Attach to" / <card name> / (left|right).
+            // Populate the grow-out label: "Attach to" / <card name> / (side).
             // The name is the stack's parent (base) card, not the edge card the
             // icon sits next to.
             const labelEl = _attachTargetIconEl.querySelector('.dnc3d-attach-label');
@@ -1372,9 +1491,11 @@ export function createDnc3DEngine(options = {}) {
               labelEl.querySelector('.dnc3d-attach-label-name').textContent = name;
               labelEl.querySelector('.dnc3d-attach-label-side').textContent = `(${newHoverAttachSide})`;
               // Grow away from the card edge: the icon sits on the card's `side`
-              // edge, so a left-attach grows further left, a right-attach further right.
+              // edge, so a left-attach grows further left and everything else
+              // (right, and the top/bottom/behind icons centered over the card)
+              // grows to the right.
               labelEl.classList.toggle('dnc3d-attach-label-out-left',  newHoverAttachSide === 'left');
-              labelEl.classList.toggle('dnc3d-attach-label-out-right', newHoverAttachSide === 'right');
+              labelEl.classList.toggle('dnc3d-attach-label-out-right', newHoverAttachSide !== 'left');
             }
             _attachTargetIconEl.classList.add('dnc3d-is-visible');
           }
@@ -1471,8 +1592,17 @@ export function createDnc3DEngine(options = {}) {
       }
     });
 
-    liftEl.addEventListener('pointerup', (e) => {
-      liftEl.releasePointerCapture(e.pointerId);
+    // Shared end-of-drag path for pointerup and pointercancel. Touch pointers
+    // get cancelled by the browser (gesture takeover, a second finger landing,
+    // the app being backgrounded), and without handling it the card would be
+    // stranded: still parented to tiltEl, still `dnc3d-dragging`, with
+    // _isDragging latched true so hover and the next drag stop working.
+    // `cancelled` suppresses the tap-to-open-menu at the end — a cancelled
+    // gesture is not a tap.
+    function endDrag(e, cancelled) {
+      // releasePointerCapture throws if the pointer isn't captured, which is the
+      // normal case for pointercancel (the browser released it already).
+      if (liftEl.hasPointerCapture(e.pointerId)) liftEl.releasePointerCapture(e.pointerId);
       dragTiltAngle = 0;
       dragStackCards.forEach(c => {
         c.cardEl.classList.remove('dnc3d-dragging');
@@ -1486,8 +1616,7 @@ export function createDnc3DEngine(options = {}) {
       autoScrollRegion = null;
 
       if (hoverAttachCardId !== null && cards[hoverAttachCardId]) {
-        cards[hoverAttachCardId].cardEl
-          .classList.remove('dnc3d-attach-hover-left', 'dnc3d-attach-hover-right');
+        cards[hoverAttachCardId].cardEl.classList.remove(...ATTACH_HOVER_CLASSES);
       }
 
       if (isDragging && !cardEl._animating) {
@@ -1524,7 +1653,7 @@ export function createDnc3DEngine(options = {}) {
         const targetRegionId = (_rawTargetRegion === _browseGroupId) ? null : _rawTargetRegion;
 
         function liftDown(dur, cb, targets = null, options = {}) {
-          const { wiggleXPx = 0, settleProgressAt = 1, deferZIndex = false } = options;
+          const { wiggleXPx = 0, wiggleYPx = 0, settleProgressAt = 1, deferZIndex = false } = options;
           const targetByCardId = targets
             ? new Map(targets.map(pos => [pos.card.id, pos]))
             : null;
@@ -1547,6 +1676,7 @@ export function createDnc3DEngine(options = {}) {
               if (done === droppedStackCards.length && cb) cb();
             }, {
               wiggleXPx,
+              wiggleYPx,
               settleProgressAt,
               onSettle: (deferZIndex && target) ? () => { c.liftEl.style.zIndex = target.zIndex; } : null,
               startTime,
@@ -1580,11 +1710,21 @@ export function createDnc3DEngine(options = {}) {
           const targetAnchor = tiltSpacePosOf(targetParent);
           const sourceRegion = cards[droppedStack.cardIds[0]].regionId;
           attachStack(droppedStack.id, droppedAttachSid, droppedAttachSide);
-          const attachWiggleXPx = window.innerHeight * (ATTACH_WIGGLE_DVH / 100) * (droppedAttachSide === 'left' ? -1 : 1);
+          // Nudge the landing card away from the parent along the axis it attached
+          // on, so the attachment reads as sliding into place. A behind-attach has
+          // no direction to nudge along, so it just settles.
+          const attachWiggle    = window.innerHeight * (ATTACH_WIGGLE_DVH / 100);
+          const attachWiggleXPx = droppedAttachSide === 'left'  ? -attachWiggle
+                                : droppedAttachSide === 'right' ?  attachWiggle : 0;
+          const attachWiggleYPx = droppedAttachSide === 'top'    ? -attachWiggle
+                                : droppedAttachSide === 'bottom' ?  attachWiggle : 0;
 
           // Pass base card IDs (not dnc3d stack IDs) so the callback can look them up via reverseIdMap.
           // After attachStack, stacks[droppedAttachSid].cardIds[0] is still the original target base card.
           if (onAttach) onAttach(droppedStack.cardIds[0], stacks[droppedAttachSid]?.cardIds[0], droppedAttachSide);
+          // A behind-attach vanishes under its target, so show the count badge
+          // now rather than waiting for the state to round-trip.
+          syncBehindBadges();
 
           if (REGIONS[targetRegion]?.type === 'free' && stacks[droppedAttachSid]) {
             const merged = stacks[droppedAttachSid];
@@ -1622,6 +1762,7 @@ export function createDnc3DEngine(options = {}) {
             }
             liftDown(280, null, mergedPositions, {
               wiggleXPx: attachWiggleXPx,
+              wiggleYPx: attachWiggleYPx,
               settleProgressAt: 0.5,
             });
           } else {
@@ -1714,6 +1855,7 @@ export function createDnc3DEngine(options = {}) {
               });
             }, liftTargets.length ? liftTargets : null, {
               wiggleXPx: attachWiggleXPx,
+              wiggleYPx: attachWiggleYPx,
               settleProgressAt: 0.5,
               deferZIndex: true,
             });
@@ -2062,12 +2204,13 @@ export function createDnc3DEngine(options = {}) {
       // Click (minimal movement) → open card menu
       const clickDx = e.clientX - startX;
       const clickDy = e.clientY - startY;
-      const threshold = Math.min(window.innerWidth, window.innerHeight) * 0.005;
-      if (Math.hypot(clickDx, clickDy) < threshold && onCardClick) {
+      if (!cancelled && Math.hypot(clickDx, clickDy) < dragThreshold(e) && onCardClick) {
         onCardClick(card.id, e.clientX, e.clientY);
       }
+    }
 
-    });
+    liftEl.addEventListener('pointerup',     (e) => endDrag(e, false));
+    liftEl.addEventListener('pointercancel', (e) => endDrag(e, true));
   }
 
   // ── Engine init — returns a cleanup function ───────────────────────────────
@@ -2324,7 +2467,7 @@ export function createDnc3DEngine(options = {}) {
     });
 
     // ── Region icon hover ────────────────────────────────────────────────────
-    let hoveredIconRegion = null;
+    hoveredIconRegion = null;
     function setRegionHoverState(id, hovered) {
       if (regionIconEls[id]) {
         regionIconEls[id].style.opacity = hovered ? '1' : '0';
@@ -2404,7 +2547,7 @@ export function createDnc3DEngine(options = {}) {
       for (const sid of sids) n += (stacks[sid]?.cardIds.length || 0);
       return n;
     }
-    let hoveredCountRegion = null;
+    hoveredCountRegion = null;
     // Refresh the count text + badge placement for a pile region. Safe to call any
     // time the pile's contents change (e.g. a card discarded via hotkey, with no
     // pointer movement) — invoked both on hover and from the after-layout hook.
@@ -2413,13 +2556,13 @@ export function createDnc3DEngine(options = {}) {
       if (!el) return;
       const cnt = pileCardCount(id);
       el.textContent = String(cnt);
-      // Anchor: midpoint of the bottom edge of the pile's BOTTOM card, mirroring
-      // layoutPile's box (LEFT_BUFFER inset, vertically centered).
-      const rp = regionPx(id);
-      const cw = cardWidthPx(), ch = cardHeightPx();
-      const leftBuffer = cw * 0.15;
-      const ax = rp.x + leftBuffer + (rp.w - leftBuffer) / 2;
-      const ay = rp.y + (rp.h + ch) / 2;
+      // Anchor: midpoint of the bottom edge of the pile's BOTTOM card, taken from
+      // layoutPile's own slot box so a rotated pile's badge follows its turned
+      // footprint instead of an upright one.
+      const ch = cardHeightPx();
+      const slot = pileSlot(id);
+      const ax = slot.centerX;
+      const ay = slot.bottom;
       const lz = layerZPx(ch) * (REGIONS[id].layerIndex || 0);
       const zBottom = BASE_LIFT + lz; // bottom card's Z
       // Raise the badge above the pile's top card so cards don't occlude it,
@@ -2455,6 +2598,13 @@ export function createDnc3DEngine(options = {}) {
     function onTiltPointerMove(e) {
       _lastPointerX = e.clientX;
       _lastPointerY = e.clientY;
+      _lastPointerWasTouch = e.pointerType === 'touch';
+      // A touch pointermove is a finger already pressed on the table (usually a
+      // drag), not the "where is the cursor resting" signal these three want.
+      // The icon/count reveal is driven from pointerdown instead (so dragging a
+      // card doesn't flash every region's icons on the way past), and hover has
+      // no meaning at all for a finger.
+      if (_lastPointerWasTouch) return;
       updateIconHover(e.clientX, e.clientY);
       updateCountHover(e.clientX, e.clientY);
       // Chrome's input-event hit-test doesn't reach cards inside scroll outers
@@ -2464,6 +2614,10 @@ export function createDnc3DEngine(options = {}) {
       reconcileHover();
     }
     function onTiltPointerLeave() {
+      // A touch pointer "leaves" the moment the finger lifts, which would close
+      // the icon strip the user just tapped open before they could reach the
+      // eye/menu button. In touch mode the strip stays until another tap.
+      if (_touchMode) return;
       if (hoveredIconRegion) { setRegionHoverState(hoveredIconRegion, false); hoveredIconRegion = null; }
       for (const iconsEl of Object.values(regionIconEls)) {
         for (const btn of iconsEl.querySelectorAll('.dnc3d-region-icon-btn'))
@@ -2480,6 +2634,24 @@ export function createDnc3DEngine(options = {}) {
     // liftEl captures the pointer and the existing pointermove/up handlers take
     // over — identical to the native path for pile cards.
     tiltEl.addEventListener('pointerdown', (e) => {
+      // pointerdown can arrive with no preceding pointermove (a clean tap), so
+      // this is where the pointer type is first known for a touch gesture.
+      _lastPointerWasTouch = e.pointerType === 'touch';
+      // Touch mode: taps stand in for hover. Tapping a region's name strip
+      // reveals its eye/menu icons (and a pile's count badge) and they stay put;
+      // tapping anywhere else on the table puts them away again. This runs
+      // BEFORE the icon-button fallback below so that the second tap — the one
+      // that actually hits the eye — still sees the strip as shown.
+      if (_touchMode) {
+        const alreadyShown = hoveredIconRegion;
+        updateIconHover(e.clientX, e.clientY);
+        updateCountHover(e.clientX, e.clientY);
+        // The icons occupy the same strip as the region name they replace, so a
+        // tap that reveals them lands on top of whichever button appears there.
+        // Stop after the reveal: the tap that opened the strip must not also
+        // pick a button for the user. The next tap goes through normally.
+        if (hoveredIconRegion && hoveredIconRegion !== alreadyShown) return;
+      }
       // Region icon button fallback: in elevated regions the scroll outer at
       // higher Z blocks native pointer events from reaching the icon buttons
       // in the outline beneath it. Detect by 2D geometry and fire on pointerup.
@@ -2609,7 +2781,7 @@ export function createDnc3DEngine(options = {}) {
       // Real mode: place cards from adapter assignments
       Object.entries(initData.assignments).forEach(([groupId, stackDescriptors]) => {
         if (!regionState[groupId]) return;
-        stackDescriptors.forEach(({ cardIds: dcIds, attachmentDirections = [], fracX, fracY }) => {
+        stackDescriptors.forEach(({ cardIds: dcIds, attachmentDirections = [], lookingUnder = false, fracX, fracY }) => {
           if (!dcIds || !dcIds.length) return;
           const baseCard = cards[dcIds[0]];
           if (!baseCard) return;
@@ -2618,6 +2790,7 @@ export function createDnc3DEngine(options = {}) {
             if (!attachCard) return;
             attachStack(attachCard.stackId, baseCard.stackId, attachmentDirections[idx] || 'right');
           });
+          stacks[baseCard.stackId].lookingUnder = lookingUnder;
           moveStackToRegion(baseCard.stackId, groupId);
           if (fracX != null) baseCard.fracX = fracX;
           if (fracY != null) baseCard.fracY = fracY;
@@ -2661,6 +2834,7 @@ export function createDnc3DEngine(options = {}) {
           layoutPile(regionId).forEach(pos => placeCardAt(cards[pos.cardId], pos.left, pos.top, pos.rot, pos.zIndex, pos.stackZ || 0));
         }
       });
+      syncBehindBadges();
     } else {
       // Demo mode: hard-coded sandbox layout
       const demoAssignments = { hand: [0,1,2,3,4,5,6], draw: [7,8,9,10], table: [11,12,13], score: [14,15,16,17,18,19] };
@@ -2832,15 +3006,16 @@ export function createDnc3DEngine(options = {}) {
     });
 
     // Pile centre anchor (tilt-space), matching layoutPile.
-    const rp = regionPx(regionId);
-    const cw = cardWidthPx(), ch = cardHeightPx();
-    const LEFT_BUFFER = cw * 0.15;
-    const cx = rp.x + LEFT_BUFFER + (rp.w - LEFT_BUFFER - cw) / 2;
-    const cy = rp.y + (rp.h - ch) / 2;
+    const ch = cardHeightPx();
+    const slot = pileSlot(regionId);
+    const cx = slot.left;
+    const cy = slot.top;
 
     const stepZ = pileStackZPx(ch);                        // depth per card (= pile thickness/card)
     const lz    = layerZPx(ch) * (region.layerIndex || 0); // region's resting depth offset
-    const sepX  = cw * 0.75;                               // horizontal separation of the two halves
+    // Separation scales with the slot's own width so a sideways pile's halves
+    // still part visibly instead of barely clearing each other.
+    const sepX  = slot.slotW * 0.75;                       // horizontal separation of the two halves
 
     // Contiguous split: the BOTTOM half of the pile and the TOP half. animCards
     // runs bottom → top, so [0, mid) is the bottom half and [mid, K) the top half.
@@ -3092,16 +3267,20 @@ export function createDnc3DEngine(options = {}) {
         .filter(([, i]) => i !== undefined && cards[i]);
       if (!members.length) return;
       const desired = members.map(([, i]) => i);
-      const dirOf   = dcId => (game.cardById?.[dcId]?.attachmentDirection === 'left' ? 'left' : 'right');
+      const dirOf   = dcId => normalizeAttachDirection(game.cardById?.[dcId]?.attachmentDirection);
 
       // Cards in the browse fan are managed by the browse system.
       if (desired.some(i => cards[i].regionId === '_browse')) return;
 
-      const base      = cards[desired[0]];
-      const current   = stacks[base.stackId]?.cardIds || [];
-      const sameCards = current.length === desired.length && current.every((cid, k) => cid === desired[k]);
-      const sameDirs  = members.slice(1).every(([dcId, i]) => cards[i].attachmentDirection === dirOf(dcId));
-      if (sameCards && sameDirs) return;
+      const base         = cards[desired[0]];
+      const current      = stacks[base.stackId]?.cardIds || [];
+      const lookingUnder = !!dcStack.lookingUnder;
+      const sameCards    = current.length === desired.length && current.every((cid, k) => cid === desired[k]);
+      const sameDirs     = members.slice(1).every(([dcId, i]) => cards[i].attachmentDirection === dirOf(dcId));
+      // A look-under toggle (from any client) only changes where the hidden cards
+      // sit, but it still needs the stack re-settled to fan them out or tuck them back.
+      const sameUnder    = !!stacks[base.stackId]?.lookingUnder === lookingUnder;
+      if (sameCards && sameDirs && sameUnder) return;
 
       // Don't restructure stacks involved in a drag or mid-flight arc — the next
       // reconcile applies the change once they settle.
@@ -3118,8 +3297,9 @@ export function createDnc3DEngine(options = {}) {
       const expectedGroup = game.cardById?.[dcStack.cardIds[0]]?.groupId;
 
       if (sameCards) {
-        // Only attachment directions changed — update and re-settle in place.
+        // Only attachment directions / look-under changed — update and re-settle in place.
         members.slice(1).forEach(([dcId, i]) => { cards[i].attachmentDirection = dirOf(dcId); });
+        stacks[base.stackId].lookingUnder = lookingUnder;
         if (base.regionId === expectedGroup) settleStack(stacks[base.stackId], dcStack, game, idMap);
         return;
       }
@@ -3152,6 +3332,7 @@ export function createDnc3DEngine(options = {}) {
 
       // Rebuild the merged stack in the base card's region.
       const newStack = createStack(desired);
+      newStack.lookingUnder = lookingUnder;
       members.slice(1).forEach(([dcId, i]) => { cards[i].attachmentDirection = dirOf(dcId); });
       const baseRegion  = base.regionId;
       const priorHidden = desired.map(i => !cards[i].regionId);
@@ -3741,6 +3922,10 @@ export function createDnc3DEngine(options = {}) {
     // has settled, so piles/rows/fans reflect the backend stack order.
     syncRegionOrders(game, idMap);
 
+    // Stack composition and look-under state have both settled by now, so the
+    // "N behind" badges can be refreshed in one pass.
+    syncBehindBadges();
+
     // Refresh the targeting/arrow overlay from the new game state. The overlay's
     // own rAF loop handles per-frame repositioning while cards are in motion.
     _overlay.rebuild(game, idMap, cards);
@@ -3782,6 +3967,7 @@ export function createDnc3DEngine(options = {}) {
   function reconcileHover() {
     if (_isDragging) return;
     if (_hoverSuppressed) return;
+    if (_lastPointerWasTouch) return; // a lifted finger isn't hovering anything
     if (_lastPointerX < 0 && _lastPointerY < 0) return; // no pointer seen yet
     const targetEl = topCardElAtPoint(_lastPointerX, _lastPointerY);
     let targetCard = null;
@@ -3841,6 +4027,27 @@ export function createDnc3DEngine(options = {}) {
       }
     } else {
       scheduleHoverReconcile();
+    }
+  }
+
+  // Called by the React layer when the touchMode user setting changes. Touch mode
+  // is a live toggle (a user can flip it mid-game from Settings), so this
+  // re-sweeps every hover-gated affordance instead of relying on init-time state.
+  function setTouchMode(touchMode) {
+    if (touchMode === _touchMode) return;
+    _touchMode = touchMode;
+    for (const c of cards) syncAbilityBtn(c);
+    if (!_touchMode) {
+      // Leaving touch mode: put away anything a tap left pinned open, so the
+      // cursor takes over from a clean slate.
+      for (const [id, iconsEl] of Object.entries(regionIconEls)) {
+        iconsEl.style.opacity = '0';
+        iconsEl.classList.remove('dnc3d-icons-shown');
+        if (regionLabelEls[id]) regionLabelEls[id].style.opacity = '';
+      }
+      for (const el of Object.values(regionCountEls)) el.style.opacity = '0';
+      hoveredIconRegion  = null;
+      hoveredCountRegion = null;
     }
   }
 
@@ -3966,5 +4173,5 @@ export function createDnc3DEngine(options = {}) {
     });
   }
 
-  return { init, applyTilt, applyTableOpacity, setCurrentDeg, onTiltUpdated, reconcile, openBrowse, closeBrowse, updateBrowseFilter, getCardElements, syncOverlay, animatePileShuffle, setHoverSuppressed, spawnCards, despawnCards };
+  return { init, applyTilt, applyTableOpacity, setCurrentDeg, onTiltUpdated, reconcile, openBrowse, closeBrowse, updateBrowseFilter, getCardElements, syncOverlay, animatePileShuffle, setHoverSuppressed, setTouchMode, spawnCards, despawnCards };
 }

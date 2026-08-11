@@ -86,6 +86,7 @@ export function adaptRegions(layoutRegions, observingPlayerN, numPlayers, groupB
       ...(tableLabel                    ? { label:             tableLabel }             : {}),
       ...(region.showMenu != null       ? { showMenu:          region.showMenu }         : {}),
       ...(region.direction              ? { direction:         region.direction }        : {}),
+      ...(region.rotation               ? { rotation:          region.rotation }         : {}),
       ...(region.layerIndex             ? { layerIndex:        region.layerIndex }       : {}),
       ...(canHaveAttachments != null    ? { canHaveAttachments }                         : {}),
       // Region CSS comes from the game definition's `style` object (mirrors how

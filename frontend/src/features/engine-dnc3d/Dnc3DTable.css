@@ -37,6 +37,17 @@
   transform-style: preserve-3d;
   border-radius: 0.4vw;
   --table-opacity: 1;
+  /* Card dragging is built on pointer events + setPointerCapture. On a touch
+     screen that is not enough on its own: with the default `touch-action: auto`
+     the browser owns the gesture until it decides the finger isn't panning or
+     pinching, and when it claims the gesture it fires pointercancel and stops
+     delivering pointermove — the card sticks to the finger's start position or
+     freezes mid-drag. `none` tells the browser up front that this surface has
+     no native gestures, so every move is delivered to us. Region scrolling is
+     unaffected: the scroll sentinels are pointer-events:none and are driven by
+     the arrow buttons / wheel, never by a direct touch-drag.
+     HUD panels sit outside the tilt and keep normal touch behaviour. */
+  touch-action: none;
 }
 
 
@@ -397,6 +408,43 @@
 .dnc3d-card-ability:hover,
 .dnc3d-card-ability.dnc3d-card-ability-hovered { background: #b91c1c; color: #fff; }
 .dnc3d-card-ability svg { width: 58%; height: 58%; }
+
+/* "N behind" badge — count of cards attached behind this stack's parent, with an
+   arrow that fans them out (down) or tucks them back (up). Mirrors the 2D
+   Stack's look-under control. Hangs off the lift wrapper (pointer-events:none),
+   so it re-enables its own, and sits at the parent card's bottom edge — the one
+   place a fanned-out attachment can't cover it. */
+.dnc3d-behind-badge {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  /* Centered on the card's bottom edge, and lifted just clear of the card faces
+     so it paints above them in the preserve-3d context. */
+  transform: translate(-50%, 40%) translateZ(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25em;
+  padding: 0.15em 0.4em;
+  font-size: 1.1vw;
+  line-height: 1;
+  border-radius: 0.3em;
+  background: rgba(75,85,99,0.92);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: rgba(243,244,246,0.95);
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 0.15vw 0.4vw rgba(0,0,0,0.5);
+  z-index: 50;
+}
+.dnc3d-behind-badge:hover { background: rgba(107,114,128,0.98); }
+.dnc3d-behind-arrow {
+  width: 0.8em;
+  height: 0.8em;
+  transition: transform 120ms ease-out;
+}
+/* Fanned out — the arrow flips to "tuck them back". */
+.dnc3d-behind-badge.dnc3d-behind-open .dnc3d-behind-arrow { transform: rotate(180deg); }
 
 /* Lift wrapper — handles translateZ so card stays above table during flip */
 .dnc3d-card-lift {
