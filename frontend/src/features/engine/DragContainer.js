@@ -17,6 +17,11 @@ import { useGetRegionFromId } from "./hooks/useGetRegionFromId";
 
 let draggableClientRect = null;
 
+// Arrow line width expressed as a fraction of viewport height (vh). The arrowhead
+// is sized in strokeWidth units (markerUnits="strokeWidth"), so it scales with this.
+const ARROW_STROKE_WIDTH_VH = 0.9;
+const getArrowStrokeWidth = () => (window.innerHeight * ARROW_STROKE_WIDTH_VH) / 100;
+
 const getAfterDragName = (game, stackId, destGroupId, allowFlip) => {
   const stack = game.stackById[stackId];
   const cardIds = stack?.cardIds;
@@ -59,6 +64,17 @@ export const DragContainer = React.memo(({}) => {
   const hoverStackIdAndDirection = useHoverStackIdAndDirection();
   const archerContainerRef = useRef(null);
   const draggingStackId = useSelector(state => state?.playerUi?.dragging?.stackId);
+  const [arrowStrokeWidth, setArrowStrokeWidth] = useState(getArrowStrokeWidth());
+
+  // Keep the vh-based stroke/arrowhead size in sync as the viewport resizes.
+  useEffect(() => {
+    const onResize = () => {
+      setArrowStrokeWidth(getArrowStrokeWidth());
+      archerContainerRef.current?.refreshScreen();
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   // Refresh arrow positions whenever a drag completes and card positions settle.
   // react-archer uses ResizeObserver which only fires on size changes, not position
@@ -292,14 +308,14 @@ export const DragContainer = React.memo(({}) => {
         ref={archerContainerRef}
         className="h-full w-full"
         strokeColor="rgba(255,0,0,0.6)"
-        strokeWidth="15"
+        strokeWidth={arrowStrokeWidth}
         svgContainerStyle={{ 
           zIndex: Z_INDEX.Arrows,
         }} 
         endShape={{
           arrow: {
-            arrowLength: 1,
-            arrowThickness: 2,
+            arrowLength: 1.2,
+            arrowThickness: 2.5,
           }
         }}>
       <DragDropContext onDragEnd={onDragEnd} onBeforeDragStart={onBeforeDragStart} onDragUpdate={onDragUpdate}>

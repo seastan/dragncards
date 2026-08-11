@@ -1156,9 +1156,15 @@ export const getGameDefSchema = (gameDef) => {
                 "_required_": true,
               },
               "direction": {
-                "_description_": "The direction of the region",
+                "_description_": "The direction of the region. Ignored by pile regions, which show a single stack; use `rotation` to turn a pile on its side.",
                 "_type_": "string",
                 "_memberOf_": ["horizontal", "vertical", "free"],
+              },
+              "rotation": {
+                "_description_": "How far the cards in the region are turned, in degrees. Currently honored by pile regions in the 3D renderer only; other region types and the 2D renderer ignore it.",
+                "_type_": "integer",
+                "_memberOf_": [0, 90, 180, 270],
+                "_memberOfPath_": `[0, 90, 180, 270]`,
               },
               "left": {
                 "_description_": "The left position of the region",
@@ -1300,7 +1306,19 @@ export const getGameDefSchema = (gameDef) => {
               "visible": {
                 "_description_": "Whether the text box is visible",
                 "_type_": "boolean",
-              }
+              },
+              "hover": {
+                "_description_": "If true, the text box is positioned relative to the screen (not the table angle in 3D)",
+                "_type_": "boolean",
+              },
+              "style": {
+                "_description_": "CSS style object applied to the text box. Example: {backgroundColor: 'rgba(0,0,0,0.7)', padding: '4px'}",
+                "_type_": "object",
+                "_itemSchema_": {
+                  "_description_": "A CSS style property value",
+                  "_type_": "string",
+                }
+              },
             }
 
           }

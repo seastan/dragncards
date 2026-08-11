@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { FadeText } from "./FadeText";
+import { FadeText, normalizeFadeMessage, PERSISTENT_HOLD_MS } from "./FadeText";
 import { setValues } from "../store/gameUiSlice";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 
@@ -14,7 +14,7 @@ export const FadeTextCard = React.memo(({ cardId }) => {
   const dispatch = useDispatch();
   const gameDef = useGameDefinition();
   const fadeText = useSelector(state => state.gameUi?.game?.fadeText);
-  const cardMessages = useSelector(state => state?.gameUi?.game?.fadeText?.card?.[cardId]) || [];
+  const cardMessages = useSelector(state => state?.gameUi?.game?.fadeText?.card?.[cardId]);
   const [activeMessages, setActiveMessages] = useState([]);
   const nextMessageIdRef = useRef(0);
   const processedCountRef = useRef(0);
@@ -24,23 +24,31 @@ export const FadeTextCard = React.memo(({ cardId }) => {
     processedCountRef.current = 0;
 
     // Process new messages from fadeText list
-    const newMessages = cardMessages.slice(processedCountRef.current);
+    const entries = Array.isArray(cardMessages) ? cardMessages : [];
+    const newMessages = entries.slice(processedCountRef.current);
 
     if (newMessages.length > 0) {
-      newMessages.forEach((text, index) => {
+      newMessages.forEach((entry, index) => {
         const delay = index * 100; // 0.1s delay between messages
         const messageId = nextMessageIdRef.current++;
+        const { text, holdMs } = normalizeFadeMessage(entry);
 
         setTimeout(() => {
-          setActiveMessages(prev => [...prev, {
-            id: messageId,
-            text: text,
-            delay: 0
-          }]);
+          setActiveMessages(prev => [
+            // A new message bumps any message that was waiting to be bumped
+            ...prev.map(msg => msg.holdMs === PERSISTENT_HOLD_MS ? { ...msg, dismissed: true } : msg),
+            {
+              id: messageId,
+              text: text,
+              holdMs: holdMs,
+              dismissed: false,
+              delay: 0
+            }
+          ]);
         }, delay);
       });
 
-      processedCountRef.current = cardMessages.length;
+      processedCountRef.current = entries.length;
     }
   }, [cardMessages]);
 
@@ -81,6 +89,8 @@ export const FadeTextCard = React.memo(({ cardId }) => {
             text={message.text}
             onComplete={() => handleMessageComplete(message.id)}
             delay={message.delay}
+            holdMs={message.holdMs}
+            dismissed={message.dismissed}
             gameDef={gameDef}
             className="text-white font-bold text-center absolute"
             style={{

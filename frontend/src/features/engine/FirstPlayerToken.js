@@ -25,10 +25,10 @@ export const FirstPlayerToken = React.memo(() => {
   }
   
   return(
-    <TopBarUserButton 
-      onClickHandler={(event) => handleFirstPlayerClick(event)} 
-      extraButtonClass={"bg-gray-500 px-0 cursor-pointer px-1"}
-      extraParentClass={"mr-1"}>
+    <TopBarUserButton
+      onClickHandler={(event) => handleFirstPlayerClick(event)}
+      extraButtonClass={"bg-gray-600 hover:bg-gray-500 text-amber-400 cursor-pointer px-1"}
+      extraParentClass={"mr-1 flex-shrink-0"}>
         <div style={{fontSize: "1.3dvh"}}>
           1st
         </div>

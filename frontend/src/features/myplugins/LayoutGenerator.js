@@ -53,7 +53,8 @@ export default function LayoutGenerator() {
         height: Math.round(rowHeight),
         text: "",
         type: "row",
-        direction: "horizontal"
+        direction: "horizontal",
+        rotation: 0
       }
     ]);
   };
@@ -91,7 +92,8 @@ export default function LayoutGenerator() {
             height: parseFractionOrPercent(region.height, height),
             text: region.groupId || "",
             type: region.type || "row",
-            direction: region.direction || "horizontal"
+            direction: region.direction || "horizontal",
+            rotation: region.rotation || 0
         };
         });
 
@@ -124,11 +126,15 @@ export default function LayoutGenerator() {
     };
 
     const regions = {};
-    rectangles.forEach(({ x, y, width: w, height: h, text: groupId, type, direction }) => {
+    rectangles.forEach(({ x, y, width: w, height: h, text: groupId, type, direction, rotation }) => {
       regions[groupId] = {
         groupId: groupId,
         type: type,
-        direction: direction,
+        // A pile shows a single stack, so `direction` says nothing about it — it
+        // carries `rotation` instead. Every other type keeps `direction`: rows and
+        // fans read it as a literal, so omitting it is NOT the same as writing
+        // "horizontal" (see StackDraggable / useHoverStackIdAndDirection).
+        ...(type === "pile" ? { rotation: rotation || 0 } : { direction: direction }),
         left: `${((x / width) * 100).toFixed(1)}%`,
         top: `${((y / height) * 100).toFixed(1)}%`,
         width: `${((w / width) * 100).toFixed(1)}%`,
@@ -279,24 +285,47 @@ export default function LayoutGenerator() {
                   </label>
                 ))}
               </div>
-              <div className="flex gap-1">
-                {['horizontal', 'vertical'].map((dir) => (
-                  <label
-                    key={dir}
-                    className={`px-2 py-1 border rounded cursor-pointer ${rect.direction === dir ? 'bg-gray-300' : 'bg-white'}`}
-                  >
-                    <input
-                      type="radio"
-                      name={`direction-${rect.id}`}
-                      value={dir}
-                      checked={rect.direction === dir}
-                      onChange={() => updateRectangle(rect.id, { direction: dir })}
-                      className="hidden"
-                    />
-                    {dir}
-                  </label>
-                ))}
-              </div>
+              {/* A pile shows a single stack, so direction means nothing to it —
+                  it gets the rotation control instead. */}
+              {rect.type === 'pile' ? (
+                <div className="flex gap-1">
+                  {[0, 90, 180, 270].map((deg) => (
+                    <label
+                      key={deg}
+                      className={`px-2 py-1 border rounded cursor-pointer ${(rect.rotation || 0) === deg ? 'bg-gray-300' : 'bg-white'}`}
+                    >
+                      <input
+                        type="radio"
+                        name={`rotation-${rect.id}`}
+                        value={deg}
+                        checked={(rect.rotation || 0) === deg}
+                        onChange={() => updateRectangle(rect.id, { rotation: deg })}
+                        className="hidden"
+                      />
+                      {deg}°
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex gap-1">
+                  {['horizontal', 'vertical'].map((dir) => (
+                    <label
+                      key={dir}
+                      className={`px-2 py-1 border rounded cursor-pointer ${rect.direction === dir ? 'bg-gray-300' : 'bg-white'}`}
+                    >
+                      <input
+                        type="radio"
+                        name={`direction-${rect.id}`}
+                        value={dir}
+                        checked={rect.direction === dir}
+                        onChange={() => updateRectangle(rect.id, { direction: dir })}
+                        className="hidden"
+                      />
+                      {dir}
+                    </label>
+                  ))}
+                </div>
+              )}
               <div className="flex gap-2 mt-2">
                 <button
                     onClick={() => {

@@ -1,5 +1,8 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { Z_INDEX } from "./functions/common";
 import { TableLayout } from "./TableLayout";
+import Dnc3DTable from "../engine-dnc3d/Dnc3DTable";
+import { useLayout } from "./hooks/useLayout";
 import { GiantCard } from "./GiantCard";
 import { FadeTextPlayer } from "./FadeTextPlayer";
 import { TopBar } from "./TopBar";
@@ -10,6 +13,7 @@ import { SideBar } from "./SideBar";
 import { Hotkeys } from "./Hotkeys";
 import { DropdownMenu } from "./DropdownMenu";
 import { TouchBarBottom } from "./TouchBarBottom";
+import { TouchModePrompt } from "./TouchModePrompt";
 
 import "../../css/custom-dropdown.css";
 import { TooltipModal } from "./TooltipModal";
@@ -42,10 +46,21 @@ export const Table = React.memo(({onDragEnd}) => {
   const setTouchAction = useSetTouchAction();
   const showModal = useSelector(state => state?.playerUi?.showModal);
   const loadedADeck = useSelector(state => state?.gameUi?.game?.loadedADeck);
-  const myUserId = useProfile()?.id;
+  const userProfile = useProfile();
+  const myUserId    = userProfile?.id;
+  const language    = userProfile?.language;
+  const layout      = useLayout();
+  const game        = useSelector(state => state?.gameUi?.game);
+  const rendererEngine = useSelector(state => state?.playerUi?.userSettings?.rendererEngine);
+  const tableAngle     = useSelector(state => state?.playerUi?.userSettings?.tableAngle ?? 25);
   const isHost = useIsHost();
   const playerN = usePlayerN();
   const doActionList = useDoActionList();
+  // In the dnc3d renderer, tall piles near the top of the table can paint up
+  // over the TopBar strip (the stage overflows beyond its top edge by design,
+  // so lifted/flipping cards can show above the bar). When the pointer is over
+  // the TopBar, raise it above the table so those piles don't cover its buttons.
+  const [topBarHovered, setTopBarHovered] = useState(false);
   usePreloadCardImages();
   console.log('Rendering Table', playerN);
 
@@ -93,22 +108,39 @@ export const Table = React.memo(({onDragEnd}) => {
       <div className="w-full">
         <div className="w-full h-full">
           {/* Game menu bar */}
-          <div className="bg-gray-600 text-white w-full" style={{height: "6%"}}>
+          <div className="bg-gray-600 text-white w-full"
+            style={{height: "6%", position: "relative", zIndex: topBarHovered ? Z_INDEX.TopBarHover : "auto"}}
+            onMouseEnter={() => setTopBarHovered(true)}
+            onMouseLeave={() => setTopBarHovered(false)}>
             <TopBar/>
           </div>
           {/* Table */}
           <div className="relative w-full" style={{height: touchMode ? "82%" : "94%"}}>
-            <TableLayout onDragEnd={onDragEnd}/>
+            {rendererEngine === 'dnc3d'
+              ? <Dnc3DTable
+                  tiltDeg={tableAngle}
+                  game={game}
+                  layoutRegions={layout?.regions}
+                  layoutTextBoxes={layout?.textBoxes}
+                  layoutTableButtons={layout?.tableButtons}
+                  gameDef={gameDef}
+                  language={language}
+                  doActionList={doActionList}
+                />
+              : <TableLayout onDragEnd={onDragEnd}/>
+            }
             <FadeTextPlayer/>
           </div>
           {/* Touch Bar */}
-          {touchMode && <div className="relative bg-gray-700 w-full" style={{height: "12%"}}>
+          {touchMode && <div className="relative w-full" style={{height: "12%"}}>
               <TouchBarBottom/>
           </div>}
         </div>
       </div>
       {/* Card hover view */}
       <GiantCard/>
+      {/* One-time offer to switch on touch mode, shown only on touch devices */}
+      <TouchModePrompt/>
       {showModal === "card" ? <SpawnExistingCardModal/> : null}
       {showModal === "prebuilt_deck" ? <SpawnPrebuiltModal/> : null}
       {showModal === "public_deck" ? <SpawnPublicDeckModal/> : null}

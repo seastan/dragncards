@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useRef } from 'react';
 import { RotatingLines } from 'react-loader-spinner';
 import { useSelector } from 'react-redux';
 import useDataApi from '../hooks/useDataApi';
@@ -31,6 +31,18 @@ export const decompressPluginData = (data) => {
 }
 
 
+const LOADING_TIPS = [
+  "Overflowing regions can be converted to fan-type via their hamburger menu.",
+  "View regions that are not on the table via the View menu.",
+  "Games autosave to your profile after every round. Press Ctrl+S to trigger a save manually.",
+  "Hold Tab to bring up the list of hotkeys.",
+  "Don't like an automation? Turn it off in your preferences.",
+  "Press Shift+Tab to quickly bring up your preferences.",
+  "Click on any log message in the chat window to rewind the game to that point.",
+  "Playing on a touchscreen? Save the site to your home screen to remove the browser's navigation bar.",
+  'Check out decks made by the community under "Load public custom deck".',
+];
+
 export const PluginProvider = ({ children }) => {
   const pluginId = useSelector(state => state?.gameUi?.game?.pluginId);
   const pluginVersion = useSelector(state => state?.gameUi?.game?.pluginVersion);
@@ -43,6 +55,15 @@ export const PluginProvider = ({ children }) => {
   const percentLoaded = progressEvent?.total ? Math.round(progressEvent.loaded / progressEvent.total * 100) : 0;
 
   const [retrievedFromStorage, setRetrievedFromStorage] = useState(false); // Flag to track data source
+  const [tipIndex, setTipIndex] = useState(() => Math.floor(Math.random() * LOADING_TIPS.length));
+  const tipTimerRef = useRef(null);
+
+  useEffect(() => {
+    tipTimerRef.current = setInterval(() => {
+      setTipIndex(i => (i + 1) % LOADING_TIPS.length);
+    }, 5000);
+    return () => clearInterval(tipTimerRef.current);
+  }, []);
 
   useEffect(() => {
     const compressedData = localStorage.getItem(`pluginData_${pluginId}`);
@@ -76,9 +97,14 @@ export const PluginProvider = ({ children }) => {
   return (
     <PluginContext.Provider value={{ plugin: plugin, isLoading, progressEvent: progressEvent }}>
       {retrievedFromStorage === false && (isLoading || plugin?.game_def == null) ? (
-        <div className="absolute text-white flex h-full w-full items-center justify-center opacity-80 bg-gray-800">
-          <RotatingLines height={100} width={100} strokeColor="white" />
-          <div className="absolute">{percentLoaded}%</div>
+        <div className="absolute text-white flex flex-col h-full w-full items-center justify-center opacity-80 bg-gray-800 gap-6">
+          <div className="relative flex items-center justify-center">
+            <RotatingLines height={100} width={100} strokeColor="white" />
+            <div className="absolute">{percentLoaded}%</div>
+          </div>
+          <div className="text-center text-gray-300 text-sm max-w-sm px-4">
+            <span className="font-semibold text-white">Tip: </span>{LOADING_TIPS[tipIndex]}
+          </div>
         </div>
       ) : (
         children

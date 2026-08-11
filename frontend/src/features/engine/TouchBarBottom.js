@@ -9,18 +9,29 @@ import { dragnTouchButtons, useDoDragnHotkey } from "./hooks/useDragnHotkeys";
 import { useTouchAction } from "./hooks/useTouchAction";
 import { useSetTouchAction } from "./hooks/useSetTouchAction";
 
+// Palette shared with the dnc3d HUD panels so the bar reads as part of the same
+// UI rather than the separate widget it used to be.
+const IDLE_BG      = "rgba(255,255,255,0.06)";
+const IDLE_BORDER  = "1px solid rgba(255,255,255,0.09)";
+const ADD_BG       = "#14532d";
+const ADD_BORDER   = "#22c55e";
+const SUB_BG       = "#7f1d1d";
+const SUB_BORDER   = "#ef4444";
+
 export const TouchButton = React.memo(({buttonObj, displayText}) => {
   const dispatch = useDispatch();
   const setTouchAction = useSetTouchAction();
   const touchAction = useTouchAction();
   const doActionList = useDoActionList();
   const doDragnHotkey = useDoDragnHotkey();
-  // Check if action is selected
 
-  const selected = touchAction?.id === buttonObj?.id;
-  var bgColor = selected ? " bg-green-700" : " bg-gray-600";
-  if (selected && touchAction?.doubleClicked) bgColor = " bg-red-700"
-  const hoverColor = selected ? "" : " hover:bg-gray-500";
+  const selected      = touchAction?.id === buttonObj?.id;
+  const isToken       = buttonObj?.actionType === "token";
+  // A selected token button toggles between "add one" and "remove one"; the
+  // second press flips it to subtract rather than deselecting.
+  const subtracting   = selected && touchAction?.doubleClicked;
+  const accentBg      = subtracting ? SUB_BG     : ADD_BG;
+  const accentBorder  = subtracting ? SUB_BORDER : ADD_BORDER;
 
   const handleClick = (event) => {
     event.stopPropagation();
@@ -28,89 +39,128 @@ export const TouchButton = React.memo(({buttonObj, displayText}) => {
     dispatch(setDropdownMenu(null));
     dispatch(setMouseXY(null));
     // If it's a game function, just do it
-    console.log("buttonObjClick", buttonObj)
     if (buttonObj?.actionType === "game") {
-
       buttonObj.isDragnButton ? doDragnHotkey(buttonObj?.actionList) : doActionList(buttonObj?.actionList, `Touch button action ${buttonObj.label}`);
     // If button is selected already, either change it from + to - or deselect it
     } else if (selected) {
-      if (touchAction?.actionType === "token" && !touchAction.doubleClicked) {
+      if (isToken && !touchAction.doubleClicked) {
         setTouchAction(
           {...touchAction, doubleClicked: true}
         )
       } else {
         setTouchAction(null);
       }
-    } 
+    }
     // Otherwise, select the button
     else setTouchAction(buttonObj);
   }
 
-  const img = buttonObj?.actionType === "token" ? 
-      <div className={"absolute flex pointer-events-none h-full w-full top-0 items-center justify-center"}>
-        <img className="" style={{opacity: selected ? "30%" : "100%", height: "4dvh", width: "4dvh"}} src={buttonObj.imageUrl}/>
-      </div>
-    : null
+  const labelStyle = {
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    maxWidth: "100%",
+  };
 
-  if (selected && touchAction?.actionType === "token" && !touchAction.doubleClicked) displayText = <span className="flex items-center" style={{fontSize: "5dvh", textShadow: "rgb(0, 0, 0) 2px 0px 0px, rgb(0, 0, 0) 1.75517px 0.958851px 0px, rgb(0, 0, 0) 1.0806px 1.68294px 0px, rgb(0, 0, 0) 0.141474px 1.99499px 0px, rgb(0, 0, 0) -0.832294px 1.81859px 0px, rgb(0, 0, 0) -1.60229px 1.19694px 0px, rgb(0, 0, 0) -1.97999px 0.28224px 0px, rgb(0, 0, 0) -1.87291px -0.701566px 0px, rgb(0, 0, 0) -1.30729px -1.51361px 0px, rgb(0, 0, 0) -0.421592px -1.95506px 0px, rgb(0, 0, 0) 0.567324px -1.91785px 0px, rgb(0, 0, 0) 1.41734px -1.41108px 0px, rgb(0, 0, 0) 1.92034px -0.558831px 0px"}}>+</span>;
-  if (selected && touchAction?.actionType === "token" && touchAction.doubleClicked) displayText = <span className="flex items-center"  style={{fontSize: "5dvh", textShadow: "rgb(0, 0, 0) 2px 0px 0px, rgb(0, 0, 0) 1.75517px 0.958851px 0px, rgb(0, 0, 0) 1.0806px 1.68294px 0px, rgb(0, 0, 0) 0.141474px 1.99499px 0px, rgb(0, 0, 0) -0.832294px 1.81859px 0px, rgb(0, 0, 0) -1.60229px 1.19694px 0px, rgb(0, 0, 0) -1.97999px 0.28224px 0px, rgb(0, 0, 0) -1.87291px -0.701566px 0px, rgb(0, 0, 0) -1.30729px -1.51361px 0px, rgb(0, 0, 0) -0.421592px -1.95506px 0px, rgb(0, 0, 0) 0.567324px -1.91785px 0px, rgb(0, 0, 0) 1.41734px -1.41108px 0px, rgb(0, 0, 0) 1.92034px -0.558831px 0px"}}>−</span>;
+  // Token buttons stack their icon over their name instead of overlaying the two
+  // (which made both unreadable). While selected, the icon dims and the +/- sign
+  // takes its place, so the button says what the next tap will do.
+  const content = isToken
+    ? (
+      <div style={{display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0.2dvh", width: "100%", minWidth: 0}}>
+        <div style={{position: "relative", display: "flex", alignItems: "center", justifyContent: "center", height: "3.2dvh", width: "3.2dvh", flexShrink: 0}}>
+          <img
+            alt=""
+            src={buttonObj.imageUrl}
+            style={{height: "100%", width: "100%", objectFit: "contain", opacity: selected ? 0.25 : 1}}/>
+          {selected &&
+            <span style={{
+              position: "absolute",
+              fontSize: "3dvh",
+              fontWeight: 700,
+              lineHeight: 1,
+              textShadow: "0 0.1dvh 0.3dvh rgba(0,0,0,0.9)",
+            }}>
+              {subtracting ? "−" : "+"}
+            </span>}
+        </div>
+        <span style={labelStyle}>{displayText}</span>
+      </div>
+    )
+    : <span style={labelStyle}>{displayText}</span>;
 
   return (
-    <div 
-      //onMouseUp={(event) => handleClick(event)} onTouchStart={(event) => handleClick(event)} 
-      onClick={(event) => handleClick(event)} 
-      className={"absolute cursor-default h-full w-full p-0.5 top-0"}>
-      <div className={"flex rounded w-full h-full text-center items-center justify-center" + bgColor + hoverColor} style={{fontSize: "1.5dvh", lineHeight: "100%"}}>
-        {displayText}
-      </div>
-      {img}
+    <div
+      onClick={handleClick}
+      style={{
+        flex: "1 1 0",
+        minWidth: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "0 0.5dvh",
+        borderRadius: "0.6dvh",
+        background: selected ? accentBg : IDLE_BG,
+        border: selected ? `1px solid ${accentBorder}` : IDLE_BORDER,
+        boxShadow: selected ? `0 0 0.9dvh ${accentBorder}55` : "none",
+        color: "white",
+        fontSize: "1.4dvh",
+        lineHeight: 1.1,
+        textAlign: "center",
+        cursor: "pointer",
+        overflow: "hidden",
+        transition: "background 0.12s, border-color 0.12s, box-shadow 0.12s",
+        // Opts out of the browser's double-tap-to-zoom wait, which otherwise
+        // delays every button press on the bar by ~300ms.
+        touchAction: "manipulation",
+        WebkitTapHighlightColor: "transparent",
+      }}>
+      {content}
     </div>
   )
 })
 
 
-export const TouchBarBottom = React.memo(({}) => {
+export const TouchBarBottom = React.memo(() => {
   const gameDef = useGameDefinition();
   const gameL10n = useGameL10n();
   const siteL10n = useSiteL10n();
-  const containerClass = "relative text-center";
-  const containerStyle = {};
-  if (gameDef.touchBar ) {
-    
-    return (
-      <table className="table-fixed w-full h-full text-white select-none" style={{width: "99.9%"}}>
-        <tbody className="w-full h-full">
-          {gameDef.touchBar?.map((row, rowIndex) => {
-            return (
-              <tr key={rowIndex} className={"bg-gray-700"} style={{height: `${100/gameDef.touchBar.length}%`}}>
-                {row.map((buttonObj, colIndex) => {
-                  console.log("buttonObj", buttonObj)
-                  var processedButtonObj = {...buttonObj};
-                  var displayText = gameL10n(buttonObj.label);
-                  if (buttonObj.actionType === "engine") {
-                    processedButtonObj = dragnTouchButtons[buttonObj.actionList];
-                    if (!processedButtonObj) {
-                      //alert("Error: dragnButton " + buttonObj.dragnButton + " not found in dragnTouchButtons");
-                      return null;
-                    }
-                    processedButtonObj.isDragnButton = true;
-                    displayText = siteL10n(processedButtonObj.label);
-                  }
-                  console.log("processedButtonObj", processedButtonObj)
-                  return (
-                    <td key={colIndex} className={containerClass} style={containerStyle}>
-                      <TouchButton buttonObj={processedButtonObj} displayText={displayText}/>
-                    </td>
-                  )
-                })}
-              </tr> 
-            )
-          })}
-        </tbody>
-      </table>
-    )
-  }
-  else {
+
+  if (!gameDef.touchBar) {
     return <div className="text-white p-2">Touch mode has not been configured for this game.</div>
   }
+
+  return (
+    <div
+      className="select-none"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "0.4dvh",
+        width: "100%",
+        height: "100%",
+        padding: "0.4dvh",
+        boxSizing: "border-box",
+        background: "linear-gradient(180deg, #1c1c23 0%, #101014 100%)",
+        borderTop: "1px solid rgba(255,255,255,0.08)",
+      }}>
+      {gameDef.touchBar.map((row, rowIndex) => (
+        <div key={rowIndex} style={{display: "flex", gap: "0.4dvh", flex: "1 1 0", minHeight: 0}}>
+          {row.map((buttonObj, colIndex) => {
+            var processedButtonObj = {...buttonObj};
+            var displayText = gameL10n(buttonObj.label);
+            if (buttonObj.actionType === "engine") {
+              processedButtonObj = dragnTouchButtons[buttonObj.actionList];
+              if (!processedButtonObj) return null;
+              processedButtonObj.isDragnButton = true;
+              displayText = siteL10n(processedButtonObj.label);
+            }
+            return (
+              <TouchButton key={colIndex} buttonObj={processedButtonObj} displayText={displayText}/>
+            )
+          })}
+        </div>
+      ))}
+    </div>
+  )
 })

@@ -1,49 +1,94 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useSelector } from "react-redux";
-import { FadeText } from "./FadeText";
+import { FadeText, normalizeFadeMessage, PERSISTENT_HOLD_MS, FADE_IN_MS, FADE_OUT_MS } from "./FadeText";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { Z_INDEX } from "./functions/common";
+
+// Grace period so the rendered animation finishes before the message is dropped
+const REMOVAL_GRACE_MS = 100;
 
 /**
  * FadeTextPlayer component that displays fade text messages in the center of the screen
  * for the currently observing player
  * Manages a queue of messages with 0.1s delays between them (max 5 visible at once)
+ *
+ * Messages are queued per player rather than for the observing player only, so that
+ * switching seats (or switching who you are looking at) shows what that player sees.
+ * This matters for messages that hold until bumped, since game.fadeText is cleared at
+ * the start of every action and can no longer be replayed after that.
  */
 export const FadeTextPlayer = React.memo(() => {
   const gameDef = useGameDefinition();
   const observingPlayerN = useSelector(state => state?.playerUi?.observingPlayerN);
-  const playerMessages = useSelector(state => state?.gameUi?.game?.fadeText?.player?.[observingPlayerN]) || [];
-  const [activeMessages, setActiveMessages] = useState([]);
+  const fadeTextPlayerMap = useSelector(state => state?.gameUi?.game?.fadeText?.player);
+  const [messagesByPlayer, setMessagesByPlayer] = useState({});
   const nextMessageIdRef = useRef(0);
-  const processedIndexRef = useRef(0);
+  const processedListRef = useRef({});
+  const persistentIdRef = useRef({});
 
-  console.log("FadeTextPlayer render", observingPlayerN, playerMessages, activeMessages);
+  const removeMessage = (playerI, messageId) => {
+    setMessagesByPlayer(prev => {
+      const prevMessages = prev[playerI] || [];
+      const updated = prevMessages.filter(msg => msg.id !== messageId);
+      if (updated.length === prevMessages.length) return prev;
+      return { ...prev, [playerI]: updated };
+    });
+  };
 
   useEffect(() => {
-    console.log("FadeTextPlayer useEffect", observingPlayerN, playerMessages, activeMessages);
-    // New batch of messages arrived, reset the index.
-    processedIndexRef.current = 0;
+    const playerMap = fadeTextPlayerMap || {};
 
-    // Process new messages from fadeText list
-    const newMessages = playerMessages.slice(processedIndexRef.current);
+    Object.entries(playerMap).forEach(([playerI, entries]) => {
+      if (!Array.isArray(entries) || entries.length === 0) return;
 
-    if (newMessages.length > 0) {
-      newMessages.forEach((text, index) => {
+      // The map identity changes on every game update, so only queue a list once
+      if (processedListRef.current[playerI] === entries) return;
+      processedListRef.current[playerI] = entries;
+
+      entries.forEach((entry, index) => {
         const delay = index * 200; // 0.2s delay between messages
         const messageId = nextMessageIdRef.current++;
+        const { text, holdMs } = normalizeFadeMessage(entry);
 
         setTimeout(() => {
-          setActiveMessages(prev => [...prev, {
-            id: messageId,
-            text: text,
-            delay: 0
-          }]);
+          // A new message bumps the one that was holding until bumped. There is at most
+          // one of those per player, since every message bumps it.
+          const bumpedId = persistentIdRef.current[playerI];
+          persistentIdRef.current[playerI] = holdMs === PERSISTENT_HOLD_MS ? messageId : null;
+
+          setMessagesByPlayer(prev => {
+            const prevMessages = prev[playerI] || [];
+            return {
+              ...prev,
+              [playerI]: [
+                ...prevMessages.map(msg => msg.id === bumpedId ? { ...msg, dismissed: true } : msg),
+                {
+                  id: messageId,
+                  text: text,
+                  holdMs: holdMs,
+                  dismissed: false,
+                  delay: 0
+                }
+              ]
+            };
+          });
+
+          // Messages queued for a player nobody is observing are never mounted, so their
+          // lifetime cannot depend on the animation reporting back that it finished
+          if (bumpedId != null) {
+            setTimeout(() => removeMessage(playerI, bumpedId), FADE_OUT_MS + REMOVAL_GRACE_MS);
+          }
+          if (holdMs !== PERSISTENT_HOLD_MS) {
+            setTimeout(
+              () => removeMessage(playerI, messageId),
+              FADE_IN_MS + holdMs + FADE_OUT_MS + REMOVAL_GRACE_MS
+            );
+          }
         }, delay);
       });
-
-      processedIndexRef.current = playerMessages.length;
-    }
-  }, [playerMessages]);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fadeTextPlayerMap]);
 
   // Count tokens in a message to adjust centering
   const countTokens = (text) => {
@@ -51,16 +96,7 @@ export const FadeTextPlayer = React.memo(() => {
     return matches ? matches.length : 0;
   };
 
-  const handleMessageComplete = (messageId) => {
-    setActiveMessages(prev => {
-      const updated = prev.filter(msg => msg.id !== messageId);
-      // Reset processed index when all messages are done
-      if (updated.length === 0) {
-        processedIndexRef.current = 0;
-      }
-      return updated;
-    });
-  };
+  const activeMessages = messagesByPlayer[observingPlayerN] || [];
 
   if (activeMessages.length === 0) return null;
 
@@ -80,8 +116,10 @@ export const FadeTextPlayer = React.memo(() => {
             <FadeText
               key={message.id}
               text={message.text}
-              onComplete={() => handleMessageComplete(message.id)}
+              onComplete={() => removeMessage(observingPlayerN, message.id)}
               delay={message.delay}
+              holdMs={message.holdMs}
+              dismissed={message.dismissed}
               gameDef={gameDef}
               className="text-white font-bold text-center absolute"
               style={{

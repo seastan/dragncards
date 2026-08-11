@@ -3,7 +3,7 @@ import { faArrowUp, faArrowDown, faRandom, faChevronRight, faCheck } from "@fort
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { DropdownItem, GoBack } from "./DropdownMenuHelpers";
 import "../../css/custom-dropdown.css";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch, useSelector, shallowEqual } from "react-redux";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { usePlayerIList } from "./hooks/usePlayerIList";
 import { useBrowseTopN } from "./hooks/useBrowseTopN";
@@ -12,6 +12,32 @@ import { setDropdownMenu } from "../store/playerUiSlice";
 import { useSiteL10n } from "../../hooks/useSiteL10n";
 import { useGameL10n } from "./hooks/useGameL10n";
 import { Z_INDEX } from "./functions/common";
+
+const DropdownMoveTo = ({ destGroupId, origGroupId, numStacks, handleDropdownClick, siteL10n }) => {
+  return (
+    <div className="menu">
+      <GoBack goToMenu="moveTo" clickCallback={handleDropdownClick}/>
+      <DropdownItem
+        leftIcon={<FontAwesomeIcon icon={faArrowUp}/>}
+        action={dragnActionLists.moveAllStacksTo(origGroupId, destGroupId, numStacks, "top")}
+        clickCallback={handleDropdownClick}>
+        {siteL10n("Top")}
+      </DropdownItem>
+      <DropdownItem
+        leftIcon={<FontAwesomeIcon icon={faRandom}/>}
+        action={dragnActionLists.moveAllStacksTo(origGroupId, destGroupId, numStacks, "shuffle")}
+        clickCallback={handleDropdownClick}>
+        {siteL10n("Shuffle in")}
+      </DropdownItem>
+      <DropdownItem
+        leftIcon={<FontAwesomeIcon icon={faArrowDown}/>}
+        action={dragnActionLists.moveAllStacksTo(origGroupId, destGroupId, numStacks, "bottom")}
+        clickCallback={handleDropdownClick}>
+        {siteL10n("Bottom")}
+      </DropdownItem>
+    </div>
+  )
+}
 
 export const DropdownMenuGroup = React.memo(({
   mouseX,
@@ -34,32 +60,16 @@ export const DropdownMenuGroup = React.memo(({
   const browseTopN = useBrowseTopN();
   const choicesTopN = gameDef.groupMenu?.peekAtTopN || [5,10];
 
-  console.log("Rendering DMGroup", group)
-  const DropdownMoveTo = (props) => {
-    return (
-      <div className="menu">
-        <GoBack goToMenu="moveTo" clickCallback={handleDropdownClick}/>
-        <DropdownItem
-          leftIcon={<FontAwesomeIcon icon={faArrowUp}/>}
-          action={dragnActionLists.moveAllStacksTo(menuGroup.id, props.destGroupId, numStacks, "top")}
-          clickCallback={handleDropdownClick}>
-          {siteL10n("Top")}
-        </DropdownItem>
-        <DropdownItem
-          leftIcon={<FontAwesomeIcon icon={faRandom}/>}
-          action={dragnActionLists.moveAllStacksTo(menuGroup.id, props.destGroupId, numStacks, "shuffle")}
-          clickCallback={handleDropdownClick}>
-          {siteL10n("Shuffle in")}
-        </DropdownItem>
-        <DropdownItem
-          leftIcon={<FontAwesomeIcon icon={faArrowDown}/>}
-          action={dragnActionLists.moveAllStacksTo(menuGroup.id, props.destGroupId, numStacks, "bottom")}
-          clickCallback={handleDropdownClick}>
-          {siteL10n("Bottom")}
-        </DropdownItem>
-      </div>
-    )
-  }
+  const regionEntry = useSelector(state => {
+    const regions = state?.gameUi?.game?.playerData?.[playerN]?.layout?.regions;
+    if (!regions) return null;
+    for (const [key, region] of Object.entries(regions)) {
+      if (!region.groupId) continue;
+      const resolvedId = region.groupId.replace(/playerN/g, playerN);
+      if (resolvedId === menuGroup.id) return { key, type: region.type };
+    }
+    return null;
+  }, shallowEqual);
 
   const windowHeight = window.innerHeight;
   const left = mouseX < (window.innerWidth/2)  ? mouseX + windowHeight * 0.01 : mouseX - windowHeight * 0.36;
@@ -113,6 +123,20 @@ export const DropdownMenuGroup = React.memo(({
           }
           {gameDef?.groupMenu?.suppress?.includes("Choose Random") ? null :
             <DropdownItem action={dragnActionLists.chooseRandom(menuGroup.id)} clickCallback={handleDropdownClick}>{siteL10n("Choose Random")}</DropdownItem>
+          }
+          {regionEntry?.type === "row" && !gameDef?.groupMenu?.suppress?.includes("Convert to Fan") &&
+            <DropdownItem
+              action={[["SET", `/playerData/$PLAYER_N/layout/regions/${regionEntry.key}/type`, "fan"]]}
+              clickCallback={handleDropdownClick}>
+              {siteL10n("Convert to Fan")}
+            </DropdownItem>
+          }
+          {regionEntry?.type === "fan" && !gameDef?.groupMenu?.suppress?.includes("Convert to Row") &&
+            <DropdownItem
+              action={[["SET", `/playerData/$PLAYER_N/layout/regions/${regionEntry.key}/type`, "row"]]}
+              clickCallback={handleDropdownClick}>
+              {siteL10n("Convert to Row")}
+            </DropdownItem>
           }
           {gameDef?.groupMenu?.suppress?.includes("Set Visibility") ? null :
             <DropdownItem
@@ -189,10 +213,23 @@ export const DropdownMenuGroup = React.memo(({
         </div>
         }
         {activeMenu === "moveToMy" &&
-        <DropdownMoveTo destGroupId={playerN+"Deck"}/>}
-        {gameDef?.groupMenu?.moveToGroupIds?.map((moveToGroupId, _moveToGroupIndex) => {
+        <DropdownMoveTo
+          destGroupId={playerN+"Deck"}
+          origGroupId={menuGroup.id}
+          numStacks={numStacks}
+          handleDropdownClick={handleDropdownClick}
+          siteL10n={siteL10n}
+        />}
+        {gameDef?.groupMenu?.moveToGroupIds?.map((moveToGroupId, moveToGroupIndex) => {
           const resolvedGroupId = moveToGroupId.replace("playerN", playerN);
-          return (activeMenu === "moveTo" + resolvedGroupId) && <DropdownMoveTo destGroupId={resolvedGroupId}/>;
+          return (activeMenu === "moveTo" + resolvedGroupId) && <DropdownMoveTo
+            key={moveToGroupIndex}
+            destGroupId={resolvedGroupId}
+            origGroupId={menuGroup.id}
+            numStacks={numStacks}
+            handleDropdownClick={handleDropdownClick}
+            siteL10n={siteL10n}
+          />;
         })}
     </div>
   );

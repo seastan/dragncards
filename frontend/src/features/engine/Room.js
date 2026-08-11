@@ -1,6 +1,7 @@
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect, useRef, useContext } from "react";
 import { useSelector, useDispatch } from 'react-redux';
 import { useHistory } from "react-router-dom";
+import SocketContext from "../../contexts/SocketContext";
 import RoomProviders from "./RoomProviders";
 import {useSetMessages} from '../../contexts/MessagesContext';
 import useChannel from "../../hooks/useChannel";
@@ -29,6 +30,32 @@ export const Room = ({ slug }) => {
   const myUserId = myUser?.id;
   const isPluginAuthor = useIsPluginAuthor();
   //const plugin = usePlugin();
+
+  const socket = useContext(SocketContext);
+  const [joinRetryKey, setJoinRetryKey] = useState(0);
+  // Tracks which room slug we've already retried for, so we only retry once per room.
+  const retriedForSlugRef = useRef(null);
+
+  useEffect(() => {
+    retriedForSlugRef.current = null;
+  }, [slug]);
+
+  // The app's socket is long-lived and can stay pinned to a backend instance that
+  // no longer knows about this room (e.g. it was created on a different instance
+  // during a blue-green deploy). Before declaring the room truly unreachable, force
+  // a fresh socket connection - which nginx will route to the current backend - and
+  // retry the join once.
+  const handleRoomUnavailable = useCallback(() => {
+    if (socket != null && retriedForSlugRef.current !== slug) {
+      retriedForSlugRef.current = slug;
+      socket.disconnect(() => {
+        socket.connect();
+        setJoinRetryKey((k) => k + 1);
+      });
+    } else {
+      dispatch(setRoomNotFound(true));
+    }
+  }, [socket, slug, dispatch]);
 
   const onChannelMessage = useCallback((event, payload) => {
     console.log("onChannelMessage: Got new payload: ", event, payload);
@@ -101,7 +128,7 @@ export const Room = ({ slug }) => {
     } else if (event === "users_changed" && payload !== null) {
       dispatch(setSockets(payload));
     } else if (event === "unable_to_get_state_on_join" || event === "room_unavailable") {
-      dispatch(setRoomNotFound(true));
+      handleRoomUnavailable();
     } else if (event === "bad_game_state" && payload !== null) {
       const errors = payload.errors;
       console.error("Bad game state received:", errors);
@@ -112,7 +139,7 @@ export const Room = ({ slug }) => {
       }));
       setOutOfSync(true);
     } else if (event === "unable_to_get_state_on_request") {
-      dispatch(setRoomNotFound(true));
+      handleRoomUnavailable();
     } else if (event === "phx_error") {
       dispatch(setAlert({
         level: "crash",
@@ -147,9 +174,16 @@ export const Room = ({ slug }) => {
       if (playerN != null && playerN != undefined && playerN == payload.targetPlayerN) {
         dispatch(overridePlayerUiValues(payload.updates));
       }
+    } else if (event === "gui_update_all" && payload !== null) {
+      // Broadcast GUI updates (e.g. shuffle animation) sent to the whole room.
+      // Same per-player payload shape as "gui_update"; each client keeps the
+      // entry matching its own player.
+      if (playerN != null && playerN != undefined && playerN == payload.targetPlayerN) {
+        dispatch(overridePlayerUiValues(payload.updates));
+      }
     }
 
-  }, [dispatch, history, playerN, roomSlug, sendLocalMessage]);
+  }, [dispatch, history, playerN, roomSlug, sendLocalMessage, handleRoomUnavailable]);
 
   const onChatMessage = useCallback((event, payload) => {
     if (
@@ -165,10 +199,10 @@ export const Room = ({ slug }) => {
     }
   }, []);
 
-  const gameBroadcast = useChannel(`room:${slug}`, onChannelMessage, myUserId);
+  const gameBroadcast = useChannel(`room:${slug}`, onChannelMessage, myUserId, joinRetryKey);
   console.log("gameb render room", gameBroadcast)
 
-  const chatBroadcast = useChannel(`chat:${slug}`, onChatMessage, myUserId);
+  const chatBroadcast = useChannel(`chat:${slug}`, onChatMessage, myUserId, joinRetryKey);
 
   // If game goes out of sync, send a "request_state" message to the server
   useEffect(() => {

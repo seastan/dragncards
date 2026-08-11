@@ -24,6 +24,7 @@ defmodule DragnCardsGame.GameUiTest do
             %{"inPlay" => true}
         },
         "variables" => %{"$THIS_ID" => "123qwe"},
+        "functions" => %{},
         "numPlayers" => 3,
         "firstPlayer" => "player1"
       }
@@ -174,6 +175,39 @@ defmodule DragnCardsGame.GameUiTest do
     game_new = Evaluate.apply_automation_rules(automation, ["cardById", "123qwe", "rotation"], game_old, game_new)
 
     assert game_new["cardById"]["456rty"]["rotation"] == 0
+  end
+
+  test "Check FADE_TEXT duration argument", %{game: game} do
+    game = put_in(game, ["playerData"], %{"player1" => %{}, "player2" => %{}, "player3" => %{}})
+
+    # No duration given
+    game = Evaluate.evaluate(game, ["FADE_TEXT_CARD", "123qwe", "Exhausted"])
+    assert game["fadeText"]["card"]["123qwe"] == [%{"text" => "Exhausted", "duration" => nil}]
+
+    # Duration in seconds
+    game = Evaluate.evaluate(game, ["FADE_TEXT_CARD", "123qwe", "+2 Attack", 3])
+    assert game["fadeText"]["card"]["123qwe"] == [
+      %{"text" => "Exhausted", "duration" => nil},
+      %{"text" => "+2 Attack", "duration" => 3}
+    ]
+
+    # Duration of -1 means "stay until bumped"
+    game = Evaluate.evaluate(game, ["FADE_TEXT_PLAYER", "player2", "Your Turn!", -1])
+    assert game["fadeText"]["player"]["player2"] == [%{"text" => "Your Turn!", "duration" => -1}]
+
+    # FADE_TEXT_GAME passes the duration through to every player
+    game = Evaluate.evaluate(game, ["FADE_TEXT_GAME", "Draw Phase", ["ADD", 2, 0.5]])
+    assert game["fadeText"]["player"]["player1"] == [%{"text" => "Draw Phase", "duration" => 2.5}]
+    assert game["fadeText"]["player"]["player3"] == [%{"text" => "Draw Phase", "duration" => 2.5}]
+    assert game["fadeText"]["player"]["player2"] == [
+      %{"text" => "Your Turn!", "duration" => -1},
+      %{"text" => "Draw Phase", "duration" => 2.5}
+    ]
+
+    # A non-numeric duration is rejected
+    assert_raise Evaluate.RecursiveEvaluationError, ~r/duration must be a number/, fn ->
+      Evaluate.evaluate(game, ["FADE_TEXT_CARD", "123qwe", "Nope", "soon"])
+    end
   end
 
 end

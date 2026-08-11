@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import axios from "axios";
 
 import SocketProvider from "../components/SocketProvider";
@@ -13,9 +13,19 @@ import useHtmlClass from "../hooks/useHtmlClass";
 import { BrowserRouter as Router } from "react-router-dom";
 
 const App: React.FC = () => {
-  const [tokens, setTokens] = useState({
-    authToken: null,
-    renewToken: null,
+  const [tokens, setTokens] = useState(() => {
+    // Read synchronously so the socket is created with auth on the first render,
+    // avoiding an unauthenticated channel join that triggers "Room no longer accessible".
+    const at_raw = localStorage.getItem("authToken");
+    const rt_raw = localStorage.getItem("renewToken");
+    if (typeof at_raw === "string" && typeof rt_raw === "string") {
+      try {
+        const at = JSON.parse(at_raw);
+        const rt = JSON.parse(rt_raw);
+        if (at && rt) return { authToken: at, renewToken: rt };
+      } catch (_) {}
+    }
+    return { authToken: null, renewToken: null };
   });
 
   const setAuthAndRenewToken = useCallback(
@@ -56,21 +66,6 @@ const App: React.FC = () => {
     }),
     [logOut, setAuthAndRenewToken, tokens.authToken, tokens.renewToken]
   );
-
-  useEffect(() => {
-    const at_raw = localStorage.getItem("authToken");
-    const rt_raw = localStorage.getItem("renewToken");
-    if (typeof at_raw == "string" && typeof rt_raw == "string") {
-      const at = JSON.parse(at_raw);
-      const rt = JSON.parse(rt_raw);
-      if (at && rt) {
-        setTokens({
-          authToken: at,
-          renewToken: rt,
-        });
-      }
-    }
-  }, []);
 
   const socketParams = useMemo(
     () => ({
