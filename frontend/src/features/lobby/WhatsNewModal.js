@@ -8,11 +8,33 @@ import { PatreonModal } from "../store/support/PatreonModal";
 ReactModal.setAppElement("#root");
 
 // Bump this number each time you add a new release entry.
-export const WHATS_NEW_VERSION = 1;
+export const WHATS_NEW_VERSION = 2;
 
 const releases = [
   {
+    version: 3.0,
+    whatsNewVersion: 2,
+    date: "Aug 11, 2026",
+    title: "3D Mode",
+    media: {
+      src: "/videos/whats-new-3d-mode.webm",
+      type: "video/webm",
+      ariaLabel: "DragnCards 3D mode preview",
+    },
+    sections: [
+      {
+        heading: "⭐ New Table View",
+        items: [
+          "3D mode is now available, giving the table more depth while keeping the familiar card interactions.",
+          "The 3D tilt angle is adjustable in View > Preferences.",
+          "The classic 2D mode is still available in View > Preferences if you prefer the original table layout.",
+        ],
+      },
+    ],
+  },
+  {
     version: 2.1,
+    whatsNewVersion: 1,
     date: "Feb 11, 2026",
     title: "Favorites, Automation Toggles & More",
     sections: [
@@ -71,10 +93,29 @@ const listItemStyle = {
   lineHeight: "1.5",
 };
 
+const mediaStyle = {
+  display: "block",
+  width: "100%",
+  borderRadius: "6px",
+  border: "1px solid rgba(107, 114, 128, 0.6)",
+  marginBottom: "16px",
+  backgroundColor: "#111827",
+};
+
+const releaseStyle = {
+  paddingBottom: "18px",
+  marginBottom: "18px",
+  borderBottom: "1px solid rgba(107, 114, 128, 0.35)",
+};
+
 export const WhatsNewModal = ({ isOpen, closeModal, user }) => {
   const authOptions = useAuthOptions();
   const [showPatreon, setShowPatreon] = useState(false);
   const isSupporter = user?.supporter_level;
+  const dismissedVersion = user?.whats_new_dismissed || 0;
+  const visibleReleases = releases.filter(
+    (release) => release.whatsNewVersion > dismissedVersion
+  );
 
   const handleDismiss = async () => {
     closeModal();
@@ -117,12 +158,28 @@ export const WhatsNewModal = ({ isOpen, closeModal, user }) => {
 
       {/* Body */}
       <div style={{ padding: "16px 24px 20px 24px" }}>
-        {releases.map((release) => (
-          <div key={release.version}>
+        {visibleReleases.map((release, ri) => (
+          <div
+            key={release.version}
+            style={ri === visibleReleases.length - 1 ? undefined : releaseStyle}
+          >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "16px" }}>
               <span style={{ fontSize: "1.05rem", fontWeight: 600 }}>{release.title}</span>
               <span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>{release.date}</span>
             </div>
+
+            {release.media && (
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                aria-label={release.media.ariaLabel}
+                style={mediaStyle}
+              >
+                <source src={release.media.src} type={release.media.type} />
+              </video>
+            )}
 
             {release.sections.map((section, si) => (
               <div key={si} style={sectionStyle}>
