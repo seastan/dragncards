@@ -3531,11 +3531,21 @@ export function createDnc3DEngine(options = {}) {
       // separate dispatch that lands after closeBrowse has already run.
       const peekingChanged = peeking !== (card.cardEl._peeking || false);
       card.cardEl._peeking = peeking;
+      // ...unless the peek arrives as part of a real move: drawing a card from
+      // your own deck sets peeking (the destination group's onCardEnter) in the
+      // same tick as the group change, and dropping one into your hand by hand
+      // does the same while the card is still elevated. Those should turn over
+      // as they travel, so let the normal flip paths below handle them. Cards in
+      // the browse fan always snap — opening/closing browse is a pure peek.
+      const movingIntoPeek = card.regionId !== '_browse' && (
+        card.liftPx > 1 ||
+        !!(dcCard.groupId && card.regionId && card.regionId !== dcCard.groupId && regionState[dcCard.groupId])
+      );
       // A parked card lives in a region this client doesn't render (regionId
       // null, hidden). Keep its orientation in sync silently — snap, never
       // animate — so it shows the right side the instant it's revealed.
       const parked = !card.regionId;
-      if (currentVisualSide !== expectedSide && (peekingChanged || parked) && !card.cardEl._animating) {
+      if (currentVisualSide !== expectedSide && ((peekingChanged && !movingIntoPeek) || parked) && !card.cardEl._animating) {
         _snapCardToExpectedSide(card, dcCard);
       } else if (currentVisualSide !== expectedSide && !card.cardEl._animating) {
         card.cardEl._animating = true;
