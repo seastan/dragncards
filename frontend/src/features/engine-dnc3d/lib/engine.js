@@ -834,6 +834,36 @@ export function createDnc3DEngine(options = {}) {
     return stackIds.length === 0 || card.stackId === stackIds[stackIds.length - 1];
   }
 
+  // Which half of a card — in the CARD's OWN frame — a screen point falls in.
+  // Drives mouseTopBottom, i.e. whether a token hotkey adds or removes.
+  //
+  // The 2D engine hangs its two CardMouseRegion divs INSIDE the rotated card
+  // container, so "top" always means the card's own top half however the card is
+  // turned: on an exhausted card the add-half is a screen-SIDE half, and it
+  // rotates with the card. Testing cardEl.getBoundingClientRect() instead would
+  // give a screen-horizontal split through an axis-aligned box that grows and
+  // shrinks as the card rotates — the regions would silently re-define
+  // themselves on every exhaust, inverting add vs remove relative to 2D.
+  //
+  // So un-project the pointer onto the table plane at the card's Z, then
+  // un-rotate it about the card's centre by the card's total in-plane rotation
+  // (layout + exhaust). Only rotateZ matters: rotateY (flip) mirrors x, and the
+  // tilt-compensating scaleY is centred, so neither changes the sign of local y.
+  function cardHoverHalf(card, x, y) {
+    const inScrollOuter = card.liftEl.parentElement !== _tiltEl;
+    // Mirror the rendered depth: a scroll outer carries its region's layer Z on
+    // the container, liftEl carries the rest (see setLiftVisuals/placeCardAt).
+    const Z = (inScrollOuter ? layerZPx(cardHeightPx()) * (REGIONS[card.regionId]?.layerIndex || 0) : 0)
+            + BASE_LIFT + card.pileZ + card.liftPx;
+    const tp  = screenToTableAtZ(x, y, Z, _tiltEl, _currentDeg);
+    const pos = tiltSpacePosOf(card);
+    const cx  = pos.left + (card.renderedW || cardWidthPx())  / 2;
+    const cy  = pos.top  + (card.renderedH || cardHeightPx()) / 2;
+    const rad = ((card.cardEl._layoutRotation || 0) + (card.cardEl._gameRotation || 0)) * Math.PI / 180;
+    const localY = -Math.sin(rad) * (tp.x - cx) + Math.cos(rad) * (tp.y - cy);
+    return localY < 0 ? 'top' : 'bottom';
+  }
+
   // How far a pointer must travel before a press counts as a drag rather than a
   // tap. The same number decides the opposite question at pointerup (below it,
   // the press opens the card menu), so the two must stay in lockstep — anything
@@ -1110,8 +1140,7 @@ export function createDnc3DEngine(options = {}) {
       liftEl.addEventListener('pointermove', (e) => {
         if (_isDragging) return;
         if (!isTopPileCard(card)) return;
-        const rect = cardEl.getBoundingClientRect();
-        onCardHoverTopBottom(e.clientY < rect.top + rect.height / 2 ? 'top' : 'bottom');
+        onCardHoverTopBottom(cardHoverHalf(card, e.clientX, e.clientY));
       });
     }
 
