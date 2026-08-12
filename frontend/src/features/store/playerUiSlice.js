@@ -38,7 +38,7 @@ const initialState = {
     level: null,
     autoClose: true,
   },
-  playerN: "player1",
+  playerN: null,
   keypress: defaultKeypress,
   replayStep: 0,
   showHotkeys: false,

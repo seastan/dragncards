@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useDispatch, useSelector } from 'react-redux';
 import RoomGame from "./RoomGame";
 import useProfile from "../../hooks/useProfile";
@@ -24,18 +24,18 @@ export const RoomProviders = ({ gameBroadcast, chatBroadcast }) => {
   const dispatch = useDispatch();
   const playerInfo = useSelector(state => state?.gameUi?.playerInfo);
   const userSettings = useSelector(state => state?.playerUi?.userSettings);
+  const currentPlayerN = useSelector(state => state?.playerUi?.playerN);
   const myUser = useProfile();
   const playerN = getPlayerN(playerInfo, myUser?.id);
   const gameDef = useGameDefinition();
   const pluginId = usePlugin()?.id;
-  const [playerNSet, setPlayerNSet] = useState(true);
+  const playerNSet = playerInfo !== undefined && currentPlayerN === playerN;
 
   useEffect(() => {
     dispatch(setPlayerN(playerN));
     if (playerN) dispatch(setObservingPlayerN(playerN)); // For a spectator (where playerN is null), leave as the default value
-    setPlayerNSet(true);
 
-  }, [playerN, myUser])
+  }, [dispatch, playerN])
 
   useEffect(() => {
     const databaseUiSettings = myUser?.plugin_settings?.[pluginId]?.ui;
