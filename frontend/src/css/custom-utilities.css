@@ -217,6 +217,41 @@ padding: 0;
    (src/components/basic/Menu.tsx); the old CSS :hover dropdown styles
    (.top-level-menu / .second-level-menu / .third-level-menu) were removed. */
 
+/* TopBar counter steppers (src/features/engine/CounterStepper.tsx).
+   The steppers sit in cells whose width is a percentage of the window while
+   their natural sizing is in dvh, so on a narrow window the height-derived
+   buttons and icon swallow the cell and clip the number. Each stepper is
+   therefore a size container, and every horizontal size is also capped
+   against that container's width. */
+.counter-stepper {
+  container-type: inline-size;
+}
+.counter-stepper-btn {
+  width: min(2dvh, 20cqw);
+  height: 2dvh;
+  font-size: min(1.1dvh, 12cqw);
+}
+/* Vertical variant: the two buttons share a full-width row below the value. */
+.counter-stepper-btn-vertical {
+  font-size: min(1.1dvh, 20cqw);
+}
+/* --counter-value-cqw is set per stepper: the more digits the value has, the
+   smaller its cap, so a long number shrinks instead of being clipped. */
+.counter-stepper-value {
+  font-size: min(1.7dvh, var(--counter-value-cqw, 22cqw));
+}
+.counter-stepper-icon {
+  height: 70%;
+  max-width: 34%;
+}
+/* Narrower than this the icon costs more than it conveys, so the number gets
+   the whole cell. */
+@container (max-width: 52px) {
+  .counter-stepper-icon {
+    display: none;
+  }
+}
+
 /* Hide the native number-input spinners (used by the TopBar counter steppers). */
 .no-spinner::-webkit-inner-spin-button,
 .no-spinner::-webkit-outer-spin-button {
