@@ -16,7 +16,10 @@ export const TextBox = React.memo(({
         top: convertToPercentage(textBoxLayoutInfo.top),
         width: convertToPercentage(textBoxLayoutInfo.width),
         height: convertToPercentage(textBoxLayoutInfo.height),
-        zIndex: hover ? Z_INDEX.Modal : Z_INDEX.TextBox,
+        zIndex: hover ? Z_INDEX.TextBoxHover : Z_INDEX.TextBox,
+        // Hover text boxes sit above the cards, so make them click-through
+        // (they are labels) — same as the dnc3d renderer does.
+        ...(hover ? { pointerEvents: "none" } : {}),
         ...customStyle,
       }}>
       {gameL10n(textBoxLayoutInfo.label)}

@@ -12,7 +12,10 @@ export const Z_INDEX = {
   "TextBox": 1e1,
   "Card": 1e2,
   "Arrows": 2e3,
-  "TopBarHover": 1e3,
+  // Screen-space ("hover") text boxes float above the cards, but must stay
+  // below the TopBar so its dropdown menus are not covered by them.
+  "TextBoxHover": 3e3,
+  "TopBarHover": 4e3,
   "DeveloperModal": 1e4,
   "Hotkeys": 2e4,
   "DropdownMenu": 5e4,

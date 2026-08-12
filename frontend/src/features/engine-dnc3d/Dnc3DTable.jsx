@@ -499,7 +499,7 @@ export default function Dnc3DTable({
               width: convertToPercentage(tb.width),
               height: convertToPercentage(tb.height),
               pointerEvents: 'none',
-              zIndex: Z_INDEX.Modal,
+              zIndex: Z_INDEX.TextBoxHover,
               ...customStyle,
             }}>
             {gameL10n(tb.label, gameDef, language)}
