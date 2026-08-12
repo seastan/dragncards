@@ -824,6 +824,43 @@ export function createDnc3DEngine(options = {}) {
     el._triggeredAnimId = requestAnimationFrame(frame);
   }
 
+  // The token +/- arrows are React elements (onMouseOver / onClick) that live
+  // inside the pointer-events:none token host. For a card inside a scroll outer
+  // Chrome delivers them no pointer events at all — the same hit-test hole that
+  // strands the hover glow (see onTiltPointerMove) and the ability bolt — so the
+  // chevrons never appear on hover and can't be clicked. elementsFromPoint still
+  // finds them, so locate the arrow geometrically here and let the callers
+  // synthesize the events React is waiting for.
+  //
+  // Deliberately returns null for cards NOT in a scroll outer: there the native
+  // events fire normally in both browsers, and synthesizing on top of them would
+  // double-toggle the button state.
+  function tokenArrowAtPoint(x, y) {
+    if (x < 0 || y < 0) return null;
+    for (const el of document.elementsFromPoint(x, y)) {
+      const arrow = el.closest('.dnc3d-token-arrow');
+      if (arrow) return arrow.closest('.dnc3d-region-scroll-outer') ? arrow : null;
+      // Tokens paint above their own card, so reaching a card face first means
+      // there is no arrow above this point (a neighbour is covering it).
+      if (el.classList.contains('dnc3d-card')) return null;
+    }
+    return null;
+  }
+
+  // Mirror the cursor onto whichever token arrow it's over. React derives
+  // onMouseLeave from mouseout, so the over/out pair below is exactly what
+  // Token's setButtonUpVisible/setButtonDownVisible handlers listen for.
+  let _synthArrowEl = null;
+  function syncTokenArrowHover(x, y) {
+    const arrow = tokenArrowAtPoint(x, y);
+    if (arrow === _synthArrowEl) return;
+    if (_synthArrowEl) _synthArrowEl.dispatchEvent(
+      new MouseEvent('mouseout', { bubbles: true, clientX: x, clientY: y, relatedTarget: arrow }));
+    _synthArrowEl = arrow;
+    if (arrow) arrow.dispatchEvent(
+      new MouseEvent('mouseover', { bubbles: true, clientX: x, clientY: y }));
+  }
+
   // Returns true if a card is interactable in its pile (i.e. it IS the top card,
   // or it is not in a pile region at all). Non-top pile cards should not receive
   // hover, active-card callbacks, or be draggable.
@@ -1136,13 +1173,9 @@ export function createDnc3DEngine(options = {}) {
       if (!liftEl.contains(e.relatedTarget)) showCardHover(e);
     });
     liftEl.addEventListener('pointerout', endCardHover);
-    if (onCardHoverTopBottom) {
-      liftEl.addEventListener('pointermove', (e) => {
-        if (_isDragging) return;
-        if (!isTopPileCard(card)) return;
-        onCardHoverTopBottom(cardHoverHalf(card, e.clientX, e.clientY));
-      });
-    }
+    // NB: mouseTopBottom (token add/remove direction) is deliberately NOT driven
+    // from a pointermove listener here — see reconcileHover, which derives it
+    // from elementsFromPoint so it keeps working for cards inside scroll outers.
 
     // ── Lift animation state ──
     let liftAnimId = null;
@@ -2641,6 +2674,7 @@ export function createDnc3DEngine(options = {}) {
       // stays dark. document.elementsFromPoint DOES find them correctly, so call
       // reconcileHover on every move as the reliable fallback for those cards.
       reconcileHover();
+      syncTokenArrowHover(e.clientX, e.clientY);
     }
     function onTiltPointerLeave() {
       // A touch pointer "leaves" the moment the finger lifts, which would close
@@ -2653,6 +2687,7 @@ export function createDnc3DEngine(options = {}) {
           btn.classList.remove('dnc3d-icon-btn-hovered');
       }
       clearCountHover();
+      syncTokenArrowHover(-1, -1);
     }
     tiltEl.addEventListener('pointermove',  onTiltPointerMove);
     tiltEl.addEventListener('pointerleave', onTiltPointerLeave);
@@ -2741,6 +2776,32 @@ export function createDnc3DEngine(options = {}) {
           window.addEventListener('pointerup', upHandler, true);
           return;
         }
+      }
+      // Token +/- arrow fallback: same scroll-outer hit-test hole as the ability
+      // bolt above, and it must come BEFORE the drag fallback or pressing an
+      // arrow would start dragging the card instead. Dispatch a click on the
+      // arrow so React's own onClick runs (keeping its 500ms broadcast batching),
+      // and only if the pointer is still on the same arrow at release.
+      const arrowEl = tokenArrowAtPoint(e.clientX, e.clientY);
+      if (arrowEl) {
+        e.preventDefault();
+        const upHandler = (ue) => {
+          window.removeEventListener('pointerup', upHandler, true);
+          if (tokenArrowAtPoint(ue.clientX, ue.clientY) !== arrowEl) return;
+          arrowEl.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: ue.clientX, clientY: ue.clientY }));
+          // Chrome still synthesizes its own click after a preventDefault'ed
+          // pointerdown; that one targets the scroll outer and would reach
+          // React's root listener as a table click (clearing the card menu).
+          // Registered AFTER our dispatch above, which has already finished
+          // bubbling, so it only ever swallows the browser's stray click.
+          const blockClick = (ce) => {
+            ce.stopPropagation();
+            window.removeEventListener('click', blockClick, true);
+          };
+          window.addEventListener('click', blockClick, true);
+        };
+        window.addEventListener('pointerup', upHandler, true);
+        return;
       }
       // Chrome's 3D hit-test sometimes delivers the event directly to tiltEl
       // instead of the scroll outer or card — e.target.closest('.dnc3d-region-scroll-outer')
@@ -4032,6 +4093,17 @@ export function createDnc3DEngine(options = {}) {
     // race permanently; re-asserting each tick re-activates the card once its
     // group has settled, so the GiantCard preview comes back (and stays).
     if (targetCard && onCardHover) onCardHover(targetCard.id, _lastPointerX);
+
+    // Token add/remove direction (mouseTopBottom) rides the same reliable path
+    // as the hover glow above, NOT a pointermove listener on the card: Chrome's
+    // input-event hit-test never reaches cards inside scroll outers (see
+    // onTiltPointerMove), so a per-card listener silently stops updating for
+    // every row/fan card and the direction freezes at whatever it last saw —
+    // making the token hotkey add (or subtract) no matter where the cursor is.
+    // elementsFromPoint finds those cards correctly, so resolving the card here
+    // and measuring the half from geometry works in every region.
+    if (targetCard && onCardHoverTopBottom)
+      onCardHoverTopBottom(cardHoverHalf(targetCard, _lastPointerX, _lastPointerY));
 
     // Synthesize ability-button hover for Chrome — its compositor-based hit-test
     // can't deliver :hover to elements inside scroll outers, so we use

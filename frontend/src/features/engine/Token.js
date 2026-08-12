@@ -106,7 +106,12 @@ export const Token = React.memo(({
             </div>
 
             <div
-                className="text-center"
+                // dnc3d: the class is the engine's handle on these two buttons.
+                // Chrome delivers no pointer events to elements inside a scroll
+                // outer, so for cards in row/fan regions the mouseOver/click
+                // handlers below never fire natively; the engine finds them by
+                // class (elementsFromPoint) and synthesizes the events instead.
+                className={extrudeFilter ? "text-center dnc3d-token-arrow" : "text-center"}
                 style={{
                     position: "absolute",
                     height: "50%",
@@ -135,7 +140,7 @@ export const Token = React.memo(({
             </div>
 
             <div
-                className="text-center"
+                className={extrudeFilter ? "text-center dnc3d-token-arrow" : "text-center"}
                 style={{
                     position: "absolute",
                     height: "50%",
