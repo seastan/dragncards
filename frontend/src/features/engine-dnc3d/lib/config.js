@@ -57,6 +57,15 @@ export function scaleDuration(ms) {
 // in-progress flip). Every cardEl.style.transform should go through this so the
 // resting orientation and the flip animation share one convention and never
 // snap against each other.
+//
+// heightScale (the tilt foreshortening compensation) is the one part that must
+// NOT ride the card's own frame: the tilt squashes the table plane along the
+// plane's y-axis, so the undo has to stretch along that same axis whatever way
+// the card is turned. It therefore sits OUTSIDE rotateZ. Inside it, a card
+// turned a quarter turn (a landscape card lined up with its portrait
+// neighbours, or an exhausted card) got stretched along its own height — i.e.
+// sideways on the table — leaving it heightScale too wide and 1/heightScale too
+// short next to an upright card of matching aspect.
 //   angleDeg : flip angle  (cardEl._angle)
 //   rotDeg   : in-plane rotation (layoutRotation + gameRotation)
 //   scale    : uniform scale (default 1)
@@ -64,7 +73,7 @@ export function scaleDuration(ms) {
 export function cardTransform(angleDeg, rotDeg, scale = 1, swingPct = 0, heightScale = 1) {
   const swing = swingPct ? ` translateX(${swingPct}%)` : '';
   const hs    = heightScale !== 1 ? ` scaleY(${heightScale})` : '';
-  return `perspective(300vw) rotateZ(${rotDeg}deg)${swing} rotateY(${angleDeg}deg) scale(${scale})${hs}`;
+  return `perspective(300vw)${hs} rotateZ(${rotDeg}deg)${swing} rotateY(${angleDeg}deg) scale(${scale})`;
 }
 
 // Default region layout — used for demo/sandbox mode.

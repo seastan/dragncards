@@ -882,10 +882,11 @@ export function createDnc3DEngine(options = {}) {
   // shrinks as the card rotates — the regions would silently re-define
   // themselves on every exhaust, inverting add vs remove relative to 2D.
   //
-  // So un-project the pointer onto the table plane at the card's Z, then
-  // un-rotate it about the card's centre by the card's total in-plane rotation
-  // (layout + exhaust). Only rotateZ matters: rotateY (flip) mirrors x, and the
-  // tilt-compensating scaleY is centred, so neither changes the sign of local y.
+  // So un-project the pointer onto the table plane at the card's Z, undo the
+  // tilt-compensating scaleY (centred on the card, and applied outside the
+  // card's rotation — see cardTransform), then un-rotate about the card's centre
+  // by its total in-plane rotation (layout + exhaust). rotateY (flip) only
+  // mirrors x, so it never changes the sign of local y.
   function cardHoverHalf(card, x, y) {
     const inScrollOuter = card.liftEl.parentElement !== _tiltEl;
     // Mirror the rendered depth: a scroll outer carries its region's layer Z on
@@ -897,7 +898,8 @@ export function createDnc3DEngine(options = {}) {
     const cx  = pos.left + (card.renderedW || cardWidthPx())  / 2;
     const cy  = pos.top  + (card.renderedH || cardHeightPx()) / 2;
     const rad = ((card.cardEl._layoutRotation || 0) + (card.cardEl._gameRotation || 0)) * Math.PI / 180;
-    const localY = -Math.sin(rad) * (tp.x - cx) + Math.cos(rad) * (tp.y - cy);
+    const hs  = card.cardEl._heightScale || 1;
+    const localY = -Math.sin(rad) * (tp.x - cx) + Math.cos(rad) * ((tp.y - cy) / hs);
     return localY < 0 ? 'top' : 'bottom';
   }
 
