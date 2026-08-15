@@ -105,7 +105,13 @@ export const Table = React.memo(({onDragEnd}) => {
       {/* Side panel */}
       <SideBar/>
       {/* Main panel */}
-      <div className="w-full">
+      {/* min-w-0 is load-bearing: as a flex item this panel defaults to
+          min-width:auto, so it can never shrink below its content's min-content
+          width. The touch bar's buttons carry a large one (nowrap labels, and
+          token icons that don't shrink), all sized in dvh — without this the
+          whole panel overflows the viewport once width drops below roughly
+          1.5x height, clipping the right of both the table and the bar. */}
+      <div className="w-full min-w-0">
         <div className="w-full h-full">
           {/* Game menu bar */}
           <div className="bg-gray-600 text-white w-full"
