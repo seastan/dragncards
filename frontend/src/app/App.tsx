@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useRef } from "react";
 import axios from "axios";
 
 import SocketProvider from "../components/SocketProvider";
@@ -67,11 +67,31 @@ const App: React.FC = () => {
     [logOut, setAuthAndRenewToken, tokens.authToken, tokens.renewToken]
   );
 
+  // phoenix.js resolves socket params on every (re)connect, but only if they
+  // are given as a function - a plain object is frozen into a closure at
+  // construction. Reading from a ref means a reconnect always presents the
+  // token we hold *now*, instead of replaying the one the socket was built
+  // with. That matters because the backend evaluates auth once, in connect/3:
+  // a socket that reconnects with an expired token gets latched as auth_failed
+  // and every channel join it makes is rejected until the page is reloaded.
+  // Assigned during render on purpose, not in an effect: React flushes child
+  // effects before parent ones, so SocketProvider would otherwise connect while
+  // this ref still held the previous token.
+  const authTokenRef = useRef(tokens.authToken);
+  authTokenRef.current = tokens.authToken;
+
+  // Deliberately keyed on logged-in/out rather than on the token itself, so a
+  // routine token renewal no longer tears down the socket (and every channel
+  // on it) mid-game, while logging in or out still rebuilds it from scratch.
+  const isAuthenticated = tokens.authToken != null;
   const socketParams = useMemo(
-    () => ({
-      authToken: tokens.authToken,
+    () => () => ({
+      authToken: authTokenRef.current,
     }),
-    [tokens.authToken]
+    // isAuthenticated is the intended key: it rebuilds the socket on
+    // login/logout only, never on a routine token renewal.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isAuthenticated]
   );
 
   return (

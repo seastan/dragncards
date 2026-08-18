@@ -57,7 +57,7 @@ defmodule DragnCardsWeb.RoomChannel do
   end
 
   def handle_info(:after_join, %{assigns: %{auth_failed: true}} = socket) do
-    push_room_unavailable(socket)
+    push_auth_failed(socket)
     {:noreply, socket}
   end
 
@@ -105,8 +105,8 @@ defmodule DragnCardsWeb.RoomChannel do
         _payload,
         %{assigns: %{auth_failed: true}} = socket
       ) do
-    push_room_unavailable(socket)
-    {:reply, {:error, "room_unavailable"}, socket}
+    push_auth_failed(socket)
+    {:reply, {:error, "auth_failed"}, socket}
   end
 
   def handle_in(
@@ -473,6 +473,16 @@ defmodule DragnCardsWeb.RoomChannel do
   defp push_room_unavailable(socket) do
     push(socket, "room_unavailable", %{
       "reason" => "missing_server_state"
+    })
+  end
+
+  # The socket presented a token that no longer resolves to a user, so auth was
+  # rejected in connect/3 and we never even looked for the room. Distinct from
+  # "missing_server_state": the room is usually alive and well, and telling the
+  # player it disappeared sends them chasing the wrong problem.
+  defp push_auth_failed(socket) do
+    push(socket, "room_unavailable", %{
+      "reason" => "auth_failed"
     })
   end
 

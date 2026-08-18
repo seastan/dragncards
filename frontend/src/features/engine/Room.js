@@ -36,16 +36,29 @@ export const Room = ({ slug }) => {
   // Tracks which room slug we've already retried for, so we only retry once per room.
   const retriedForSlugRef = useRef(null);
 
+  // Which failure we are showing: "auth_failed" (our session died) or
+  // "missing_server_state" (the backend really has no such room).
+  const [unavailableReason, setUnavailableReason] = useState(null);
+
+  // Entering a room clears any failure left over from the previous one.
+  // roomNotFound lives in the redux store and is otherwise only reset by the
+  // two buttons on the modal below, so leaving a dead room any other way (back
+  // button, logo, a pasted URL) used to carry the modal into the next room.
+  // This runs before useChannel's join effect - hooks fire in declaration
+  // order - so it can never clear a flag the current room just set.
   useEffect(() => {
     retriedForSlugRef.current = null;
-  }, [slug]);
+    setUnavailableReason(null);
+    dispatch(setRoomNotFound(false));
+  }, [slug, dispatch]);
 
   // The app's socket is long-lived and can stay pinned to a backend instance that
   // no longer knows about this room (e.g. it was created on a different instance
   // during a blue-green deploy). Before declaring the room truly unreachable, force
   // a fresh socket connection - which nginx will route to the current backend - and
   // retry the join once.
-  const handleRoomUnavailable = useCallback(() => {
+  const handleRoomUnavailable = useCallback((reason) => {
+    setUnavailableReason(reason || null);
     if (socket != null && retriedForSlugRef.current !== slug) {
       retriedForSlugRef.current = slug;
       socket.disconnect(() => {
@@ -128,7 +141,7 @@ export const Room = ({ slug }) => {
     } else if (event === "users_changed" && payload !== null) {
       dispatch(setSockets(payload));
     } else if (event === "unable_to_get_state_on_join" || event === "room_unavailable") {
-      handleRoomUnavailable();
+      handleRoomUnavailable(payload?.reason);
     } else if (event === "bad_game_state" && payload !== null) {
       const errors = payload.errors;
       console.error("Bad game state received:", errors);
@@ -139,7 +152,7 @@ export const Room = ({ slug }) => {
       }));
       setOutOfSync(true);
     } else if (event === "unable_to_get_state_on_request") {
-      handleRoomUnavailable();
+      handleRoomUnavailable(payload?.reason);
     } else if (event === "phx_error") {
       dispatch(setAlert({
         level: "crash",
@@ -216,21 +229,35 @@ export const Room = ({ slug }) => {
   // console.log("plugin room",plugin)
   //if (plugin === null) return (<div className="text-white m-4">Loading...</div>);
 
+  // An expired session and a genuinely missing room both surface here, but they
+  // need different advice: the room is normally still running in the first case,
+  // and pointing the player at saved games sends them the wrong way.
+  const sessionExpired = unavailableReason === "auth_failed";
   if (roomNotFound) return (
     <div className="text-white flex flex-col items-center justify-center h-screen p-4">
       <div className="bg-gray-700 rounded-lg p-6 max-w-md text-center">
-        <h2 className="text-xl font-bold mb-3">Room no longer accessible</h2>
-        <p className="text-gray-300 mb-4">
-          This room can no longer be reached from this browser session. It may have closed, timed out, or stayed on an older server during a deployment.
-        </p>
-        <p className="text-gray-300 mb-4">
-          If the game was saved, continue from your saved games in your profile.
-        </p>
+        <h2 className="text-xl font-bold mb-3">
+          {sessionExpired ? "Session expired" : "Room no longer accessible"}
+        </h2>
+        {sessionExpired ? (
+          <p className="text-gray-300 mb-4">
+            Your login session expired, so this browser can no longer join the room. Log in again and you can rejoin - the room is still running.
+          </p>
+        ) : (
+          <>
+            <p className="text-gray-300 mb-4">
+              This room can no longer be reached from this browser session. It may have closed, timed out, or stayed on an older server during a deployment.
+            </p>
+            <p className="text-gray-300 mb-4">
+              If the game was saved, continue from your saved games in your profile.
+            </p>
+          </>
+        )}
         <button
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mr-2"
-          onClick={() => { dispatch(setRoomNotFound(false)); history.push(myUser ? "/profile" : "/login"); }}
+          onClick={() => { dispatch(setRoomNotFound(false)); history.push(sessionExpired || !myUser ? "/login" : "/profile"); }}
         >
-          {myUser ? "Go to profile" : "Log in"}
+          {sessionExpired || !myUser ? "Log in" : "Go to profile"}
         </button>
         <button
           className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded"

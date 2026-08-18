@@ -12,6 +12,9 @@ const SocketProvider = ({
   options: object | (() => object);
   children: ReactNode;
 }) => {
+  // `options` should be a function: phoenix calls it on every (re)connect, so
+  // the socket presents current credentials rather than the ones it was built
+  // with. A plain object still works, but is frozen at construction.
   const socket = useMemo(() => new Socket(wsUrl, { params: options }), [options, wsUrl]);
 
   useEffect(() => {

@@ -80,8 +80,13 @@ const useAuthDataApi = (
             return axios(originalRequest);
           }
         })
-        .catch((e) => {
-          if (onError != null) {
+        .catch((e: any) => {
+          // Only drop the session when the server actually rejected the
+          // renewal. A network blip or a timeout must not log the user out:
+          // with the 10 minute profile poll running, that would turn every
+          // transient backend hiccup into a forced logout.
+          const status = e != null && e.response != null ? e.response.status : null;
+          if (onError != null && (status === 401 || status === 403)) {
             onError();
           }
           // Interceptor error after renew
