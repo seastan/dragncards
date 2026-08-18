@@ -38,6 +38,7 @@ const LOADING_TIPS = [
   "Hold Tab to bring up the list of hotkeys.",
   "Don't like an automation? Turn it off in your preferences.",
   "Press Shift+Tab to quickly bring up your preferences.",
+  "Press Ctrl+RightArrow (or Ctrl+LeftArrow) to hop to the next vacant seat.",
   "Click on any log message in the chat window to rewind the game to that point.",
   "Playing on a touchscreen? Save the site to your home screen to remove the browser's navigation bar.",
   'Check out decks made by the community under "Load public custom deck".',

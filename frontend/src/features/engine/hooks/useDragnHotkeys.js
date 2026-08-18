@@ -5,7 +5,7 @@ import { useDoActionList } from "./useDoActionList";
 import { dragnActionLists } from "../functions/dragnActionLists";
 import { useDispatch } from "react-redux";
 import { useImportViaUrl } from "./useImportViaUrl";
-import { setPluginRepoUpdateAutoRefresh, setShowModal, setSpectatorModePeekingAll } from "../../store/playerUiSlice";
+import { setObservingPlayerN, setPluginRepoUpdateAutoRefresh, setShowModal, setSpectatorModePeekingAll } from "../../store/playerUiSlice";
 import { useActiveCardId } from "./useActiveCardId";
 import { useSendLocalMessage } from "./useSendLocalMessage";
 import { useCurrentFace } from "./useCurrentFace";
@@ -30,6 +30,8 @@ export const dragnHotkeys = [
   {"key": "ArrowRight", "actionList": "redo", "label": "redoOneAction"},
   {"key": "Shift+ArrowLeft", "actionList": "undoMany", "label": "undoManyActions"},
   {"key": "Shift+ArrowRight", "actionList": "redoMany", "label": "redoManyActions"},
+  {"key": "Ctrl+ArrowLeft", "actionList": "sitPrevSeat", "label": "sitInPreviousVacantSeat"},
+  {"key": "Ctrl+ArrowRight", "actionList": "sitNextSeat", "label": "sitInNextVacantSeat"},
   {"key": "ArrowUp", "actionList": "prevStep", "label": "moveToPreviousGameStep"},
   {"key": "ArrowDown", "actionList": "nextStep", "label": "moveToNextGameStep"},
   {"key": "Ctrl+Shift+L", "actionList": "refreshPlugin", "label": "refreshPluginIfAuthor"},
@@ -111,8 +113,45 @@ export const useDoDragnHotkey = () => {
   const activeCardId = useActiveCardId();
   const currentSide = useCurrentSide(activeCardId);
   const currentFace = useCurrentFace(activeCardId);
-  const {gameBroadcast} = useContext(BroadcastContext);
+  const {gameBroadcast, chatBroadcast} = useContext(BroadcastContext);
   const cardActionLists = ["targetCard", "drawArrow", "triggerAutomationAbility"];
+  // Get up from wherever you are sitting and sit in the closest vacant seat in
+  // the given direction (+1 = next, -1 = previous), wrapping around from
+  // playerN back to player1.
+  const moveToVacantSeat = (direction) => {
+    const myUserId = user?.id;
+    if (!myUserId) {
+      sendLocalMessage("You must be logged in to change seats.");
+      return;
+    }
+    const gameUi = store.getState().gameUi;
+    const playerInfo = gameUi?.playerInfo || {};
+    const numPlayers = gameUi?.game?.numPlayers || 1;
+    const mySeat = Object.keys(playerInfo).find((playerI) => playerInfo[playerI]?.id === myUserId);
+    // If we are not sitting anywhere, start the search just outside the row so
+    // that the first seat checked is player1 (next) or playerN (previous).
+    const myIndex = mySeat ? parseInt(mySeat.replace("player", ""), 10) : (direction === 1 ? 0 : 1);
+    var newSeat = null;
+    for (var offset = 1; offset <= numPlayers; offset++) {
+      const index = (((myIndex - 1 + direction * offset) % numPlayers) + numPlayers) % numPlayers;
+      const seat = `player${index + 1}`;
+      if (!playerInfo[seat]?.id) {
+        newSeat = seat;
+        break;
+      }
+    }
+    if (!newSeat) {
+      sendLocalMessage("There are no vacant seats.");
+      return;
+    }
+    if (mySeat) {
+      gameBroadcast("set_seat", {player_i: mySeat, new_user_id: null});
+      chatBroadcast("game_update", {message: "got up from " + mySeat + "'s seat."});
+    }
+    gameBroadcast("set_seat", {player_i: newSeat, new_user_id: myUserId, new_user_alias: user.alias});
+    chatBroadcast("game_update", {message: "sat in " + newSeat + "'s seat."});
+    dispatch(setObservingPlayerN(newSeat));
+  }
   return (actionList) => {
     if (cardActionLists.includes(actionList) && !activeCardId) {
       sendLocalMessage(`You must hover over a card to use that hotkey.`);
@@ -181,6 +220,9 @@ export const useDoDragnHotkey = () => {
         return doActionList(["NEXT_STEP"], "Move to next game step");
       case "drawArrow":
         return doActionList(dragnActionLists.drawArrow(), "Start/stop drawing arrow");
+      case "sitNextSeat":
+      case "sitPrevSeat":
+        return moveToVacantSeat(actionList === "sitNextSeat" ? 1 : -1);
       }
   }
 }

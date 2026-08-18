@@ -1241,6 +1241,24 @@ export const siteL10n = {
     "German": "Zum nächsten Spielschritt bewegen",
     "Chinese": "移动到下一个游戏步骤"
   },
+  "sitInPreviousVacantSeat": {
+    "English": "Sit in previous vacant seat",
+    "French": "S'asseoir dans le siège libre précédent",
+    "Spanish": "Sentarse en el asiento libre anterior",
+    "Portuguese": "Sentar no assento vago anterior",
+    "Italian": "Siediti nel posto libero precedente",
+    "German": "Auf den vorherigen freien Sitz setzen",
+    "Chinese": "坐到上一个空座位"
+  },
+  "sitInNextVacantSeat": {
+    "English": "Sit in next vacant seat",
+    "French": "S'asseoir dans le siège libre suivant",
+    "Spanish": "Sentarse en el siguiente asiento libre",
+    "Portuguese": "Sentar no próximo assento vago",
+    "Italian": "Siediti nel prossimo posto libero",
+    "German": "Auf den nächsten freien Sitz setzen",
+    "Chinese": "坐到下一个空座位"
+  },
   "prevStep": {
     "English": "Previous step",
     "French": "Étape précédente",
