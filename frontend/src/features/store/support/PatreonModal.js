@@ -55,8 +55,10 @@ export const PatreonModal = ({
         },
     ];
 
-  const patreonClientId = "MUANs_lS4yBmji1txII2sV6NJ3X1JEp5OSzPVr_rkU02jz3S2jTubjoMOSPK5Jul";
-  const redirectURI = "https://www.dragncards.com/auth/patreon/callback";
+  // Get patreon data from environment variables. These must match the values the
+  // backend uses for the token exchange, otherwise Patreon rejects the redirect URI.
+  const patreonClientId = process.env.REACT_APP_PATREON_CLIENT_ID;
+  const redirectURI = process.env.REACT_APP_PATREON_REDIRECT_URI;
 
   return (
     <ReactModal

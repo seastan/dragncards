@@ -4,7 +4,8 @@ import Button from '../../../components/basic/Button';
 const PatreonButton = ({ patreonClientId, amount, redirectURI }) => {
   const clientId = `&client_id=${patreonClientId}`;
   const pledgeLevel = `&min_cents=${amount}`;
-  const v2Params = "&scope=identity%20identity[email]";
+  // Include the identity.memberships scope so the backend can read the pledge level
+  const v2Params = "&scope=identity%20identity.memberships";
   const redirectUri = `&redirect_uri=${redirectURI}`;
   const href = `https://www.patreon.com/oauth2/become-patron?response_type=code${pledgeLevel}${clientId}${redirectUri}${v2Params}`;
 
