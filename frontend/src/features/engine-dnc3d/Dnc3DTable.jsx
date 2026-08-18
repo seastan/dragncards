@@ -210,6 +210,16 @@ export default function Dnc3DTable({
       const anyBack      = Object.values(gd?.cardBacks || {})[0];
       const cardDefaultH = anyBack?.height ?? 1.0;
       const cardDefaultW = anyBack?.width  ?? 0.72;
+      // Activate a card and open its menu: the tail of a left click, and the
+      // whole of a right click.
+      const openCardMenu = (dcId, clientX, clientY) => {
+        const card  = gameRef.current?.cardById?.[dcId];
+        const title = card?.sides?.[card?.currentSide]?.name || '';
+        dispatch(setMouseXY({ x: clientX, y: clientY }));
+        dispatch(setActiveCardId(dcId));
+        dispatch(setScreenLeftRight(clientX > window.innerWidth / 2 ? 'right' : 'left'));
+        dispatch(setDropdownMenu({ type: 'card', cardId: dcId, title, visible: true }));
+      };
       engineOptions = {
         regions, ...callbacks,
         playerN:            observingPlayerRef.current,
@@ -254,10 +264,16 @@ export default function Dnc3DTable({
               }
             }
           }
-          dispatch(setMouseXY({ x: clientX, y: clientY }));
-          dispatch(setActiveCardId(dcId));
-          dispatch(setScreenLeftRight(clientX > window.innerWidth / 2 ? 'right' : 'left'));
-          dispatch(setDropdownMenu({ type: 'card', cardId: dcId, title, visible: true }));
+          openCardMenu(dcId, clientX, clientY);
+        },
+        // Right-click — mirrors CardMouseRegion.handleContextMenu in the 2D
+        // engine: it always activates the card and opens its menu, ignoring both
+        // multi-select and any armed touch-bar action, so there is always one
+        // gesture that reaches the menu no matter what mode the table is in.
+        onCardContextMenu: (engineId, clientX, clientY) => {
+          const dcId = reverseIdMap.get(engineId);
+          if (dcId == null) return;
+          openCardMenu(dcId, clientX, clientY);
         },
         onCardHover:    (engineId, clientX) => {
           const dcId = reverseIdMap.get(engineId);

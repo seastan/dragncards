@@ -47,6 +47,8 @@ function parseFrac(val, fallback = 0) {
 // options.onLookUnder     — callback(parentCardId, lookingUnder) fired when a stack's
 //                           "N behind" badge is clicked
 // options.onCardClick     — callback(cardId, clientX, clientY) fired on click (no drag)
+// options.onCardContextMenu — callback(cardId, clientX, clientY) fired on right-click
+//                           (the native browser menu is suppressed over cards)
 // options.onCardHover     — callback(cardId) fired on pointerenter
 // options.onCardHoverEnd  — callback(cardId) fired on pointerleave
 // options.onDragStart     — callback() fired when a drag gesture begins
@@ -80,6 +82,7 @@ export function createDnc3DEngine(options = {}) {
   const onTriggerAbility = options.onTriggerAbility || null;
   const onLookUnder      = options.onLookUnder      || null;
   const onCardClick    = options.onCardClick    || null;
+  const onCardContextMenu = options.onCardContextMenu || null;
   const onCardHover         = options.onCardHover         || null;
   const onCardHoverEnd      = options.onCardHoverEnd      || null;
   const onCardHoverTopBottom = options.onCardHoverTopBottom || null;
@@ -914,6 +917,17 @@ export function createDnc3DEngine(options = {}) {
     return e?.pointerType === 'touch' ? base * 3 : base;
   }
 
+  // Only the primary button drives the drag machinery. startDragFn calls
+  // preventDefault and setPointerCapture, and on platforms where the native
+  // context menu opens on mousedown (Linux/Firefox) the matching pointerup is
+  // then never delivered — the card is left holding a capture it can't release.
+  // Right-click is handled by the contextmenu listeners instead. Touch and pen
+  // pointers report button 0 for a plain contact, so this only filters the
+  // secondary/middle mouse buttons and a pen's barrel button.
+  function isPrimaryButton(e) {
+    return !e || e.button == null || e.button === 0;
+  }
+
   // Show the lightning-bolt affordance only while the card is hovered and its
   // current face has a triggerable ability — mirrors the 2D AbilityButton, which
   // renders only when `isActive && hasAbility`.
@@ -1110,6 +1124,16 @@ export function createDnc3DEngine(options = {}) {
     createStack([i]);
 
     liftEl.addEventListener('click', e => e.stopPropagation());
+    // Right-click opens the card menu, matching CardMouseRegion.handleContextMenu
+    // in the 2D engine. preventDefault suppresses the browser's own menu, which
+    // would otherwise be the only thing a right-click on a card produced here.
+    // stopPropagation keeps the tiltEl fallback below from firing a second time
+    // for cards whose events do reach them natively.
+    liftEl.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (onCardContextMenu) onCardContextMenu(i, e.clientX, e.clientY);
+    });
     // Hover ("active") detection lives on cardEl, not liftEl, so the hit region
     // tracks the card's actual rotated shape: cardEl carries the rotateZ
     // (exhaust/layout) + rotateY (flip), while liftEl stays an un-rotated
@@ -1236,6 +1260,12 @@ export function createDnc3DEngine(options = {}) {
     let grabOffScreenX = 0, grabOffScreenY = 0;
     let startX = 0, startY = 0;
     let isDragging = false;
+    // The pointer startDragFn armed, or null when no gesture is in flight.
+    // liftEl's pointerup listener sees every release over the card, including
+    // ones startDragFn declined (a right-click, now that secondary buttons are
+    // filtered out) — those must not run endDrag's cleanup or fire a click off
+    // the previous gesture's startX/startY.
+    let activePointerId = null;
     let prevDragX = 0;
     let dragTiltAngle = 0;
     let dragZ = i + 1;
@@ -1265,7 +1295,9 @@ export function createDnc3DEngine(options = {}) {
     // tiltEl event bindings) can call it when Chrome's input pipeline fails to
     // deliver the event to cardEl inside a scroll-outer.
     function startDragFn(e) {
+      if (!isPrimaryButton(e)) return;
       e.preventDefault();
+      activePointerId = e.pointerId;
       startX = e.clientX;
       startY = e.clientY;
       isDragging = false;
@@ -1664,6 +1696,9 @@ export function createDnc3DEngine(options = {}) {
     // `cancelled` suppresses the tap-to-open-menu at the end — a cancelled
     // gesture is not a tap.
     function endDrag(e, cancelled) {
+      // Ignore releases from a pointer this card never armed (see activePointerId).
+      if (activePointerId === null || (e && e.pointerId !== activePointerId)) return;
+      activePointerId = null;
       // releasePointerCapture throws if the pointer isn't captured, which is the
       // normal case for pointercancel (the browser released it already).
       if (liftEl.hasPointerCapture(e.pointerId)) liftEl.releasePointerCapture(e.pointerId);
@@ -2703,6 +2738,10 @@ export function createDnc3DEngine(options = {}) {
       // pointerdown can arrive with no preceding pointermove (a clean tap), so
       // this is where the pointer type is first known for a touch gesture.
       _lastPointerWasTouch = e.pointerType === 'touch';
+      // A secondary-button press is a context-menu gesture, not a tap: it must
+      // neither reveal a region's icons nor stand in for a button press. The
+      // contextmenu listener below is what acts on it.
+      if (!isPrimaryButton(e)) return;
       // Touch mode: taps stand in for hover. Tapping a region's name strip
       // reveals its eye/menu icons (and a pile's count badge) and they stay put;
       // tapping anywhere else on the table puts them away again. This runs
@@ -2816,6 +2855,21 @@ export function createDnc3DEngine(options = {}) {
       e.preventDefault();
       const foundCard = cards.find(c => c.cardEl === foundCardEl);
       if (foundCard?.startDragFn) foundCard.startDragFn(e);
+    });
+
+    // Right-click fallback, for the same reason as the pointerdown one above:
+    // a card inside a scroll outer never receives the event itself, so the
+    // contextmenu lands on the scroll outer and bubbles to here. Cards that get
+    // it natively have already stopped propagation in their own handler, so this
+    // only ever runs for the cards the hit-test skipped. Points with no card
+    // under them fall through untouched — right-clicking bare table keeps the
+    // browser's menu, as it does in the 2D engine.
+    tiltEl.addEventListener('contextmenu', (e) => {
+      const foundCardEl = topCardElAtPoint(e.clientX, e.clientY);
+      if (!foundCardEl) return;
+      e.preventDefault();
+      const foundCard = cards.find(c => c.cardEl === foundCardEl);
+      if (foundCard && onCardContextMenu) onCardContextMenu(foundCard.id, e.clientX, e.clientY);
     });
 
     // ── Wheel scroll ────────────────────────────────────────────────────────
