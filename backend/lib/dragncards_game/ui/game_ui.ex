@@ -71,14 +71,28 @@ defmodule DragnCardsGame.GameUI do
   def sit_down(gameui, player_n, user_id) do
     player_info = PlayerInfo.new(user_id)
     log_alias = ALIAS_N.log_alias_n(player_n, player_info["alias"])
-    gameui = gameui
+
+    # A user can only hold one seat, so vacate whichever seat they were in
+    # before. Doing it here makes a seat change a single atomic update: the
+    # client no longer has to send a get_up followed by a sit_down, which left
+    # the player seated nowhere in between (and cost two deltas + two renders).
+    old_player_n = seat_of_user(gameui, user_id)
+    moved? = old_player_n != nil and old_player_n != player_n
+
+    gameui = if moved?, do: clear_seat(gameui, old_player_n), else: gameui
+
+    message = if moved? do
+      "#{log_alias} moved from #{old_player_n}'s seat to #{player_n}'s seat."
+    else
+      "#{log_alias} sat down in #{player_n}'s seat."
+    end
+
+    gameui
     |> put_in(["playerInfo", player_n], player_info)
     |> put_in(["game", "playerData", player_n, "user_id"], user_id)
     |> put_in(["game", "playerData", player_n, "alias"], player_info["alias"])
     |> update_player_data(player_n, user_id)
-
-    gameui
-    |> put_in(["game", "messages"], ["#{log_alias} sat down in #{player_n}'s seat."])
+    |> put_in(["game", "messages"], [message])
   end
 
   def get_up(gameui, player_n) do
@@ -86,6 +100,23 @@ defmodule DragnCardsGame.GameUI do
     log_alias = ALIAS_N.log_alias_n(player_n, alias_n)
     gameui
     |> put_in(["game", "messages"], ["#{log_alias} got up from #{player_n}'s seat."])
+    |> clear_seat(player_n)
+  end
+
+  # Which seat, if any, the given user currently occupies.
+  def seat_of_user(gameui, user_id) do
+    (gameui["playerInfo"] || %{})
+    |> Enum.find(fn {_player_n, info} -> info != nil and info["id"] == user_id end)
+    |> case do
+      {player_n, _info} -> player_n
+      nil -> nil
+    end
+  end
+
+  # Empty a seat without logging anything. Player data other than the occupant
+  # (cards, counters) is deliberately left in place.
+  defp clear_seat(gameui, player_n) do
+    gameui
     |> put_in(["playerInfo", player_n], nil)
     |> put_in(["game", "playerData", player_n, "alias"], nil)
     |> put_in(["game", "playerData", player_n, "user_id"], nil)

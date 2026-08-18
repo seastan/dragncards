@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useContext, useRef } from "react";
 import BroadcastContext from "../../../contexts/BroadcastContext";
 import store from "../../../store";
 import { useDoActionList } from "./useDoActionList";
@@ -101,6 +101,9 @@ export const dragnTouchButtons = {
   }
 }
   
+// How long a requested seat change is assumed to still be in flight.
+const PENDING_SEAT_MS = 5000;
+
 export const useDoDragnHotkey = () => {
   const user = useProfile();
   const doActionList = useDoActionList();
@@ -113,7 +116,9 @@ export const useDoDragnHotkey = () => {
   const activeCardId = useActiveCardId();
   const currentSide = useCurrentSide(activeCardId);
   const currentFace = useCurrentFace(activeCardId);
-  const {gameBroadcast, chatBroadcast} = useContext(BroadcastContext);
+  const {gameBroadcast} = useContext(BroadcastContext);
+  // The seat we last asked the server to move us to, until playerInfo confirms it.
+  const pendingSeatRef = useRef(null);
   const cardActionLists = ["targetCard", "drawArrow", "triggerAutomationAbility"];
   // Get up from wherever you are sitting and sit in the closest vacant seat in
   // the given direction (+1 = next, -1 = previous), wrapping around from
@@ -127,7 +132,24 @@ export const useDoDragnHotkey = () => {
     const gameUi = store.getState().gameUi;
     const playerInfo = gameUi?.playerInfo || {};
     const numPlayers = gameUi?.game?.numPlayers || 1;
-    const mySeat = Object.keys(playerInfo).find((playerI) => playerInfo[playerI]?.id === myUserId);
+    const actualSeat = Object.keys(playerInfo).find((playerI) => playerInfo[playerI]?.id === myUserId);
+    // Plan from the seat we last asked for while playerInfo hasn't caught up
+    // yet - otherwise two quick presses both plan from the same starting seat
+    // and the second one lands us where we already are. The request is only
+    // still considered in flight while we are where it left us, and not for
+    // longer than PENDING_SEAT_MS, so one that never lands can't strand us.
+    const pending = pendingSeatRef.current;
+    if (pending && (actualSeat !== pending.from || Date.now() - pending.at >= PENDING_SEAT_MS)) {
+      pendingSeatRef.current = null;
+    }
+    const mySeat = pendingSeatRef.current ? pendingSeatRef.current.seat : actualSeat;
+    // A seat is available if nobody else is in it and it isn't the one we are
+    // (or are about to be) sitting in. Our own previous seat counts as vacant:
+    // sitting down elsewhere frees it.
+    const isAvailable = (seat) => {
+      const occupantId = playerInfo[seat]?.id;
+      return seat !== mySeat && (!occupantId || occupantId === myUserId);
+    };
     // If we are not sitting anywhere, start the search just outside the row so
     // that the first seat checked is player1 (next) or playerN (previous).
     const myIndex = mySeat ? parseInt(mySeat.replace("player", ""), 10) : (direction === 1 ? 0 : 1);
@@ -135,7 +157,7 @@ export const useDoDragnHotkey = () => {
     for (var offset = 1; offset <= numPlayers; offset++) {
       const index = (((myIndex - 1 + direction * offset) % numPlayers) + numPlayers) % numPlayers;
       const seat = `player${index + 1}`;
-      if (!playerInfo[seat]?.id) {
+      if (isAvailable(seat)) {
         newSeat = seat;
         break;
       }
@@ -144,12 +166,11 @@ export const useDoDragnHotkey = () => {
       sendLocalMessage("There are no vacant seats.");
       return;
     }
-    if (mySeat) {
-      gameBroadcast("set_seat", {player_i: mySeat, new_user_id: null});
-      chatBroadcast("game_update", {message: "got up from " + mySeat + "'s seat."});
-    }
+    // One broadcast: the server vacates our old seat as part of sitting down, so
+    // we never pass through a state where we are seated nowhere. It also logs
+    // the move, so we don't send a chat message of our own.
+    pendingSeatRef.current = {from: actualSeat, seat: newSeat, at: Date.now()};
     gameBroadcast("set_seat", {player_i: newSeat, new_user_id: myUserId, new_user_alias: user.alias});
-    chatBroadcast("game_update", {message: "sat in " + newSeat + "'s seat."});
     dispatch(setObservingPlayerN(newSeat));
   }
   return (actionList) => {

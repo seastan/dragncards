@@ -66,20 +66,17 @@ export const TopBarUser = React.memo(({ playerI }: { playerI: string }) => {
       history.push("/login");
       return;
     }
-    // Get up from any seats first
-    Object.keys(playerInfo).forEach((playeri) => {
-      const sittingUserIdI = playerInfo[playeri]?.id;
-      if (sittingUserIdI === myUserId) {
-        gameBroadcast("set_seat", { player_i: playeri, new_user_id: null });
-        chatBroadcast("game_update", { message: "got up from " + playeri + "'s seat." });
-      }
-    });
-    // Sit in seat
-    if (action === "sit") {
-      gameBroadcast("set_seat", { player_i: playerI, new_user_id: myUserId, new_user_alias: myUser.alias });
-      chatBroadcast("game_update", { message: "sat in " + playerI + "'s seat." });
-      dispatch(setObservingPlayerN(playerI));
+    // The server logs the seat change itself (naming who moved), so there is no
+    // client-side chat message to go with it.
+    if (action === "get_up") {
+      gameBroadcast("set_seat", { player_i: playerI, new_user_id: null });
+      return;
     }
+    // Sitting down vacates whichever seat we were in server-side, so this stays
+    // a single message: sending a get_up first left us seated nowhere in
+    // between, which unseats the client for a round trip.
+    gameBroadcast("set_seat", { player_i: playerI, new_user_id: myUserId, new_user_alias: myUser.alias });
+    dispatch(setObservingPlayerN(playerI));
   };
 
   const handleObserveClick = () => {

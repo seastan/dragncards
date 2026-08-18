@@ -117,7 +117,10 @@ export default function Dnc3DTable({
   const prevCardIdsRef  = useRef(null);
   // Tracks the nonce of the most recently handled (or committed-to) shuffle signal
   // so stale dnc3dShuffle in Redux can't re-trigger the riffle on later re-inits.
-  const lastShuffleNonceRef = useRef(null);
+  // Seeded from whatever is already in Redux: a shuffle that happened before
+  // this component mounted is history, and replaying its animation and sound on
+  // mount (e.g. after the table is remounted) is just noise.
+  const lastShuffleNonceRef = useRef(store.getState().playerUi?.dnc3dShuffle?.nonce ?? null);
   const tiltDegRef = useRef(tiltDeg);
   tiltDegRef.current = tiltDeg;
 

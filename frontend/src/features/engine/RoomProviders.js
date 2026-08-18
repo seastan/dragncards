@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { useDispatch, useSelector } from 'react-redux';
 import RoomGame from "./RoomGame";
 import useProfile from "../../hooks/useProfile";
@@ -29,7 +29,17 @@ export const RoomProviders = ({ gameBroadcast, chatBroadcast }) => {
   const playerN = getPlayerN(playerInfo, myUser?.id);
   const gameDef = useGameDefinition();
   const pluginId = usePlugin()?.id;
+  const roomSlug = useSelector(state => state?.gameUi?.roomSlug);
   const playerNSet = playerInfo !== undefined && currentPlayerN === playerN;
+  // Gate the first mount on playerN being in sync (so nothing runs against a
+  // stale seat during initialization), but latch it afterwards: a later seat
+  // change makes currentPlayerN briefly stale, and unmounting RoomGame for that
+  // one render tore down and rebuilt the entire table - black flash, every
+  // mount-time effect re-run, shuffle animations replayed. The latch is scoped
+  // to the room so entering a different room gates again.
+  const mountedForSlugRef = useRef(null);
+  if (playerNSet) mountedForSlugRef.current = roomSlug;
+  const showRoomGame = playerNSet || (mountedForSlugRef.current != null && mountedForSlugRef.current === roomSlug);
 
   useEffect(() => {
     dispatch(setPlayerN(playerN));
@@ -71,7 +81,7 @@ export const RoomProviders = ({ gameBroadcast, chatBroadcast }) => {
           backgroundPositionY: "50%",
         }}>
         <BroadcastContext.Provider value={{gameBroadcast, chatBroadcast}}>
-          {playerNSet && <RoomGame/>}
+          {showRoomGame && <RoomGame/>}
         </BroadcastContext.Provider>
       </div>
   );
