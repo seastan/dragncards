@@ -19,27 +19,39 @@ const windowStyle = {
   height: "640px",
   maxHeight: "90dvh",
 };
-const col1Class = "w-1/3";
-const col2Class = "w-2/3";
+// Auto table layout: the key column shrinks to fit the widest combo (it never
+// wraps) and the description column absorbs whatever is left.
+const col1Class = "w-px whitespace-nowrap";
+const col2Class = "w-full";
 
 // A single modern keycap. Self-contained so the chunky shared `keysDiv`
 // styling (still used by the deckbuilder/prompts) is left untouched.
 const Kbd = ({ children }) => (
-  <kbd className="inline-flex h-8 min-w-[2rem] items-center justify-center rounded-md border border-gray-600 border-b-2 bg-gray-700 px-2 py-1 font-mono text-lg font-medium leading-none text-gray-100 shadow-sm">
+  <kbd className="inline-flex h-7 min-w-[1.75rem] items-center justify-center whitespace-nowrap rounded-md border border-gray-600 border-b-2 bg-gray-700 px-1.5 py-1 font-mono text-base font-medium leading-none text-gray-100 shadow-sm">
     {children}
   </kbd>
 );
 
+// Long key names blow out the narrow key column, so show the compact glyph.
+const KEY_GLYPHS = {
+  ArrowLeft: "\u2190",
+  ArrowUp: "\u2191",
+  ArrowRight: "\u2192",
+  ArrowDown: "\u2193",
+  Escape: "Esc",
+};
+
 // Renders a "Ctrl+Shift+X"-style combo as keycaps joined by faint "+".
+// Kept on a single line so combos never split across rows.
 const Keys = ({ keysString }) => {
   let keys = keysString.split("+");
   if (keysString === "+") keys = ["+"];
   return (
-    <span className="inline-flex flex-wrap items-center justify-center gap-1">
+    <span className="inline-flex flex-nowrap items-center justify-start gap-1">
       {keys.map((key, i) => (
         <React.Fragment key={i}>
           {i > 0 && <span className="text-xs text-gray-500">+</span>}
-          <Kbd>{key}</Kbd>
+          <Kbd>{KEY_GLYPHS[key] || key}</Kbd>
         </React.Fragment>
       ))}
     </span>
@@ -84,10 +96,10 @@ export const HotkeyTable = React.memo(({hotkeyList, l10n}) => {
   if (!hotkeyList) return null;
   return (
     <div className="my-2 overflow-hidden rounded-lg border border-gray-700">
-      <table className="w-full table-fixed border-collapse text-sm">
+      <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="bg-gray-900 bg-opacity-50 text-gray-400">
-            <th className={col1Class + " px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide"}>{siteL10n("hotkeyTableKey")}</th>
+            <th className={col1Class + " px-2 py-2 text-left text-xs font-semibold uppercase tracking-wide"}>{siteL10n("hotkeyTableKey")}</th>
             <th className={col2Class + " px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide"}>{siteL10n("hotkeyTableDescription")}</th>
           </tr>
         </thead>
@@ -98,7 +110,7 @@ export const HotkeyTable = React.memo(({hotkeyList, l10n}) => {
             const labelList = processLabel(l10n(el.label));
             return (
               <tr key={elIndex} className="border-t border-gray-700 transition-colors hover:bg-gray-700 hover:bg-opacity-40">
-                <td className="px-3 py-1 align-middle">
+                <td className="w-px whitespace-nowrap px-2 py-1 align-middle">
                   <Keys keysString={keysString} />
                 </td>
                 <td className="px-3 py-1 align-middle text-md leading-snug text-gray-200">
