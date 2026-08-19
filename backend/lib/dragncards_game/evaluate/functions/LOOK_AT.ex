@@ -53,16 +53,21 @@ defmodule DragnCardsGame.Evaluate.Functions.LOOK_AT do
       {"visibility", visibility, :boolean}
     ])
     stack_ids = Evaluate.evaluate(game, "$GAME.groupById.#{group_id}.stackIds", trace ++ ["stack_ids"])
+    # -1 means "all cards". Store it as-is rather than as the current stack count,
+    # so that cards added to the group while the browse window is open stay visible
+    # instead of falling past a count that was frozen when browsing started.
     top_n =
       cond do
-        top_n == -1 -> Enum.count(stack_ids)
+        top_n == -1 -> -1
         top_n > Enum.count(stack_ids) -> Enum.count(stack_ids)
         true -> top_n
       end
+    # The peeking loop needs a concrete count.
+    peek_n = if top_n == -1, do: Enum.count(stack_ids), else: top_n
     action_list = [
       ["SET", "/playerData/#{player_i}/browseGroup/id", group_id],
       ["SET", "/playerData/#{player_i}/browseGroup/topN", top_n],
-      ["FOR_EACH_START_STOP_STEP", "$i", 0, top_n, 1,
+      ["FOR_EACH_START_STOP_STEP", "$i", 0, peek_n, 1,
         [
           ["VAR", "$CARD_ID", "$GAME.groupById.#{group_id}.parentCardIds.[$i]"],
           ["SET", "/cardById/$CARD_ID/peeking/#{player_i}", visibility]
