@@ -1,11 +1,9 @@
 import { useGameL10n } from "./useGameL10n";
 import store from "../../../store";
 import { useDoActionList } from "./useDoActionList";
-import { usePlayerN } from "./usePlayerN";
 
 export const useBrowseTopN = () => {
     const doActionList = useDoActionList();
-    const playerN = usePlayerN();
     const gameL10n = useGameL10n();
     return (groupId, topNstr) => {    
       const state = store.getState();
@@ -47,7 +45,13 @@ export const useBrowseTopN = () => {
       }
       const actionList = [
         message,
-        ["LOOK_AT", playerN, groupId, topNint, visibility]
+        // "$PLAYER_N" rather than a playerN read on the React side: the server
+        // resolves it from the playerUi sent with this very action, so it is
+        // always the seat we are in right now. Closing over playerN meant a
+        // caller that captured this function before a seat change (the dnc3d
+        // engine builds its region callbacks once per init) kept opening the
+        // browse for the seat we used to be in.
+        ["LOOK_AT", "$PLAYER_N", groupId, topNint, visibility]
       ];
       doActionList(actionList, `Browsed top ${topNstr} of group ${groupId}`);
     }

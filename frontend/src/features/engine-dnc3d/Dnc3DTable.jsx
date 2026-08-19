@@ -143,6 +143,7 @@ export default function Dnc3DTable({
   const touchActionRef        = useRef(touchAction);
   const handleTouchActionRef  = useRef(handleTouchAction);
   const getDefaultActionRef   = useRef(getDefaultActionForCard);
+  const browseTopNRef         = useRef(browseTopN);
   gameRef.current            = game;
   layoutRef.current          = layoutRegions;
   gameDefRef.current         = gameDef;
@@ -159,6 +160,7 @@ export default function Dnc3DTable({
   touchActionRef.current        = touchAction;
   handleTouchActionRef.current  = handleTouchAction;
   getDefaultActionRef.current   = getDefaultActionForCard;
+  browseTopNRef.current         = browseTopN;
 
   // Re-initialize the engine whenever the card set changes.
   // This handles: switching to dnc3d after cards are loaded, and loading a
@@ -299,7 +301,11 @@ export default function Dnc3DTable({
           const card = gameRef.current?.cardById?.[dcId];
           return card?.sides?.[card?.currentSide]?.name || '';
         },
-        onGroupBrowse: (groupId) => browseTopN(groupId, 'All'),
+        // Through the ref, not the closure: the engine only re-inits when the
+        // card set or region set changes, so a hook value captured here outlives
+        // a seat change (observingPlayerN moves optimistically on the click,
+        // playerN only once the server confirms - no re-init in between).
+        onGroupBrowse: (groupId) => browseTopNRef.current(groupId, 'All'),
         onGroupMenu:   (groupId, clientX, clientY) => {
           const group = gameRef.current?.groupById?.[groupId];
           if (!group) return;
