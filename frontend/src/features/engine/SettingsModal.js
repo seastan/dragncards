@@ -61,6 +61,20 @@ export const uiSettings = {
     "live": true,
     "visibleWhen": { "rendererEngine": "dnc3d" },
     "note": "On smaller screens, applying a tilt to the table may make card images appear slightly blurry."
+  },
+  "alwaysShowPileSizes": {
+    "id": "alwaysShowPileSizes",
+    "label": "Always Show Pile Sizes",
+    "type": "boolean",
+    "default": false,
+    "visibleWhen": { "rendererEngine": "dnc3d" }
+  },
+  "alwaysShowGroupButtons": {
+    "id": "alwaysShowGroupButtons",
+    "label": "Always Show Group Buttons",
+    "type": "boolean",
+    "default": false,
+    "visibleWhen": { "rendererEngine": "dnc3d" }
   }
 }
 

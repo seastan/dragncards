@@ -150,6 +150,16 @@ export function createDnc3DEngine(options = {}) {
   // ability bolt) would be unreachable. In touch mode those are driven by taps
   // and by always-on visibility instead — see setTouchMode.
   let _touchMode          = options.touchMode || false;
+  // User settings that pin two normally hover-gated affordances open:
+  // every pile's card-count badge, and every region's eye/menu button strip.
+  // Both are live toggles (see setAlwaysShowPileCounts / setAlwaysShowGroupIcons).
+  let _alwaysShowCounts   = options.alwaysShowPileCounts || false;
+  let _alwaysShowIcons    = options.alwaysShowGroupIcons || false;
+  // Assigned by init() — the sweeps that re-apply the two settings above live in
+  // init scope (they need the per-region layout helpers), but the setters and
+  // onTiltUpdated are called from engine scope.
+  let _refreshPileCounts  = null;
+  let _applyAlwaysIcons   = null;
 
   // Topmost `.dnc3d-card` element under a screen point, treating tokens and the
   // see-through liftEl/tokenHost wrappers as transparent. Shared by the per-card
@@ -215,6 +225,11 @@ export function createDnc3DEngine(options = {}) {
   const regionFillEls    = {}; // per-region background fill; sits BELOW the cards
   const regionIconEls    = {};
   const regionLabelEls   = {};
+  // Per-region wrapper holding the label + icon strip. Transparent and inert by
+  // default (children keep their own absolute placement); with "always show
+  // group buttons" on it collapses into a centered column so the buttons sit
+  // above the label instead of replacing it.
+  const regionStripEls   = {};
   const regionCountEls   = {}; // pile regions only: card-count badge shown on hover
   // Which region currently has its icon strip / count badge revealed. Engine
   // scope rather than init scope so setTouchMode can clear them when the mode
@@ -512,6 +527,9 @@ export function createDnc3DEngine(options = {}) {
   function onTiltUpdated() {
     updateScrollOuters();
     Object.keys(sentinelEls).forEach(id => { updateSentinel(id); updateScrollArrows(id); });
+    // Pinned-open count badges are projected through the tilt, so a new angle (or
+    // a resize) moves them; hovered ones are re-placed by the next pointermove.
+    if (_refreshPileCounts) _refreshPileCounts();
   }
 
   // ── Browse region DOM setup / teardown ─────────────────────────────────────
@@ -652,7 +670,8 @@ export function createDnc3DEngine(options = {}) {
     // Hide the home region's table DOM so it doesn't appear as a drop target.
     for (const el of [scrollOuterEls[browseGroupId], regionOutlineEls[browseGroupId],
                       regionFillEls[browseGroupId],
-                      regionIconEls[browseGroupId], regionLabelEls[browseGroupId]]) {
+                      regionIconEls[browseGroupId], regionLabelEls[browseGroupId],
+                      regionCountEls[browseGroupId]]) {
       if (el) el.style.display = 'none';
     }
 
@@ -726,7 +745,8 @@ export function createDnc3DEngine(options = {}) {
     // Restore the home region's table DOM.
     for (const el of [scrollOuterEls[homeGroupId], regionOutlineEls[homeGroupId],
                       regionFillEls[homeGroupId],
-                      regionIconEls[homeGroupId], regionLabelEls[homeGroupId]]) {
+                      regionIconEls[homeGroupId], regionLabelEls[homeGroupId],
+                      regionCountEls[homeGroupId]]) {
       if (el) el.style.display = '';
     }
 
@@ -2467,6 +2487,13 @@ export function createDnc3DEngine(options = {}) {
       outline.style.top    = r.top    + '%';
       outline.style.width  = r.width  + '%';
       outline.style.height = r.height + '%';
+      // Wrapper for the label + icon strip, so the two can be laid out as one
+      // vertical stack when the icons are pinned open (see applyAlwaysIcons).
+      const strip = document.createElement('div');
+      strip.className = 'dnc3d-region-strip';
+      outline.appendChild(strip);
+      regionStripEls[id] = strip;
+
       const showIcons = !!(onGroupBrowse || onGroupMenu) && r.showMenu !== false;
       if (showIcons) {
         const icons = document.createElement('div');
@@ -2487,13 +2514,13 @@ export function createDnc3DEngine(options = {}) {
           menuBtn.addEventListener('click', e => { e.stopPropagation(); onGroupMenu(id, e.clientX, e.clientY); });
           icons.appendChild(menuBtn);
         }
-        outline.appendChild(icons);
+        strip.appendChild(icons);
         regionIconEls[id] = icons;
       }
       const label = document.createElement('span');
       label.className = 'dnc3d-region-label';
       label.textContent = r.label || id;
-      outline.appendChild(label);
+      strip.appendChild(label);
       regionLabelEls[id] = label;
       if (r.type === 'pile') {
         // Appended to tiltEl (not the outline) so it shares the cards' 3D space
@@ -2555,7 +2582,7 @@ export function createDnc3DEngine(options = {}) {
       updateScrollArrows(id);
       // Keep a hovered pile's count badge live when its contents change without
       // pointer movement (e.g. discarding the top card via a hotkey).
-      if (id === hoveredCountRegion) updateCountBadge(id);
+      if (_alwaysShowCounts || id === hoveredCountRegion) updateCountBadge(id);
     });
 
     // ── Arrow hover-scroll and touch-scroll ─────────────────────────────────
@@ -2621,6 +2648,9 @@ export function createDnc3DEngine(options = {}) {
     // ── Region icon hover ────────────────────────────────────────────────────
     hoveredIconRegion = null;
     function setRegionHoverState(id, hovered) {
+      // With the icons pinned open the label sits beside them rather than under
+      // them, so there's nothing for hover to swap.
+      if (_alwaysShowIcons) return;
       if (regionIconEls[id]) {
         regionIconEls[id].style.opacity = hovered ? '1' : '0';
         // Toggle a class to enable pointer-events on the buttons (which are
@@ -2630,6 +2660,21 @@ export function createDnc3DEngine(options = {}) {
       }
       if (regionLabelEls[id]) regionLabelEls[id].style.opacity = hovered ? '0' : '';
     }
+    // Re-apply the "always show group buttons" setting across every region.
+    // Stacking the strip is what keeps the buttons from covering the label.
+    function applyAlwaysIcons() {
+      for (const [id, iconsEl] of Object.entries(regionIconEls)) {
+        regionStripEls[id]?.classList.toggle('dnc3d-region-strip-stacked', _alwaysShowIcons);
+        iconsEl.style.opacity = _alwaysShowIcons ? '1' : '0';
+        iconsEl.classList.toggle('dnc3d-icons-shown', _alwaysShowIcons);
+        if (regionLabelEls[id]) regionLabelEls[id].style.opacity = '';
+      }
+      // Turning the setting off leaves nothing revealed, so forget whatever was
+      // hovered — otherwise updateIconHover's "did it change?" guard would skip
+      // re-showing the region the cursor is already resting on.
+      hoveredIconRegion = null;
+    }
+    _applyAlwaysIcons = applyAlwaysIcons;
     function updateIconHover(clientX, clientY) {
       // Compute the highest layerIndex whose outline panel covers this point,
       // then skip any region with a lower layerIndex — same logic as topCardElAtPoint.
@@ -2729,7 +2774,23 @@ export function createDnc3DEngine(options = {}) {
       el.style.top  = proj.y + 'px';
       el.style.transform = `translate(-50%, -100%) translateZ(${zTop}px)`;
     }
+    // Re-apply the "always show pile sizes" setting. The badge positions depend
+    // on card size and tilt angle, so this also runs from onTiltUpdated and after
+    // every pile layout — not just when the setting is flipped.
+    function refreshPileCounts() {
+      for (const [id, el] of Object.entries(regionCountEls)) {
+        if (_alwaysShowCounts) {
+          updateCountBadge(id);
+          el.style.opacity = '1';
+        } else if (id !== hoveredCountRegion) {
+          el.style.opacity = '0';
+        }
+      }
+    }
+    _refreshPileCounts = refreshPileCounts;
     function updateCountHover(clientX, clientY) {
+      // Every badge is already up; hover has nothing to add or take away.
+      if (_alwaysShowCounts) return;
       // hoverRegionAt honors 3D layer stacking, so we get the region the pointer
       // is actually over (not one occluded by an elevated panel).
       const { region } = hoverRegionAt(clientX, clientY);
@@ -2744,6 +2805,7 @@ export function createDnc3DEngine(options = {}) {
       }
     }
     function clearCountHover() {
+      if (_alwaysShowCounts) return;
       if (hoveredCountRegion && regionCountEls[hoveredCountRegion]) regionCountEls[hoveredCountRegion].style.opacity = '0';
       hoveredCountRegion = null;
     }
@@ -2808,7 +2870,7 @@ export function createDnc3DEngine(options = {}) {
         // tap that reveals them lands on top of whichever button appears there.
         // Stop after the reveal: the tap that opened the strip must not also
         // pick a button for the user. The next tap goes through normally.
-        if (hoveredIconRegion && hoveredIconRegion !== alreadyShown) return;
+        if (!_alwaysShowIcons && hoveredIconRegion && hoveredIconRegion !== alreadyShown) return;
       }
       // Region icon button fallback: in elevated regions the scroll outer at
       // higher Z blocks native pointer events from reaching the icon buttons
@@ -3070,6 +3132,10 @@ export function createDnc3DEngine(options = {}) {
 
     Object.keys(sentinelEls).forEach(updateSentinel);
 
+    // Apply the two "always show" user settings to the freshly-built region DOM.
+    applyAlwaysIcons();
+    refreshPileCounts();
+
     // ── Cleanup ──────────────────────────────────────────────────────────────
     return function cleanup() {
       tiltEl.removeEventListener('pointermove',  onTiltPointerMove);
@@ -3093,6 +3159,9 @@ export function createDnc3DEngine(options = {}) {
       Object.keys(regionIconEls).forEach(k => delete regionIconEls[k]);
       Object.keys(regionLabelEls).forEach(k => delete regionLabelEls[k]);
       Object.keys(regionCountEls).forEach(k => delete regionCountEls[k]);
+      Object.keys(regionStripEls).forEach(k => delete regionStripEls[k]);
+      _refreshPileCounts = null;
+      _applyAlwaysIcons  = null;
 
       clearScrollOuters();
       setAfterLayoutHook(null);
@@ -4263,15 +4332,37 @@ export function createDnc3DEngine(options = {}) {
     if (!_touchMode) {
       // Leaving touch mode: put away anything a tap left pinned open, so the
       // cursor takes over from a clean slate.
-      for (const [id, iconsEl] of Object.entries(regionIconEls)) {
-        iconsEl.style.opacity = '0';
-        iconsEl.classList.remove('dnc3d-icons-shown');
-        if (regionLabelEls[id]) regionLabelEls[id].style.opacity = '';
+      if (!_alwaysShowIcons) {
+        for (const [id, iconsEl] of Object.entries(regionIconEls)) {
+          iconsEl.style.opacity = '0';
+          iconsEl.classList.remove('dnc3d-icons-shown');
+          if (regionLabelEls[id]) regionLabelEls[id].style.opacity = '';
+        }
+        hoveredIconRegion = null;
       }
-      for (const el of Object.values(regionCountEls)) el.style.opacity = '0';
-      hoveredIconRegion  = null;
-      hoveredCountRegion = null;
+      if (!_alwaysShowCounts) {
+        for (const el of Object.values(regionCountEls)) el.style.opacity = '0';
+        hoveredCountRegion = null;
+      }
     }
+  }
+
+  // Called by the React layer when the "always show pile sizes" setting changes.
+  function setAlwaysShowPileCounts(alwaysShow) {
+    if (alwaysShow === _alwaysShowCounts) return;
+    _alwaysShowCounts = alwaysShow;
+    // While the setting was on, updateCountHover was short-circuited, so this is
+    // stale. Clearing it puts every badge away; the next pointermove re-reveals
+    // whichever pile the cursor is actually resting on.
+    hoveredCountRegion = null;
+    if (_refreshPileCounts) _refreshPileCounts();
+  }
+
+  // Called by the React layer when the "always show group buttons" setting changes.
+  function setAlwaysShowGroupIcons(alwaysShow) {
+    if (alwaysShow === _alwaysShowIcons) return;
+    _alwaysShowIcons = alwaysShow;
+    if (_applyAlwaysIcons) _applyAlwaysIcons();
   }
 
   function getCardElements() {
@@ -4396,5 +4487,5 @@ export function createDnc3DEngine(options = {}) {
     });
   }
 
-  return { init, applyTilt, applyTableOpacity, setCurrentDeg, onTiltUpdated, reconcile, openBrowse, closeBrowse, updateBrowseFilter, getCardElements, syncOverlay, animatePileShuffle, setHoverSuppressed, setTouchMode, spawnCards, despawnCards };
+  return { init, applyTilt, applyTableOpacity, setCurrentDeg, onTiltUpdated, reconcile, openBrowse, closeBrowse, updateBrowseFilter, getCardElements, syncOverlay, animatePileShuffle, setHoverSuppressed, setTouchMode, setAlwaysShowPileCounts, setAlwaysShowGroupIcons, spawnCards, despawnCards };
 }

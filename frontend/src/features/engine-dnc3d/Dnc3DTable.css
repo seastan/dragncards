@@ -301,6 +301,52 @@
   mask-composite: intersect;
 }
 
+/* Wrapper holding a region's label and its eye/menu icon strip. Inert and
+   full-size by default, so both children keep the absolute placement below and
+   the icons reveal on hover on top of the label they replace. */
+.dnc3d-region-strip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* "Always show group buttons": the strip becomes a centered column so the
+   buttons sit above the label instead of covering it. The children drop their
+   own positioning and are laid out by the flex container. It keeps the base
+   rule's full region height rather than collapsing to auto, so the flex
+   container has a definite main size and the label below reliably shrinks —
+   and therefore wraps — into whatever room the buttons leave. */
+.dnc3d-region-strip-stacked {
+  left: 1px;
+  width: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+.dnc3d-region-strip-stacked .dnc3d-region-icons {
+  position: static;
+  transform: none;
+  /* The buttons are a fixed size — the label is what gives up room. */
+  flex-shrink: 0;
+}
+.dnc3d-region-strip-stacked .dnc3d-region-label {
+  position: static;
+  /* Keeps the vertical text reading bottom-to-top, as it does when centered. */
+  transform: rotate(180deg);
+  /* The text runs along the region's height, which the buttons have eaten into,
+     so a long name would otherwise run off the end and be clipped by the
+     outline. Letting it wrap turns it into a second column of text instead —
+     the strip has room to grow sideways, it doesn't have room to grow taller.
+     min-height stays `auto` so it can't shrink past its longest word. */
+  white-space: normal;
+  text-align: center;
+}
+
 .dnc3d-region-label {
   position: absolute;
   left: 2px;

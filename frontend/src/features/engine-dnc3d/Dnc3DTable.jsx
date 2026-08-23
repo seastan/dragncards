@@ -78,6 +78,8 @@ export default function Dnc3DTable({
   const dispatch         = useDispatch();
   const browseTopN       = useBrowseTopN();
   const touchMode        = useSelector(s => !!s?.playerUi?.userSettings?.touchMode);
+  const alwaysShowPileSizes    = useSelector(s => !!s?.playerUi?.userSettings?.alwaysShowPileSizes);
+  const alwaysShowGroupButtons = useSelector(s => !!s?.playerUi?.userSettings?.alwaysShowGroupButtons);
   const touchAction      = useTouchAction();
   const handleTouchAction     = useHandleTouchAction();
   const getDefaultActionForCard = useGetDefaultActionForCard();
@@ -140,6 +142,8 @@ export default function Dnc3DTable({
   const browseGroupIdRef      = useRef(browseGroupId);
   const multiSelectEnabledRef = useRef(multiSelectEnabled);
   const touchModeRef          = useRef(touchMode);
+  const alwaysShowPileSizesRef    = useRef(alwaysShowPileSizes);
+  const alwaysShowGroupButtonsRef = useRef(alwaysShowGroupButtons);
   const touchActionRef        = useRef(touchAction);
   const handleTouchActionRef  = useRef(handleTouchAction);
   const getDefaultActionRef   = useRef(getDefaultActionForCard);
@@ -157,6 +161,8 @@ export default function Dnc3DTable({
   browseGroupIdRef.current      = browseGroupId;
   multiSelectEnabledRef.current = multiSelectEnabled;
   touchModeRef.current          = touchMode;
+  alwaysShowPileSizesRef.current    = alwaysShowPileSizes;
+  alwaysShowGroupButtonsRef.current = alwaysShowGroupButtons;
   touchActionRef.current        = touchAction;
   handleTouchActionRef.current  = handleTouchAction;
   getDefaultActionRef.current   = getDefaultActionForCard;
@@ -232,6 +238,8 @@ export default function Dnc3DTable({
         zoomFactor:         zoomFactorRef.current,
         tableBackgroundUrl: tableBackgroundUrlRef.current,
         touchMode:          touchModeRef.current,
+        alwaysShowPileCounts: alwaysShowPileSizesRef.current,
+        alwaysShowGroupIcons: alwaysShowGroupButtonsRef.current,
         cardDefaultH,
         cardDefaultW,
         // Lets the engine repaint a card face when a card turns to a side it
@@ -468,6 +476,18 @@ export default function Dnc3DTable({
   useEffect(() => {
     engineRef.current?.setTouchMode(touchMode);
   }, [touchMode]);
+
+  // ── Track the "always show" settings ───────────────────────────────────────
+  // Both pin open an affordance the engine otherwise reveals on hover, and both
+  // are live toggles from Settings, so the engine is told on change rather than
+  // only reading them at init.
+  useEffect(() => {
+    engineRef.current?.setAlwaysShowPileCounts(alwaysShowPileSizes);
+  }, [alwaysShowPileSizes]);
+
+  useEffect(() => {
+    engineRef.current?.setAlwaysShowGroupIcons(alwaysShowGroupButtons);
+  }, [alwaysShowGroupButtons]);
 
   // ── Suppress hover glow while the hotkey overlay (Tab) is open ──────────────
   // On open the engine drops the glow + active card; on close it re-derives hover
