@@ -54,8 +54,7 @@ export const SpawnExistingCardModal = React.memo(({}) => {
     loadList([cardListItem]);
     doActionList(
       ["LOG", "$ALIAS_N", " spawned " + cardName + "."],
-      `Spawn card ${cardId}: ${cardName}`,
-      true
+      `Spawn card ${cardId}: ${cardName}`
     );
   };
 
