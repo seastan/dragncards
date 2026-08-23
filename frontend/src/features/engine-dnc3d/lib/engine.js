@@ -58,6 +58,9 @@ function parseFrac(val, fallback = 0) {
 // options.zoomFactor      — user zoom setting as a multiplier; default 1.0
 // options.touchMode       — true on a touchscreen: hover-gated affordances become
 //                           tap-driven / always-on (see setTouchMode)
+// options.resolveSideImage — callback(dcCard, sideName) → image url for that side.
+//                           Lets the engine repaint a face when a card turns to a
+//                           side other than the two it was created with (A/B).
 export function createDnc3DEngine(options = {}) {
   const REGIONS       = options.regions    || DEFAULT_REGIONS;
 
@@ -90,6 +93,7 @@ export function createDnc3DEngine(options = {}) {
   const onGroupBrowse  = options.onGroupBrowse  || null;
   const onGroupMenu    = options.onGroupMenu    || null;
   const getCardName    = options.getCardName    || null;
+  const resolveSideImage = options.resolveSideImage || null;
   // Card sizing — mirrors the 2D renderer's cardSize * zoomFactor * 1.7dvh formula.
   const _cardSize           = options.cardSize           || null;
   const _cardDefaultH       = options.cardDefaultH       || 1.0;
@@ -563,6 +567,44 @@ export function createDnc3DEngine(options = {}) {
     Object.entries(scrollOuterEls).forEach(([id, el]) => setScrollOuter(id, el));
   }
 
+  // ── Card sides ─────────────────────────────────────────────────────────────
+  // A card element has exactly two face elements, but a dragncards card can have
+  // any number of sides (A, B, C, ...). Rather than mapping side → face by angle,
+  // each face element remembers which side it is currently painted with, and the
+  // face about to be turned toward the viewer is repainted with the incoming side
+  // just before the flip. Without this a card on side C never matches the face it
+  // shows, so every reconcile pass fires another flip (the card visibly toggles).
+
+  // The face element currently turned toward the viewer, and the one turned away.
+  function _visibleFaceEl(card) {
+    const showingBack = ((((card.cardEl._angle % 360) + 360) % 360) === 180);
+    return showingBack ? card.backEl : card.frontEl;
+  }
+  function _hiddenFaceEl(card) {
+    const showingBack = ((((card.cardEl._angle % 360) + 360) % 360) === 180);
+    return showingBack ? card.frontEl : card.backEl;
+  }
+
+  // The dc side name the card is currently showing.
+  function _visibleSideName(card) {
+    return _visibleFaceEl(card)?._sideName || 'A';
+  }
+
+  // Paints the away-facing element with `sideName`'s art, so that turning the card
+  // over reveals that side. No-op when it already holds that side.
+  function _setHiddenFaceSide(card, dcCard, sideName) {
+    const el = _hiddenFaceEl(card);
+    if (!el || el._sideName === sideName) return;
+    el._sideName = sideName;
+    const url = resolveSideImage ? resolveSideImage(dcCard, sideName) : null;
+    if (url) {
+      el.style.backgroundImage = `url(${url})`;
+      el.style.backgroundSize  = '100% 100%';
+    } else {
+      el.style.backgroundImage = '';
+    }
+  }
+
   // ── Browse API ─────────────────────────────────────────────────────────────
   // Snaps a card to the side the observing player should see (the front when
   // peeking at a face-down card, otherwise its currentSide) with no animation.
@@ -573,8 +615,11 @@ export function createDnc3DEngine(options = {}) {
     if (!card || !card.cardEl || !dcCard || card.cardEl._animating) return;
     const peeking      = !!(_playerN && dcCard.peeking && dcCard.peeking[_playerN]);
     const expectedSide = peeking ? 'A' : (dcCard.currentSide || 'A');
-    const visualSide   = ((((card.cardEl._angle % 360) + 360) % 360) === 180) ? 'B' : 'A';
-    if (visualSide !== expectedSide) card.cardEl._angle += 180;
+    const visualSide   = _visibleSideName(card);
+    if (visualSide !== expectedSide) {
+      _setHiddenFaceSide(card, dcCard, expectedSide);
+      card.cardEl._angle += 180;
+    }
     // Sync face dims to the displayed side — a peeked face-down landscape card
     // needs side A's dimensions, not the back's portrait dims.
     const displayedFace = dcCard.sides?.[expectedSide] || {};
@@ -964,9 +1009,11 @@ export function createDnc3DEngine(options = {}) {
   }
 
   // ── Card creation ──────────────────────────────────────────────────────────
-  // cardInfo: { id, frontImageUrl?, backImageUrl?, angle?, faceW?, faceH?, borderColor?, hasAbility? }
+  // cardInfo: { id, frontImageUrl?, backImageUrl?, frontSide?, backSide?, angle?,
+  //             faceW?, faceH?, borderColor?, hasAbility? }
   function createCard(tiltEl, cardInfo) {
-    const { id: i, frontImageUrl, backImageUrl, angle = 0, faceW = null, faceH = null, borderColor = null, hasAbility = false } = cardInfo;
+    const { id: i, frontImageUrl, backImageUrl, frontSide = 'A', backSide = 'B',
+            angle = 0, faceW = null, faceH = null, borderColor = null, hasAbility = false } = cardInfo;
     const color = COLORS[i % COLORS.length];
 
     const liftEl = document.createElement('div');
@@ -985,6 +1032,10 @@ export function createDnc3DEngine(options = {}) {
 
     const front = document.createElement('div');
     front.className = 'dnc3d-card-face dnc3d-card-front';
+    // Which dc side's art this face element currently carries. There are only two
+    // face elements, but a card can have any number of sides (A/B/C/...), so the
+    // hidden face is repainted before each flip (see setHiddenFaceSide).
+    front._sideName = frontSide;
     if (frontImageUrl) {
       front.style.backgroundImage = `url(${frontImageUrl})`;
       front.style.backgroundSize  = '100% 100%';
@@ -994,6 +1045,7 @@ export function createDnc3DEngine(options = {}) {
 
     const back = document.createElement('div');
     back.className = 'dnc3d-card-face dnc3d-card-back';
+    back._sideName = backSide;
     if (backImageUrl) {
       back.style.backgroundImage = `url(${backImageUrl})`;
       back.style.backgroundSize  = '100% 100%';
@@ -1095,6 +1147,7 @@ export function createDnc3DEngine(options = {}) {
       liftEl,
       cardEl,
       frontEl:      front,
+      backEl:       back,
       tokenHostEl:  tokenHost,
       regionId:     null,
       stackId:      null,
@@ -3668,9 +3721,9 @@ export function createDnc3DEngine(options = {}) {
       // observing player peeking at a face-down card sees its front (side A).
       const peeking           = !!(_playerN && dcCard.peeking && dcCard.peeking[_playerN]);
       const expectedSide      = peeking ? 'A' : (dcCard.currentSide || 'A');
-      // Normalize into [0,360) so a card flipped the negative direction
-      // (_angle e.g. -180) is still correctly detected as showing side B.
-      const currentVisualSide = ((((card.cardEl._angle % 360) + 360) % 360) === 180) ? 'B' : 'A';
+      // Read the side off the face element that is actually turned toward the
+      // viewer, so cards with more than two sides (A/B/C/...) compare correctly.
+      const currentVisualSide = _visibleSideName(card);
       // A change in the peeking bit is a "peek" reveal/hide, not a physical flip,
       // so snap the card to its side instantly rather than animating. This also
       // covers closing browse, where the top card's peeking is cleared by a
@@ -3696,6 +3749,9 @@ export function createDnc3DEngine(options = {}) {
       } else if (currentVisualSide !== expectedSide && !card.cardEl._animating) {
         card.cardEl._animating = true;
         playFlipSound(); // debounced — one sound even when many cards flip at once
+        // Load the incoming side onto the face that is about to turn toward the
+        // viewer (a no-op for a plain A↔B flip, where it already holds that side).
+        _setHiddenFaceSide(card, dcCard, expectedSide);
         const startAngle = card.cardEl._angle;
         card.cardEl._angle += 180;
         if (card.regionId === '_browse' && REGIONS['_browse']) {

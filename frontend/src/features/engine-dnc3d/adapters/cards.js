@@ -51,9 +51,9 @@ export function resolveImageUrl(face, gameDef, language) {
 // Converts dragncards game state into the format expected by the dnc3d engine's init.
 //
 // Returns:
-//   cardDescriptors — array of { id, frontImageUrl, backImageUrl, angle,
-//                     faceW, faceH, borderColor } indexed 0..N, one per card
-//                     in game.cardById
+//   cardDescriptors — array of { id, frontImageUrl, backImageUrl, frontSide,
+//                     backSide, angle, faceW, faceH, borderColor } indexed 0..N,
+//                     one per card in game.cardById
 //   assignments     — { [groupId]: [{ cardIds: [int,...], attachmentDirections, lookingUnder, fracX, fracY }] }
 //   idMap           — Map<dcCardId, dnc3dIndex> for mapping action callbacks back
 export function adaptGameState(game, layoutRegions, gameDef, language, observingPlayerN, numPlayers) {
@@ -73,21 +73,26 @@ export function adaptGameState(game, layoutRegions, gameDef, language, observing
     const card = cardById[dcId];
     const sides    = card.sides || {};
     const sideKeys = Object.keys(sides);
-    // Front face element always holds side A; back face element always holds side B.
-    // angle 0 → front visible (A), angle 180 → back visible (B).
+    // The engine has two face elements but a card may have any number of sides
+    // (A/B/C/...). The front element always holds side A; the back element holds
+    // whichever non-A side is showing, or the default second side when A is up.
+    // angle 0 → front visible, angle 180 → back visible.
     const sideA = sideKeys.includes('A') ? 'A' : (sideKeys[0] || 'A');
     const sideB = sideKeys.find(s => s !== sideA) || sideA;
     // The observing player peeking at a face-down card sees its front (side A).
     const peeking = !!(observingPlayerN && card.peeking && card.peeking[observingPlayerN]);
     const visibleSide = peeking ? sideA : (card.currentSide || sideA);
+    const backSide = (visibleSide !== sideA) ? visibleSide : sideB;
     const angle = (visibleSide !== sideA) ? 180 : 0;
-    const currentFace = sides[card.currentSide || sideA] || {};
+    const currentFace = sides[visibleSide] || {};
     const faceW = currentFace.width  || gameDef?.cardBacks?.[currentFace.name]?.width  || null;
     const faceH = currentFace.height || gameDef?.cardBacks?.[currentFace.name]?.height || null;
     return {
       id: i,
-      frontImageUrl: resolveImageUrl(sides[sideA], gameDef, language),
-      backImageUrl:  resolveImageUrl(sides[sideB],  gameDef, language),
+      frontImageUrl: resolveImageUrl(sides[sideA],   gameDef, language),
+      backImageUrl:  resolveImageUrl(sides[backSide], gameDef, language),
+      frontSide:     sideA,
+      backSide,
       angle,
       faceW,
       faceH,
