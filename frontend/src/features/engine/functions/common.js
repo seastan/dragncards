@@ -140,6 +140,20 @@ export const getVisibleFace = (card, playerN) => {
   else return null;
 }
   
+// Resolves an image url that may either be a full url or just a suffix that needs
+// a prefix from gameDef.imageUrlPrefix. Returns the url for the given language
+// along with the Default-language url to fall back on if it fails to load.
+export const applyImageUrlPrefix = (srcBase, gameDef, language) => {
+  if (!srcBase) return {src: null, default: null};
+  // Full url. Nothing to do here.
+  if (srcBase.startsWith('http')) return {src: srcBase, default: null};
+  // Just a suffix. Let's see if we have a prefix for this language.
+  const srcDefault = gameDef?.imageUrlPrefix?.Default ? gameDef.imageUrlPrefix.Default + srcBase : null;
+  const srcLanguage = gameDef?.imageUrlPrefix?.[language] ? gameDef.imageUrlPrefix[language] + srcBase : null;
+  if (srcLanguage) return {src: srcLanguage, default: srcDefault};
+  else return {src: srcDefault, default: srcDefault};
+}
+
 export const getVisibleFaceSrc = (visibleFace, user, gameDef) => {
   if (!visibleFace) return {src: null, default: "image not found"};
   var src = visibleFace.imageUrl;

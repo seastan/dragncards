@@ -1,5 +1,6 @@
 import { useSelector } from "react-redux";
 import useProfile from "../../../hooks/useProfile";
+import { applyImageUrlPrefix } from "../functions/common";
 import { useGameDefinition } from "./useGameDefinition";
 import { usePlugin } from "./usePlugin";
 import { useVisibleFace } from "./useVisibleFace";
@@ -21,23 +22,10 @@ export const useVisibleFaceSrc = (cardId) => {
     if (altArt) return { src: altArt, default: null };
     if (altBack) return { src: altBack, default: null };
 
-    const srcBase = visibleFace.imageUrl;
+    // If the face has no url of its own, it must be a card back, so use the url
+    // from the card back definition. Either way the url may be a full url or
+    // just a suffix that needs a language-specific prefix.
+    const srcBase = visibleFace.imageUrl || gameDef?.cardBacks?.[visibleFace.name]?.imageUrl;
 
-
-    if (!srcBase) {
-        // No url, so must be a card back
-        return {src: gameDef?.cardBacks?.[visibleFace.name]?.imageUrl, default: null }
-    } else {
-        // Card has a url. Let's see if it's a full url or just a suffix
-        if (srcBase.startsWith('http')) {
-            // Full url. Nothing to do here.
-            return {src: srcBase, default: null }
-        } else {
-            // Just a suffix. Let's see if we have a prefix for this language.
-            const srcDefault = gameDef?.imageUrlPrefix?.Default ? gameDef?.imageUrlPrefix?.Default + srcBase : null;
-            const srcLanguage = gameDef?.imageUrlPrefix?.[user?.language] ? gameDef?.imageUrlPrefix?.[user?.language] + srcBase : null;
-            if (srcLanguage) return {src: srcLanguage, default: srcDefault}
-            else return {src: srcDefault, default: srcDefault }
-        }
-    }
+    return applyImageUrlPrefix(srcBase, gameDef, user?.language);
 }

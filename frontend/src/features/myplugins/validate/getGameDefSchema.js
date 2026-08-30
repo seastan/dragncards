@@ -330,7 +330,7 @@ export const getGameDefSchema = (gameDef) => {
             "_required_": true,
           },
           "imageUrl": {
-            "_description_": "The URL of the image to use as the card back",
+            "_description_": "The URL of the image to use as the card back. If this is not a full URL (does not start with 'http') it is treated as a suffix and the prefix from imageUrlPrefix for the user's language is prepended to it.",
             "_type_": "string",
             "_required_": true,
           }
@@ -1831,7 +1831,7 @@ export const getGameDefSchema = (gameDef) => {
         }
       },
       "imageUrlPrefix": {
-        "_description_": "Object describing the prefix to add to image URLs. The [key] is the language. This can be used to reduce character count in the TSV if many URLs contain a similar prefix. It can be used for localization if your images are hosted in such a way that the the URLs for the same card in different languages have the same suffix but different prefix. Example: {'Default': 'https://hostingsite.com/English/', 'English': 'https://hostingsite.com/English/', 'French': 'https://hostingsite.com/French/'}",
+        "_description_": "Object describing the prefix to add to image URLs (both card images and cardBacks images). The [key] is the language. This can be used to reduce character count in the TSV if many URLs contain a similar prefix. It can be used for localization if your images are hosted in such a way that the the URLs for the same card in different languages have the same suffix but different prefix. Example: {'Default': 'https://hostingsite.com/English/', 'English': 'https://hostingsite.com/English/', 'French': 'https://hostingsite.com/French/'}",
         "_type_": "object",
         "_itemSchema_": {
           "_description_": "The image URL prefix",

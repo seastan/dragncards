@@ -1,3 +1,4 @@
+import { applyImageUrlPrefix } from '../../engine/functions/common';
 import { formatGroupId } from './regions';
 import { normalizeAttachDirection } from '../lib/config';
 
@@ -28,24 +29,13 @@ function stackPosToFrac(val, regionOrigin, regionSize) {
   return regionOrigin + pct * regionSize;
 }
 
-// Resolves a card face's imageUrl using the gameDef prefix/language system,
-// mirroring the logic in useVisibleFaceSrc without needing React hooks.
+// Resolves a card face's imageUrl using the gameDef prefix/language system.
+// A face with no url of its own is a card back, so its url comes from the card
+// back definition; either url may be full or a prefix-needing suffix.
 export function resolveImageUrl(face, gameDef, language) {
   if (!face) return null;
-  const srcBase = face.imageUrl;
-  if (!srcBase) {
-    // No url → card back
-    return gameDef?.cardBacks?.[face.name]?.imageUrl || null;
-  }
-  if (srcBase.startsWith('http')) return srcBase;
-  // Suffix path: prepend language-specific or default prefix
-  const srcLanguage = gameDef?.imageUrlPrefix?.[language]
-    ? gameDef.imageUrlPrefix[language] + srcBase
-    : null;
-  const srcDefault = gameDef?.imageUrlPrefix?.Default
-    ? gameDef.imageUrlPrefix.Default + srcBase
-    : null;
-  return srcLanguage || srcDefault || null;
+  const srcBase = face.imageUrl || gameDef?.cardBacks?.[face.name]?.imageUrl;
+  return applyImageUrlPrefix(srcBase, gameDef, language).src;
 }
 
 // Converts dragncards game state into the format expected by the dnc3d engine's init.
