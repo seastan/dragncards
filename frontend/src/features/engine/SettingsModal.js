@@ -160,7 +160,12 @@ const ModalContent = () => {
   useEffect(() => {
     dispatch(setTyping(true));
     const state = store.getState();
-    const statePlayerKeyVals = state?.gameUi?.game?.playerData?.[playerN];
+    // `|| {}` is load-bearing: a user who has not taken a seat has playerN
+    // null, so there is no playerData entry to read their current values from.
+    // Without it the reduce below throws, and with no error boundary in the app
+    // that unmounts the whole table - a white page for anyone opening Settings
+    // from a spectator seat (the one place they'd go to switch back to 2D).
+    const statePlayerKeyVals = state?.gameUi?.game?.playerData?.[playerN] || {};
     const stateGameKeyVals = state?.gameUi?.game;
     const stateUiKeyVals = state?.playerUi?.userSettings;
 
@@ -370,7 +375,7 @@ const SettingsModalFormElement = ({val, settingObj, setFunction, l10n}) => {
         <input
           type="number"
           className="p-1 w-16 text-black"
-          value={val}
+          value={val ?? ""}
           onChange={(e) => {
             const newValue = parseInt(e.target.value);
             setFunction(prevSettings => ({...prevSettings, [settingObj.id]: newValue}))
@@ -392,7 +397,7 @@ const SettingsModalFormElement = ({val, settingObj, setFunction, l10n}) => {
             disabled={settingObj.supporterLevel > user?.supporter_level && user.admin === false}
             type="text"
             className="p-1 w-48 text-black"
-            value={val}
+            value={val ?? ""}
             onChange={(e) => {
               const newValue = e.target.value;
               setFunction(prevSettings => ({ ...prevSettings, [settingObj.id]: newValue }));
