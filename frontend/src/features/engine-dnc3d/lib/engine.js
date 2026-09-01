@@ -632,6 +632,25 @@ export function createDnc3DEngine(options = {}) {
     probe.src = url;
   }
 
+  // Repaints every card's face art from resolveSideImage. Card art normally only
+  // changes when a card turns to a new side, which _setHiddenFaceSide covers; this
+  // is for changes that come from outside game state (the user setting alt art),
+  // which reconcile's side-name comparison can't see.
+  function repaintCardFaces(game, idMap) {
+    if (!game || !idMap || !resolveSideImage) return;
+    Object.entries(game.cardById || {}).forEach(([dcCardId, dcCard]) => {
+      const i = idMap.get(dcCardId);
+      if (i === undefined) return;
+      const card = cards[i];
+      if (!card) return;
+      [card.frontEl, card.backEl].forEach(el => {
+        if (!el || !el._sideName) return;
+        const image = resolveSideImage(dcCard, el._sideName);
+        if (image?.src && image.src !== el._imgUrl) paintFaceImage(el, image.src, image.default);
+      });
+    });
+  }
+
   // Paints the away-facing element with `sideName`'s art, so that turning the card
   // over reveals that side. No-op when it already holds that side.
   function _setHiddenFaceSide(card, dcCard, sideName) {
@@ -4506,5 +4525,5 @@ export function createDnc3DEngine(options = {}) {
     });
   }
 
-  return { init, applyTilt, applyTableOpacity, setCurrentDeg, onTiltUpdated, reconcile, openBrowse, closeBrowse, updateBrowseFilter, getCardElements, syncOverlay, animatePileShuffle, setHoverSuppressed, setTouchMode, setAlwaysShowPileCounts, setAlwaysShowGroupIcons, spawnCards, despawnCards };
+  return { init, applyTilt, applyTableOpacity, setCurrentDeg, onTiltUpdated, reconcile, openBrowse, closeBrowse, updateBrowseFilter, getCardElements, syncOverlay, animatePileShuffle, setHoverSuppressed, setTouchMode, setAlwaysShowPileCounts, setAlwaysShowGroupIcons, spawnCards, despawnCards, repaintCardFaces };
 }

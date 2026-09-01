@@ -8,6 +8,7 @@ import { playShuffleSound } from './lib/sound';
 import { adaptRegions, gameL10n } from './adapters/regions';
 import { adaptGameState, resolveFaceImage } from './adapters/cards';
 import { buildEngineCallbacks } from './adapters/actions';
+import useProfile from '../../hooks/useProfile';
 import { useBrowseTopN } from '../engine/hooks/useBrowseTopN';
 import { useTouchAction } from '../engine/hooks/useTouchAction';
 import { useHandleTouchAction } from '../engine/hooks/useHandleTouchAction';
@@ -84,6 +85,11 @@ export default function Dnc3DTable({
   const handleTouchAction     = useHandleTouchAction();
   const getDefaultActionForCard = useGetDefaultActionForCard();
   const observingPlayerN = useSelector(s => s?.playerUi?.observingPlayerN);
+  // The user's alt art choices for this plugin, keyed by databaseId + side (or by
+  // card back name). The 2D renderer reads these in useVisibleFaceSrc.
+  const userProfile      = useProfile();
+  const pluginId         = useSelector(s => s?.gameUi?.game?.pluginId);
+  const altArt           = userProfile?.plugin_settings?.[pluginId]?.altArt;
   const numPlayers       = useSelector(s => s?.gameUi?.game?.numPlayers);
   const cardSize         = useSelector(s => {
     const obs = s?.playerUi?.observingPlayerN;
@@ -133,6 +139,7 @@ export default function Dnc3DTable({
   const layoutRef          = useRef(layoutRegions);
   const gameDefRef         = useRef(gameDef);
   const languageRef        = useRef(language);
+  const altArtRef          = useRef(altArt);
   const doActionListRef    = useRef(doActionList);
   const observingPlayerRef = useRef(observingPlayerN);
   const numPlayersRef      = useRef(numPlayers);
@@ -152,6 +159,7 @@ export default function Dnc3DTable({
   layoutRef.current          = layoutRegions;
   gameDefRef.current         = gameDef;
   languageRef.current        = language;
+  altArtRef.current          = altArt;
   doActionListRef.current    = doActionList;
   observingPlayerRef.current = observingPlayerN;
   numPlayersRef.current      = numPlayers;
@@ -213,7 +221,7 @@ export default function Dnc3DTable({
       const gd         = gameDefRef.current;
       const regions = adaptRegions(lr, playerN, nPlayers, g?.groupById || {}, gd, languageRef.current);
       const { cardDescriptors, assignments, idMap } = adaptGameState(
-        g, lr, gd, languageRef.current, playerN, nPlayers
+        g, lr, gd, languageRef.current, playerN, nPlayers, altArtRef.current
       );
       reverseIdMap = new Map([...idMap.entries()].map(([k, v]) => [v, k]));
       const callbacks    = buildEngineCallbacks(doActionListRef.current, reverseIdMap);
@@ -245,7 +253,7 @@ export default function Dnc3DTable({
         // Lets the engine repaint a card face when a card turns to a side it
         // wasn't created with — cards with more than two sides (A/B/C/...).
         resolveSideImage: (dcCard, sideName) =>
-          resolveFaceImage(dcCard?.sides?.[sideName], gameDefRef.current, languageRef.current),
+          resolveFaceImage(dcCard, sideName, gameDefRef.current, languageRef.current, altArtRef.current),
         onCardClick:    (engineId, clientX, clientY) => {
           const dcId = reverseIdMap.get(engineId);
           if (dcId == null) return;
@@ -488,6 +496,17 @@ export default function Dnc3DTable({
   useEffect(() => {
     engineRef.current?.setAlwaysShowGroupIcons(alwaysShowGroupButtons);
   }, [alwaysShowGroupButtons]);
+
+  // ── Track alt art ──────────────────────────────────────────────────────────
+  // Setting alt art on a card updates the user's profile, not game state, so
+  // reconcile can't see it — repaint the faces directly instead. The dependency
+  // is the whole profile rather than altArt: setAltArt deep-updates the settings
+  // object in place, so only the profile around it changes identity. Repainting
+  // skips faces whose url is unchanged, so the other (rare) profile updates and
+  // the 10-minute profile refetch cost nothing.
+  useEffect(() => {
+    engineRef.current?.repaintCardFaces(gameRef.current, idMapRef.current);
+  }, [userProfile]);
 
   // ── Suppress hover glow while the hotkey overlay (Tab) is open ──────────────
   // On open the engine drops the glow + active card; on close it re-derives hover

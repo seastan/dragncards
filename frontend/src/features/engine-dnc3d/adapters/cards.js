@@ -29,14 +29,19 @@ function stackPosToFrac(val, regionOrigin, regionSize) {
   return regionOrigin + pct * regionSize;
 }
 
-// Resolves a card face's imageUrl using the gameDef prefix/language system.
-// A face with no url of its own is a card back, so its url comes from the card
-// back definition; either url may be full or a prefix-needing suffix.
-// Returns {src, default}: the language-specific url plus the Default-language
-// url to fall back on when the localized image doesn't exist (mirrors the 2D
-// engine's <img onError> fallback).
-export function resolveFaceImage(face, gameDef, language) {
+// Resolves the image for one side of a card, mirroring the 2D useVisibleFaceSrc:
+//   1. User-chosen alt art wins. It is keyed by databaseId + side for a normal
+//      face, or by face name for a card back (which has no imageUrl of its own).
+//   2. Otherwise the face's own imageUrl, or the card back definition's, run
+//      through the gameDef prefix/language system.
+// Returns {src, default}: the url to show plus the Default-language url to fall
+// back on when the localized image doesn't exist (the 3D counterpart of the 2D
+// engine's <img onError> fallback). Alt art has no fallback, same as in 2D.
+export function resolveFaceImage(card, sideName, gameDef, language, altArt) {
+  const face = card?.sides?.[sideName];
   if (!face) return { src: null, default: null };
+  const alt = altArt?.[card.databaseId]?.[sideName] || altArt?.[face.name];
+  if (alt) return { src: alt, default: null };
   const srcBase = face.imageUrl || gameDef?.cardBacks?.[face.name]?.imageUrl;
   return applyImageUrlPrefix(srcBase, gameDef, language);
 }
@@ -50,7 +55,7 @@ export function resolveFaceImage(face, gameDef, language) {
 //                     one per card in game.cardById
 //   assignments     — { [groupId]: [{ cardIds: [int,...], attachmentDirections, lookingUnder, fracX, fracY }] }
 //   idMap           — Map<dcCardId, dnc3dIndex> for mapping action callbacks back
-export function adaptGameState(game, layoutRegions, gameDef, language, observingPlayerN, numPlayers) {
+export function adaptGameState(game, layoutRegions, gameDef, language, observingPlayerN, numPlayers, altArt) {
   const { cardById = {}, stackById = {}, groupById = {} } = game || {};
 
   // 1. Build an integer index mapping for EVERY card in the game, not just the
@@ -79,8 +84,8 @@ export function adaptGameState(game, layoutRegions, gameDef, language, observing
     const backSide = (visibleSide !== sideA) ? visibleSide : sideB;
     const angle = (visibleSide !== sideA) ? 180 : 0;
     const currentFace = sides[visibleSide] || {};
-    const frontImage = resolveFaceImage(sides[sideA],    gameDef, language);
-    const backImage  = resolveFaceImage(sides[backSide], gameDef, language);
+    const frontImage = resolveFaceImage(card, sideA,    gameDef, language, altArt);
+    const backImage  = resolveFaceImage(card, backSide, gameDef, language, altArt);
     const faceW = currentFace.width  || gameDef?.cardBacks?.[currentFace.name]?.width  || null;
     const faceH = currentFace.height || gameDef?.cardBacks?.[currentFace.name]?.height || null;
     return {
