@@ -4,14 +4,16 @@ import { Menu, MenuItem } from "../../components/basic/Menu";
 import { setShowModal } from "../store/playerUiSlice";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { useSiteL10n } from "../../hooks/useSiteL10n";
+import { usePlayerN } from "./hooks/usePlayerN";
 
 export const TopBarBuilder = React.memo(() => {
   const siteL10n = useSiteL10n();
   const dispatch = useDispatch();
   const gameDef = useGameDefinition();
   const deckbuilder = gameDef.deckbuilder;
+  const playerN = usePlayerN();
   return (
-    <Menu label={siteL10n("builder")}>
+    <Menu label={siteL10n("builder")} disabledReason={playerN ? null : siteL10n("pleaseSit")}>
       <MenuItem
         onClick={() =>
           deckbuilder

@@ -6,6 +6,7 @@ import { setShowHotkeys, setShowModal } from "../store/playerUiSlice";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { usePlayerIList } from "./hooks/usePlayerIList";
 import { useSiteL10n } from "../../hooks/useSiteL10n";
+import { usePlayerN } from "./hooks/usePlayerN";
 
 // Keyboard shortcuts shown in a dropdown menu use muted, right-aligned text
 // (the standard menu convention), unlike the boxed keycaps used in the Hotkeys
@@ -19,8 +20,9 @@ export const TopBarView = React.memo(() => {
   const dispatch = useDispatch();
   const gameDef = useGameDefinition();
   const playerIList = usePlayerIList();
+  const playerN = usePlayerN();
   return (
-    <Menu label={siteL10n("view")}>
+    <Menu label={siteL10n("view")} disabledReason={playerN ? null : siteL10n("pleaseSit")}>
       <MenuItem onClick={() => dispatch(setShowHotkeys(true))}>
         <span>{siteL10n("hotkeys")}</span>
         <Shortcut>Tab</Shortcut>

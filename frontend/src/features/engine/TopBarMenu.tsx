@@ -301,7 +301,7 @@ export const TopBarMenu = React.memo(() => {
         <input type="file" ref={inputFileGame} hidden onChange={uploadGameOrReplayJson} accept=".json" />
       </li>
 
-      <Menu label={siteL10n("menu")}>
+      <Menu label={siteL10n("menu")} disabledReason={playerN ? null : siteL10n("pleaseSit")}>
         <SubMenu label={siteL10n("load")}>
           <MenuItem onClick={() => handleMenuClick({ action: "spawn_deck" })}>
             {siteL10n("loadPrebuiltDeck")}

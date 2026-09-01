@@ -159,23 +159,31 @@ interface MenuProps {
   children: ReactNode;
   /** Min width of the dropdown panel in rem. */
   panelMinWidthRem?: number;
+  /**
+   * When set, the menu refuses to open (by hover, click or touch) and shows this
+   * text as a hover tooltip explaining why. The string doubles as the disabled
+   * flag, so there is no way to disable a menu without saying why.
+   */
+  disabledReason?: string | null;
 }
 
 export const Menu: React.FC<MenuProps> = ({
   label,
   children,
   panelMinWidthRem = 14,
+  disabledReason = null,
 }) => {
   const touchMode = useTouchMode();
   const ref = useRef<HTMLLIElement>(null);
   const id = useMenuNodeId();
   const group = useContext(MenuBarGroupContext);
+  const disabled = !!disabledReason;
 
   // Fallback for a Menu rendered outside a MenuBar group: keep the previous
   // self-contained hover-intent behavior.
-  const fallback = useHoverIntent(!touchMode);
+  const fallback = useHoverIntent(!touchMode && !disabled);
 
-  const open = group ? group.openId === id : fallback.open;
+  const open = !disabled && (group ? group.openId === id : fallback.open);
 
   const close = () => {
     if (group) group.setOpen(null);
@@ -185,6 +193,7 @@ export const Menu: React.FC<MenuProps> = ({
     }
   };
   const toggle = () => {
+    if (disabled) return;
     if (group) group.setOpen(group.openId === id ? null : id);
     else fallback.setOpen((o) => !o);
   };
@@ -192,14 +201,17 @@ export const Menu: React.FC<MenuProps> = ({
   // Entering a top-level menu immediately makes it the one open menu, instantly
   // closing any sibling. Mouse-out closes are deferred so the pointer can travel
   // into the panel; switching directly to a sibling cancels that and opens it.
-  const hoverProps = touchMode
-    ? {}
-    : group
-    ? {
-        onMouseEnter: () => group.setOpen(id),
-        onMouseLeave: () => group.scheduleClose(id),
-      }
-    : fallback.hoverProps;
+  // A disabled menu takes no hover props at all, so crossing it neither opens
+  // itself nor disturbs a sibling.
+  const hoverProps =
+    touchMode || disabled
+      ? {}
+      : group
+      ? {
+          onMouseEnter: () => group.setOpen(id),
+          onMouseLeave: () => group.scheduleClose(id),
+        }
+      : fallback.hoverProps;
 
   useEffect(() => {
     if (!open) return;
@@ -219,15 +231,26 @@ export const Menu: React.FC<MenuProps> = ({
 
   return (
     <li ref={ref} role="none" className="relative h-full" {...hoverProps}>
+      {/* aria-disabled rather than the `disabled` attribute: a truly disabled
+          button receives no pointer events, and browsers therefore never show
+          its title tooltip - which is the whole point of the disabled state
+          here. `toggle` guards the click instead. */}
       <button
         type="button"
         aria-haspopup="true"
         aria-expanded={open}
+        aria-disabled={disabled || undefined}
+        title={disabledReason || undefined}
         onClick={toggle}
         className={cx(
           "h-full px-4 flex items-center justify-center select-none font-medium",
-          "bg-transparent border-0 cursor-pointer transition-colors duration-150",
-          open ? "bg-gray-700 text-white" : "text-gray-200 hover:bg-gray-700 hover:text-white"
+          "bg-transparent border-0 transition-colors duration-150",
+          disabled
+            ? "text-gray-500 cursor-not-allowed"
+            : cx(
+                "cursor-pointer",
+                open ? "bg-gray-700 text-white" : "text-gray-200 hover:bg-gray-700 hover:text-white"
+              )
         )}
       >
         {label}
