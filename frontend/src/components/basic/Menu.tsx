@@ -176,8 +176,23 @@ export const Menu: React.FC<MenuProps> = ({
   const touchMode = useTouchMode();
   const ref = useRef<HTMLLIElement>(null);
   const id = useMenuNodeId();
+  const tipId = `${id}-tip`;
   const group = useContext(MenuBarGroupContext);
   const disabled = !!disabledReason;
+
+  // The disabled explanation is drawn by us rather than left to the `title`
+  // attribute. A native tooltip needs about a second of motionless hover before
+  // it appears, is styled by the OS rather than the app, and never shows at all
+  // on a touchscreen - so on the one control whose entire job is to explain why
+  // it won't open, it mostly just didn't.
+  const [tipVisible, setTipVisible] = useState(false);
+  const tipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (tipTimer.current) clearTimeout(tipTimer.current);
+    },
+    []
+  );
 
   // Fallback for a Menu rendered outside a MenuBar group: keep the previous
   // self-contained hover-intent behavior.
@@ -193,7 +208,16 @@ export const Menu: React.FC<MenuProps> = ({
     }
   };
   const toggle = () => {
-    if (disabled) return;
+    if (disabled) {
+      // Touch mode has no hover to reveal the reason, so a tap flashes it
+      // instead - otherwise tapping a locked menu does nothing at all.
+      if (touchMode) {
+        setTipVisible(true);
+        if (tipTimer.current) clearTimeout(tipTimer.current);
+        tipTimer.current = setTimeout(() => setTipVisible(false), 2500);
+      }
+      return;
+    }
     if (group) group.setOpen(group.openId === id ? null : id);
     else fallback.setOpen((o) => !o);
   };
@@ -201,17 +225,23 @@ export const Menu: React.FC<MenuProps> = ({
   // Entering a top-level menu immediately makes it the one open menu, instantly
   // closing any sibling. Mouse-out closes are deferred so the pointer can travel
   // into the panel; switching directly to a sibling cancels that and opens it.
-  // A disabled menu takes no hover props at all, so crossing it neither opens
-  // itself nor disturbs a sibling.
-  const hoverProps =
-    touchMode || disabled
+  // A disabled menu takes none of the opening hover props, so crossing it
+  // neither opens itself nor disturbs a sibling - it only raises its tooltip.
+  const hoverProps = disabled
+    ? touchMode
       ? {}
-      : group
-      ? {
-          onMouseEnter: () => group.setOpen(id),
-          onMouseLeave: () => group.scheduleClose(id),
+      : {
+          onMouseEnter: () => setTipVisible(true),
+          onMouseLeave: () => setTipVisible(false),
         }
-      : fallback.hoverProps;
+    : touchMode
+    ? {}
+    : group
+    ? {
+        onMouseEnter: () => group.setOpen(id),
+        onMouseLeave: () => group.scheduleClose(id),
+      }
+    : fallback.hoverProps;
 
   useEffect(() => {
     if (!open) return;
@@ -232,15 +262,14 @@ export const Menu: React.FC<MenuProps> = ({
   return (
     <li ref={ref} role="none" className="relative h-full" {...hoverProps}>
       {/* aria-disabled rather than the `disabled` attribute: a truly disabled
-          button receives no pointer events, and browsers therefore never show
-          its title tooltip - which is the whole point of the disabled state
-          here. `toggle` guards the click instead. */}
+          button receives no pointer events, so it would never see the hover
+          that raises the tooltip. `toggle` guards the click instead. */}
       <button
         type="button"
         aria-haspopup="true"
         aria-expanded={open}
         aria-disabled={disabled || undefined}
-        title={disabledReason || undefined}
+        aria-describedby={disabled ? tipId : undefined}
         onClick={toggle}
         className={cx(
           "h-full px-4 flex items-center justify-center select-none font-medium",
@@ -255,6 +284,24 @@ export const Menu: React.FC<MenuProps> = ({
       >
         {label}
       </button>
+      {/* pointer-events-none so the tooltip can never sit under the cursor and
+          steal the hover that is keeping it up. */}
+      {disabled && tipVisible && (
+        <div
+          id={tipId}
+          role="tooltip"
+          className={cx(
+            "absolute left-0 mt-1 px-2 py-1 rounded whitespace-nowrap pointer-events-none",
+            "bg-gray-900 border border-gray-700 text-xs font-normal text-gray-200 shadow-xl"
+          )}
+          // top lives inline for the same reason the panel below does: this
+          // project ships a precompiled tailwind stylesheet that has no
+          // top-full utility in it.
+          style={{ zIndex: 10003, top: "100%" }}
+        >
+          {disabledReason}
+        </div>
+      )}
       {open && (
         <ul
           role="menu"
