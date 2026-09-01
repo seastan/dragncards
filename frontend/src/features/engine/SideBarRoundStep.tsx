@@ -76,24 +76,29 @@ export const SideBarRoundStep = React.memo(({ stepId, triggerCardIds }: Props) =
 
   const handleButtonClick = () => {
     if (!playerN) return;
+    // Clicking the step the game is already on is a no-op. ADVANCE_TO_STEP walks
+    // NEXT_STEP until it reaches the target, so asking it for the current step
+    // takes a full lap of stepOrder and bumps the round. That is deliberate and
+    // stays available to plugin action lists; it just isn't what a click means.
+    if (isRoundStep) return;
     doActionList(dragnActionLists.setStep(stepId, gameDef.steps?.[stepId]), `Set step to ${stepId}`);
   };
 
   return (
+    // Deliberately not focusable and with no key handler: Space, Enter and Tab
+    // are all game hotkeys (see useKeyDown). A tabIndex here lets a plain mouse
+    // click leave the row focused, and then holding Space to add tokens repeats
+    // keydown into this row's activation, re-running setStep on the current step
+    // and wrapping the round on every repeat.
     <div
       role="button"
-      tabIndex={0}
       aria-current={isRoundStep ? "step" : undefined}
       aria-label={gameL10n(stepInfo.label)}
-      className="group relative flex flex-1 items-center cursor-pointer select-none"
+      className={`group relative flex flex-1 items-center select-none ${
+        isRoundStep ? "cursor-default" : "cursor-pointer"
+      }`}
       style={{ fontSize: "1.7dvh" }}
       onClick={() => handleButtonClick()}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          handleButtonClick();
-        }
-      }}
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
     >
