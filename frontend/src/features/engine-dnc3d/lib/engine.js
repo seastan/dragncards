@@ -37,6 +37,13 @@ function parseFrac(val, fallback = 0) {
   return fallback;
 }
 
+// Wraps a url in a CSS url() token. The quoting matters: card art lives on
+// arbitrary user-supplied urls, and an unquoted apostrophe (".../Gandalf's-Gambit.png")
+// makes the whole declaration invalid, so the image silently never paints.
+function cssUrl(url) {
+  return `url("${String(url).replace(/["\\]/g, '\\$&')}")`;
+}
+
 // Creates a self-contained dnc3d engine instance.
 // options.regions         — region definitions (default: DEFAULT_REGIONS for demo/sandbox mode)
 // options.onCardMove      — callback(cardId, fromRegionId, toRegionId, fracX, fracY, insertIdx)
@@ -619,14 +626,14 @@ export function createDnc3DEngine(options = {}) {
     if (!el) return;
     el._imgUrl = url || null;
     if (!url) { el.style.backgroundImage = ''; return; }
-    el.style.backgroundImage = `url(${url})`;
+    el.style.backgroundImage = cssUrl(url);
     el.style.backgroundSize  = '100% 100%';
     if (!fallbackUrl || fallbackUrl === url) return;
     const probe = new Image();
     probe.onerror = () => {
       if (el._imgUrl !== url) return;
       el._imgUrl = fallbackUrl;
-      el.style.backgroundImage = `url(${fallbackUrl})`;
+      el.style.backgroundImage = cssUrl(fallbackUrl);
       el.style.backgroundSize  = '100% 100%';
     };
     probe.src = url;
@@ -2441,7 +2448,7 @@ export function createDnc3DEngine(options = {}) {
     tableSurface.style.top       = '0px';
     tableSurface.style.transform = tiltEl.style.transform;
     if (_tableBackgroundUrl) {
-      tableSurface.style.background = `url(${_tableBackgroundUrl}) center / cover no-repeat`;
+      tableSurface.style.background = `${cssUrl(_tableBackgroundUrl)} center / cover no-repeat`;
     }
     // Insert before tiltEl so it's behind cards in DOM order
     tiltEl.parentElement.insertBefore(tableSurface, tiltEl);
@@ -3688,16 +3695,15 @@ export function createDnc3DEngine(options = {}) {
     const faceEl = showingBack
       ? card.cardEl.querySelector('.dnc3d-card-back')
       : card.frontEl;
-    const bgImg = faceEl?.style.backgroundImage;
-    const match = bgImg?.match(/url\(['"]?([^'")\s]+)['"]?\)/);
-    if (!match) return Promise.resolve();
+    const url = faceEl?._imgUrl;
+    if (!url) return Promise.resolve();
     return new Promise(resolve => {
       let done = false;
       const finish = () => { if (!done) { done = true; resolve(); } };
       const img = new Image();
       img.onload = finish;
       img.onerror = finish;
-      img.src = match[1];
+      img.src = url;
       if (img.complete) finish();
       setTimeout(finish, 3000);
     });
