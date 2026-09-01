@@ -32,16 +32,20 @@ function stackPosToFrac(val, regionOrigin, regionSize) {
 // Resolves a card face's imageUrl using the gameDef prefix/language system.
 // A face with no url of its own is a card back, so its url comes from the card
 // back definition; either url may be full or a prefix-needing suffix.
-export function resolveImageUrl(face, gameDef, language) {
-  if (!face) return null;
+// Returns {src, default}: the language-specific url plus the Default-language
+// url to fall back on when the localized image doesn't exist (mirrors the 2D
+// engine's <img onError> fallback).
+export function resolveFaceImage(face, gameDef, language) {
+  if (!face) return { src: null, default: null };
   const srcBase = face.imageUrl || gameDef?.cardBacks?.[face.name]?.imageUrl;
-  return applyImageUrlPrefix(srcBase, gameDef, language).src;
+  return applyImageUrlPrefix(srcBase, gameDef, language);
 }
 
 // Converts dragncards game state into the format expected by the dnc3d engine's init.
 //
 // Returns:
-//   cardDescriptors — array of { id, frontImageUrl, backImageUrl, frontSide,
+//   cardDescriptors — array of { id, frontImageUrl, frontImageUrlDefault,
+//                     backImageUrl, backImageUrlDefault, frontSide,
 //                     backSide, angle, faceW, faceH, borderColor } indexed 0..N,
 //                     one per card in game.cardById
 //   assignments     — { [groupId]: [{ cardIds: [int,...], attachmentDirections, lookingUnder, fracX, fracY }] }
@@ -75,12 +79,16 @@ export function adaptGameState(game, layoutRegions, gameDef, language, observing
     const backSide = (visibleSide !== sideA) ? visibleSide : sideB;
     const angle = (visibleSide !== sideA) ? 180 : 0;
     const currentFace = sides[visibleSide] || {};
+    const frontImage = resolveFaceImage(sides[sideA],    gameDef, language);
+    const backImage  = resolveFaceImage(sides[backSide], gameDef, language);
     const faceW = currentFace.width  || gameDef?.cardBacks?.[currentFace.name]?.width  || null;
     const faceH = currentFace.height || gameDef?.cardBacks?.[currentFace.name]?.height || null;
     return {
       id: i,
-      frontImageUrl: resolveImageUrl(sides[sideA],   gameDef, language),
-      backImageUrl:  resolveImageUrl(sides[backSide], gameDef, language),
+      frontImageUrl:        frontImage.src,
+      frontImageUrlDefault: frontImage.default,
+      backImageUrl:         backImage.src,
+      backImageUrlDefault:  backImage.default,
       frontSide:     sideA,
       backSide,
       angle,

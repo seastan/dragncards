@@ -58,7 +58,8 @@ function parseFrac(val, fallback = 0) {
 // options.zoomFactor      — user zoom setting as a multiplier; default 1.0
 // options.touchMode       — true on a touchscreen: hover-gated affordances become
 //                           tap-driven / always-on (see setTouchMode)
-// options.resolveSideImage — callback(dcCard, sideName) → image url for that side.
+// options.resolveSideImage — callback(dcCard, sideName) → {src, default} image
+//   urls for that side (default = Default-language fallback, may be null).
 //                           Lets the engine repaint a face when a card turns to a
 //                           side other than the two it was created with (A/B).
 export function createDnc3DEngine(options = {}) {
@@ -608,19 +609,37 @@ export function createDnc3DEngine(options = {}) {
     return _visibleFaceEl(card)?._sideName || 'A';
   }
 
+  // Paints a card face with `url`, falling back to `fallbackUrl` if that image
+  // fails to load. Faces are CSS background-images, which have no error event,
+  // so a parallel Image() probe stands in for the 2D engine's <img onError>:
+  // it reuses the same browser fetch, and on failure repaints the face with the
+  // Default-language art. The _imgUrl tag makes the swap a no-op if the face has
+  // since been repainted with something else (e.g. the card flipped).
+  function paintFaceImage(el, url, fallbackUrl) {
+    if (!el) return;
+    el._imgUrl = url || null;
+    if (!url) { el.style.backgroundImage = ''; return; }
+    el.style.backgroundImage = `url(${url})`;
+    el.style.backgroundSize  = '100% 100%';
+    if (!fallbackUrl || fallbackUrl === url) return;
+    const probe = new Image();
+    probe.onerror = () => {
+      if (el._imgUrl !== url) return;
+      el._imgUrl = fallbackUrl;
+      el.style.backgroundImage = `url(${fallbackUrl})`;
+      el.style.backgroundSize  = '100% 100%';
+    };
+    probe.src = url;
+  }
+
   // Paints the away-facing element with `sideName`'s art, so that turning the card
   // over reveals that side. No-op when it already holds that side.
   function _setHiddenFaceSide(card, dcCard, sideName) {
     const el = _hiddenFaceEl(card);
     if (!el || el._sideName === sideName) return;
     el._sideName = sideName;
-    const url = resolveSideImage ? resolveSideImage(dcCard, sideName) : null;
-    if (url) {
-      el.style.backgroundImage = `url(${url})`;
-      el.style.backgroundSize  = '100% 100%';
-    } else {
-      el.style.backgroundImage = '';
-    }
+    const image = resolveSideImage ? resolveSideImage(dcCard, sideName) : null;
+    paintFaceImage(el, image?.src, image?.default);
   }
 
   // ── Browse API ─────────────────────────────────────────────────────────────
@@ -1029,10 +1048,12 @@ export function createDnc3DEngine(options = {}) {
   }
 
   // ── Card creation ──────────────────────────────────────────────────────────
-  // cardInfo: { id, frontImageUrl?, backImageUrl?, frontSide?, backSide?, angle?,
+  // cardInfo: { id, frontImageUrl?, frontImageUrlDefault?, backImageUrl?,
+  //             backImageUrlDefault?, frontSide?, backSide?, angle?,
   //             faceW?, faceH?, borderColor?, hasAbility? }
   function createCard(tiltEl, cardInfo) {
-    const { id: i, frontImageUrl, backImageUrl, frontSide = 'A', backSide = 'B',
+    const { id: i, frontImageUrl, frontImageUrlDefault = null,
+            backImageUrl, backImageUrlDefault = null, frontSide = 'A', backSide = 'B',
             angle = 0, faceW = null, faceH = null, borderColor = null, hasAbility = false } = cardInfo;
     const color = COLORS[i % COLORS.length];
 
@@ -1057,8 +1078,7 @@ export function createDnc3DEngine(options = {}) {
     // hidden face is repainted before each flip (see setHiddenFaceSide).
     front._sideName = frontSide;
     if (frontImageUrl) {
-      front.style.backgroundImage = `url(${frontImageUrl})`;
-      front.style.backgroundSize  = '100% 100%';
+      paintFaceImage(front, frontImageUrl, frontImageUrlDefault);
     } else {
       front.style.backgroundColor = color;
     }
@@ -1067,8 +1087,7 @@ export function createDnc3DEngine(options = {}) {
     back.className = 'dnc3d-card-face dnc3d-card-back';
     back._sideName = backSide;
     if (backImageUrl) {
-      back.style.backgroundImage = `url(${backImageUrl})`;
-      back.style.backgroundSize  = '100% 100%';
+      paintFaceImage(back, backImageUrl, backImageUrlDefault);
     }
 
     // borderColor halo host. Painted FIRST (behind the faces) so its outer glow

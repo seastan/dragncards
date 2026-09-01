@@ -6,7 +6,7 @@ import store from '../../store';
 import { createDnc3DEngine } from './lib/engine';
 import { playShuffleSound } from './lib/sound';
 import { adaptRegions, gameL10n } from './adapters/regions';
-import { adaptGameState, resolveImageUrl } from './adapters/cards';
+import { adaptGameState, resolveFaceImage } from './adapters/cards';
 import { buildEngineCallbacks } from './adapters/actions';
 import { useBrowseTopN } from '../engine/hooks/useBrowseTopN';
 import { useTouchAction } from '../engine/hooks/useTouchAction';
@@ -245,7 +245,7 @@ export default function Dnc3DTable({
         // Lets the engine repaint a card face when a card turns to a side it
         // wasn't created with — cards with more than two sides (A/B/C/...).
         resolveSideImage: (dcCard, sideName) =>
-          resolveImageUrl(dcCard?.sides?.[sideName], gameDefRef.current, languageRef.current),
+          resolveFaceImage(dcCard?.sides?.[sideName], gameDefRef.current, languageRef.current),
         onCardClick:    (engineId, clientX, clientY) => {
           const dcId = reverseIdMap.get(engineId);
           if (dcId == null) return;
