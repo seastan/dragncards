@@ -1,4 +1,5 @@
 import React, { useCallback, useState, useEffect, useRef, useContext } from "react";
+import { RotatingLines } from "react-loader-spinner";
 import { useSelector, useDispatch } from 'react-redux';
 import { useHistory } from "react-router-dom";
 import SocketContext from "../../contexts/SocketContext";
@@ -16,6 +17,10 @@ import { useSendLocalMessage } from "./hooks/useSendLocalMessage";
 import { validateSchema } from "../myplugins/validate/validateGameDef";
 import { useIsPluginAuthor } from "./hooks/isPluginAuthor";
 import { usePlayerN } from "./hooks/usePlayerN";
+
+// How long to wait for the room's first current_state before offering a way out.
+// Generous: a cold backend plus a large game state can legitimately take a while.
+const ROOM_STATE_TIMEOUT_MS = 15000;
 
 export const Room = ({ slug }) => {
   const dispatch = useDispatch();
@@ -51,6 +56,23 @@ export const Room = ({ slug }) => {
     setUnavailableReason(null);
     dispatch(setRoomNotFound(false));
   }, [slug, dispatch]);
+
+  // The room only renders once the server's current_state has landed and put this
+  // slug in the store. That can simply never happen - a dropped socket, a join
+  // that errored, a backend that never answers - and until this the component
+  // rendered an empty div for as long as you cared to wait, which is
+  // indistinguishable from a broken page. Show that we are waiting, and after a
+  // while offer a retry.
+  const roomStateReady = roomSlug === slug;
+  const [roomStateTimedOut, setRoomStateTimedOut] = useState(false);
+  useEffect(() => {
+    if (roomStateReady) {
+      setRoomStateTimedOut(false);
+      return;
+    }
+    const timer = setTimeout(() => setRoomStateTimedOut(true), ROOM_STATE_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [roomStateReady, slug, joinRetryKey]);
 
   // The app's socket is long-lived and can stay pinned to a backend instance that
   // no longer knows about this room (e.g. it was created on a different instance
@@ -268,7 +290,60 @@ export const Room = ({ slug }) => {
       </div>
     </div>
   );
-  if (roomSlug !== slug) return (<div></div>);
+  // Rejoining the channel is not enough on its own, which is why reloading the
+  // page used to be the only thing that worked. The backend evaluates auth once
+  // per socket *connection* (user_socket.ex connect/3) and latches auth_failed
+  // onto the socket; every channel joined over it then takes the auth_failed
+  // branch of after_join and is never sent current_state. A socket whose
+  // transport has quietly gone away delivers nothing either. Neither is
+  // reachable by leaving and re-joining a channel on that same socket - only a
+  // fresh connection re-runs connect/3. So bounce the socket first and rejoin on
+  // the new one, the same move handleRoomUnavailable makes.
+  const handleRetryJoin = () => {
+    setRoomStateTimedOut(false);
+    // Re-arm handleRoomUnavailable's own one-shot reconnect as well, in case
+    // this room is stranded on an old backend instance.
+    retriedForSlugRef.current = null;
+    if (socket != null) {
+      socket.disconnect(() => {
+        socket.connect();
+        setJoinRetryKey((k) => k + 1);
+      });
+    } else {
+      setJoinRetryKey((k) => k + 1);
+    }
+  };
+
+  if (!roomStateReady) return (
+    <div className="text-white flex flex-col items-center justify-center h-screen p-4">
+      {roomStateTimedOut ? (
+        <div className="bg-gray-700 rounded-lg p-6 max-w-md text-center">
+          <h2 className="text-xl font-bold mb-3">Still waiting for this room</h2>
+          <p className="text-gray-300 mb-4">
+            The room's state hasn't arrived yet. The connection may have dropped, or
+            the server may not have answered. You can try joining again.
+          </p>
+          <button
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mr-2"
+            onClick={handleRetryJoin}
+          >
+            Try again
+          </button>
+          <button
+            className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded"
+            onClick={() => history.push("/lobby")}
+          >
+            Go to lobby
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center gap-4">
+          <RotatingLines height={100} width={100} strokeColor="white" />
+          <div className="text-gray-300 text-sm">Connecting to room...</div>
+        </div>
+      )}
+    </div>
+  );
   else {
     return (
       <PluginProvider>
