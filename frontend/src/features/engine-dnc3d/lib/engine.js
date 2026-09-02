@@ -3175,7 +3175,14 @@ export function createDnc3DEngine(options = {}) {
     // and hidden. reconcile reveals them if/when they move into a rendered region.
     cards.forEach(c => { if (c && !c.regionId) c.liftEl.style.display = 'none'; });
 
-    Object.keys(sentinelEls).forEach(updateSentinel);
+    // Initial placement above lays regions out through layoutRow/layoutFan/
+    // layoutPile directly (instant, no animation), which bypasses layoutRegion
+    // and therefore the after-layout hook — so sync the scroll sentinels AND the
+    // overflow chevrons here. Without the chevron pass a re-init that lands with
+    // an already-overflowing region (e.g. changing seats loads a different
+    // player's layout) would show no scroll arrows until something else laid the
+    // region out again.
+    Object.keys(sentinelEls).forEach(id => { updateSentinel(id); updateScrollArrows(id); });
 
     // Apply the two "always show" user settings to the freshly-built region DOM.
     applyAlwaysIcons();
@@ -3199,6 +3206,7 @@ export function createDnc3DEngine(options = {}) {
       });
       Object.keys(scrollOuterEls).forEach(k => delete scrollOuterEls[k]);
       Object.keys(sentinelEls).forEach(k => delete sentinelEls[k]);
+      Object.keys(arrowEls).forEach(k => delete arrowEls[k]);
       _attachTargetIconEl = null;
       Object.keys(regionOutlineEls).forEach(k => delete regionOutlineEls[k]);
       Object.keys(regionIconEls).forEach(k => delete regionIconEls[k]);
