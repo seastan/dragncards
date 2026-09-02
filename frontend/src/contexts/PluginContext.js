@@ -3,31 +3,40 @@ import { RotatingLines } from 'react-loader-spinner';
 import { useSelector } from 'react-redux';
 import useDataApi from '../hooks/useDataApi';
 import pako from 'pako';
+import { readPluginCache, writePluginCache, purgeLegacyPluginCache } from './pluginCache';
 
 
 export const PluginContext = createContext();
 
-export const decompressPluginData = (data) => {
-  // Step 1: Decode the Base64 string
-  console.log('decompressPluginData', data)
+// The wire format is base64(gzip(json)). Decoding is split from inflating so the
+// gzip bytes can be handed straight to the cache without a second pass, and so a
+// cache hit skips base64 entirely - it stores the bytes, not the encoding.
+export const base64ToBytes = (data) => {
   try {
-    const decodedData = atob(data);
-    
-    // Step 2: Convert the decoded string to Uint8Array
-    const charData = decodedData.split('').map((x) => x.charCodeAt(0));
-    const binData = new Uint8Array(charData);
-    
-    // Step 3: Decompress the data using pako
-    const decompressedData = pako.inflate(binData, { to: 'string' });
-    
-    // Step 4: Parse JSON
-    const pluginData = JSON.parse(decompressedData);
+    const binary = atob(data);
+    // Indexed fill rather than split('').map(): on a payload of this size the
+    // latter builds two multi-million-element intermediate arrays.
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  } catch (e) {
+    console.warn('Failed to decode plugin data:', e);
+    return null;
+  }
+}
 
-    return pluginData;
+export const inflatePluginBytes = (bytes) => {
+  try {
+    return JSON.parse(pako.inflate(bytes, { to: 'string' }));
   } catch (e) {
     console.warn('Failed to decompress plugin data:', e);
     return null;
   }
+}
+
+export const decompressPluginData = (data) => {
+  const bytes = base64ToBytes(data);
+  return bytes ? inflatePluginBytes(bytes) : null;
 }
 
 
@@ -66,31 +75,37 @@ export const PluginProvider = ({ children }) => {
     return () => clearInterval(tipTimerRef.current);
   }, []);
 
+  // One-time cleanup of the old localStorage cache this replaced.
+  useEffect(() => { purgeLegacyPluginCache(); }, []);
+
   useEffect(() => {
-    const compressedData = localStorage.getItem(`pluginData_${pluginId}`);
-    if (compressedData) {
-      const pluginData = decompressPluginData(compressedData);
-      if (pluginData?.version === pluginVersion) {
-        setPlugin(pluginData);
-        setRetrievedFromStorage(true); // Set the flag
-        console.log('Retrieved data from localStorage');
-        return;
+    let cancelled = false;
+    (async () => {
+      const bytes = await readPluginCache(pluginId);
+      if (cancelled) return;
+      if (bytes) {
+        const pluginData = inflatePluginBytes(bytes);
+        if (pluginData?.version === pluginVersion) {
+          setPlugin(pluginData);
+          setRetrievedFromStorage(true); // Set the flag
+          console.log('Retrieved plugin data from cache');
+          return;
+        }
       }
-    }
-    doFetchHash((new Date()).toISOString());
+      if (!cancelled) doFetchHash((new Date()).toISOString());
+    })();
+    return () => { cancelled = true; };
   }, [pluginId, pluginVersion]);
 
   useEffect(() => {
     if (data) {//} && !retrievedFromStorage) {  // Check the flag before writing
-      try {
-        const pluginData = decompressPluginData(data);
-        console.log('pluginData', pluginData);
-        setPlugin(pluginData);
-
-        localStorage.setItem(`pluginData_${pluginId}`, data);
-      } catch (e) {
-        console.warn('Failed to save data in localStorage:', e);
-      }
+      const bytes = base64ToBytes(data);
+      const pluginData = bytes ? inflatePluginBytes(bytes) : null;
+      console.log('pluginData', pluginData);
+      setPlugin(pluginData);
+      // Caching is best-effort and deliberately runs after setPlugin, so a
+      // storage failure can never stop the plugin from loading.
+      if (bytes) writePluginCache(pluginId, bytes);
     }
     setRetrievedFromStorage(false);  // Reset the flag for the next round
   }, [data, pluginId, pluginVersion]);
