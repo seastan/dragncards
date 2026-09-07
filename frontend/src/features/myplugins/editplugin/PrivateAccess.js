@@ -18,9 +18,6 @@ const PrivateAccess = ({pluginId}) => {
     null
   );
 
-  console.log('Rendering AutocompleteInput', pluginId, data, isLoading, isError, doFetchUrl, doFetchHash, setData)
-
-
   // User alias list (keys from data object)
   const allUsers = data?.data; // ? Object.keys(data?.data) : [];
 
@@ -32,7 +29,17 @@ const PrivateAccess = ({pluginId}) => {
     setAllUserPermissionData(data?.data);
   }, [isLoading]);
 
-  if (data?.data === null || isLoading) return <div>Loading...</div>;
+  if (isError) return (
+    <div className="alert alert-danger text-sm p-2 px-3">
+      Unable to load the user list.
+    </div>
+  );
+
+  if (data?.data === null || isLoading) return (
+    <div className="h-12 flex items-center px-3 rounded border border-gray-600 bg-gray-800 text-sm text-gray-400">
+      Loading...
+    </div>
+  );
 
   const updateSuggestions = (value) => {
     if (value) {
@@ -72,29 +79,41 @@ const PrivateAccess = ({pluginId}) => {
     }
   };
 
+  const sharedUsers = Object.keys(allUserPermissionData).filter(
+    (user) => allUserPermissionData[user]["private_access"] === true
+  );
+
   return (
-    <div>
-      <div className="flex flex-wrap">
-        {Object.keys(allUserPermissionData).map((user, index) => (
-          allUserPermissionData[user]["private_access"] === true && <UserTag key={index} onRemove={() => removeUser(user)}>
-            {user}
-          </UserTag>
-        ))}
-        {/* {selectedUsers.map((user, index) => (
+    <div className="relative">
+      <div className="flex flex-wrap items-center gap-2 p-2 rounded border border-gray-600 bg-gray-800 focus-within:border-blue-500">
+        {sharedUsers.map((user, index) => (
           <UserTag key={index} onRemove={() => removeUser(user)}>
             {user}
           </UserTag>
-        ))} */}
-        
+        ))}
+
         <AutocompleteInput inputValue={inputValue} setInputValue={setInputValue} updateSuggestions={updateSuggestions}/>
       </div>
-      <div className='mt-1'>
-        {suggestions.map((suggestion, index) => (
-          <AutocompleteItem key={index} onClick={() => addUser(suggestion)}>
-            {suggestion}
-          </AutocompleteItem>
-        ))}
-      </div>
+
+      {suggestions.length > 0 && (
+        <div className="absolute left-0 right-0 mt-1 z-10 rounded border border-gray-600 bg-gray-800 shadow-lg overflow-y-auto" style={{maxHeight: '12rem'}}>
+          {suggestions.map((suggestion, index) => (
+            <AutocompleteItem key={index} onClick={() => addUser(suggestion)}>
+              {suggestion}
+            </AutocompleteItem>
+          ))}
+        </div>
+      )}
+
+      {suggestions.length === 0 && (
+        <div className="mt-2 text-xs text-gray-400">
+          {inputValue
+            ? `No users found matching "${inputValue}".`
+            : sharedUsers.length === 0
+              ? "No users have access yet."
+              : `${sharedUsers.length} user${sharedUsers.length === 1 ? "" : "s"} have access.`}
+        </div>
+      )}
     </div>
   );
 };

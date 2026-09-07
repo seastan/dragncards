@@ -10,7 +10,8 @@ const AutocompleteInput = ({inputValue, setInputValue, updateSuggestions}) => {
         setInputValue(e.target.value);
         updateSuggestions(e.target.value);
       }}
-      className="border p-1 my-1 rounded"
+      style={{minWidth: '8rem'}}
+      className="flex-1 h-7 bg-transparent border-none text-white text-sm placeholder-gray-400 outline-none focus:outline-none"
     />
   )
 }
