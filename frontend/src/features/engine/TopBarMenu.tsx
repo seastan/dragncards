@@ -274,8 +274,13 @@ export const TopBarMenu = React.memo(() => {
     gameBroadcast("send_alert", { message: `${user.alias} downloaded the replay.` });
   };
 
+  // Auto-import the deck a room was created from (a RingsDB/MarvelCDB link on the
+  // new-room form). The externalData is the room creator's single deck, so only
+  // the host runs this: without that gate every other client in the room whose
+  // playerUi flag is still false would import the same deck into their own seat
+  // the moment game.autoLoadedDecks goes falsy.
   useEffect(() => {
-    if (autoLoadedDecksGame !== true && autoLoadedDecksPlayer !== true && gameOptions?.externalData) {
+    if (isHost && autoLoadedDecksGame !== true && autoLoadedDecksPlayer !== true && gameOptions?.externalData) {
       const externalData = gameOptions.externalData;
       const domain = externalData.domain;
       const type = externalData.type;
@@ -290,7 +295,9 @@ export const TopBarMenu = React.memo(() => {
         loadMarvelCdb(importLoadList, doActionList, playerN, "marvelcdb", type, id, cardDb);
       }
     }
-  }, [autoLoadedDecksGame]);
+    // isHost is a dep so a profile that resolves after this mounts still lets the
+    // host's import run; the flag guards above keep the re-run a no-op otherwise.
+  }, [autoLoadedDecksGame, isHost]);
 
   return (
     <>

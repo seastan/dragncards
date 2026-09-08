@@ -284,6 +284,12 @@ defmodule DragnCardsGame.GameUIServer do
 
     new_game = Evaluate.evaluate(new_game, ["SET_LAYOUT", "shared", layout_id], ["reset_and_reload", "set_layout"])
 
+    # A room created from an external deck link (RingsDB, MarvelCDB, ...) imports
+    # that deck once on the client and records the import in loadCardsHistory,
+    # which we replay below. Carry the "already imported" flag across the reset so
+    # no client re-runs its auto-import and spawns a second copy of the deck.
+    new_game = put_in(new_game["autoLoadedDecks"], gameui["game"]["autoLoadedDecks"])
+
     # Loop over gameui["game"]["options"]["loadCardsHistory"]
     new_game=
       Enum.reduce(load_list_history, new_game, fn (load_list_history_item, acc) ->

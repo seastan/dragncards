@@ -32,6 +32,15 @@ import './Dnc3DTable.css';
 // is on; null when off so the shared Token component renders unchanged.
 const TOKEN_EXTRUDE_CSS = TOKEN_EXTRUDE ? `url(#${TOKEN_EXTRUDE_FILTER_ID})` : null;
 
+// Membership comparison for the card-set identity check below. Order is not
+// significant: cardById arrives as JSON from the backend, whose key order is
+// not guaranteed stable across updates.
+function sameCardSet(prevSet, nextIds) {
+  if (!prevSet || prevSet.size !== nextIds.length) return false;
+  for (const id of nextIds) if (!prevSet.has(id)) return false;
+  return true;
+}
+
 function CardTokens({ cardId, aspectRatio }) {
   const isActive = useSelector(s => s?.playerUi?.activeCardId === cardId);
   // The token host hangs off liftEl, which never carries the card's rotateZ
@@ -178,12 +187,26 @@ export default function Dnc3DTable({
 
   // Re-initialize the engine whenever the card set changes.
   // This handles: switching to dnc3d after cards are loaded, and loading a
-  // deck while already in dnc3d mode. cardCount is a stable numeric dep that
+  // deck while already in dnc3d mode. cardSetVersion is a stable counter that
   // only changes on deck load — not on every card state update.
-  const cardCount = Object.keys(game?.cardById || {}).length;
+  //
+  // It has to track the card *identity*, not just the count: "reset decks"
+  // replaces every card with a freshly generated id while the count usually
+  // stays identical, so a count-only dep left the engine holding an idMap
+  // keyed by cards that no longer exist — reconcile matched nothing and the
+  // table sat frozen until the browser was refreshed.
+  const cardIds = Object.keys(game?.cardById || {});
+  const cardSetRef = useRef({ ids: null, version: 0 });
+  if (!sameCardSet(cardSetRef.current.ids, cardIds)) {
+    cardSetRef.current = {
+      ids: new Set(cardIds),
+      version: cardSetRef.current.version + 1,
+    };
+  }
+  const cardSetVersion = cardSetRef.current.version;
 
   // Re-initialize when the visible region set / geometry changes too. Toggling
-  // an overlay region on doesn't change cardCount (game.cardById holds every
+  // an overlay region on doesn't change the card set (game.cardById holds every
   // card regardless of which regions are visible), and the engine only builds
   // DOM + cards for groups that have a visible region — so without this the
   // newly-toggled region (and its cards) would never appear. The key captures
@@ -432,7 +455,7 @@ export default function Dnc3DTable({
       window.removeEventListener('resize', handleResize);
       engineRef.current = null;
     };
-  }, [cardCount, regionsKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cardSetVersion, regionsKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Open / close browse region in the engine ───────────────────────────────
   // Declared BEFORE the reconcile effect so that on a tick where browse opens
@@ -453,7 +476,7 @@ export default function Dnc3DTable({
 
   // ── Reconcile engine state with Redux on every game change ─────────────────
   // Handles rotation, flip, and position updates without a full re-init.
-  // Card-set changes (deck load) are handled by the cardCount effect above.
+  // Card-set changes (deck load) are handled by the cardSetVersion effect above.
   useEffect(() => {
     const engine = engineRef.current;
     if (!engine || !game || !idMapRef.current) return;
