@@ -40,6 +40,16 @@ defmodule DragnCardsWeb.Router do
     post("/plugin-repo-update", PluginRepoUpdateController, :update)
   end
 
+  # My plugins: every action is author-only, so require a session up front
+  # rather than relying on each controller action to check. Kept ahead of the
+  # scope below so /myplugins/:id keeps matching before /myplugins/plugin_builder,
+  # as it did before.
+  scope "/api", DragnCardsWeb do
+    pipe_through([:api, :api_protected])
+
+    resources("/myplugins", MyPluginsController)
+  end
+
   scope "/api", DragnCardsWeb do
     pipe_through(:api)
 
@@ -48,8 +58,6 @@ defmodule DragnCardsWeb.Router do
 
     get("/patreon/:code", PatreonController, :patreon_callback)
 
-    # My plugins
-    resources("/myplugins", MyPluginsController)
     # My plugins
     resources("/myplugins/plugin_builder", PluginBuilderController)
     resources("/myplugins/layout_generator", LayoutGeneratorController)

@@ -31,8 +31,18 @@ const MyPluginEntry = ({plugin, setSelectedPlugin, setShowEditModal, setShowShar
   const handleDeleteClick = async () => {
     const conf = window.confirm(siteL10n(`This will delete ${plugin.name} and all decks built by users for this plugin. Are you sure?`));
     if (conf) {
-      const res = await axios.delete("/be/api/myplugins/"+plugin.id, authOptions);
-      if (res.status === 200) doFetchHash((new Date()).toISOString());
+      try {
+        const res = await axios.delete("/be/api/myplugins/"+plugin.id, authOptions);
+        if (res.status === 200) doFetchHash((new Date()).toISOString());
+      } catch (err) {
+        // Only the author may delete a plugin; the backend answers 403
+        // otherwise and axios rejects on any non-2xx.
+        console.log("Error deleting plugin", err);
+        const status = err?.response?.status;
+        if (status === 403) window.alert(siteL10n("You are not the author of this plugin, so you cannot delete it."));
+        else if (status === 401) window.alert(siteL10n("You are not signed in. Please sign in and try again."));
+        else window.alert(siteL10n("Failed to delete plugin."));
+      }
     }
   };
 

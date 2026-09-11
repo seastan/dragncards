@@ -18,6 +18,14 @@ import JSZip from 'jszip';
 ReactModal.setAppElement("#root");
 
 
+const pluginSaveErrorMessage = (err) => {
+  const status = err?.response?.status;
+  if (status === 401) return "You are not signed in. Please sign in and try again.";
+  if (status === 403) return "You are not the author of this plugin, so you cannot edit it.";
+  const serverMessage = err?.response?.data?.error?.message || err?.response?.data?.error;
+  return typeof serverMessage === "string" ? serverMessage : "Error.";
+};
+
 export const EditPluginModal = ({ plugin, closeModal, doFetchHash}) => {
   console.log("Rendering EditPluginModal", plugin)
   const user = useProfile();
@@ -89,53 +97,62 @@ export const EditPluginModal = ({ plugin, closeModal, doFetchHash}) => {
 
     var res;
 
-    
-    if (plugin === null) {
-      // Create new plugin
-      const updateData = {
-        plugin: {
-          name: inputs.gameDef.pluginName,
-          author_id: user?.id,
-          game_def: inputs.gameDef,
-          card_db: inputs.cardDb,
-          repo_url: inputs.repoUrl,
-          public: inputs.public || false,
-          version: 1,
+    try {
+      if (plugin === null) {
+        // Create new plugin
+        const updateData = {
+          plugin: {
+            name: inputs.gameDef.pluginName,
+            author_id: user?.id,
+            game_def: inputs.gameDef,
+            card_db: inputs.cardDb,
+            repo_url: inputs.repoUrl,
+            public: inputs.public || false,
+            version: 1,
+          }
         }
-      }
-      res = await axios.post("/be/api/myplugins", updateData, authOptions);
-    } else {
-      // Update existing plugin
-      const newPlugin = {
-        id: plugin.id,
-        version: plugin.version + 1,
-        repo_url: inputs.repoUrl,
-        public: inputs.public,
-      }
-      if (inputs.gameDef) newPlugin.game_def = inputs.gameDef;
-      if (inputs.gameDef?.pluginName) newPlugin.name = inputs.gameDef.pluginName;
-      if (inputs.cardDb) newPlugin.card_db = inputs.cardDb;
+        res = await axios.post("/be/api/myplugins", updateData, authOptions);
+      } else {
+        // Update existing plugin
+        const newPlugin = {
+          id: plugin.id,
+          version: plugin.version + 1,
+          repo_url: inputs.repoUrl,
+          public: inputs.public,
+        }
+        if (inputs.gameDef) newPlugin.game_def = inputs.gameDef;
+        if (inputs.gameDef?.pluginName) newPlugin.name = inputs.gameDef.pluginName;
+        if (inputs.cardDb) newPlugin.card_db = inputs.cardDb;
 
-      const updateData = {
-        plugin: newPlugin
-      };
-      res = await axios.patch("/be/api/myplugins/"+plugin.id, updateData, authOptions);
-    }
+        const updateData = {
+          plugin: newPlugin
+        };
+        res = await axios.patch("/be/api/myplugins/"+plugin.id, updateData, authOptions);
+      }
 
-    if (
-      res.status === 200
-    ) {
-      console.log("res pluginupdate", res);
-      doFetchHash((new Date()).toISOString());
-      setSuccessMessage("Plugin updated.");
-      setErrorMessage("");
-      setLoadingMessage("");
-      if (createRoomAfter) createRoom(res.data.plugin.id, res.data.plugin.name, res.data.plugin.version);
-      else closeModal();
-    } else {
+      if (
+        res.status === 200
+      ) {
+        console.log("res pluginupdate", res);
+        doFetchHash((new Date()).toISOString());
+        setSuccessMessage("Plugin updated.");
+        setErrorMessage("");
+        setLoadingMessage("");
+        if (createRoomAfter) createRoom(res.data.plugin.id, res.data.plugin.name, res.data.plugin.version);
+        else closeModal();
+      } else {
+        setSuccessMessage("");
+        setErrorMessage("Error."); 
+        setLoadingMessage("");
+      }
+    } catch (err) {
+      // The backend rejects edits to plugins you don't own (403) and
+      // unauthenticated requests (401); axios rejects on any non-2xx, so
+      // without this the modal would sit on "Please wait..." forever.
+      console.log("Error saving plugin", err);
       setSuccessMessage("");
-      setErrorMessage("Error."); 
       setLoadingMessage("");
+      setErrorMessage(pluginSaveErrorMessage(err));
     }
   });
 
