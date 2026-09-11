@@ -77,6 +77,15 @@ config :dragncards, :env_mode, :dev
 config :phoenix, :stacktrace_depth, 20
 
 # Initialize plugs at runtime for faster development compilation
+# Plugin image hosting. In dev the files are served by Plug.Static straight from
+# the app (see endpoint.ex); in prod nginx serves them off the upload volume.
+config :dragncards, :uploads,
+  enabled: true,
+  root: Path.expand("../priv/uploads_dev", __DIR__),
+  public_base_url: "http://localhost:4000/uploads",
+  serve_locally: true,
+  free_space_floor_bytes: 100_000_000
+
 config :phoenix, :plug_init_mode, :runtime
 
 if File.exists?("config/dev.secret.exs") do

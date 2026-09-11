@@ -30,6 +30,35 @@
 #
 #   # 4. Test and reload nginx
 #   sudo nginx -t && sudo nginx -s reload
+#
+#   # 5. Plugin image hosting: provision the upload volume.
+#   #    The mount point differs per host:
+#   #      beta.dragncards.com -> /mnt/beta_uploads
+#   #      dragncards.com      -> /mnt/uploads
+#   UPLOADS=/mnt/uploads            # or /mnt/beta_uploads on beta
+#   sudo mkdir -p $UPLOADS/{u,tmp,quarantine,plug_tmp}
+#   sudo chown -R dragncards:dragncards $UPLOADS
+#   sudo chmod 755 $UPLOADS
+#   # nginx must be able to traverse and read the tree:
+#   sudo usermod -aG dragncards www-data && sudo systemctl reload nginx
+#   # fstab entry for the volume (noexec/nosuid/nodev: it holds user uploads):
+#   #   UUID=...  /mnt/uploads  ext4  defaults,nosuid,nodev,noexec  0 2
+#
+#   # 6. Point the app at it. BOTH vars are required; if either is missing,
+#   #    image hosting stays disabled rather than guessing a path or hostname.
+#   #    Add to BOTH systemd units (dragncards.service and dragncards-4001.service):
+#   #
+#   #      [Service]
+#   #      Environment=UPLOADS_ROOT=/mnt/uploads
+#   #      Environment=UPLOADS_PUBLIC_BASE_URL=https://dragncards.com/uploads
+#   #      Environment=PLUG_TMPDIR=/mnt/uploads/plug_tmp
+#   #      ReadWritePaths=/mnt/uploads
+#   #
+#   #    PLUG_TMPDIR matters: Plug.Upload buffers multipart bodies to /tmp on the
+#   #    root filesystem by default, and 64MB batches from concurrent users will
+#   #    fill it. Keeping it on the upload volume also makes the final rename(2)
+#   #    atomic instead of a cross-device copy.
+#   sudo systemctl daemon-reload
 # ============================================================
 
 set -euo pipefail

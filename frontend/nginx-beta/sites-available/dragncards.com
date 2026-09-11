@@ -10,6 +10,61 @@ server {
   server_name beta.dragncards.com www.beta.dragncards.com;
   client_max_body_size 16M;
 
+
+  # ---- User-uploaded plugin images --------------------------------------
+  # Served straight off the upload volume (/mnt/beta_uploads).
+  # Everything under it is a backend-written .webp; anything else 404s, so a
+  # stray file can never become same-origin active content (an .svg or .html
+  # here would be stored XSS against this domain).
+  #
+  # The regex uses a named capture + alias because the on-disk directory name
+  # does not always match the URL segment (beta uses /mnt/beta_uploads).
+  # The (?!.*\.\.) lookahead blocks traversal; nginx also normalises the URI
+  # before matching, so this is belt-and-braces.
+  location ~* "^/uploads/(?<upload_path>(?!.*\.\.).+\.webp)$" {
+      alias /mnt/beta_uploads/$upload_path;
+      autoindex off;
+      disable_symlinks if_not_owner from=/mnt/beta_uploads;
+      access_log off;
+
+      types { image/webp webp; }
+      default_type image/webp;
+
+      # NOT immutable: authors re-upload over the same path to fix an image.
+      # One day plus ETag revalidation means a stale card face self-heals
+      # within 24h while repeat loads stay cheap 304s.
+      # Set via add_header rather than `expires 1d`, because using both emits
+      # two Cache-Control headers. nginx still generates the ETag.
+      add_header Cache-Control "public, max-age=86400" always;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header Access-Control-Allow-Origin "*" always;
+
+      gzip off;                 # webp is already compressed
+      sendfile on;
+      tcp_nopush on;
+      open_file_cache max=20000 inactive=120s;
+      open_file_cache_valid 60s;
+      open_file_cache_min_uses 2;
+      open_file_cache_errors on;
+  }
+
+  # Anything under /uploads/ that is not a .webp. Deliberately NOT ^~, because
+  # ^~ would stop nginx evaluating the regex location above and every image
+  # would 404.
+  location /uploads/ {
+      return 404;
+  }
+
+  # Image uploads need a larger body than the 16M server default. Scoped to this
+  # one endpoint rather than raising client_max_body_size site-wide.
+  location ^~ /be/api/v1/images/ {
+      client_max_body_size 64M;
+      client_body_timeout  120s;
+      proxy_read_timeout   120s;
+      rewrite ^/be/(.*)$ /$1 break;
+      try_files $uri @proxy;
+  }
+
   # Handle the API endpoint directly
   location /api/plugin-repo-update {
     proxy_pass http://phoenix;

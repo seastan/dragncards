@@ -45,3 +45,6 @@ npm-debug.log
 # language server
 .elixir_ls
 
+
+# Local dev image uploads
+/priv/uploads_dev/
