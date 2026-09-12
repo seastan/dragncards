@@ -15,6 +15,32 @@ defmodule DragnCardsWeb.Endpoint do
     gzip: false,
     only: ~w(css fonts images js favicon.ico robots.txt)
 
+  # Dev-only equivalent of the nginx /uploads/ block. In production nginx serves
+  # the upload volume directly and this never runs, so dev and prod differ only
+  # in who reads the file off disk.
+  #
+  # only: ~w(u) restricts this to /uploads/u/..., leaving tmp/ and quarantine/
+  # unreachable even in dev. Options are read at runtime because dev.exs sets
+  # plug_init_mode: :runtime, which avoids an Application.compile_env conflict
+  # with the same keys being set at boot by config/runtime.exs in production.
+  if Application.compile_env(:dragncards, [:uploads, :serve_locally], false) do
+    plug Plug.Static,
+      at: "/uploads",
+      from: {DragnCardsWeb.Endpoint, :uploads_root, []},
+      gzip: false,
+      only: ~w(u),
+      cache_control_for_etags: "public, max-age=86400",
+      headers: %{
+        "access-control-allow-origin" => "*",
+        "x-content-type-options" => "nosniff"
+      }
+  end
+
+  @doc false
+  def uploads_root do
+    :dragncards |> Application.get_env(:uploads, []) |> Keyword.get(:root) || "priv/uploads_dev"
+  end
+
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
   if code_reloading? do

@@ -86,9 +86,22 @@ defmodule DragnCards.Users do
       # Nullify room log references
       Repo.update_all(from(r in "room_log", where: r.creator_id == ^user_id), set: [creator_id: nil])
 
-      # Delete the user
+      # Delete the user. user_images and user_image_quota cascade from the FK.
       Repo.delete!(user)
     end)
+    |> case do
+      {:ok, _} = ok ->
+        # The FK cascade removes the rows but would leave the files on the
+        # upload volume forever. Done after the transaction commits: never do
+        # irreversible filesystem work inside one.
+        user_id |> DragnCards.Images.Paths.user_root() |> File.rm_rf()
+        user_id |> DragnCards.Images.Paths.quarantine_dir() |> File.rm_rf()
+        user_id |> DragnCards.Images.Paths.tmp_dir() |> File.rm_rf()
+        ok
+
+      error ->
+        error
+    end
   end
 
   def get_replay_save_permission(user_id) do

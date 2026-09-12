@@ -76,6 +76,21 @@ defmodule DragnCardsWeb.Router do
     get("/plugins", PluginsController, :index)
   end
 
+  # Plugin image hosting. Every action mutates or exposes quota-bearing state,
+  # so authentication is required up front by the pipeline rather than checked
+  # action by action.
+  scope "/api/v1", DragnCardsWeb.API.V1, as: :api_v1 do
+    pipe_through([:api, :api_protected])
+
+    get("/images/tree", ImagesController, :tree)
+    get("/images/quota", ImagesController, :quota)
+    get("/images", ImagesController, :index)
+    post("/images/upload", ImagesController, :upload)
+    post("/images/delete", ImagesController, :delete_batch)
+    post("/images/move", ImagesController, :move)
+    delete("/images/:id", ImagesController, :delete)
+  end
+
   scope "/api/v1", DragnCardsWeb.API.V1, as: :api_v1 do
     pipe_through(:api)
 
