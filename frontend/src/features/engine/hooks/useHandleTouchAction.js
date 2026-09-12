@@ -55,11 +55,21 @@ export const useHandleTouchAction = () => {
                     actionList.unshift(["DEFINE", "$ACTIVE_CARD_ID", touchedCard.id]);
                     doActionList(actionList, `Touch action ${touchAction.id} on card ${touchedCard?.sides?.A?.name}`);
                 } else {
-                    const actionList = [...gameDef?.actionLists?.[actionListId]];
-                    if (actionList === null || actionList === undefined) {
+                    // touchAction.actionList may be an id into gameDef.actionLists
+                    // or an inline list; the schema allows both (see
+                    // validateGameDef.js, "actionList" accepts array or string).
+                    // Resolve it the way useDoActionList does: an array already
+                    // IS the action list and is used as-is.
+                    const resolved = Array.isArray(actionListId)
+                        ? actionListId
+                        : gameDef?.actionLists?.[actionListId];
+                    // Checked before spreading: spreading undefined throws, so a
+                    // check placed after the spread could never fire.
+                    if (resolved === null || resolved === undefined) {
                         alert("Action list not found: " + actionListId);
                         return;
                     }
+                    const actionList = [...resolved];
                     // Prepend the actionList with the touched card id
                     actionList.unshift(["DEFINE", "$ACTIVE_CARD_ID", touchedCard.id]);
                     doActionList(actionList, `Touch action ${touchAction.id} on card ${touchedCard?.sides?.A?.name}`);
