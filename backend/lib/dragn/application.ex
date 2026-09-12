@@ -18,6 +18,9 @@ defmodule DragnCards.Application do
       # ChatSupervisor and Process Registry
       {Registry, keys: :unique, name: DragnCardsChat.ChatRegistry},
       DragnCardsChat.ChatSupervisor,
+      # Runs image transcodes off the request process so a hung or crashing
+      # libvips call costs one file rather than the whole request.
+      {Task.Supervisor, name: DragnCards.Images.TaskSupervisor},
       # Room Cleanup
       {Periodic,
        run: &DragnCardsGame.GameRegistry.cleanup/0,

@@ -57,7 +57,17 @@ defmodule DragnCards.MixProject do
       {:poison, "~> 5.0"},
       {:luerl, github: "rvirding/luerl"},
       {:httpoison, "~> 1.8"},
-      {:tz, "~> 0.28"}
+      {:tz, "~> 0.28"},
+      # Image normalization for user-uploaded plugin art. vix is a NIF wrapping
+      # libvips. Used directly rather than via the `image` wrapper, because
+      # image -> color -> plug ~> 1.15 conflicts with the plug 1.13.6 this
+      # Phoenix 1.6 app is pinned to, and we only need five vix calls.
+      #
+      # On OTP 24, `mix deps.get`/`mix compile` needs HEX_CACERTS_PATH set:
+      # vix's downloader calls :public_key.cacerts_get/0, which only exists from
+      # OTP 25, so without it both the precompiled NIF download and the source
+      # fallback fail. See scripts/blue-green-deploy.sh.
+      {:vix, "~> 0.41"}
     ]
   end
 

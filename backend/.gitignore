@@ -48,3 +48,4 @@ npm-debug.log
 
 # Local dev image uploads
 /priv/uploads_dev/
+/priv/uploads_test/

@@ -103,6 +103,27 @@ echo "==> Pulling latest code..."
 
 echo "==> Building backend..."
 cd backend
+
+# vix (libvips, used to normalise uploaded plugin images) downloads a
+# precompiled NIF at build time over TLS. On OTP 24 its downloader calls
+# :public_key.cacerts_get/0, which only exists from OTP 25, so without an
+# explicit CA bundle BOTH the precompiled download and the source fallback fail
+# with a confusing "does not exist or cannot download: :enoent". Harmless to set
+# on newer OTP, so it is unconditional.
+if [ -z "${HEX_CACERTS_PATH:-}" ]; then
+  for ca in /etc/ssl/certs/ca-certificates.crt /etc/pki/tls/certs/ca-bundle.crt; do
+    if [ -f "$ca" ]; then
+      export HEX_CACERTS_PATH="$ca"
+      break
+    fi
+  done
+fi
+if [ -z "${HEX_CACERTS_PATH:-}" ]; then
+  echo "    WARNING: no CA bundle found; vix may fail to fetch its precompiled NIF." >&2
+else
+  echo "    Using HEX_CACERTS_PATH=$HEX_CACERTS_PATH"
+fi
+
 mix deps.get --only prod
 MIX_ENV=prod mix compile
 NODE_ENV=production npm install --prefix ./assets
