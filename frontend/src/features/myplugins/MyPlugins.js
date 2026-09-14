@@ -6,18 +6,19 @@ import axios from "axios";
 import { EditPluginModal } from "./editplugin/EditPluginModal";
 import * as moment from 'moment';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faDownload, faEdit, faShare, faTrash, faUserPlus, faUpload, faWrench, faThLarge, faPlay } from "@fortawesome/free-solid-svg-icons";
+import { faDownload, faEdit, faShare, faTrash, faUserPlus, faUpload, faWrench, faThLarge, faPlay, faImages } from "@fortawesome/free-solid-svg-icons";
 import { useSiteL10n } from "../../hooks/useSiteL10n";
 import useAuth from "../../hooks/useAuth";
 import { useAuthOptions } from "../../hooks/useAuthOptions";
 import { LobbyButton } from "../../components/basic/LobbyButton";
 import SharePluginModal from "./editplugin/SharePluginModal";
+import ImageManagerModal from "./images/ImageManagerModal";
 import { downloadGameDefinitionAsZip } from "./pluginbuilder/DownloadPlugin";
 import Joyride from "react-joyride";
 
 const iconButtonClass = "cursor-pointer hover:bg-white hover:text-black h-full w-full m-2 rounded flex items-center justify-center text-white no-underline select-none"
 
-const MyPluginEntry = ({plugin, setSelectedPlugin, setShowEditModal, setShowShareModal, doFetchHash, index, createRoom}) => {
+const MyPluginEntry = ({plugin, setSelectedPlugin, setShowEditModal, setShowShareModal, setShowImagesModal, doFetchHash, index, createRoom}) => {
   const siteL10n = useSiteL10n();
   const { authToken } = useAuth();
   const authOptions = useMemo(() => ({ headers: { Authorization: authToken }}), [authToken]);
@@ -28,6 +29,7 @@ const MyPluginEntry = ({plugin, setSelectedPlugin, setShowEditModal, setShowShar
   };
 
   const handleEditClick = () => setShowEditModal(true) || setSelectedPlugin(plugin);
+  const handleImagesClick = () => setShowImagesModal(true) || setSelectedPlugin(plugin);
   const handleShareClick = () => setShowShareModal(true) || setSelectedPlugin(plugin);
   const handleDeleteClick = async () => {
     const conf = window.confirm(siteL10n(`This will delete ${plugin.name} and all decks built by users for this plugin. Are you sure?`));
@@ -57,6 +59,11 @@ const MyPluginEntry = ({plugin, setSelectedPlugin, setShowEditModal, setShowShar
       <div className="text-xs">Last update: {moment.utc(plugin.updated_at).local().format("YYYY-MM-DD HH:mm:ss")}</div>
       <div className={plugin.public ? "text-xs text-green-500" : "text-xs text-red-500" }>{plugin.public ? "Public" : "Private"}</div>
 
+      <div className="absolute top-0" style={{height: "30px", width: "30px", right: "135px"}}>
+        <a className={"images-btn " + iconButtonClass} onClick={handleImagesClick} title="Hosted images">
+          <FontAwesomeIcon icon={faImages}/>
+        </a>
+      </div>
       <div className="absolute top-0" style={{height: "30px", width: "30px", right: "105px"}}>
         <a className={"download-btn " + iconButtonClass} onClick={handleDownloadClick}>
           <FontAwesomeIcon icon={faDownload}/>
@@ -96,6 +103,7 @@ export const MyPlugins = () => {
   const location = useLocation();
   const [showEditModal, setShowEditModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showImagesModal, setShowImagesModal] = useState(false);
   const [selectedPlugin, setSelectedPlugin] = useState(null);
   const [_, forceUpdate] = useReducer((x) => x + 1, 0);
   const [roomSlugCreated, setRoomSlugCreated] = useState(null);
@@ -215,6 +223,7 @@ export const MyPlugins = () => {
           setSelectedPlugin={setSelectedPlugin}
           setShowEditModal={setShowEditModal}
           setShowShareModal={setShowShareModal}
+          setShowImagesModal={setShowImagesModal}
           doFetchHash={doFetchHash}
           index={index}
           createRoom={createRoom}
@@ -237,6 +246,16 @@ export const MyPlugins = () => {
           plugin={selectedPlugin}
           closeModal={() => {
             setShowShareModal(false);
+            setSelectedPlugin(null);
+          }}
+        />
+      )}
+
+      {showImagesModal && (
+        <ImageManagerModal
+          plugin={selectedPlugin}
+          closeModal={() => {
+            setShowImagesModal(false);
             setSelectedPlugin(null);
           }}
         />

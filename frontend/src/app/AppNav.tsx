@@ -49,6 +49,11 @@ export const AppNav: React.FC = () => {
             My Plugins
           </Link>
         )}
+        {authToken && (
+          <Link to="/myimages" className={navLinkClass}>
+            My Images
+          </Link>
+        )}
         <ProfileLink className={navLinkClass} />
         {!authToken && (
           <>

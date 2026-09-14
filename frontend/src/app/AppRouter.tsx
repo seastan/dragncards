@@ -14,6 +14,7 @@ import RequestResetPassword from "../features/auth/RequestResetPassword";
 import DoResetPassword from "../features/auth/DoResetPassword";
 import ConfirmEmail from "../features/auth/ConfirmEmail";
 import { MyPlugins } from "../features/myplugins/MyPlugins";
+import { MyImages } from "../features/myplugins/images/MyImages";
 import PluginLobby from "../features/lobby/PluginLobby";
 import LayoutGenerator from "../features/myplugins/LayoutGenerator";
 import PluginBuilder from "../features/myplugins/pluginbuilder/PluginBuilder";
@@ -34,6 +35,7 @@ const AppRouter: React.FC = () => {
         <PrivateRoute path="/admin" component={AdminPage} />
         <Route path="/profile" component={Profile} />
         <Route path="/myplugins" component={MyPlugins} />
+        <PrivateRoute path="/myimages" component={MyImages} />
         <Route path="/auth/patreon" component={Profile} />
         <Route path="/newroom" component={Lobby} />
         <Route path="/plugin" component={PluginLobby} />
