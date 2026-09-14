@@ -1,12 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSync, faTrash, faCheckSquare, faSquare, faFolderPlus } from "@fortawesome/free-solid-svg-icons";
+import { faSync, faTrash, faCheckSquare, faSquare, faFolderPlus, faUpload } from "@fortawesome/free-solid-svg-icons";
 import useProfile from "../../../hooks/useProfile";
 import { useImageLibrary } from "./useImageLibrary";
 import { QuotaBar } from "./QuotaBar";
 import { FolderTree } from "./FolderTree";
 import { ImageGrid } from "./ImageGrid";
 import { tones } from "./tones";
+import { UploadPanel } from "./UploadPanel";
+import { useUploadQueue } from "./useUploadQueue";
+import { captureDroppedEntries, expandDropped } from "./folderDrop";
 
 const toolbarButton = { background: "transparent", border: 0, padding: 0, cursor: "pointer" };
 
@@ -39,9 +42,20 @@ export const ImageManager = ({ onSupportClick }) => {
     moveImage,
     createFolder,
     renameFolder,
+    applyQuota,
   } = useImageLibrary();
 
   const [selected, setSelected] = useState(new Set());
+  const [showUpload, setShowUpload] = useState(false);
+  const [profile, setProfile] = useState("cards");
+  const [dragDepth, setDragDepth] = useState(0);
+
+  const upload = useUploadQueue({
+    // Each batch response carries fresh usage, so the quota bar moves as files
+    // land rather than jumping at the end.
+    onBatch: useCallback((data) => data?.quota && applyQuota(data.quota), [applyQuota]),
+    onFinished: useCallback(() => refresh(), [refresh]),
+  });
   const [notice, setNotice] = useState(null);
 
   // Success toasts clear themselves; errors stay until dismissed so they are
@@ -126,6 +140,57 @@ export const ImageManager = ({ onSupportClick }) => {
     const result = await deleteFolder(folder.path);
     clearSelection();
     report(result, `Deleted ${folder.path}.`);
+  };
+
+  const uploadDisabledReason = !quota
+    ? null
+    : !quota.storage_ready
+    ? "Image hosting is not available on this server right now."
+    : quota.free_space_low
+    ? "The server is low on disk space, so uploads are paused for everyone."
+    : quota.over_quota
+    ? "You are over your limit. Delete some images to upload more."
+    : null;
+
+  const addPicked = (picked) => {
+    if (uploadDisabledReason) {
+      setNotice({ kind: "error", text: uploadDisabledReason });
+      return;
+    }
+    setShowUpload(true);
+    const { added, skipped } = upload.add(picked, { dir, profile });
+    if (!added && skipped) setNotice({ kind: "error", text: "None of those files are images (PNG, JPEG, GIF or WebP)." });
+  };
+
+  // Only react to drags that carry files, not text or a dragged thumbnail.
+  const isFileDrag = (event) => Array.from(event.dataTransfer?.types || []).includes("Files");
+
+  const dropHandlers = {
+    onDragEnter: (event) => {
+      if (!isFileDrag(event)) return;
+      event.preventDefault();
+      setDragDepth((d) => d + 1);
+    },
+    onDragOver: (event) => {
+      if (!isFileDrag(event)) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+    },
+    // enter/leave fire for every child element crossed, so count depth rather
+    // than toggling a boolean, which would flicker.
+    onDragLeave: (event) => {
+      if (!isFileDrag(event)) return;
+      setDragDepth((d) => Math.max(0, d - 1));
+    },
+    onDrop: async (event) => {
+      if (!isFileDrag(event)) return;
+      event.preventDefault();
+      setDragDepth(0);
+      // Must be captured synchronously, before any await; see folderDrop.js.
+      const captured = captureDroppedEntries(event.dataTransfer);
+      const picked = await expandDropped(captured);
+      if (picked.length) addPicked(picked);
+    },
   };
 
   const handleNewFolder = async () => {
@@ -242,7 +307,24 @@ export const ImageManager = ({ onSupportClick }) => {
           />
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg bg-gray-800">
+        <div
+          className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg bg-gray-800"
+          {...dropHandlers}
+        >
+          {dragDepth > 0 && (
+            <div
+              className="absolute flex items-center justify-center rounded-lg text-sm text-white"
+              style={{
+                inset: 0,
+                zIndex: 20,
+                backgroundColor: "rgba(30,58,138,0.55)",
+                border: "2px dashed #93c5fd",
+                pointerEvents: "none",
+              }}
+            >
+              Drop to upload into {dir === "" ? "the top level" : dir}
+            </div>
+          )}
           <div className="flex items-center gap-3 border-b border-gray-700 px-3 py-2 text-sm">
             <span className="truncate font-semibold" title={dirLabel}>
               {dirLabel}
@@ -252,6 +334,16 @@ export const ImageManager = ({ onSupportClick }) => {
             </span>
 
             <div className="flex items-center gap-3" style={{ marginLeft: "auto" }}>
+              <button
+                type="button"
+                className="text-xs text-gray-300 hover:text-white"
+                style={toolbarButton}
+                aria-expanded={showUpload}
+                onClick={() => setShowUpload((v) => !v)}
+              >
+                <FontAwesomeIcon icon={faUpload} className="mr-1" />
+                {showUpload ? "Hide upload" : "Upload"}
+              </button>
               {images.length > 0 && (
                 <button
                   type="button"
@@ -286,6 +378,17 @@ export const ImageManager = ({ onSupportClick }) => {
               </button>
             </div>
           </div>
+
+          {(showUpload || upload.summary.total > 0) && (
+            <UploadPanel
+              dir={dir}
+              profile={profile}
+              onProfileChange={setProfile}
+              queue={upload}
+              onPick={addPicked}
+              disabledReason={uploadDisabledReason}
+            />
+          )}
 
           <div className="min-h-0 flex-1 overflow-y-auto">
             {isLoading && !images.length ? (

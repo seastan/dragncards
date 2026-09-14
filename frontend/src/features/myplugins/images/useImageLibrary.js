@@ -188,6 +188,7 @@ export const useImageLibrary = () => {
   );
 
   return {
+    applyQuota: setQuota,
     createFolder,
     renameFolder,
     tree,
