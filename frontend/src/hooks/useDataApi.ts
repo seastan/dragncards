@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { set } from "date-fns";
 
@@ -46,7 +46,10 @@ async function axiosRetry(
 const useDataApi = <T extends any>(
   initialUrl: string,
   initialData: T,
-  initialFetch: boolean = true // Added this line
+  initialFetch: boolean = true, // Added this line
+  // Extra axios config, e.g. an Authorization header for endpoints behind
+  // :api_protected. Defaults to none, which is what every existing caller got.
+  requestOptions: AxiosRequestConfig = {}
 ) => {
   const [data, setData] = useState(initialData);
   const [url, setUrl] = useState(initialUrl);
@@ -55,6 +58,11 @@ const useDataApi = <T extends any>(
   const [isError, setIsError] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [progressEvent, setProgressEvent] = useState<any>(null);
+  // Held in a ref rather than listed as an effect dependency: callers commonly
+  // pass an inline object, whose identity changes every render and would
+  // otherwise refetch in a loop. The latest value is read at fetch time.
+  const requestOptionsRef = useRef(requestOptions);
+  requestOptionsRef.current = requestOptions;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -70,7 +78,7 @@ const useDataApi = <T extends any>(
         const retries = 4;
         const initialDelay = 1000;
         console.log("pluginTrace useDataApi 1", url)
-        const result = await axiosRetry(url, {}, retries, initialDelay, setProgressEvent);
+        const result = await axiosRetry(url, requestOptionsRef.current, retries, initialDelay, setProgressEvent);
         console.log("pluginTrace useDataApi 2", result)
         setData(result.data);
       } catch (error) {

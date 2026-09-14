@@ -9,6 +9,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faDownload, faEdit, faShare, faTrash, faUserPlus, faUpload, faWrench, faThLarge, faPlay } from "@fortawesome/free-solid-svg-icons";
 import { useSiteL10n } from "../../hooks/useSiteL10n";
 import useAuth from "../../hooks/useAuth";
+import { useAuthOptions } from "../../hooks/useAuthOptions";
 import { LobbyButton } from "../../components/basic/LobbyButton";
 import SharePluginModal from "./editplugin/SharePluginModal";
 import { downloadGameDefinitionAsZip } from "./pluginbuilder/DownloadPlugin";
@@ -103,9 +104,15 @@ export const MyPlugins = () => {
   const showTutorial = queryParams.get("showTutorial") === "true";
   const [runTutorial, setRunTutorial] = useState(false);
 
+  // The list endpoint requires a session (it sits behind :api_protected and
+  // returns only the caller's own plugins), so the Authorization header must be
+  // sent. Without it the page silently lists nothing.
+  const listAuthOptions = useAuthOptions();
   const { data, isLoading, isError, doFetchUrl, doFetchHash } = useDataApi(
     "/be/api/myplugins/"+user?.id,
-    null
+    null,
+    true,
+    listAuthOptions
   );
 
   const createRoom = async (pluginId, pluginName, pluginVersion) => {
