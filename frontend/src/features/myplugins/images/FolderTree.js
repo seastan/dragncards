@@ -1,14 +1,13 @@
 import React, { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFolder, faFolderOpen, faLink, faPencilAlt, faTrash } from "@fortawesome/free-solid-svg-icons";
-import { formatBytes } from "./formatBytes";
+import { faFolder, faFolderOpen, faPencilAlt, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { ActionButton } from "./ActionButton";
 
 /**
  * Folders are real: they can be empty, and they persist when their last image is
  * deleted. The root ("/") is implicit and cannot be renamed or deleted.
  */
-export const FolderTree = ({ dirs, selected, onSelect, onCopyUrl, onRenameFolder, onDeleteFolder }) => {
+export const FolderTree = ({ dirs, selected, onSelect, onRenameFolder, onDeleteFolder }) => {
   // Hover is tracked in state rather than with group-hover:, which the app's
   // prebuilt Tailwind file does not include.
   const [hovered, setHovered] = useState(null);
@@ -43,39 +42,33 @@ export const FolderTree = ({ dirs, selected, onSelect, onCopyUrl, onRenameFolder
 
           {/* Overlaid on the right rather than laid out inline: hidden buttons
               still took their width, which truncated every folder name. Opacity
-              (not visibility) keeps them keyboard-focusable while hidden. */}
-          <span
-            className="absolute flex items-center rounded"
-            style={{
-              right: 4,
-              top: "50%",
-              transform: "translateY(-50%)",
-              backgroundColor: "rgba(17,24,39,0.9)",
-              opacity: showActions ? 1 : 0,
-              pointerEvents: showActions ? "auto" : "none",
-            }}
-          >
-            <ActionButton
-              icon={faLink}
-              label={`Copy URL of ${folder.path || "your image root"} (${formatBytes(folder.bytes)})`}
-              onClick={() => onCopyUrl(folder)}
-            />
-            {folder.path !== "" && (
+              (not visibility) keeps them keyboard-focusable while hidden. The root
+              has no actions: it cannot be renamed or deleted. */}
+          {folder.path !== "" && (
+            <span
+              className="absolute flex items-center rounded"
+              style={{
+                right: 4,
+                top: "50%",
+                transform: "translateY(-50%)",
+                backgroundColor: "rgba(17,24,39,0.9)",
+                opacity: showActions ? 1 : 0,
+                pointerEvents: showActions ? "auto" : "none",
+              }}
+            >
               <ActionButton
                 icon={faPencilAlt}
                 label={`Rename or move folder ${folder.path}`}
                 onClick={() => onRenameFolder(folder)}
               />
-            )}
-            {folder.path !== "" && (
               <ActionButton
                 icon={faTrash}
                 label={`Delete folder ${folder.path} and everything in it`}
                 danger
                 onClick={() => onDeleteFolder(folder)}
               />
-            )}
-          </span>
+            </span>
+          )}
         </div>
       );
     })}

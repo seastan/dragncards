@@ -21,9 +21,8 @@ export const MyImages = () => {
     >
       <h1 className="mb-2 text-xl text-white">My Images</h1>
       <p className="mb-3 text-xs text-gray-400">
-        Host card art here and reference it from your plugin. Put each language in its own
-        folder, then use that folder's URL as an <code>imageUrlPrefix</code> so your TSV can
-        keep using bare filenames.
+        Host card art here for your plugins. Upload images, then copy an image's URL into your
+        plugin's card data.
       </p>
 
       <div className="min-h-0 flex-1">

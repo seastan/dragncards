@@ -26,7 +26,7 @@ export const ImageManagerModal = ({ plugin, closeModal }) => (
         <h2 className="text-white">Hosted Images</h2>
         {plugin?.name && (
           <div className="text-xs text-gray-400">
-            Your image library. Use a folder's URL as an imageUrlPrefix in {plugin.name}.
+            Your image library. Copy an image's URL to use it in {plugin.name}.
           </div>
         )}
       </div>

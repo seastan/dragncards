@@ -104,14 +104,6 @@ export const ImageManager = ({ onSupportClick }) => {
     setNotice({ kind: "ok", text: `Copied the URL for ${image.filename}.` });
   };
 
-  const handleCopyFolderUrl = async (folder) => {
-    await copyToClipboard(folder.url);
-    setNotice({
-      kind: "ok",
-      text: `Copied the URL for ${folder.path || "your image root"}. Use it as an imageUrlPrefix.`,
-    });
-  };
-
   const handleDeleteOne = async (image) => {
     if (!window.confirm(`Delete ${image.filename}? Anything using its URL will stop loading.`)) return;
     const result = await deleteImages([image.id]);
@@ -210,14 +202,14 @@ export const ImageManager = ({ onSupportClick }) => {
     );
     if (!next || !next.trim() || next.trim() === folder.path) return;
 
-    // Renaming changes every image URL inside, which breaks any plugin whose
-    // imageUrlPrefix points here. Say so, with the actual URL, before doing it.
+    // Renaming changes every image URL inside, which breaks anything already
+    // using those URLs. Say so before doing it.
     if (folder.count > 0) {
       const warning =
         (folder.count === 1
           ? `This changes the URL of the image in "${folder.path}".\n\n`
           : `This changes the URL of all ${folder.count} images in "${folder.path}".\n\n`) +
-        `Any plugin using\n  ${folder.url}\nwill stop showing these images until you update its imageUrlPrefix.\n\n` +
+        `Anywhere you already use ${folder.count === 1 ? "its URL" : "their URLs"}, such as your plugin's card data, will stop showing ${folder.count === 1 ? "it" : "them"} until you update it.\n\n` +
         `Rename anyway?`;
       if (!window.confirm(warning)) return;
     }
@@ -225,7 +217,7 @@ export const ImageManager = ({ onSupportClick }) => {
     const result = await renameFolder(folder.path, next.trim());
     clearSelection();
     if (result.ok) {
-      setNotice({ kind: "ok", text: `Renamed to ${result.folder.to}. New URL: ${result.folder.url}` });
+      setNotice({ kind: "ok", text: `Renamed to ${result.folder.to}.` });
     } else {
       setNotice({ kind: "error", text: result.message });
     }
@@ -301,7 +293,6 @@ export const ImageManager = ({ onSupportClick }) => {
             dirs={tree.dirs}
             selected={dir}
             onSelect={openFolder}
-            onCopyUrl={handleCopyFolderUrl}
             onRenameFolder={handleRenameFolder}
             onDeleteFolder={handleDeleteFolder}
           />
