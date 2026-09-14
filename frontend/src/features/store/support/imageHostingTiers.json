@@ -1,0 +1,9 @@
+{
+  "_comment": "Display copy of the image hosting limits in backend/config/config.exs (:uploads :tiers). Test backend/test/dragncards/images/tier_docs_test.exs fails if these drift apart.",
+  "tiers": [
+    { "min_level": 10, "max_files": 10000, "max_bytes": 3221225472 },
+    { "min_level": 5, "max_files": 5000, "max_bytes": 1610612736 },
+    { "min_level": 3, "max_files": 1000, "max_bytes": 314572800 },
+    { "min_level": 0, "max_files": 100, "max_bytes": 31457280 }
+  ]
+}

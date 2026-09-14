@@ -6,6 +6,20 @@ import Button from "../../../components/basic/Button";
 import { PleaseLogIn } from "../../lobby/PleaseLogIn";
 import PatreonButton from "./PatreonButton";
 import { Z_INDEX } from "../../engine/functions/common";
+import imageHosting from "./imageHostingTiers.json";
+
+const formatStorage = (bytes) => {
+  const mb = bytes / (1024 * 1024);
+  if (mb < 1024) return `${Math.round(mb)} MB`;
+  const gb = mb / 1024;
+  return `${Number.isInteger(gb) ? gb : gb.toFixed(1)} GB`;
+};
+
+// "Host up to 1,000 plugin images (300 MB)" for the tier starting at `level`.
+const hostingBenefit = (level) => {
+  const tier = imageHosting.tiers.find((t) => t.min_level === level);
+  return `Host up to ${tier.max_files.toLocaleString()} plugin images (${formatStorage(tier.max_bytes)})`;
+};
 
 ReactModal.setAppElement("#root");
 
@@ -25,6 +39,7 @@ export const PatreonModal = ({
             "Saved games include full replay",
             "Favorite prebuilt decks and URLs",
             "Idle room timeout increased from 1 hour to 24 hours",
+            hostingBenefit(3),
           ]
         },
         {
@@ -39,6 +54,7 @@ export const PatreonModal = ({
             "Custom backgrounds",
             "Private custom content",
             "Idle room timeout increased to 3 days",
+            hostingBenefit(5),
           ]
         },
         {
@@ -51,6 +67,7 @@ export const PatreonModal = ({
             `Optional "Esteemed Supporter" discord role`,
             "Access to plugin developer discord channels",
             "Idle room timeout increased to 7 days",
+            hostingBenefit(10),
           ]
         },
     ];
@@ -105,6 +122,11 @@ export const PatreonModal = ({
                   </ul>
                 </div>
             ))}
+          </div>
+          <div className="text-gray-300 text-xs mt-3">
+            Free accounts can host up to{" "}
+            {imageHosting.tiers.find((t) => t.min_level === 0).max_files.toLocaleString()} plugin
+            images ({formatStorage(imageHosting.tiers.find((t) => t.min_level === 0).max_bytes)}).
           </div>
           <Button isCancel onClick={closeModal} className="mt-4">
               Cancel
