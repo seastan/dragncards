@@ -67,6 +67,36 @@ defmodule DragnCards.Images.Paths do
   def normalize_rel(_), do: {:error, :invalid_path}
 
   @doc """
+  Validates a folder path. Same rules as the directory part of
+  `normalize_rel/1`, with no filename and no extension rewriting.
+
+      iex> DragnCards.Images.Paths.normalize_dir("mygame/English/")
+      {:ok, %{path: "mygame/English", path_ci: "mygame/english"}}
+  """
+  @spec normalize_dir(String.t()) :: {:ok, %{path: String.t(), path_ci: String.t()}} | {:error, term()}
+  def normalize_dir(raw) when is_binary(raw) do
+    with :ok <- reject_nul(raw),
+         segments <- split(raw),
+         :ok <- check_depth(segments),
+         :ok <- check_segments(segments),
+         path <- Enum.join(segments, "/"),
+         :ok <- check_total_length(path) do
+      {:ok, %{path: path, path_ci: ci(path)}}
+    end
+  end
+
+  def normalize_dir(_), do: {:error, :invalid_path}
+
+  @doc "Every ancestor of a folder, root excluded, shallowest first."
+  @spec dir_ancestors(String.t()) :: [String.t()]
+  def dir_ancestors(""), do: []
+
+  def dir_ancestors(dir) do
+    segments = String.split(dir, "/")
+    Enum.map(1..length(segments), fn n -> segments |> Enum.take(n) |> Enum.join("/") end)
+  end
+
+  @doc """
   Case- and unicode-folded form of a path, used for the uniqueness index.
 
   ext4 and Postgres are both case-sensitive but macOS and Windows are not, and

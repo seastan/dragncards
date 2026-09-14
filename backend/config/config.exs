@@ -60,6 +60,8 @@ config :dragncards, :uploads,
   max_source_pixels: 40_000_000,
   max_files_per_request: 40,
   max_path_depth: 8,
+  # Empty folders cost no quota, so cap how many one user can create.
+  max_dirs: 1_000,
   prune_grace_days: 60,
   profiles: %{
     "cards" => %{max_dim: 900, quality: 80, keep_alpha: false},

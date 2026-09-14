@@ -110,8 +110,14 @@ defmodule DragnCardsWeb.API.V1.ImagesController do
 
   def delete_batch(conn, %{"dir" => dir}) when is_binary(dir) do
     user = Pow.Plug.current_user(conn)
-    {:ok, result} = Images.delete_dir(user.id, dir)
-    json(conn, %{deleted: result.deleted, bytes: result.bytes, quota: Images.quota_status(user.id)})
+
+    case Images.delete_dir(user.id, dir) do
+      {:ok, result} ->
+        json(conn, %{deleted: result.deleted, bytes: result.bytes, quota: Images.quota_status(user.id)})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: describe(reason)})
+    end
   end
 
   def delete_batch(conn, _params), do: bad_request(conn, "Provide either ids or dir.")
@@ -132,6 +138,39 @@ defmodule DragnCardsWeb.API.V1.ImagesController do
         })
     end
   end
+
+  @doc "Creates an empty folder (and any missing parents)."
+  def create_folder(conn, %{"path" => path}) when is_binary(path) do
+    user = Pow.Plug.current_user(conn)
+
+    case Images.create_dir(user.id, path) do
+      {:ok, folder} -> json(conn, %{folder: folder})
+      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: describe(reason)})
+    end
+  end
+
+  def create_folder(conn, _params), do: bad_request(conn, "Provide path.")
+
+  @doc """
+  Renames or moves a folder with everything in it. Every image URL inside it
+  changes; the client is responsible for warning the author first.
+  """
+  def rename_folder(conn, %{"from" => from, "to" => to}) when is_binary(from) and is_binary(to) do
+    user = Pow.Plug.current_user(conn)
+
+    case Images.rename_dir(user.id, from, to) do
+      {:ok, result} ->
+        json(conn, %{folder: result})
+
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "Folder not found"})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: describe(reason)})
+    end
+  end
+
+  def rename_folder(conn, _params), do: bad_request(conn, "Provide from and to.")
 
   @doc "Moves or renames one image."
   def move(conn, %{"id" => id, "path" => path}) do
@@ -236,6 +275,10 @@ defmodule DragnCardsWeb.API.V1.ImagesController do
     do: "'#{segment}' contains characters that are not allowed. Use letters, numbers, spaces, dots, dashes and underscores."
 
   def describe(:unknown_profile), do: "Unknown image profile."
+  def describe(:already_exists), do: "Something with that name already exists there."
+  def describe(:into_itself), do: "A folder cannot be moved inside itself."
+  def describe(:cannot_delete_root), do: "The top-level folder cannot be deleted."
+  def describe({:too_many_dirs, max}), do: "Folder limit reached (#{max})."
   def describe({:quota_files, used, max}), do: "Image limit reached (#{used} of #{max})."
 
   def describe({:quota_bytes, used, max}),

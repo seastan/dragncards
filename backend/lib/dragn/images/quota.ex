@@ -9,7 +9,7 @@ defmodule DragnCards.Images.Quota do
 
   import Ecto.Query
 
-  alias DragnCards.Images.{Paths, UserImage, UserImageQuota}
+  alias DragnCards.Images.{Dirs, Paths, UserImage, UserImageQuota}
   alias DragnCards.{Repo, Users}
 
   require Logger
@@ -77,12 +77,16 @@ defmodule DragnCards.Images.Quota do
   @spec commit(integer(), map()) :: {:ok, UserImage.t()} | {:error, term()}
   def commit(user_id, %{rel: rel, tmp_path: tmp_path} = attrs) do
     limits = limits_for_user(user_id)
-    dest = Paths.abs_path!(user_id, rel.path)
     backup = Path.join(Paths.tmp_dir(user_id), "replaced-#{Ecto.UUID.generate()}")
 
     result =
       Repo.transaction(fn ->
         quota = lock!(user_id)
+
+        # Under the lock, so two concurrent uploads into "english/" and
+        # "English/" cannot both decide the folder is new.
+        rel = Dirs.canonicalize_rel(user_id, rel)
+        dest = Paths.abs_path!(user_id, rel.path)
         existing = find_existing(user_id, rel.path_ci)
 
         delta_count = if existing, do: 0, else: 1
@@ -95,7 +99,11 @@ defmodule DragnCards.Images.Quota do
           quota.total_bytes + delta_bytes > limits.max_bytes ->
             Repo.rollback({:quota_bytes, quota.total_bytes, limits.max_bytes})
 
+          new_dirs_over_cap?(user_id, rel.dir) ->
+            Repo.rollback({:too_many_dirs, Dirs.max_dirs()})
+
           true ->
+            Dirs.ensure!(user_id, rel.dir)
             row = upsert!(user_id, existing, rel, attrs)
 
             {1, _} =
@@ -109,25 +117,33 @@ defmodule DragnCards.Images.Quota do
             if existing, do: move_aside(dest, backup)
 
             case place(tmp_path, dest) do
-              :ok -> {row, existing != nil}
-              {:error, reason} -> Repo.rollback({:filesystem, reason})
+              :ok ->
+                {row, existing != nil}
+
+              {:error, reason} ->
+                if existing, do: File.rename(backup, dest)
+                Repo.rollback({:filesystem, reason})
             end
         end
       end)
 
-    finish(result, tmp_path, dest, backup)
+    case result do
+      {:ok, {row, replaced?}} ->
+        if replaced?, do: File.rm(backup)
+        {:ok, UserImage.with_url(row)}
+
+      {:error, reason} ->
+        File.rm(tmp_path)
+        {:error, reason}
+    end
   end
 
-  defp finish({:ok, {row, replaced?}}, _tmp, _dest, backup) do
-    if replaced?, do: File.rm(backup)
-    {:ok, UserImage.with_url(row)}
-  end
+  # Only the folders this upload would newly create count against the cap.
+  defp new_dirs_over_cap?(_user_id, ""), do: false
 
-  defp finish({:error, reason}, tmp_path, dest, backup) do
-    # Put back whatever was there before, then drop the scratch file.
-    if File.exists?(backup), do: File.rename(backup, dest)
-    File.rm(tmp_path)
-    {:error, reason}
+  defp new_dirs_over_cap?(user_id, dir) do
+    missing = dir |> Paths.dir_ancestors() |> Enum.reject(&Dirs.exists?(user_id, &1)) |> length()
+    missing > 0 and Dirs.count(user_id) + missing > Dirs.max_dirs()
   end
 
   @doc """

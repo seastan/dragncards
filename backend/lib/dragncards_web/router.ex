@@ -88,6 +88,8 @@ defmodule DragnCardsWeb.Router do
     post("/images/upload", ImagesController, :upload)
     post("/images/delete", ImagesController, :delete_batch)
     post("/images/move", ImagesController, :move)
+    post("/images/folders", ImagesController, :create_folder)
+    post("/images/folders/rename", ImagesController, :rename_folder)
     delete("/images/:id", ImagesController, :delete)
   end
 

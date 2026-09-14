@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSync, faTrash, faCheckSquare, faSquare } from "@fortawesome/free-solid-svg-icons";
+import { faSync, faTrash, faCheckSquare, faSquare, faFolderPlus } from "@fortawesome/free-solid-svg-icons";
 import useProfile from "../../../hooks/useProfile";
 import { useImageLibrary } from "./useImageLibrary";
 import { QuotaBar } from "./QuotaBar";
@@ -37,6 +37,8 @@ export const ImageManager = ({ onSupportClick }) => {
     deleteImages,
     deleteFolder,
     moveImage,
+    createFolder,
+    renameFolder,
   } = useImageLibrary();
 
   const [selected, setSelected] = useState(new Set());
@@ -126,6 +128,44 @@ export const ImageManager = ({ onSupportClick }) => {
     report(result, `Deleted ${folder.path}.`);
   };
 
+  const handleNewFolder = async () => {
+    const inside = dir === "" ? "the top level" : `"${dir}"`;
+    const name = window.prompt(`New folder inside ${inside}. Use / to nest.`, "");
+    if (!name || !name.trim()) return;
+    const path = dir === "" ? name.trim() : `${dir}/${name.trim()}`;
+    const result = await createFolder(path);
+    clearSelection();
+    report(result, `Created ${result.folder?.path}.`);
+  };
+
+  const handleRenameFolder = async (folder) => {
+    const next = window.prompt(
+      "New path for this folder, relative to your image root. Use / to move it elsewhere.",
+      folder.path
+    );
+    if (!next || !next.trim() || next.trim() === folder.path) return;
+
+    // Renaming changes every image URL inside, which breaks any plugin whose
+    // imageUrlPrefix points here. Say so, with the actual URL, before doing it.
+    if (folder.count > 0) {
+      const warning =
+        (folder.count === 1
+          ? `This changes the URL of the image in "${folder.path}".\n\n`
+          : `This changes the URL of all ${folder.count} images in "${folder.path}".\n\n`) +
+        `Any plugin using\n  ${folder.url}\nwill stop showing these images until you update its imageUrlPrefix.\n\n` +
+        `Rename anyway?`;
+      if (!window.confirm(warning)) return;
+    }
+
+    const result = await renameFolder(folder.path, next.trim());
+    clearSelection();
+    if (result.ok) {
+      setNotice({ kind: "ok", text: `Renamed to ${result.folder.to}. New URL: ${result.folder.url}` });
+    } else {
+      setNotice({ kind: "error", text: result.message });
+    }
+  };
+
   const handleRename = async (image) => {
     const next = window.prompt(
       "New path, relative to your image root. Use / for folders.",
@@ -179,19 +219,27 @@ export const ImageManager = ({ onSupportClick }) => {
           className="flex-shrink-0 overflow-y-auto rounded-lg bg-gray-800 p-2"
           style={{ width: 210 }}
         >
-          <div className="mb-1 px-2 text-xs uppercase tracking-wide text-gray-500">Folders</div>
+          <div className="mb-1 flex items-center justify-between px-2">
+            <span className="text-xs uppercase tracking-wide text-gray-500">Folders</span>
+            <button
+              type="button"
+              className="text-xs text-gray-300 hover:text-white"
+              style={toolbarButton}
+              onClick={handleNewFolder}
+              title={dir === "" ? "New folder" : `New folder inside ${dir}`}
+            >
+              <FontAwesomeIcon icon={faFolderPlus} className="mr-1" />
+              New
+            </button>
+          </div>
           <FolderTree
             dirs={tree.dirs}
             selected={dir}
             onSelect={openFolder}
             onCopyUrl={handleCopyFolderUrl}
+            onRenameFolder={handleRenameFolder}
             onDeleteFolder={handleDeleteFolder}
           />
-          {tree.dirs.length <= 1 && (
-            <div className="mt-2 px-2 text-xs text-gray-500">
-              Folders appear here once you upload into them.
-            </div>
-          )}
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg bg-gray-800">

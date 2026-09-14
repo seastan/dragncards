@@ -152,7 +152,44 @@ export const useImageLibrary = () => {
     [authOptions, refresh]
   );
 
+  const createFolder = useCallback(
+    async (path) => {
+      try {
+        const res = await axios.post(`${API}/folders`, { path }, authOptions);
+        const created = res.data.folder.path;
+        await refresh(created);
+        setDir(created);
+        return { ok: true, folder: res.data.folder };
+      } catch (err) {
+        console.log("Error creating folder", err);
+        return { ok: false, message: errorMessage(err, "Could not create that folder.") };
+      }
+    },
+    [authOptions, refresh]
+  );
+
+  const renameFolder = useCallback(
+    async (from, to) => {
+      try {
+        const res = await axios.post(`${API}/folders/rename`, { from, to }, authOptions);
+        const { from: oldPath, to: newPath } = res.data.folder;
+        // If we were standing in (or below) the renamed folder, follow it.
+        const follow =
+          dir === oldPath ? newPath : dir.startsWith(`${oldPath}/`) ? newPath + dir.slice(oldPath.length) : dir;
+        await refresh(follow);
+        setDir(follow);
+        return { ok: true, folder: res.data.folder };
+      } catch (err) {
+        console.log("Error renaming folder", err);
+        return { ok: false, message: errorMessage(err, "Could not rename that folder.") };
+      }
+    },
+    [authOptions, refresh, dir]
+  );
+
   return {
+    createFolder,
+    renameFolder,
     tree,
     images,
     quota,

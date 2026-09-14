@@ -8,7 +8,7 @@ defmodule DragnCards.ImagesTest do
   use DragnCards.DataCase, async: false
 
   alias DragnCards.Images
-  alias DragnCards.Images.{Paths, Quota, Reconciler, UserImage, UserImageQuota}
+  alias DragnCards.Images.{Dirs, Paths, Quota, Reconciler, UserImage, UserImageQuota}
   alias DragnCards.{Repo, Users.User}
 
   @fixtures Path.expand("../support/fixtures/images", __DIR__)
@@ -357,6 +357,166 @@ defmodule DragnCards.ImagesTest do
     end
   end
 
+
+  describe "folders" do
+    test "create_dir makes an empty folder that shows in the tree and on disk", %{user: user} do
+      assert {:ok, %{path: "mygame/German", url: url}} = Images.create_dir(user.id, "mygame/German")
+      assert String.ends_with?(url, "/mygame/German/")
+      assert File.dir?(Path.join(Paths.user_root(user.id), "mygame/German"))
+
+      paths = Enum.map(Images.tree(user.id).dirs, & &1.path)
+      assert "mygame" in paths and "mygame/German" in paths
+      assert Enum.find(Images.tree(user.id).dirs, &(&1.path == "mygame/German")).count == 0
+    end
+
+    test "create_dir refuses a name that already exists, ignoring case", %{user: user} do
+      {:ok, _} = Images.create_dir(user.id, "English")
+      assert {:error, :already_exists} = Images.create_dir(user.id, "english")
+    end
+
+    test "create_dir validates the path", %{user: user} do
+      assert {:error, :traversal} = Images.create_dir(user.id, "../escape")
+      assert {:error, {:bad_characters, _}} = Images.create_dir(user.id, "a#b")
+    end
+
+    test "a folder survives having its last image deleted", %{user: user} do
+      {:ok, image} = upload(user, "mygame/English/a.png")
+      {:ok, _} = Images.delete(user.id, [image.id])
+      assert Enum.any?(Images.tree(user.id).dirs, &(&1.path == "mygame/English"))
+    end
+
+    test "uploads create their folder and every ancestor", %{user: user} do
+      {:ok, _} = upload(user, "a/b/c/card.png")
+      assert Dirs.exists?(user.id, "a") and Dirs.exists?(user.id, "a/b") and Dirs.exists?(user.id, "a/b/c")
+    end
+
+    test "uploading into a differently-cased folder lands in the existing one", %{user: user} do
+      {:ok, _} = Images.create_dir(user.id, "MyGame/English")
+      {:ok, image} = upload(user, "mygame/english/aragorn.png")
+
+      # One folder, not two: otherwise the disk (case-sensitive) and the
+      # database (case-insensitive) would disagree about what exists.
+      assert image.path == "MyGame/English/aragorn.webp"
+      assert File.exists?(Path.join(Paths.user_root(user.id), "MyGame/English/aragorn.webp"))
+      refute File.exists?(Path.join(Paths.user_root(user.id), "mygame"))
+      assert length(Images.tree(user.id).dirs) == 3
+    end
+
+    test "moving an image into a differently-cased folder also canonicalises", %{user: user} do
+      {:ok, _} = Images.create_dir(user.id, "Tokens")
+      {:ok, image} = upload(user, "a.png")
+      assert {:ok, %{path: "Tokens/b.webp"}} = Images.move(user.id, image.id, "tokens/b.png")
+    end
+
+    test "moving an image onto an existing one is refused, not an overwrite", %{user: user} do
+      {:ok, a} = upload(user, "a.png")
+      {:ok, b} = upload(user, "b.png", source: "photo.jpg")
+      assert {:error, :already_exists} = Images.move(user.id, a.id, "b.png")
+      assert Repo.get(UserImage, b.id).bytes == b.bytes
+    end
+
+    test "rename_dir moves the folder, its subfolders, its images and the files", %{user: user} do
+      {:ok, _} = upload(user, "mygame/English/a.png")
+      {:ok, _} = upload(user, "mygame/English/deep/b.png")
+      {:ok, _} = Images.create_dir(user.id, "mygame/English/empty")
+      root = Paths.user_root(user.id)
+
+      assert {:ok, %{from: "mygame/English", to: "mygame/en", moved: 2}} =
+               Images.rename_dir(user.id, "mygame/English", "mygame/en")
+
+      assert File.exists?(Path.join(root, "mygame/en/a.webp"))
+      assert File.exists?(Path.join(root, "mygame/en/deep/b.webp"))
+      assert File.dir?(Path.join(root, "mygame/en/empty"))
+      refute File.exists?(Path.join(root, "mygame/English"))
+
+      paths = Enum.map(Images.tree(user.id).dirs, & &1.path)
+      assert "mygame/en/empty" in paths
+      refute Enum.any?(paths, &String.starts_with?(&1, "mygame/English"))
+
+      assert [%{path: "mygame/en/a.webp"}] = Images.list(user.id, "mygame/en")
+      assert Quota.get_or_build(user.id).image_count == 2
+    end
+
+    test "rename_dir can move a folder to a different parent", %{user: user} do
+      {:ok, _} = upload(user, "old/English/a.png")
+      assert {:ok, %{to: "new/place/English"}} = Images.rename_dir(user.id, "old/English", "new/place/English")
+      assert File.exists?(Path.join(Paths.user_root(user.id), "new/place/English/a.webp"))
+      assert Dirs.exists?(user.id, "new/place")
+    end
+
+    test "rename_dir allows a case-only rename", %{user: user} do
+      {:ok, _} = upload(user, "english/a.png")
+      assert {:ok, %{to: "English"}} = Images.rename_dir(user.id, "english", "English")
+      assert File.exists?(Path.join(Paths.user_root(user.id), "English/a.webp"))
+      assert [%{path: "English/a.webp"}] = Images.list(user.id, "English")
+    end
+
+    test "rename_dir refuses to overwrite an existing folder", %{user: user} do
+      {:ok, _} = upload(user, "a/x.png")
+      {:ok, _} = Images.create_dir(user.id, "b")
+      assert {:error, :already_exists} = Images.rename_dir(user.id, "a", "B")
+      assert File.exists?(Path.join(Paths.user_root(user.id), "a/x.webp"))
+    end
+
+    test "rename_dir refuses to move a folder inside itself", %{user: user} do
+      {:ok, _} = Images.create_dir(user.id, "a")
+      assert {:error, :into_itself} = Images.rename_dir(user.id, "a", "a/b")
+    end
+
+    test "rename_dir reports a missing folder", %{user: user} do
+      assert {:error, :not_found} = Images.rename_dir(user.id, "nope", "still-nope")
+    end
+
+    test "rename_dir only matches whole folder names, not prefixes", %{user: user} do
+      {:ok, _} = upload(user, "art/a.png")
+      {:ok, _} = upload(user, "artwork/b.png")
+      assert {:ok, %{moved: 1}} = Images.rename_dir(user.id, "art", "pictures")
+      assert File.exists?(Path.join(Paths.user_root(user.id), "artwork/b.webp"))
+    end
+
+    test "underscores in folder names are not treated as wildcards", %{user: user} do
+      {:ok, _} = upload(user, "a_b/x.png")
+      {:ok, _} = upload(user, "axb/y.png")
+      assert {:ok, %{deleted: 1}} = Images.delete_dir(user.id, "a_b")
+      assert File.exists?(Path.join(Paths.user_root(user.id), "axb/y.webp"))
+    end
+
+    test "delete_dir removes the folder rows, images, counters and directory", %{user: user} do
+      {:ok, _} = upload(user, "mygame/English/a.png")
+      {:ok, _} = Images.create_dir(user.id, "mygame/English/empty")
+
+      assert {:ok, %{deleted: 1}} = Images.delete_dir(user.id, "mygame")
+      refute File.exists?(Path.join(Paths.user_root(user.id), "mygame"))
+      assert Enum.map(Images.tree(user.id).dirs, & &1.path) == [""]
+      assert Quota.get_or_build(user.id).image_count == 0
+    end
+
+    test "delete_dir refuses the root", %{user: user} do
+      {:ok, _} = upload(user, "a.png")
+      assert {:error, :cannot_delete_root} = Images.delete_dir(user.id, "")
+      assert Quota.get_or_build(user.id).image_count == 1
+    end
+
+    test "the folder cap applies to new folders only", %{user: user} do
+      previous = Application.get_env(:dragncards, :uploads)
+      Application.put_env(:dragncards, :uploads, Keyword.put(previous, :max_dirs, 2))
+      on_exit(fn -> Application.put_env(:dragncards, :uploads, previous) end)
+
+      {:ok, _} = Images.create_dir(user.id, "a/b")
+      assert {:error, {:too_many_dirs, 2}} = Images.create_dir(user.id, "c")
+      assert {:error, {:too_many_dirs, 2}} = upload(user, "d/x.png")
+      # ...but uploading into folders that already exist is unaffected.
+      assert {:ok, _} = upload(user, "a/b/x.png")
+    end
+
+    test "one user's folders are invisible to another", %{user: user} do
+      other = make_user("other@example.com", "other")
+      {:ok, _} = Images.create_dir(other.id, "theirs")
+      assert Enum.map(Images.tree(user.id).dirs, & &1.path) == [""]
+      assert {:error, :not_found} = Images.rename_dir(user.id, "theirs", "mine")
+    end
+  end
+
   describe "reconciler" do
     test "drops rows whose file has vanished", %{user: user} do
       {:ok, image} = upload(user, "a.png")
@@ -407,14 +567,41 @@ defmodule DragnCards.ImagesTest do
                Reconciler.reconcile_user(user.id)
     end
 
-    test "removes directories left empty, but never the user root", %{user: user} do
+    test "keeps a folder that was emptied, since folders are now real", %{user: user} do
       {:ok, image} = upload(user, "mygame/English/a.png")
       {:ok, %{deleted: 1}} = Images.delete(user.id, [image.id])
 
       Reconciler.reconcile_user(user.id)
 
-      refute File.dir?(Path.join(Paths.user_root(user.id), "mygame"))
+      assert File.dir?(Path.join(Paths.user_root(user.id), "mygame/English"))
+      assert Enum.any?(Images.tree(user.id).dirs, &(&1.path == "mygame/English"))
+    end
+
+    test "still removes a stray empty directory that no folder row claims", %{user: user} do
+      {:ok, _} = upload(user, "a.png")
+      stray = Path.join(Paths.user_root(user.id), "stray/deeper")
+      File.mkdir_p!(stray)
+
+      Reconciler.reconcile_user(user.id)
+
+      refute File.dir?(Path.join(Paths.user_root(user.id), "stray"))
       assert File.dir?(Paths.user_root(user.id))
+    end
+
+    test "creates folder rows for images that predate the folders table", %{user: user} do
+      {:ok, _} = upload(user, "old/nested/a.png")
+      Repo.delete_all(from(d in DragnCards.Images.UserImageDir, where: d.user_id == ^user.id))
+
+      assert %{dir_rows_created: 2} = Reconciler.reconcile_user(user.id)
+      assert Dirs.exists?(user.id, "old") and Dirs.exists?(user.id, "old/nested")
+    end
+
+    test "recreates the directory for a folder whose directory went missing", %{user: user} do
+      {:ok, _} = Images.create_dir(user.id, "empty")
+      File.rmdir!(Path.join(Paths.user_root(user.id), "empty"))
+
+      assert %{dirs_recreated_on_disk: 1} = Reconciler.reconcile_user(user.id)
+      assert File.dir?(Path.join(Paths.user_root(user.id), "empty"))
     end
   end
 

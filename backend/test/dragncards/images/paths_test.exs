@@ -113,6 +113,29 @@ defmodule DragnCards.Images.PathsTest do
     end
   end
 
+  describe "normalize_dir/1" do
+    test "accepts and trims a folder path" do
+      assert {:ok, %{path: "mygame/English", path_ci: "mygame/english"}} =
+               Paths.normalize_dir("/mygame/English/")
+    end
+
+    test "does not rewrite anything that looks like an extension" do
+      assert {:ok, %{path: "set.01"}} = Paths.normalize_dir("set.01")
+    end
+
+    test "rejects the same things file paths do" do
+      assert {:error, :traversal} = Paths.normalize_dir("a/../b")
+      assert {:error, :empty_path} = Paths.normalize_dir("/")
+      assert {:error, {:reserved_name, _}} = Paths.normalize_dir("CON")
+      assert {:error, {:bad_characters, _}} = Paths.normalize_dir("a?b")
+    end
+
+    test "dir_ancestors lists every level, shallowest first" do
+      assert Paths.dir_ancestors("a/b/c") == ["a", "a/b", "a/b/c"]
+      assert Paths.dir_ancestors("") == []
+    end
+  end
+
   describe "unicode normalisation" do
     test "NFD and NFC spellings of the same name collide" do
       nfc = "é.png"

@@ -14,7 +14,7 @@ defmodule DragnCards.Images.Reconciler do
 
   import Ecto.Query
 
-  alias DragnCards.Images.{Paths, UserImage, UserImageQuota}
+  alias DragnCards.Images.{Dirs, Paths, UserImage, UserImageQuota}
   alias DragnCards.Repo
 
   require Logger
@@ -70,13 +70,49 @@ defmodule DragnCards.Images.Reconciler do
     Enum.each(corrections, fn row -> correct_size(row, Map.fetch!(on_disk, row.path)) end)
 
     totals = recount(user_id)
-    prune_empty_dirs(root)
+    {dirs_created, dirs_recreated} = reconcile_dirs(user_id, root)
+
+    # Only directories nobody asked for: a folder the author created and left
+    # empty has a row, and must survive this.
+    kept = user_id |> Dirs.list_paths() |> MapSet.new(&Paths.ci/1)
+    prune_empty_dirs(root, root, kept)
 
     Map.merge(totals, %{
       rows_without_files: length(missing),
       files_without_rows: length(orphans),
-      size_corrections: length(corrections)
+      size_corrections: length(corrections),
+      dir_rows_created: dirs_created,
+      dirs_recreated_on_disk: dirs_recreated
     })
+  end
+
+  # Every folder implied by an image gets a row (covers images that predate the
+  # folders table), and every folder row gets a directory on disk (so an empty
+  # folder is still a real directory, and renaming it has something to move).
+  defp reconcile_dirs(user_id, root) do
+    before = Dirs.count(user_id)
+
+    from(i in UserImage, where: i.user_id == ^user_id, distinct: true, select: i.dir)
+    |> Repo.all()
+    |> Enum.each(&Dirs.ensure!(user_id, &1))
+
+    created = Dirs.count(user_id) - before
+
+    recreated =
+      user_id
+      |> Dirs.list_paths()
+      |> Enum.count(fn dir ->
+        path = Path.join(root, dir)
+
+        if File.dir?(path) do
+          false
+        else
+          File.mkdir_p!(path)
+          true
+        end
+      end)
+
+    {created, recreated}
   end
 
   @doc "Recomputes the counters row from the images table."
@@ -215,16 +251,22 @@ defmodule DragnCards.Images.Reconciler do
     match?({:ok, %File.Stat{type: :symlink}}, File.lstat(path))
   end
 
-  # Bottom-up, and never removes the root it was given.
-  defp prune_empty_dirs(root) do
-    case File.ls(root) do
+  # Bottom-up, never removes the root it was given, and spares any directory
+  # whose relative path (case-folded) is in `keep`.
+  defp prune_empty_dirs(root, dir \\ nil, keep \\ MapSet.new())
+
+  defp prune_empty_dirs(root, nil, keep), do: prune_empty_dirs(root, root, keep)
+
+  defp prune_empty_dirs(base, dir, keep) do
+    case File.ls(dir) do
       {:ok, entries} ->
         Enum.each(entries, fn entry ->
-          path = Path.join(root, entry)
+          path = Path.join(dir, entry)
 
           if File.dir?(path) and not symlink?(path) do
-            prune_empty_dirs(path)
-            if File.ls(path) == {:ok, []}, do: File.rmdir(path)
+            prune_empty_dirs(base, path, keep)
+            rel = path |> Path.relative_to(base) |> Paths.ci()
+            if File.ls(path) == {:ok, []} and not MapSet.member?(keep, rel), do: File.rmdir(path)
           end
         end)
 

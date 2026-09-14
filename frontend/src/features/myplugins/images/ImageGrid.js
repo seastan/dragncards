@@ -15,7 +15,7 @@ export const ImageGrid = ({ images, selected, onToggle, onCopyUrl, onRename, onD
   if (!images.length) {
     return (
       <div className="p-8 text-center text-sm text-gray-400">
-        This folder has no images.
+        This folder is empty.
       </div>
     );
   }

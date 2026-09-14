@@ -357,6 +357,66 @@ defmodule DragnCardsWeb.API.V1.ImagesControllerTest do
     end
   end
 
+  describe "folders" do
+    test "POST /images/folders creates an empty folder", %{owner_conn: conn, owner: owner} do
+      response = conn |> post("/api/v1/images/folders", %{"path" => "mygame/German"}) |> json_response(200)
+      assert response["folder"]["path"] == "mygame/German"
+
+      tree = conn |> get("/api/v1/images/tree") |> json_response(200)
+      assert Enum.any?(tree["dirs"], &(&1["path"] == "mygame/German" and &1["count"] == 0))
+      assert File.dir?(Path.join(Paths.user_root(owner.id), "mygame/German"))
+    end
+
+    test "POST /images/folders reports a clash and a bad name", %{owner_conn: conn} do
+      conn |> post("/api/v1/images/folders", %{"path" => "English"}) |> json_response(200)
+
+      assert conn |> post("/api/v1/images/folders", %{"path" => "english"}) |> json_response(422) ==
+               %{"error" => "Something with that name already exists there."}
+
+      assert conn |> post("/api/v1/images/folders", %{"path" => "../x"}) |> json_response(422)
+    end
+
+    test "POST /images/folders/rename moves the folder and its images", %{owner_conn: conn, owner: owner} do
+      seed(owner, "mygame/English/a.png")
+
+      response =
+        conn
+        |> post("/api/v1/images/folders/rename", %{"from" => "mygame/English", "to" => "mygame/en"})
+        |> json_response(200)
+
+      assert response["folder"]["to"] == "mygame/en"
+      assert response["folder"]["moved"] == 1
+      assert String.ends_with?(response["folder"]["url"], "/mygame/en/")
+      assert File.exists?(Paths.abs_path!(owner.id, "mygame/en/a.webp"))
+    end
+
+    test "rename refuses a clash and a folder that is not yours", %{owner_conn: conn, other_conn: other_conn, owner: owner} do
+      seed(owner, "a/x.png")
+      conn |> post("/api/v1/images/folders", %{"path" => "b"}) |> json_response(200)
+
+      assert conn
+             |> post("/api/v1/images/folders/rename", %{"from" => "a", "to" => "b"})
+             |> json_response(422)
+
+      assert other_conn
+             |> post("/api/v1/images/folders/rename", %{"from" => "a", "to" => "stolen"})
+             |> json_response(404)
+
+      assert File.exists?(Paths.abs_path!(owner.id, "a/x.webp"))
+    end
+
+    test "deleting the root folder is refused", %{owner_conn: conn, owner: owner} do
+      seed(owner, "a.png")
+      assert conn |> post("/api/v1/images/delete", %{"dir" => ""}) |> json_response(422)
+      assert Quota.get_or_build(owner.id).image_count == 1
+    end
+
+    test "folder endpoints refuse anonymous callers", %{conn: conn} do
+      assert conn |> post("/api/v1/images/folders", %{"path" => "x"}) |> json_response(401)
+      assert conn |> post("/api/v1/images/folders/rename", %{"from" => "x", "to" => "y"}) |> json_response(401)
+    end
+  end
+
   describe "account deletion" do
     test "removes the user's files from the volume", %{owner: owner} do
       image = seed(owner, "mygame/a.png")
