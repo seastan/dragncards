@@ -22,8 +22,17 @@ defmodule DragnCards.Images.Reconciler do
   @quarantine_max_age_days 30
 
   @doc "Reconciles every user that has rows or counters."
-  @spec run_all() :: :ok
+  @spec run_all() :: :ok | :locked
   def run_all do
+    # It moves files into quarantine, so two blue-green instances must not run
+    # it at once.
+    case DragnCards.Images.JobLock.with_lock(:image_reconcile, &run_all_unlocked/0) do
+      {:ok, :ok} -> :ok
+      :locked -> :locked
+    end
+  end
+
+  defp run_all_unlocked do
     user_ids =
       from(i in UserImage, distinct: true, select: i.user_id)
       |> Repo.all()

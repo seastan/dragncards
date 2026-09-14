@@ -29,6 +29,113 @@ defmodule DragnCards.UserEmail do
     end
   end
 
+  # --- Plugin image hosting ---------------------------------------------------
+
+  @doc """
+  Warns a user who is over their image hosting limit. `kind` is :first,
+  :reminder or :final (sent within the last week before images are removed).
+  """
+  def image_quota_warning(user, quota, limits, prune_at, kind) do
+    when_text = format_datetime(prune_at, user)
+    manage_url = images_url()
+
+    subject =
+      case kind do
+        :final -> "[DragnCards] Your hosted images will be trimmed in a few days"
+        _ -> "[DragnCards] You are over your image hosting limit"
+      end
+
+    usage =
+      "You are using #{number(quota.image_count)} of #{number(limits.max_files)} images " <>
+        "and #{megabytes(quota.total_bytes)} of #{megabytes(limits.max_bytes)}."
+
+    new()
+    |> to({user.alias || "Player", user.email})
+    |> from({"DragnCards", "noreply@noreply.dragncards.com"})
+    |> subject(subject)
+    |> html_body("""
+    <h2>You are over your image hosting limit</h2>
+    <p>#{usage}</p>
+    <p>Your images are still being served, but new uploads are paused.</p>
+    <p>On <strong>#{when_text}</strong>, the most recently uploaded images will be removed until
+    you are back under your limit. Anything using those image URLs will stop showing them.</p>
+    <p>To keep them, delete some images or increase your support level before then.</p>
+    <p><a href="#{manage_url}">Manage your images</a></p>
+    """)
+    |> text_body("""
+    You are over your image hosting limit
+
+    #{usage}
+
+    Your images are still being served, but new uploads are paused.
+
+    On #{when_text}, the most recently uploaded images will be removed until you are
+    back under your limit. Anything using those image URLs will stop showing them.
+
+    To keep them, delete some images or increase your support level before then.
+
+    Manage your images: #{manage_url}
+    """)
+  end
+
+  @doc """
+  Tells a user which images were removed. Includes a sample of the paths,
+  because the newest images are exactly the ones most recently wired into a
+  plugin, and the author needs to know which URLs just stopped working.
+  """
+  def image_quota_pruned(user, count, bytes, sample_paths) do
+    manage_url = images_url()
+    more = if count > length(sample_paths), do: count - length(sample_paths), else: 0
+
+    list_html = Enum.map_join(sample_paths, "", &"<li>#{html_escape(&1)}</li>")
+    list_text = Enum.map_join(sample_paths, "\n", &"  - #{&1}")
+    more_line = if more > 0, do: "...and #{number(more)} more.", else: ""
+
+    new()
+    |> to({user.alias || "Player", user.email})
+    |> from({"DragnCards", "noreply@noreply.dragncards.com"})
+    |> subject("[DragnCards] Some of your hosted images were removed")
+    |> html_body("""
+    <h2>Some of your hosted images were removed</h2>
+    <p>Your account was over its image hosting limit for the full grace period, so the
+    #{number(count)} most recently uploaded images (#{megabytes(bytes)}) were removed.
+    Anything using their URLs will no longer show them.</p>
+    <ul>#{list_html}</ul>
+    <p>#{more_line}</p>
+    <p><a href="#{manage_url}">Manage your images</a></p>
+    """)
+    |> text_body("""
+    Some of your hosted images were removed
+
+    Your account was over its image hosting limit for the full grace period, so the
+    #{number(count)} most recently uploaded images (#{megabytes(bytes)}) were removed.
+    Anything using their URLs will no longer show them.
+
+    #{list_text}
+    #{more_line}
+
+    Manage your images: #{manage_url}
+    """)
+  end
+
+  # The public site for this host, derived from the uploads base URL so beta
+  # emails link to beta and production emails link to production.
+  defp images_url do
+    base =
+      :dragncards
+      |> Application.get_env(:uploads, [])
+      |> Keyword.get(:public_base_url, "https://dragncards.com/uploads")
+
+    String.replace_suffix(base, "/uploads", "") <> "/myimages"
+  end
+
+  defp number(n), do: n |> Integer.to_string() |> String.replace(~r/\B(?=(\d{3})+(?!\d))/, ",")
+
+  defp megabytes(bytes), do: "#{Float.round(bytes / 1_048_576, 1)} MB"
+
+  defp html_escape(text),
+    do: text |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string()
+
   def welcome(user) do
     new()
     |> to({user.name, user.email})

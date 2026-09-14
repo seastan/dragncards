@@ -150,6 +150,9 @@ defmodule DragnCards.Users do
           end)
 
         Logger.info("Patreon sync complete: #{inspect(results)}")
+        # Image pruning refuses to run on stale supporter levels; see
+        # DragnCards.Images.Enforcement.prune_allowed?/1.
+        DragnCards.Images.Enforcement.record_patreon_sync()
     end
   end
 
