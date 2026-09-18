@@ -18,6 +18,51 @@ import Config
 # on beta would bake production URLs into beta testers' plugins, and a wrong
 # UPLOADS_ROOT would write to the wrong volume.
 if config_env() == :prod do
+  # --- Settings that used to live in config/releases.exs ----------------------
+  #
+  # Adding this file made the release ignore config/releases.exs entirely (a
+  # release evaluates runtime.exs instead, and cannot import other config files).
+  # Anything only that file provided has to be restored here, or the release
+  # boots with no HTTP listener and mail silently stops working.
+  #
+  # server: true is what makes a release start the endpoint at all; without it
+  # the app runs, keeps its scheduled jobs, and serves nothing.
+  # PORT is per-instance and is what blue-green deploys switch between, so it
+  # must come from the environment rather than from prod.exs.
+  config :dragncards, DragnCardsWeb.Endpoint,
+    server: true,
+    http: [port: String.to_integer(System.get_env("PORT") || "4000")]
+
+  # Mail. Configured only when credentials are present, so a host without them
+  # fails loudly at send time rather than appearing to work.
+  mailgun_api_key = System.get_env("MAILGUN_API_KEY")
+  mailgun_domain = System.get_env("MAILGUN_DOMAIN")
+
+  if mailgun_api_key not in [nil, ""] and mailgun_domain not in [nil, ""] do
+    for mailer <- [DragnCards.Mailer, DragnCardsWeb.PowMailer] do
+      config :dragncards, mailer,
+        adapter: Swoosh.Adapters.Mailgun,
+        api_key: mailgun_api_key,
+        domain: mailgun_domain
+    end
+  else
+    IO.puts(:stderr, """
+    [mail] MAILGUN_API_KEY / MAILGUN_DOMAIN are not set, so no mail adapter is \
+    configured. Password resets and email confirmations will fail.\
+    """)
+  end
+
+  # Database URL, if the environment provides one. Otherwise the build-time
+  # config (config/prod.secret.exs) applies, which is where it came from before.
+  database_url = System.get_env("DATABASE_URL")
+
+  if database_url not in [nil, ""] do
+    config :dragncards, DragnCards.Repo,
+      url: database_url,
+      pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
+  end
+
+  # --- Plugin image hosting ---------------------------------------------------
   uploads_root = System.get_env("UPLOADS_ROOT")
   uploads_base_url = System.get_env("UPLOADS_PUBLIC_BASE_URL")
 
