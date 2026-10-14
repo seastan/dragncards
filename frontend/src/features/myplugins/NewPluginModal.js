@@ -59,24 +59,7 @@ export const NewPluginModal = ({ isOpen, closeModal }) => {
       setErrorMessage("No card database specified.");
       return;
     } */
-    const updateData = {
-      plugin: {
-        name: inputs.gameDef.pluginName,
-        author_id: user?.id,
-        game_def: inputs.gameDef,
-        card_db: inputs.cardDb,
-        public: inputs.public || false,
-      },
-    };
-    //const res = await axios.post("/be/api/v1/profile/update", data);
-
-    setSuccessMessage("");
-    setErrorMessage("");
-    setLoadingMessage("Please wait...");
-    console.log("auth 1", updateData, authOptions);
-    const res = await axios.post("/be/api/myplugins", updateData, authOptions);
-    console.log("res 1", res);
-    setLoadingMessage("Finished.");
+    e
     if (
       res.status === 200
     ) {

@@ -642,7 +642,7 @@ export const SaveNewPlugin = ({ inputs }) => {
   return (
     <div className="max-w-3xl p-6 m-4 bg-gray-800 rounded-lg text-white">
       <p className="text-sm text-gray-300 mb-4">
-        {siteL10n("Click below to export your game definition and create your plugin. Once complete, visit 'My Plugins' to test and manage your plugin.")}
+        {siteL10n("Click below to create your new plugin!")}
       </p>
 
       {loadingMessage && <p className="text-yellow-300 mb-2">{loadingMessage}</p>}
