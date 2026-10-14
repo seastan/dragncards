@@ -122,7 +122,10 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
             Map.has_key?(load_list_item, "cardDetails") ->
               load_list_item["cardDetails"]
 
-            Map.has_key?(load_list_item, "authorId") ->
+            # Custom content is keyed "author_id-<id>-<databaseId>", so plugin code
+            # can load a custom card by id without knowing to pass an authorId
+            Map.has_key?(load_list_item, "authorId") or
+                (is_binary(database_id) and String.starts_with?(database_id, "author_id-")) ->
               CustomCardDb.get_card_details_for_user(game["pluginId"], user_id, database_id)
 
             database_id != nil ->
