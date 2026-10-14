@@ -33,6 +33,21 @@ if config_env() == :prod do
     server: true,
     http: [port: String.to_integer(System.get_env("PORT") || "4000")]
 
+  # Extra websocket origins for this host (comma-separated hosts, e.g.
+  # "beta.dragncards.com,www.beta.dragncards.com"). Replaces check_origin from
+  # prod.exs, so the base list is repeated here. Unset on production.
+  extra_origins =
+    (System.get_env("CHECK_ORIGIN_EXTRA") || "")
+    |> String.split(",", trim: true)
+    |> Enum.map(&("//" <> String.trim(&1)))
+
+  if extra_origins != [] do
+    config :dragncards, DragnCardsWeb.Endpoint,
+      check_origin:
+        ["//localhost", "//dragncards", "//dragncards.com", "//www.dragncards.com"] ++
+          extra_origins
+  end
+
   # Mail. Configured only when credentials are present, so a host without them
   # fails loudly at send time rather than appearing to work.
   mailgun_api_key = System.get_env("MAILGUN_API_KEY")

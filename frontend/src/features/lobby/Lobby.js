@@ -67,7 +67,14 @@ export const Lobby = () => {
     <LobbyContainer>
       <WhatsNewModal isOpen={showWhatsNew} closeModal={() => setShowWhatsNew(false)} user={user} />
       <div className="w-full" style={{minHeight: "600px"}}>
-        {/* <div className="bg-red-600-30 p-4 rounded-lg mb-4 text-white text-sm">A recent DragnCards update has impacted the performance of some plugins</div> */}
+        {process.env.REACT_APP_SITE_BANNER && (
+          <div className="bg-red-600-30 p-4 rounded-lg mb-4 text-white text-sm">
+            {process.env.REACT_APP_SITE_BANNER}{" "}
+            {process.env.REACT_APP_SITE_BANNER_LINK && (
+              <a href={process.env.REACT_APP_SITE_BANNER_LINK}>{process.env.REACT_APP_SITE_BANNER_LINK}</a>
+            )}
+          </div>
+        )}
         <div className="text-center text-white text-2xl mb-2">
           {/* Adding the style and onClick event */}
           <span 

@@ -40,6 +40,12 @@ defmodule DragnCardsWeb.Router do
     post("/plugin-repo-update", PluginRepoUpdateController, :update)
   end
 
+  # Discord bot: authenticates with a shared key (BOT_API_KEY), not a session.
+  scope "/api", DragnCardsWeb do
+    pipe_through(:api)
+    patch("/bot/plugins/:id", BotPluginsController, :update)
+  end
+
   # My plugins: every action is author-only, so require a session up front
   # rather than relying on each controller action to check. Kept ahead of the
   # scope below so /myplugins/:id keeps matching before /myplugins/plugin_builder,
