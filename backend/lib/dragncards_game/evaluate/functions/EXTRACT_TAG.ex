@@ -14,7 +14,7 @@ defmodule DragnCardsGame.Evaluate.Functions.EXTRACT_TAG do
 
   *Example*:
   ```
-  ["EXTRACT_TAG", $html, "script", "__NEXT_DATA__"]
+  ["EXTRACT_TAG", $HTML, "script", "__NEXT_DATA__"]
   ```
   """
 
@@ -33,7 +33,7 @@ defmodule DragnCardsGame.Evaluate.Functions.EXTRACT_TAG do
   """
   def execute(game, code, trace) do
     Evaluate.argc(code, 3)
-    html = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["html"])
+    html = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["HTML"])
     tag_name = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["tag_name"])
     id = Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["id"])
 
