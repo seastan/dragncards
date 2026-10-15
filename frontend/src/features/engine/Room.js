@@ -271,15 +271,15 @@ export const Room = ({ slug }) => {
               This room can no longer be reached from this browser session. It may have closed, timed out, or stayed on an older server during a deployment.
             </p>
             <p className="text-gray-300 mb-4">
-              If the game was saved, continue from your saved games in your profile.
+              If the game was saved, continue from My Saved Games.
             </p>
           </>
         )}
         <button
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mr-2"
-          onClick={() => { dispatch(setRoomNotFound(false)); history.push(sessionExpired || !myUser ? "/login" : "/profile"); }}
+          onClick={() => { dispatch(setRoomNotFound(false)); history.push(sessionExpired || !myUser ? "/login" : "/mygames"); }}
         >
-          {sessionExpired || !myUser ? "Log in" : "Go to profile"}
+          {sessionExpired || !myUser ? "Log in" : "Go to saved games"}
         </button>
         <button
           className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded"

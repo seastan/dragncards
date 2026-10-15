@@ -1602,7 +1602,7 @@ export const getGameDefSchema = (gameDef) => {
         "_type_": "object",
         "_strictKeys_": true,
         "metadata": {
-          "_description_": "Metadata to save with the game, which will be displayed in the saved games section of the user profile.",
+          "_description_": "Metadata to save with the game, which will be displayed on the My Saved Games page.",
           "_type_": "object",
           "_itemSchema_": {
             "_description_": "Either a value or an actionList that returns a value",

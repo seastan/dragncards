@@ -2,81 +2,68 @@ defmodule DragnCardsWeb.ReplayController do
   use DragnCardsWeb, :controller
   import Ecto.Query
 
-  alias DragnCards.{Replay, Repo}
+  alias DragnCards.{Replay, Repo, Users}
+  alias DragnCards.Plugins.Plugin
+  alias DragnCards.Users.User
 
   # alias DragnCardsUtil.{NameGenerator, Slugify}
   # alias DragnCardsGame.GameSupervisor
 
   action_fallback DragnCardsWeb.FallbackController
 
-  def index(conn, params) do
-    user_id = String.to_integer(params["user_id"])
-    # Faster to gather all columns except game_json
+  # Saved games for the signed-in user. Non-supporters only get their three
+  # most recent; the limit lives here so the full list never leaves the server.
+  def index(conn, _params) do
+    user = Pow.Plug.current_user(conn)
     query = from r in Replay,
+      left_join: p in Plugin, on: p.id == r.plugin_id,
       order_by: [desc: r.updated_at],
-      where: fragment("? = ANY(?)", ^user_id, r.player_ids) or r.user_id == ^user_id,
-      select: [:deleted_by, :uuid, :updated_at, :inserted_at, :user_id, :metadata, :plugin_id, :player_ids]
+      where: fragment("? = ANY(?)", ^user.id, r.player_ids) or r.user_id == ^user.id,
+      where: not fragment("? = ANY(coalesce(?, '{}'::integer[]))", ^user.id, r.deleted_by),
+      select: %{
+        uuid: r.uuid,
+        updated_at: r.updated_at,
+        metadata: r.metadata,
+        plugin_id: r.plugin_id,
+        plugin_name: p.name,
+        player_ids: r.player_ids
+      }
+    query = if Users.get_supporter_level(user.id) < 3, do: limit(query, 3), else: query
     replays = Repo.all(query)
+
+    player_ids = replays |> Enum.flat_map(&(&1.player_ids || [])) |> Enum.uniq()
+    aliases = Repo.all(from u in User, where: u.id in ^player_ids, select: {u.id, u.alias}) |> Map.new()
+    replays = Enum.map(replays, fn r ->
+      Map.put(r, :player_aliases, (r.player_ids || []) |> Enum.map(&aliases[&1]) |> Enum.reject(&is_nil/1))
+    end)
+
     render(conn, "index.json", replays: replays)
   end
 
-
-  # Update: Update profile settings.
+  # Hide a saved game from the signed-in user. Other players keep seeing it.
   @spec delete(Conn.t(), Map.t()) :: Conn.t()
-  def delete(conn, params) do
-    user_id = params["user"]["id"]
-    replay = params["replay"]
-    new_deleted_by = if replay["deleted_by"] do
-      replay["deleted_by"] ++ [user_id]
-    else
-      [user_id]
-    end
-    updates = %{
-      deleted_by: new_deleted_by
-    }
-    # Get replay from database where uuid and user_id match
-    r = Repo.get_by!(Replay, uuid: replay["uuid"])
-    c = Ecto.Changeset.change(r, updates)
-    case Repo.update(c) do
-      {:ok, _struct}       -> # Updated with success
-        conn
-        |> json(%{success: %{message: "Deleted replay"}})
-      {:error, _changeset} -> # Something went wrong
-        conn
-        |> json(%{success: %{message: "Failed to delete replay"}})
-    end
-    # query = from(r in Replay, where: r.uuid == ^uuid)
-    # case Repo.delete_all(query) do
-    #   {1, nil}       -> # Updated with success
-    #     conn
-    #     |> json(%{success: %{message: "Deleted replay."}})
-    #   _ -> # Something went wrong
-    #     conn
-    #     |> json(%{success: %{message: "Failed to delete replay."}})
-    # end
-    # user_id = user["id"]
-    # updates = %{
-    #   background_url: user["background_url"],
-    #   player_back_url: user["player_back_url"],
-    #   encounter_back_url: user["encounter_back_url"],
-    #   language: user["language"],
-    # }
-    # u = Repo.get!(User, user_id)
-    # u = Ecto.Changeset.change(u, updates)
-    # case Repo.update(u) do
-    #   {:ok, struct}       -> # Updated with success
-    #     conn
-    #     |> json(%{success: %{message: "Updated settings"}})
-    #   {:error, changeset} -> # Something went wrong
-    #     IO.inspect(changeset, label: "Failed to update settings")
-    #     conn
-    #     |> json(%{success: %{message: "Failed to update settings"}})
-    # end
+  def delete(conn, %{"uuid" => uuid}) do
+    user = Pow.Plug.current_user(conn)
+    case Repo.get_by(Replay, uuid: uuid) do
+      nil ->
+        conn |> put_status(404) |> json(%{error: %{message: "Saved game not found"}})
 
+      replay ->
+        if replay.user_id == user.id or user.id in (replay.player_ids || []) do
+          # Append in the database so concurrent deletes by different players
+          # don't overwrite each other.
+          from(r in Replay,
+            where: r.id == ^replay.id,
+            where: not fragment("? = ANY(coalesce(?, '{}'::integer[]))", ^user.id, r.deleted_by),
+            update: [push: [deleted_by: ^user.id]]
+          )
+          |> Repo.update_all([])
+          json(conn, %{success: %{message: "Deleted replay"}})
+        else
+          conn |> put_status(403) |> json(%{error: %{message: "Forbidden"}})
+        end
+    end
   end
-
-  # Create: Removed, users no longer able to create rooms by API
-  # Possibly this entire controller should be removed
 
   # def show(conn, %{"id" => id}) do
   #   room = Rooms.get_room!(id)

@@ -6,19 +6,15 @@ defmodule DragnCardsWeb.ReplayView do
     %{data: render_many(replays, ReplayView, "replay.json")}
   end
 
-  def render("show.json", %{replay: replay}) do
-    %{data: render_one(replay, ReplayView, "replay.json")}
-  end
-
   def render("replay.json", %{replay: replay}) do
     %{
       uuid: replay.uuid,
-      deleted_by: replay.deleted_by,
-      player_ids: replay.player_ids,
       metadata: replay.metadata,
       plugin_id: replay.plugin_id,
-      #game_json: replay.game_json,
-      updated_at: String.slice(NaiveDateTime.to_string(replay.updated_at), 0..15),
+      plugin_name: replay.plugin_name,
+      player_aliases: replay.player_aliases,
+      # Stored as naive UTC; mark it so browsers convert to local time
+      updated_at: NaiveDateTime.to_iso8601(replay.updated_at) <> "Z",
     }
   end
 end

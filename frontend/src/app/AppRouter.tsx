@@ -10,6 +10,7 @@ import Home from "../pages/Home";
 import Login from "../features/auth/Login";
 import Signup from "../features/auth/Signup";
 import Profile from "../features/profile/Profile";
+import MySavedGames from "../features/savedgames/MySavedGames";
 import RequestResetPassword from "../features/auth/RequestResetPassword";
 import DoResetPassword from "../features/auth/DoResetPassword";
 import ConfirmEmail from "../features/auth/ConfirmEmail";
@@ -36,6 +37,7 @@ const AppRouter: React.FC = () => {
         <Route path="/profile" component={Profile} />
         <Route path="/myplugins" component={MyPlugins} />
         <PrivateRoute path="/myimages" component={MyImages} />
+        <PrivateRoute path="/mygames" component={MySavedGames} />
         <Route path="/auth/patreon" component={Profile} />
         <Route path="/newroom" component={Lobby} />
         <Route path="/plugin" component={PluginLobby} />

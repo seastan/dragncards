@@ -68,7 +68,7 @@ export const TopBarMenu = React.memo(() => {
       // Save replay
       doActionList(data.actionList, `Closed the room`);
       // Close room
-      history.push("/profile");
+      history.push("/mygames");
       gameBroadcast("close_room", { options: { player_ui: playerUi } });
     } else if (data.action === "load_deck") {
       loadFileDeck();

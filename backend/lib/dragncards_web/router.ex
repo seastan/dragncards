@@ -54,13 +54,14 @@ defmodule DragnCardsWeb.Router do
     pipe_through([:api, :api_protected])
 
     resources("/myplugins", MyPluginsController)
+
+    # Saved games: always the signed-in user's own
+    get("/replays", ReplayController, :index)
+    delete("/replays/:uuid", ReplayController, :delete)
   end
 
   scope "/api", DragnCardsWeb do
     pipe_through(:api)
-
-    post("/replays/delete", ReplayController, :delete)
-    resources("/replays/:user_id", ReplayController, except: [:new, :edit])
 
     get("/patreon/:code", PatreonController, :patreon_callback)
 
