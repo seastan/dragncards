@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useHistory } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
-import ProfileLink from "../features/auth/ProfileLink";
+import ProfileMenu from "../features/auth/ProfileMenu";
 import useProfile from "../hooks/useProfile";
 import { PatreonModal } from "../features/store/support/PatreonModal";
 import { faHeart } from "@fortawesome/free-solid-svg-icons";
@@ -11,7 +11,7 @@ const navLinkClass =
   "px-3 py-1 text-md text-gray-300 font-medium rounded hover:text-white hover:bg-gray-600 no-underline transition-colors duration-150 cursor-pointer";
 
 export const AppNav: React.FC = () => {
-  const { authToken, logOut } = useAuth();
+  const { authToken } = useAuth();
   const history = useHistory();
   const user = useProfile();
   const [showPatreon, setShowPatreon] = useState(false);
@@ -39,22 +39,6 @@ export const AppNav: React.FC = () => {
 
       {/* Nav links */}
       <nav className="flex items-center gap-1">
-        {authToken && user?.admin && (
-          <Link to="/admin" className={navLinkClass}>
-            Admin
-          </Link>
-        )}
-        {authToken && (
-          <Link to={"/myplugins/" + user?.id} className={navLinkClass}>
-            My Plugins
-          </Link>
-        )}
-        {authToken && (
-          <Link to="/myimages" className={navLinkClass}>
-            My Images
-          </Link>
-        )}
-        <ProfileLink className={navLinkClass} />
         {!authToken && (
           <>
             <Link to="/login" className={navLinkClass}>
@@ -71,11 +55,7 @@ export const AppNav: React.FC = () => {
             Support
           </span>
         )}
-        {authToken && (
-          <span className={navLinkClass} onClick={() => logOut()}>
-            Sign Out
-          </span>
-        )}
+        {authToken && <ProfileMenu />}
       </nav>
       <PatreonModal
         isOpen={showPatreon}
