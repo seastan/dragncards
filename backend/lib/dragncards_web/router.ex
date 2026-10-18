@@ -89,6 +89,8 @@ defmodule DragnCardsWeb.Router do
   scope "/api/v1", DragnCardsWeb.API.V1, as: :api_v1 do
     pipe_through([:api, :api_protected])
 
+    post("/profile/update", ProfileController, :update)
+
     get("/images/tree", ImagesController, :tree)
     get("/images/quota", ImagesController, :quota)
     get("/images", ImagesController, :index)
@@ -121,7 +123,6 @@ defmodule DragnCardsWeb.Router do
 
     # Profile
     get("/profile", ProfileController, :index)
-    post("/profile/update", ProfileController, :update)
     post("/profile/update_plugin_user_settings", ProfileController, :update_plugin_user_settings)
     post("/profile/update_favorite_plugins", ProfileController, :update_favorite_plugins)
     post("/profile/update_whats_new_dismissed", ProfileController, :update_whats_new_dismissed)

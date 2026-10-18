@@ -39,23 +39,23 @@ defmodule DragnCardsWeb.API.V1.ProfileController do
 
   # Update: Update profile settings.
   @spec update(Conn.t(), map()) :: Conn.t()
-  #def update(conn, %{"user" => user}) do
+  # Update the signed-in user's preferences. Only the keys sent are changed.
   def update(conn, %{"user" => user_params}) do
-    user_id = user_params["id"]
-    u = Repo.get!(User, user_id)
-    updates = %{
-      language: user_params["language"],
-      timezone: user_params["timezone"]
-    }
-    u = Ecto.Changeset.change(u, updates)
-    case Repo.update(u) do
-      {:ok, _struct}       -> # Updated with success
-        #Pow.Plug.update_user(conn, %{}) # Refresh the session
+    current_user = conn.assigns.current_user
+    updates =
+      user_params
+      |> Map.take(["language", "timezone"])
+      |> Map.new(fn {k, v} -> {String.to_existing_atom(k), v} end)
+
+    changeset = Ecto.Changeset.change(Repo.get!(User, current_user.id), updates)
+    case Repo.update(changeset) do
+      {:ok, _struct} ->
         conn
         |> json(%{success: %{message: "Updated settings"}})
-      {:error, _changeset} -> # Something went wrong
+      {:error, _changeset} ->
         conn
-        |> json(%{success: %{message: "Failed to update settings"}})
+        |> put_status(422)
+        |> json(%{error: %{message: "Failed to update settings"}})
     end
   end
 
