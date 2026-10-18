@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSync, faTrash, faCheckSquare, faSquare, faFolderPlus, faUpload } from "@fortawesome/free-solid-svg-icons";
+import { faSync, faTrash, faCheckSquare, faSquare, faFolderPlus, faUpload, faExclamationTriangle } from "@fortawesome/free-solid-svg-icons";
 import useProfile from "../../../hooks/useProfile";
 import { useImageLibrary } from "./useImageLibrary";
 import { QuotaBar } from "./QuotaBar";
@@ -243,6 +243,15 @@ export const ImageManager = ({ onSupportClick }) => {
   return (
     <div className="flex h-full flex-col text-white">
       <QuotaBar quota={quota} onSupportClick={onSupportClick} />
+
+      {/* Said on every visit, not just at upload time: the volume is not backed
+          up, so a lost disk loses everything here. */}
+      <div className="mb-2 flex items-start gap-2 text-xs" style={{ color: "#fbbf24" }}>
+        <FontAwesomeIcon icon={faExclamationTriangle} style={{ marginTop: 2 }} />
+        <span>
+          These images are not backed up. Keep your own copies of anything you upload here.
+        </span>
+      </div>
 
       {/* A floating toast rather than an inline banner: inserting a banner above
           the grid shifted every control down, so a click aimed at one icon

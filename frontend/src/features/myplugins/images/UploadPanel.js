@@ -121,7 +121,9 @@ export const UploadPanel = ({ dir, profile, onProfileChange, queue, onPick, disa
       </div>
 
       <div className="mt-1 text-gray-400">
-        {hint} Or drop files and folders onto this panel; subfolders are kept.
+        {hint} Or drop files and folders onto this panel; subfolders are kept. Uploads are
+        converted to WebP, so <code>aragorn.png</code> is stored as <code>aragorn.webp</code>.
+        Keep your own copies: images here are not backed up.
       </div>
 
       {disabledReason && (
