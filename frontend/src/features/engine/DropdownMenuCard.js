@@ -20,7 +20,7 @@ import { setActiveCardId, setDropdownMenu, setShowModal } from "../store/playerU
 import { usePlayerIList } from "./hooks/usePlayerIList";
 import { evaluate } from "./hooks/evaluate";
 import store from "../../store";
-import { Z_INDEX } from "./functions/common";
+import { Z_INDEX, hasSupportedImageExtension } from "./functions/common";
 
 export const DropdownMenuCard = React.memo(({
   mouseX,
@@ -58,7 +58,7 @@ export const DropdownMenuCard = React.memo(({
       return;
     }
     var url = prompt(siteL10n("altArtPrompt"));
-    if (url && !(url.endsWith(".png") || url.endsWith(".jpg"))) {
+    if (url && !hasSupportedImageExtension(url)) {
       alert(siteL10n("altArtFormatError"))
       return;
     }

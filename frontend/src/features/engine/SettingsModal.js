@@ -15,7 +15,7 @@ import { useDoActionList } from "./hooks/useDoActionList";
 import { usePlayerN } from "./hooks/usePlayerN";
 import store from "../../store";
 import { useIsHost } from "./hooks/useIsHost";
-import { Z_INDEX } from "./functions/common";
+import { Z_INDEX, hasSupportedImageExtension } from "./functions/common";
 import { ToggleSwitch } from "./AutomationModal";
 
 // Move to another file, use this to set the default falues in playerUiSlice
@@ -230,7 +230,7 @@ const ModalContent = () => {
 
   const handleSave = async () => {
     var url = currentUiKeyVals["background_url"];
-    if (url && !(url.endsWith(".png") || url.endsWith(".jpg") || url.endsWith(".jpeg"))) {
+    if (url && !hasSupportedImageExtension(url)) {
       alert(siteL10n("altArtFormatError"))
       return;
     }

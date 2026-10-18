@@ -143,6 +143,13 @@ export const getVisibleFace = (card, playerN) => {
 // Resolves an image url that may either be a full url or just a suffix that needs
 // a prefix from gameDef.imageUrlPrefix. Returns the url for the given language
 // along with the Default-language url to fall back on if it fails to load.
+// Image URLs a user can paste for alt art or a custom background. Hosted images
+// are stored as WebP, so rejecting it would mean an author could upload a
+// background here and then be told its own URL is invalid. A query string is
+// allowed because external hosts often append one.
+export const hasSupportedImageExtension = (url) =>
+  /\.(png|jpe?g|gif|webp)(\?.*)?$/i.test(String(url || "").trim());
+
 export const applyImageUrlPrefix = (srcBase, gameDef, language) => {
   if (!srcBase) return {src: null, default: null};
   // Full url. Nothing to do here.

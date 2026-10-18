@@ -1071,22 +1071,22 @@ export const siteL10n = {
     "Chinese": "原始牌组"
   },
   "altArtPrompt": {
-    "English": "Enter the URL of the alt art image (must end in .jpg or .png). Leave blank to remove alt art.",
-    "French": "Entrez l'URL de l'image d'art alternatif (doit se terminer par .jpg ou .png). Laissez vide pour supprimer l'art alternatif.",
-    "Spanish": "Introduce la URL de la imagen de arte alternativo (debe terminar en .jpg o .png). Deja en blanco para eliminar el arte alternativo.",
-    "Portuguese": "Insira a URL da imagem de arte alternativa (deve terminar com .jpg ou .png). Deixe em branco para remover a arte alternativa.",
-    "Italian": "Inserisci l'URL dell'immagine dell'arte alternativa (deve terminare con .jpg o .png). Lascia vuoto per rimuovere l'arte alternativa.",
-    "German": "Geben Sie die URL des alternativen Kunstwerks ein (muss mit .jpg oder .png enden). Lassen Sie es leer, um die alternative Kunst zu entfernen.",
-    "Chinese": "输入异画卡图片的 URL（必须以 .jpg 或 .png 结尾）。留空以移除异画卡图片。"
+    "English": "Enter the URL of the alt art image (must end in .jpg, .png, .gif or .webp). Leave blank to remove alt art.",
+    "French": "Entrez l'URL de l'image d'art alternatif (doit se terminer par .jpg, .png, .gif ou .webp). Laissez vide pour supprimer l'art alternatif.",
+    "Spanish": "Introduce la URL de la imagen de arte alternativo (debe terminar en .jpg, .png, .gif o .webp). Deja en blanco para eliminar el arte alternativo.",
+    "Portuguese": "Insira a URL da imagem de arte alternativa (deve terminar com .jpg, .png, .gif ou .webp). Deixe em branco para remover a arte alternativa.",
+    "Italian": "Inserisci l'URL dell'immagine dell'arte alternativa (deve terminare con .jpg, .png, .gif o .webp). Lascia vuoto per rimuovere l'arte alternativa.",
+    "German": "Geben Sie die URL des alternativen Kunstwerks ein (muss mit .jpg, .png, .gif oder .webp enden). Lassen Sie es leer, um die alternative Kunst zu entfernen.",
+    "Chinese": "输入异画卡图片的 URL（必须以 .jpg、.png、.gif 或 .webp 结尾）。留空以移除异画卡图片。"
   },
   "altArtFormatError": {
-    "English": "Image URL must end in .jpg or .png.",
-    "French": "L'URL de l'image doit se terminer par .jpg ou .png.",
-    "Spanish": "La URL de la imagen debe terminar en .jpg o .png.",
-    "Portuguese": "A URL da imagem deve terminar com .jpg ou .png.",
-    "Italian": "L'URL dell'immagine deve terminare con .jpg o .png.",
-    "German": "Die Bild-URL muss mit .jpg oder .png enden.",
-    "Chinese": "图片 URL 必须以 .jpg 或 .png 结尾。"
+    "English": "Image URL must end in .jpg, .png, .gif or .webp.",
+    "French": "L'URL de l'image doit se terminer par .jpg, .png, .gif ou .webp.",
+    "Spanish": "La URL de la imagen debe terminar en .jpg, .png, .gif o .webp.",
+    "Portuguese": "A URL da imagem deve terminar com .jpg, .png, .gif ou .webp.",
+    "Italian": "L'URL dell'immagine deve terminare con .jpg, .png, .gif o .webp.",
+    "German": "Die Bild-URL muss mit .jpg, .png, .gif oder .webp enden.",
+    "Chinese": "图片 URL 必须以 .jpg、.png、.gif 或 .webp 结尾。"
   },
   "altArtSetError": {
     "English": "Error setting new alt art.",
