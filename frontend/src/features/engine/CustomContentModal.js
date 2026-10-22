@@ -33,6 +33,11 @@ const CustomCardSection = ({cardDb}) => {
 }
     
 
+// Stored custom cards are keyed "author_id-<authorId>-<originalDatabaseId>", and
+// each side's databaseId matches that key. Authors only recognise the id they
+// uploaded, so strip the prefix before showing one.
+const stripAuthorPrefix = (databaseId) => databaseId.replace(/^author_id-\d+-/, "");
+
 const CustomCardList = ({cardDb}) => {
   return(
     <div className="overflow-y-scroll bg-gray-600" style={{width: "600px", maxHeight: "300px"}}>
@@ -44,12 +49,12 @@ const CustomCardList = ({cardDb}) => {
       </div>
       {Object.keys(cardDb).sort().map(cardId => {
         const cardDetails = cardDb[cardId];
-        const databaseId = cardDetails.A.databaseId;
+        const databaseId = stripAuthorPrefix(cardId);
         // If databaseId is more than 10 characters, truncate it and return ...<last 7 characters>
         const cardIdDisplay = databaseId.length > 10 ? databaseId.slice(0, 3) + "..." + databaseId.slice(-7) : databaseId;
         return (
           <div key={cardId} className="flex p-1">
-            <div style={{width:"200px"}}>{cardIdDisplay}</div>
+            <div style={{width:"200px"}} title={databaseId}>{cardIdDisplay}</div>
             <div style={{width:"200px"}}>{cardDetails.A.name}</div>
             <div style={{width:"200px"}}>{cardDetails.A.type}</div>
             <div style={{width:"70px"}}><a href={cardDetails.A.imageUrl} target="_blank" rel="noreferrer"><img src={cardDetails.A.imageUrl} style={{width:"50px"}}/></a></div>

@@ -60,9 +60,23 @@ defmodule DragnCardsWeb.CustomContentController do
     card_db = attrs["card_db"]
     public_bool = if public do 1 else 0 end
 
-    # Prepend "custom-{author_id} to each key in card_db
+    # Prepend "author_id-{author_id}-" to each key in card_db, and carry that new
+    # id into every side that names one. Both other ingest paths key a card by
+    # its face A databaseId (TsvProcess.process_rows and the frontend's
+    # processArrayOfRows), so plugin code expects card.databaseId and
+    # card.sides.A.databaseId to agree: the card takes its databaseId from the
+    # key while each side copies the face's own column verbatim. Only sides that
+    # already hold a string are rewritten, leaving the null back face that a
+    # non-multi-sided card carries null, as it is for official content.
     card_db = Enum.reduce(card_db, %{}, fn({database_id, card_details}, acc) ->
       new_id = "author_id-#{author_id}-#{database_id}"
+      card_details = Enum.reduce(card_details, card_details, fn({side, face}, details) ->
+        if is_map(face) and is_binary(face["databaseId"]) do
+          put_in(details, [side, "databaseId"], new_id)
+        else
+          details
+        end
+      end)
       acc
       |> put_in([new_id], card_details)
       |> put_in([new_id, "author_id"], author_id)
