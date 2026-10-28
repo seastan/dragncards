@@ -45,7 +45,7 @@ defmodule DragnCardsGame.Evaluate.Functions.PREV do
     # |> put_in(["variables", "$TARGET"], game["prev_game"]["variables"]["$TARGET"])
     # |> put_in(["variables", "$THIS"], game["prev_game"]["variables"]["$THIS"])
     # |> put_in(["variables", "$THIS_ID"], game["prev_game"]["variables"]["$THIS_ID"])
-    Evaluate.evaluate(prev_game, Enum.at(code, 1), trace)
+    Evaluate.evaluate(prev_game, Evaluate.arg(code, 1), trace)
   end
 
 

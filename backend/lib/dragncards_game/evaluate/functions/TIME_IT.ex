@@ -27,13 +27,13 @@ defmodule DragnCardsGame.Evaluate.Functions.TIME_IT do
   The result of the 'TIME_IT' operation.
   """
   def execute(game, code, trace) do
-    label = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["label"])
-    code = Enum.at(code, 2)
+    label = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["label" | trace])
+    code = Evaluate.arg(code, 2)
     start_time = :os.system_time(:millisecond)
-    game = Evaluate.evaluate(game, code, trace ++ ["timed code"])
+    game = Evaluate.evaluate(game, code, ["timed code" | trace])
     end_time = :os.system_time(:millisecond)
     time_taken = end_time - start_time
-    game = Evaluate.evaluate(game, ["LOG", label <> " took " <> Integer.to_string(time_taken) <> " ms"], trace ++ ["log"])
+    game = Evaluate.evaluate(game, ["LOG", label <> " took " <> Integer.to_string(time_taken) <> " ms"], ["log" | trace])
     game
   end
 end

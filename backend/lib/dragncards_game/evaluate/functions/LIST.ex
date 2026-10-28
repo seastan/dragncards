@@ -39,10 +39,13 @@ defmodule DragnCardsGame.Evaluate.Functions.LIST do
   The result of the 'LIST' operation.
   """
   def execute(game, code, trace) do
-    list = Enum.slice(code, 1, Enum.count(code))
-    Enum.reduce(Enum.with_index(list), [], fn({item, index}, acc)->
-      acc ++ [Evaluate.evaluate(game, item, trace ++ ["index #{index}"])]
+    # Evaluate strictly left to right (errors and RANDOM_INT depend on it).
+    tl(code)
+    |> Enum.with_index()
+    |> Enum.reduce([], fn {item, index}, acc ->
+      [Evaluate.evaluate(game, item, [{"index", index} | trace]) | acc]
     end)
+    |> Enum.reverse()
   end
 
 

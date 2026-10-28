@@ -33,9 +33,9 @@ defmodule DragnCardsGame.Evaluate.Functions.EXTRACT_TAG do
   """
   def execute(game, code, trace) do
     Evaluate.argc(code, 3)
-    html = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["HTML"])
-    tag_name = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["tag_name"])
-    id = Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["id"])
+    html = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["HTML" | trace])
+    tag_name = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["tag_name" | trace])
+    id = Evaluate.evaluate(game, Evaluate.arg(code, 3), ["id" | trace])
 
     if !is_binary(html) do
       raise "EXTRACT_TAG: html must be a string"

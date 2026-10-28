@@ -109,23 +109,23 @@ defmodule DragnCardsGame.Evaluate.Functions.PLURAL_INDEX do
   end
 
   def plural_index(game, input, languageString, trace) do
-    intValue = DragnCardsGame.Evaluate.Functions.INSPECT_INT.to_int(game, input, trace ++ ["to_int"])
-    language = DragnCardsGame.Evaluate.Functions.LANGUAGE.to_language(game, languageString, trace ++ ["to_language"])
-    plural_index_vl(game, intValue, language, trace ++ ["plural_index_vl"])
+    intValue = DragnCardsGame.Evaluate.Functions.INSPECT_INT.to_int(game, input, ["to_int" | trace])
+    language = DragnCardsGame.Evaluate.Functions.LANGUAGE.to_language(game, languageString, ["to_language" | trace])
+    plural_index_vl(game, intValue, language, ["plural_index_vl" | trace])
   end
 
   def execute(game, code, trace) do
     argc = Evaluate.argc(code, 1, 2)
-    input = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["input"])
+    input = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["input" | trace])
     languageString = if argc > 1 do
-      Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["languageString"])
+      Evaluate.evaluate(game, Evaluate.arg(code, 2), ["languageString" | trace])
     else
       nil
     end
     if !is_nil(languageString) and !is_binary(languageString) do
       raise "PLURAL_INDEX: languageString must be a string"
     end
-    plural_index(game, input, languageString, trace ++ ["plural_index"])
+    plural_index(game, input, languageString, ["plural_index" | trace])
   end
 
 

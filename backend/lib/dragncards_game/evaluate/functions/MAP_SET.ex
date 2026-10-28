@@ -24,10 +24,10 @@ defmodule DragnCardsGame.Evaluate.Functions.MAP_SET do
   The result of the 'MAP_SET' operation.
   """
   def execute(game, code, trace) do
-    list = Enum.slice(code, 1, Enum.count(code))
+    list = tl(code)
     count = Enum.count(list)
     if count == 1 do
-      first = Evaluate.evaluate(game, List.first(list), trace ++ ["index 0"])
+      first = Evaluate.evaluate(game, List.first(list), ["index 0" | trace])
       cond do
         is_list(first) -> MapSet.new(first)
         is_struct(first, MapSet) -> MapSet.new(first)
@@ -36,7 +36,7 @@ defmodule DragnCardsGame.Evaluate.Functions.MAP_SET do
       end
     else
       Enum.reduce(Enum.with_index(list), MapSet.new(), fn({item, index}, acc)->
-        MapSet.put(acc, Evaluate.evaluate(game, item, trace ++ ["index #{index}"]))
+        MapSet.put(acc, Evaluate.evaluate(game, item, [{"index", index} | trace]))
       end)
     end
   end

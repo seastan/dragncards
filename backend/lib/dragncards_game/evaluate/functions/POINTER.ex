@@ -1,4 +1,5 @@
 defmodule DragnCardsGame.Evaluate.Functions.POINTER do
+  alias DragnCardsGame.Evaluate
   @moduledoc """
   *Arguments*:
   1. `code` (DragnLang code)
@@ -38,7 +39,7 @@ defmodule DragnCardsGame.Evaluate.Functions.POINTER do
   The result of the 'POINTER' operation.
   """
   def execute(_game, code, _trace) do
-    Enum.at(code, 1)
+    Evaluate.arg(code, 1)
   end
 
 

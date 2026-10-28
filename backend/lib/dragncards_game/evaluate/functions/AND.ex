@@ -20,12 +20,12 @@ defmodule DragnCardsGame.Evaluate.Functions.AND do
   The result of the 'AND' operation.
   """
   def execute(game, code, trace) do
-    statements = Enum.slice(code, 1, Enum.count(code) - 1)
+    statements = tl(code)
     # if game["prev_game"] do
     #   IO.inspect(Evaluate.evaluate(game, ["LOG_DEV", ["PREV", "$TARGET"]], trace ++ ["statements"]))
     # end
     Enum.all?(Enum.with_index(statements), fn {statement, index} ->
-      Evaluate.evaluate(game, statement, trace ++ ["index #{index}"])
+      Evaluate.evaluate(game, statement, [{"index", index} | trace])
     end)
   end
 

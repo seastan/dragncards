@@ -32,8 +32,8 @@ defmodule DragnCardsGame.Evaluate.Functions.INSPECT do
   """
   def to_string(game, v, h, trace) do
     cond do
-      h == "INT" -> Integer.to_string(DragnCardsGame.Evaluate.Functions.INSPECT_INT.to_int(game, v, trace ++ ["to_int"]))
-      h == "S" -> if DragnCardsGame.Evaluate.Functions.INSPECT_INT.to_int(game, v, trace ++ ["to_int"]) == 1 do "" else "s" end
+      h == "INT" -> Integer.to_string(DragnCardsGame.Evaluate.Functions.INSPECT_INT.to_int(game, v, ["to_int" | trace]))
+      h == "S" -> if DragnCardsGame.Evaluate.Functions.INSPECT_INT.to_int(game, v, ["to_int" | trace]) == 1 do "" else "s" end
       is_nil(v) -> "id:null"
       is_boolean(v) -> if v === true do "id:true" else "id:false" end
       is_integer(v) -> Integer.to_string(v)
@@ -43,13 +43,13 @@ defmodule DragnCardsGame.Evaluate.Functions.INSPECT do
         groupById = Map.get(game, "groupById")
         playerData = Map.get(game, "playerData")
         cond do
-          Map.has_key?(cardById, v) -> to_string(game, Map.get(cardById, v), h, trace ++ ["cardById"])
-          Map.has_key?(groupById, v) -> to_string(game, Map.get(groupById, v), h, trace ++ ["groupById"])
-          Map.has_key?(playerData, v) -> to_string(game, Map.get(playerData, v), h, trace ++ ["playerData"])
+          Map.has_key?(cardById, v) -> to_string(game, Map.get(cardById, v), h, ["cardById" | trace])
+          Map.has_key?(groupById, v) -> to_string(game, Map.get(groupById, v), h, ["groupById" | trace])
+          Map.has_key?(playerData, v) -> to_string(game, Map.get(playerData, v), h, ["playerData" | trace])
           true -> v
         end
-      is_list(v) -> "(" <> Enum.join(Enum.map(v, fn vv -> to_string(game, vv, h, trace ++ ["vv"]) end), ", ") <> ")"
-      is_struct(v, MapSet) -> "<(" <> Enum.join(Enum.map(v, fn vv -> to_string(game, vv, h, trace ++ ["vv"]) end), ", ") <> ")>"
+      is_list(v) -> "(" <> Enum.join(Enum.map(v, fn vv -> to_string(game, vv, h, ["vv" | trace]) end), ", ") <> ")"
+      is_struct(v, MapSet) -> "<(" <> Enum.join(Enum.map(v, fn vv -> to_string(game, vv, h, ["vv" | trace]) end), ", ") <> ")>"
       is_map(v) ->
         cond do
           Map.has_key?(v, "imageUrl") -> Map.get(v, "name", "id:face")
@@ -63,7 +63,7 @@ defmodule DragnCardsGame.Evaluate.Functions.INSPECT do
               true -> "id:card"
             end
           Map.has_key?(v, "stackIds") -> Map.get(v, "label", "id:group")
-          Map.has_key?(v, "user_id") -> (Evaluate.evaluate(game, ["GET_ALIAS", Map.get(v, "id")], trace ++ ["GET_ALIAS"]) || "id:player")
+          Map.has_key?(v, "user_id") -> (Evaluate.evaluate(game, ["GET_ALIAS", Map.get(v, "id")], ["GET_ALIAS" | trace]) || "id:player")
           Map.has_key?(v, "cardById") -> Map.get(v, "pluginName", "id:plugin") <> " (" <> Integer.to_string(Map.get(v, "pluginId", "0")) <> "." <> Integer.to_string(Map.get(v, "pluginVersion", "0")) <> ")"
           true -> "id:object"
         end
@@ -73,16 +73,16 @@ defmodule DragnCardsGame.Evaluate.Functions.INSPECT do
 
   def execute(game, code, trace) do
     argc = Evaluate.argc(code, 1, 2)
-    input = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["input"])
+    input = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["input" | trace])
     hintString = if argc > 1 do
-      Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["hintString"])
+      Evaluate.evaluate(game, Evaluate.arg(code, 2), ["hintString" | trace])
     else
       nil
     end
     if !is_nil(hintString) and !is_binary(hintString) do
       raise "INSPECT: hintString must be a string"
     end
-    to_string(game, input, hintString, trace ++ ["to_string"])
+    to_string(game, input, hintString, ["to_string" | trace])
   end
 
 

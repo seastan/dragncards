@@ -9,7 +9,7 @@ defmodule DragnCardsGame.Evaluate.Variables.PLAYER_ORDER do
     num_players = game["numPlayers"]
     first_player = game["firstPlayer"]
     {player_order, _} = Enum.reduce(0..num_players-1, {[], first_player}, fn _, {acc, player_i} ->
-      next_player = Evaluate.evaluate(game, ["NEXT_PLAYER", player_i], trace ++ ["$PLAYER_ORDER"])
+      next_player = Evaluate.evaluate(game, ["NEXT_PLAYER", player_i], ["$PLAYER_ORDER" | trace])
       {acc ++ [player_i], next_player}
     end)
     player_order

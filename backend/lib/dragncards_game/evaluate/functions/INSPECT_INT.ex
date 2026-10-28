@@ -37,7 +37,7 @@ defmodule DragnCardsGame.Evaluate.Functions.INSPECT_INT do
         playerData = Map.get(game, "playerData")
         cond do
           Map.has_key?(cardById, v) -> 1
-          Map.has_key?(groupById, v) -> to_int(game, Map.get(groupById, v), trace ++ ["groupById"])
+          Map.has_key?(groupById, v) -> to_int(game, Map.get(groupById, v), ["groupById" | trace])
           Map.has_key?(playerData, v) -> 1
           true ->
             try do
@@ -64,8 +64,8 @@ defmodule DragnCardsGame.Evaluate.Functions.INSPECT_INT do
 
   def execute(game, code, trace) do
     Evaluate.argc(code, 1)
-    input = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["input"])
-    to_int(game, input, trace ++ ["to_int"])
+    input = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["input" | trace])
+    to_int(game, input, ["to_int" | trace])
   end
 
 

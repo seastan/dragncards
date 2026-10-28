@@ -23,8 +23,8 @@ defmodule DragnCardsGame.Evaluate.Functions.DIVIDE do
   The result of the 'DIVIDE' operation.
   """
   def execute(game, code, trace) do
-    divisor = (Evaluate.evaluate(game, Enum.at(code,2), trace ++ ["divisor"]) || 0)
-    if divisor do (Evaluate.evaluate(game, Enum.at(code,1), trace ++ ["dividend"]) || 0) / divisor else nil end
+    divisor = (Evaluate.evaluate(game, Evaluate.arg(code, 2), ["divisor" | trace]) || 0)
+    if divisor do (Evaluate.evaluate(game, Evaluate.arg(code, 1), ["dividend" | trace]) || 0) / divisor else nil end
   end
 
 

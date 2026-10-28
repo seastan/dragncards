@@ -23,8 +23,8 @@ defmodule DragnCardsGame.Evaluate.Functions.REMOVE_FIRST_FROM_LIST_BY_VALUE do
   The result of the 'REMOVE_FIRST_FROM_LIST_BY_VALUE' operation.
   """
   def execute(game, code, trace) do
-    list = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["list"]) || []
-    value = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["value"])
+    list = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["list" | trace]) || []
+    value = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["value" | trace])
 
     remove_first(list, value)
   end

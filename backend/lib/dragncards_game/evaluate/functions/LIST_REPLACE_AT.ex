@@ -25,9 +25,9 @@ defmodule DragnCardsGame.Evaluate.Functions.LIST_REPLACE_AT do
   """
   def execute(game, code, trace) do
     Evaluate.argc(code, 3)
-    list = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["list"])
-    index = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["index"])
-    value = Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["value"])
+    list = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["list" | trace])
+    index = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["index" | trace])
+    value = Evaluate.evaluate(game, Evaluate.arg(code, 3), ["value" | trace])
     if !is_list(list) do
       raise "LIST_REPLACE_AT: list must be a list"
     end

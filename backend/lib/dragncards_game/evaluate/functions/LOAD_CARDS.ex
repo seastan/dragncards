@@ -57,22 +57,22 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
   """
   def execute(game, code, trace) do
     try do
-      load_list_or_id = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["load_list"])
-      player_n = Evaluate.evaluate(game, "$PLAYER_N", trace ++ ["player_n"])
+      load_list_or_id = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["load_list" | trace])
+      player_n = Evaluate.evaluate(game, "$PLAYER_N", ["player_n" | trace])
       user_id = GameUI.get_user_id_from_player_n(game, player_n)
 
       game_def = try do
         PluginCache.get_game_def_cached(game["pluginId"])
       rescue
         e ->
-          reraise "LOAD_CARDS failed while loading game definition for plugin #{inspect(game["pluginId"])}: #{Exception.message(e)}", __STACKTRACE__
+          reraise "LOAD_CARDS failed while loading game definition for plugin #{inspect(game["pluginId"])}: #{Evaluate.error_text(e)}", __STACKTRACE__
       end
 
       card_db = try do
         DragnCardsGame.PluginCache.get_card_db_cached(game["pluginId"])
       rescue
         e ->
-          reraise "LOAD_CARDS failed while loading card database for plugin #{inspect(game["pluginId"])}: #{Exception.message(e)}", __STACKTRACE__
+          reraise "LOAD_CARDS failed while loading card database for plugin #{inspect(game["pluginId"])}: #{Evaluate.error_text(e)}", __STACKTRACE__
       end
 
       if !is_list(load_list_or_id) and get_in(game_def, ["preBuiltDecks", load_list_or_id]) == nil do
@@ -171,22 +171,22 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
 
       # Run preLoadActionList if it exists
       game = try do
-        GameUI.do_automation_action_list(game, "preLoadActionList", trace ++ ["preLoadActionList"])
+        GameUI.do_automation_action_list(game, "preLoadActionList", ["preLoadActionList" | trace])
       rescue
         e ->
-          reraise "LOAD_CARDS failed during preLoadActionList execution: #{Exception.message(e)}", __STACKTRACE__
+          reraise "LOAD_CARDS failed during preLoadActionList execution: #{Evaluate.error_text(e)}", __STACKTRACE__
       end
 
       game = if load_list_id && game_def["preBuiltDecks"][load_list_id]["preLoadActionList"] do
         if game["automationEnabled"] do
           try do
-            Evaluate.evaluate(game, ["ACTION_LIST", game_def["preBuiltDecks"][load_list_id]["preLoadActionList"]], trace ++ ["deck preLoadActionList"])
+            Evaluate.evaluate(game, ["ACTION_LIST", game_def["preBuiltDecks"][load_list_id]["preLoadActionList"]], ["deck preLoadActionList" | trace])
           rescue
             e ->
-              reraise "LOAD_CARDS failed during deck '#{load_list_id}' preLoadActionList execution: #{Exception.message(e)}", __STACKTRACE__
+              reraise "LOAD_CARDS failed during deck '#{load_list_id}' preLoadActionList execution: #{Evaluate.error_text(e)}", __STACKTRACE__
           end
         else
-          Evaluate.evaluate(game, ["LOG", "Skipping deck's preLoadActionList because automation is disabled."], trace ++ ["action_list_id"])
+          Evaluate.evaluate(game, ["LOG", "Skipping deck's preLoadActionList because automation is disabled."], ["action_list_id" | trace])
         end
       else
         game
@@ -201,12 +201,12 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
         {reduce_load_list_time, game} = :timer.tc(fn ->
           Enum.reduce(Enum.with_index(game["loadList"]), game, fn {load_list_item, index}, acc ->
             try do
-              GameUI.load_card(acc, game_def, load_list_item, trace ++ ["load_cards", "item_#{index}"])
+              GameUI.load_card(acc, game_def, load_list_item, ["item_#{index}", "load_cards" | trace])
             rescue
               e ->
                 database_id = load_list_item["databaseId"]
                 card_name = get_in(load_list_item, ["cardDetails", "A", "name"]) || "Unknown"
-                reraise "Failed to load card at index #{index}: '#{card_name}' (databaseId: #{database_id}): #{Exception.message(e)}", __STACKTRACE__
+                reraise "Failed to load card at index #{index}: '#{card_name}' (databaseId: #{database_id}): #{Evaluate.error_text(e)}", __STACKTRACE__
             end
           end)
         end)
@@ -217,20 +217,20 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
       rescue
         e ->
           deck_info = if load_list_id, do: " from deck '#{load_list_id}'", else: " from custom list"
-          reraise "LOAD_CARDS failed while loading #{length(game["loadList"])} card(s)#{deck_info}: #{Exception.message(e)}", __STACKTRACE__
+          reraise "LOAD_CARDS failed while loading #{length(game["loadList"])} card(s)#{deck_info}: #{Evaluate.error_text(e)}", __STACKTRACE__
       end
 
       # Run deck's postLoadActionList if it exists
       game = if load_list_id && game_def["preBuiltDecks"][load_list_id]["postLoadActionList"] do
         if game["automationEnabled"] do
           try do
-            Evaluate.evaluate(game, ["ACTION_LIST", game_def["preBuiltDecks"][load_list_id]["postLoadActionList"]], trace ++ ["deck postLoadActionList"])
+            Evaluate.evaluate(game, ["ACTION_LIST", game_def["preBuiltDecks"][load_list_id]["postLoadActionList"]], ["deck postLoadActionList" | trace])
           rescue
             e ->
-              reraise "LOAD_CARDS failed during deck '#{load_list_id}' postLoadActionList execution: #{Exception.message(e)}", __STACKTRACE__
+              reraise "LOAD_CARDS failed during deck '#{load_list_id}' postLoadActionList execution: #{Evaluate.error_text(e)}", __STACKTRACE__
           end
         else
-          Evaluate.evaluate(game, ["LOG", "Skipping deck's postLoadActionList because automation is disabled."], trace ++ ["action_list_id"])
+          Evaluate.evaluate(game, ["LOG", "Skipping deck's postLoadActionList because automation is disabled."], ["action_list_id" | trace])
         end
       else
         game
@@ -238,10 +238,10 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
 
       # Run postLoadActionList if it exists
       game = try do
-        GameUI.do_automation_action_list(game, "postLoadActionList", trace ++ ["postLoadActionList"])
+        GameUI.do_automation_action_list(game, "postLoadActionList", ["postLoadActionList" | trace])
       rescue
         e ->
-          reraise "LOAD_CARDS failed during postLoadActionList execution: #{Exception.message(e)}", __STACKTRACE__
+          reraise "LOAD_CARDS failed during postLoadActionList execution: #{Evaluate.error_text(e)}", __STACKTRACE__
       end
 
       # Restore prev_loaded_card_ids and load_list
@@ -249,7 +249,7 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
       game = put_in(game, ["loadList"], prev_load_list)
 
       # Add the load code to the history
-      game = add_load_code_to_history(game, code, player_n, trace ++ ["add_load_code_to_history"])
+      game = add_load_code_to_history(game, code, player_n, ["add_load_code_to_history" | trace])
 
       # Set loadedADeck to true
       put_in(game, ["loadedADeck"], true)
@@ -259,7 +259,7 @@ defmodule DragnCardsGame.Evaluate.Functions.LOAD_CARDS do
         if String.starts_with?(Exception.message(e), "LOAD_CARDS failed") do
           reraise e, __STACKTRACE__
         else
-          reraise "LOAD_CARDS failed with unexpected error: #{Exception.message(e)}", __STACKTRACE__
+          reraise "LOAD_CARDS failed with unexpected error: #{Evaluate.error_text(e)}", __STACKTRACE__
         end
     end
   end

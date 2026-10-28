@@ -46,11 +46,11 @@
       raise "MULTI_VAR: Number of variable names and values do not match."
     end
 
-    var_values = Enum.map(var_values_unprocessed, fn value -> Evaluate.evaluate(game, value, trace ++ ["process MULTI_VAR value"]) end)
+    var_values = Enum.zip(var_names, var_values_unprocessed) |> Enum.map(fn {name, value} -> Evaluate.evaluate(game, value, [{"value", name} | trace]) end)
     current_scope_index = game["currentScopeIndex"]
     game = Enum.zip(var_names, var_values) |> Enum.reduce(game, fn {var_name, value}, acc ->
       if String.starts_with?(var_name, "$") do
-        put_in(acc, ["variables", "#{current_scope_index}", var_name], value)
+        Evaluate.put_scoped_var(acc, current_scope_index, var_name, value)
       else
         raise "MULTI_VAR: Tried to define variable '#{var_name}' but it does not start with $."
       end

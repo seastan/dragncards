@@ -23,8 +23,8 @@ defmodule DragnCardsGame.Evaluate.Functions.AT_INDEX do
   The result of the 'AT_INDEX' operation.
   """
   def execute(game, code, trace) do
-    list = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["list"])
-    index = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["index"])
+    list = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["list" | trace])
+    index = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["index" | trace])
     if list do Enum.at(list, index) else nil end
   end
 

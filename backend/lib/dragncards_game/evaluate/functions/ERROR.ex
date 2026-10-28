@@ -29,7 +29,7 @@ defmodule DragnCardsGame.Evaluate.Functions.ERROR do
       _ ->
         "Anonymous"
     end
-    message = Enum.at(code, 1)
+    message = Evaluate.arg(code, 1)
     backend_message = "in #{game["pluginName"]} triggered by #{alias_n}#{message}"
     Logger.error(backend_message)
     frontend_message = "Error " <> backend_message

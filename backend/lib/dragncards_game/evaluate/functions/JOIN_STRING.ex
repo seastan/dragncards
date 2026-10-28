@@ -23,7 +23,7 @@ defmodule DragnCardsGame.Evaluate.Functions.JOIN_STRING do
   The result of the 'JOIN_STRING' operation.
   """
   def execute(game, code, trace) do
-    Evaluate.evaluate(game, Enum.at(code,1), trace ++ ["left"]) <> Evaluate.evaluate(game, Enum.at(code,2), trace ++ ["right"])
+    Evaluate.evaluate(game, Evaluate.arg(code, 1), ["left" | trace]) <> Evaluate.evaluate(game, Evaluate.arg(code, 2), ["right" | trace])
   end
 
 

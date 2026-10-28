@@ -21,7 +21,7 @@ defmodule DragnCardsGame.Evaluate.Functions.LENGTH do
   The result of the 'LENGTH' operation.
   """
   def execute(game, code, trace) do
-    value = Evaluate.evaluate(game, Enum.at(code, 1), trace)
+    value = Evaluate.evaluate(game, Evaluate.arg(code, 1), trace)
     cond do
       is_binary(value) -> String.length(value)
       is_list(value) -> Enum.count(value)

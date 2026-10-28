@@ -3,7 +3,7 @@ defmodule DragnCardsGame.Card do
   Represents a playing card.
   """
   require Logger
-  alias DragnCardsGame.{CardFace,Tokens}
+  alias DragnCardsGame.{CardFace,Tokens,RandomId}
 
   @type t :: Map.t()
 
@@ -23,7 +23,7 @@ defmodule DragnCardsGame.Card do
     controller = group["controller"]
     side_a_name = card_details["A"]["name"] || "noname"
     side_a_name_clean = String.replace(side_a_name, ~r/[^a-zA-Z0-9]/, "")
-    card_id = side_a_name_clean <> "_" <> (:crypto.strong_rand_bytes(6) |> Base.url_encode64(padding: false)) |> String.downcase()
+    card_id = side_a_name_clean <> "_" <> RandomId.suffix() |> String.downcase()
     base = %{
       "id" => card_id,
       "databaseId" => card_db_id,

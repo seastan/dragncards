@@ -29,16 +29,16 @@ defmodule DragnCardsGame.Evaluate.Functions.STOP_LOOKING do
   """
   def execute(game, code, trace) do
     argc = Evaluate.argc(code, 1, 2)
-    player_i = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["player_i"])
+    player_i = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["player_i" | trace])
     option = if argc > 1 do
-      Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["keep_peeking"])
+      Evaluate.evaluate(game, Evaluate.arg(code, 2), ["keep_peeking" | trace])
     else
       "hide"
     end
-    browse_group_id = Evaluate.evaluate(game, "$GAME.playerData.#{player_i}.browseGroup.id", trace ++ ["browse_group_id"])
+    browse_group_id = Evaluate.evaluate(game, "$GAME.playerData.#{player_i}.browseGroup.id", ["browse_group_id" | trace])
     if browse_group_id do
-      game = Evaluate.evaluate(game, ["SET", "/playerData/#{player_i}/browseGroup/id", nil], trace ++ ["set_browse_group_id"])
-      game = Evaluate.evaluate(game, ["SET", "/playerData/#{player_i}/browseGroup/topN", nil], trace ++ ["set_browse_group_top_n"])
+      game = Evaluate.evaluate(game, ["SET", "/playerData/#{player_i}/browseGroup/id", nil], ["set_browse_group_id" | trace])
+      game = Evaluate.evaluate(game, ["SET", "/playerData/#{player_i}/browseGroup/topN", nil], ["set_browse_group_top_n" | trace])
       if option == "keepPeeking" do
         game
       else
@@ -47,7 +47,7 @@ defmodule DragnCardsGame.Evaluate.Functions.STOP_LOOKING do
             ["SET", "/cardById/$CARD_ID/peeking/#{player_i}", false]
           ]]
         ];
-        Evaluate.evaluate(game, action_list, trace ++ ["action_list"])
+        Evaluate.evaluate(game, action_list, ["action_list" | trace])
       end
     else
       game

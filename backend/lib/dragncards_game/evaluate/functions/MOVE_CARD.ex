@@ -58,16 +58,16 @@ defmodule DragnCardsGame.Evaluate.Functions.MOVE_CARD do
   """
   def execute(game, code, trace) do
     argc = Evaluate.argc(code, 3, 5)
-    card_id = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["card_id"])
+    card_id = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["card_id" | trace])
     # if card_id is nil or not a string, return game unchanged.
     if is_nil(card_id) or not is_binary(card_id) do
       raise("MOVE_CARD: card_id must be a non-nil string, got #{inspect(card_id)}")
     end
     if card_id do
-      dest_group_id = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["dest_group_id"])
-      dest_stack_index = Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["dest_stack_index"])
-      dest_card_index = if argc >= 4 do Evaluate.evaluate(game, Enum.at(code, 4), trace ++ ["dest_stack_index"]) else 0 end
-      options = if argc >= 5 do Evaluate.evaluate(game, Enum.at(code, 5), trace ++ ["options"]) else nil end
+      dest_group_id = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["dest_group_id" | trace])
+      dest_stack_index = Evaluate.evaluate(game, Evaluate.arg(code, 3), ["dest_stack_index" | trace])
+      dest_card_index = if argc >= 4 do Evaluate.evaluate(game, Evaluate.arg(code, 4), ["dest_stack_index" | trace]) else 0 end
+      options = if argc >= 5 do Evaluate.evaluate(game, Evaluate.arg(code, 5), ["options" | trace]) else nil end
       GameUI.move_card(game, card_id, dest_group_id, dest_stack_index, dest_card_index, options)
 
     else

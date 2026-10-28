@@ -53,14 +53,14 @@ defmodule DragnCardsGame.Evaluate.Functions.FOR_EACH_KEY_VAL do
   """
   def execute(game, code, trace) do
     Evaluate.argc(code, 4)
-    key_name = Enum.at(code, 1)
-    val_name = Enum.at(code, 2)
-    old_list = Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["old_list"])
-    function = Enum.at(code, 4)
+    key_name = Evaluate.arg(code, 1)
+    val_name = Evaluate.arg(code, 2)
+    old_list = Evaluate.evaluate(game, Evaluate.arg(code, 3), ["old_list" | trace])
+    function = Evaluate.arg(code, 4)
     Enum.reduce(old_list, game, fn({key, val}, acc) ->
-      acc = Evaluate.evaluate(acc, ["VAR", key_name, key], trace ++ ["key #{key}"])
-      acc = Evaluate.evaluate(acc, ["VAR", val_name, val], trace ++ ["val"])
-      Evaluate.evaluate(acc, function, trace ++ ["key #{key}"])
+      acc = Evaluate.evaluate(acc, ["VAR", key_name, key], [{"key", key} | trace])
+      acc = Evaluate.evaluate(acc, ["VAR", val_name, val], ["val" | trace])
+      Evaluate.evaluate(acc, function, [{"key", key} | trace])
     end)
   end
 

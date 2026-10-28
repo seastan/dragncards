@@ -21,8 +21,8 @@ defmodule DragnCardsGame.Evaluate.Functions.IN_LIST do
   The result of the 'IN_LIST' operation.
   """
   def execute(game, code, trace) do
-    list = Evaluate.evaluate(game, Enum.at(code,1), trace ++ ["list"]) || []
-    Enum.member?(list, Evaluate.evaluate(game, Enum.at(code,2), trace ++ ["member"]))
+    list = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["list" | trace]) || []
+    Enum.member?(list, Evaluate.evaluate(game, Evaluate.arg(code, 2), ["member" | trace]))
   end
 
 

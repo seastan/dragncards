@@ -29,7 +29,7 @@ defmodule DragnCardsGame.Evaluate.Functions.SHUFFLE_GROUP do
   The result of the 'SHUFFLE_GROUP' operation.
   """
   def execute(game, code, trace) do
-    group_id = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["group_id"])
+    group_id = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["group_id" | trace])
     stack_ids = game["groupById"][group_id]["stackIds"]
     shuffled_stack_ids = stack_ids |> Enum.shuffle
     game = Evaluate.evaluate(game, ["SET", "/groupById/#{group_id}/stackIds", ["LIST"] ++ shuffled_stack_ids], trace)

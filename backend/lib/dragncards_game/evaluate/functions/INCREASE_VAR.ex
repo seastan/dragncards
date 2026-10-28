@@ -24,14 +24,14 @@ defmodule DragnCardsGame.Evaluate.Functions.INCREASE_VAR do
   """
   def execute(game, code, trace) do
     # Evaluate the value and assign it to the var name
-    var_name = Enum.at(code, 1)
+    var_name = Evaluate.arg(code, 1)
     # if var_name does not start with $, raise an error
     if String.starts_with?(var_name, "$") do
       current_scope_index = game["currentScopeIndex"]
       var_scope_index = Evaluate.find_var_scope_index(var_name, current_scope_index, game["variables"])
       current_value = game["variables"]["#{var_scope_index}"][var_name] || 0
-      delta = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ [var_name]) || 0
-      put_in(game, ["variables", "#{var_scope_index}", var_name], current_value + delta)
+      delta = Evaluate.evaluate(game, Evaluate.arg(code, 2), [var_name | trace]) || 0
+      Evaluate.put_scoped_var(game, var_scope_index, var_name, current_value + delta)
     else
       raise "Tried to update variable '#{var_name}' but it does not start with $."
     end

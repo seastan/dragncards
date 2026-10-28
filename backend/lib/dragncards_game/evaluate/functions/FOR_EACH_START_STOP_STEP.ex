@@ -44,18 +44,18 @@ defmodule DragnCardsGame.Evaluate.Functions.FOR_EACH_START_STOP_STEP do
   """
   def execute(game, code, trace) do
     Evaluate.argc(code, 5)
-    var_name = Enum.at(code, 1)
+    var_name = Evaluate.arg(code, 1)
     Evaluate.argt("FOR_EACH_START_STOP_STEP", 0, "variable", var_name)
-    start = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["start"])
+    start = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["start" | trace])
     Evaluate.argt("FOR_EACH_START_STOP_STEP", 1, "number", start)
-    stop = Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["stop"])
+    stop = Evaluate.evaluate(game, Evaluate.arg(code, 3), ["stop" | trace])
     Evaluate.argt("FOR_EACH_START_STOP_STEP", 2, "number", stop)
-    step = Evaluate.evaluate(game, Enum.at(code, 4), trace ++ ["step"])
+    step = Evaluate.evaluate(game, Evaluate.arg(code, 4), ["step" | trace])
     Evaluate.argt("FOR_EACH_START_STOP_STEP", 3, "number", step)
-    function = Enum.at(code, 5)
+    function = Evaluate.arg(code, 5)
     Enum.reduce(start..stop-1//step, game, fn(i, acc) ->
-      acc = Evaluate.evaluate(acc, ["VAR", var_name, i], trace ++ ["index #{i}"])
-      Evaluate.evaluate(acc, function, trace ++ ["index #{i}"])
+      acc = Evaluate.evaluate(acc, ["VAR", var_name, i], [{"index", i} | trace])
+      Evaluate.evaluate(acc, function, [{"index", i} | trace])
     end)
     # # Delete local variable
     # game

@@ -25,9 +25,9 @@ defmodule DragnCardsGame.Evaluate.Functions.MAP_PUT do
   """
   def execute(game, code, trace) do
     Evaluate.argc(code, 3)
-    object = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["object"])
-    key = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["key"])
-    value = Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["value"])
+    object = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["object" | trace])
+    key = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["key" | trace])
+    value = Evaluate.evaluate(game, Evaluate.arg(code, 3), ["value" | trace])
     if !is_map(object) or is_struct(object, MapSet) do
       raise "MAP_PUT: object must be an object"
     end

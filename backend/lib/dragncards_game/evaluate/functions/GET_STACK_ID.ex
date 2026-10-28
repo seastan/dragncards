@@ -35,8 +35,8 @@ defmodule DragnCardsGame.Evaluate.Functions.GET_STACK_ID do
   The result of the 'GET_STACK_ID' operation.
   """
   def execute(game, code, trace) do
-    group_id = Evaluate.evaluate(game, Enum.at(code,1), trace ++ ["group_id"])
-    stack_index = Evaluate.evaluate(game, Enum.at(code,2), trace ++ ["stack_index"])
+    group_id = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["group_id" | trace])
+    stack_index = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["stack_index" | trace])
     if group_id do Evaluate.evaluate(game, ["AT_INDEX", "$GAME.groupById." <> group_id <> ".stackIds", stack_index], trace) else nil end
   end
 

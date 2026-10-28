@@ -67,9 +67,9 @@ defmodule DragnCardsGame.Evaluate.Functions.LOG do
   The result of the 'LOG' operation.
   """
   def execute(game, code, trace) do
-    statements = Enum.slice(code, 1, Enum.count(code))
+    statements = tl(code)
     #message = try do
-    message = Evaluate.message_list_to_string(game, statements, trace ++ ["message_list_to_string"])
+    message = Evaluate.message_list_to_string(game, statements, ["message_list_to_string" | trace])
     #rescue
     #  _ ->
     #    Enum.join(statements, "")

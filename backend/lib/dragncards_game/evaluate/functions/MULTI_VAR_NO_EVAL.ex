@@ -49,7 +49,7 @@
     current_scope_index = game["currentScopeIndex"]
     game = Enum.zip(var_names, var_values_unprocessed) |> Enum.reduce(game, fn {var_name, value}, acc ->
       if String.starts_with?(var_name, "$") do
-        put_in(acc, ["variables", "#{current_scope_index}", var_name], value)
+        Evaluate.put_scoped_var(acc, current_scope_index, var_name, value)
       else
         raise "MULTI_VAR_NO_EVAL: Tried to define variable '#{var_name}' but it does not start with $."
       end

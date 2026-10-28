@@ -30,7 +30,7 @@ defmodule DragnCardsGame.Evaluate.Functions.STRING_TO_OBJ do
   """
   def execute(game, code, trace) do
     Evaluate.argc(code, 1)
-    json_string = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["json_string"])
+    json_string = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["json_string" | trace])
 
     if !is_binary(json_string) do
       raise "STRING_TO_OBJ: json_string must be a string"

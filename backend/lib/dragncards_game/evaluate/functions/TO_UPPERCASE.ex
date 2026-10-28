@@ -23,7 +23,7 @@ defmodule DragnCardsGame.Evaluate.Functions.TO_UPPERCASE do
   """
   def execute(game, code, trace) do
     Evaluate.argc(code, 1)
-    inputString = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["inputString"])
+    inputString = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["inputString" | trace])
     if !is_binary(inputString) do
       raise "TO_UPPERCASE: inputString must be a string"
     end

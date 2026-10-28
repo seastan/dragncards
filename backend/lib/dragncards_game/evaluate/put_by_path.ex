@@ -47,7 +47,7 @@ defmodule DragnCardsGame.PutByPath do
       game_old
     else
       if is_map(game_new["ruleMap"]) and game_new["automationEnabled"] == true do
-        AutomationRules.apply_automation_rules_for_update_paths(game_new, game_old, [path], path, trace ++ ["apply_automation_rules_for_update_paths"])
+        AutomationRules.apply_automation_rules_for_update_paths(game_new, game_old, [path], path, ["apply_automation_rules_for_update_paths" | trace])
       else
         game_new
       end

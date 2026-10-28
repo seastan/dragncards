@@ -10,7 +10,7 @@ defmodule DragnCardsGame.Evaluate.Variables.ALIAS_N do
 
   def execute(game, trace) do
       try do
-        player_n = Evaluate.evaluate(game, "$PLAYER_N", trace ++ ["$ALIAS_N"])
+        player_n = Evaluate.evaluate(game, "$PLAYER_N", ["$ALIAS_N" | trace])
         player_alias = get_in(game, ["playerInfo", player_n, "alias"]) || "#{player_n}"
         log_alias_n(player_n, player_alias)
       rescue

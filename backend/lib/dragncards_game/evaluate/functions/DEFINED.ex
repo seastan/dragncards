@@ -22,9 +22,9 @@ defmodule DragnCardsGame.Evaluate.Functions.DEFINED do
   The result of the 'DEFINED' operation.
   """
   def execute(game, code, trace) do
-    var_name = Enum.at(code, 1)
+    var_name = Evaluate.arg(code, 1)
     try do
-      result = Evaluate.evaluate_inner(game, var_name, trace ++ ["#{var_name}"])
+      result = Evaluate.evaluate_inner(game, var_name, ["#{var_name}" | trace])
       result != nil
     rescue
       _ -> false

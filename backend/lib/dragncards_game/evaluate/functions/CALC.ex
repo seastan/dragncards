@@ -36,7 +36,7 @@ defmodule DragnCardsGame.Evaluate.Functions.CALC do
   The result of the 'CALC' operation.
   """
   def execute(game, code, trace) do
-    string = Evaluate.evaluate(game, Enum.at(code,1), trace ++ ["pre-parse"]) # Parse the string for {{}}
+    string = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["pre-parse" | trace]) # Parse the string for {{}}
     StringMath.evaluate_string(string)
   end
 

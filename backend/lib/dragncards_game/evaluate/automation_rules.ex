@@ -239,7 +239,7 @@ defmodule DragnCardsGame.AutomationRules do
       |> Enum.map(fn id -> get_in(game["ruleById"], [id]) end)
       |> Enum.sort_by(&(&1["priority"] || :infinity))
       |> Enum.reduce(game, fn rule, acc ->
-        apply_automation_rule_wrapper(rule, target_path, game_old, acc, trace ++ ["apply_automation_rule_wrapper #{rule["id"]}"])
+        apply_automation_rule_wrapper(rule, target_path, game_old, acc, ["apply_automation_rule_wrapper #{rule["id"]}" | trace])
       end)
     else
       game
@@ -258,8 +258,8 @@ defmodule DragnCardsGame.AutomationRules do
     game_new =
       if rule["this_id"] do
         game_new |>
-        Evaluate.evaluate(["VAR", "$THIS_ID", rule["this_id"]], trace ++ ["game_new"]) |>
-        Evaluate.evaluate(["VAR", "$THIS", "$GAME.cardById.$THIS_ID"], trace ++ ["game_new"])
+        Evaluate.evaluate(["VAR", "$THIS_ID", rule["this_id"]], ["game_new" | trace]) |>
+        Evaluate.evaluate(["VAR", "$THIS", "$GAME.cardById.$THIS_ID"], ["game_new" | trace])
       else
         game_new
       end
@@ -267,8 +267,8 @@ defmodule DragnCardsGame.AutomationRules do
     game_old =
       if rule["this_id"] do
         game_old |>
-        Evaluate.evaluate(["VAR", "$THIS_ID", rule["this_id"]], trace ++ ["game_old"]) |>
-        Evaluate.evaluate(["VAR", "$THIS", "$GAME.cardById.$THIS_ID"], trace ++ ["game_old"])
+        Evaluate.evaluate(["VAR", "$THIS_ID", rule["this_id"]], ["game_old" | trace]) |>
+        Evaluate.evaluate(["VAR", "$THIS", "$GAME.cardById.$THIS_ID"], ["game_old" | trace])
       else
         game_old
       end
@@ -276,16 +276,16 @@ defmodule DragnCardsGame.AutomationRules do
     game_new =
       if is_list(target_path) and Enum.count(target_path) >= 2 do
         game_new |>
-        Evaluate.evaluate(["VAR", "$TARGET_ID", Enum.at(target_path,1)], trace ++ ["game_new"]) |>
-        Evaluate.evaluate(["VAR", "$TARGET", "$GAME."<>Enum.at(target_path,0)<>".$TARGET_ID"], trace ++ ["game_new"])
+        Evaluate.evaluate(["VAR", "$TARGET_ID", Enum.at(target_path,1)], ["game_new" | trace]) |>
+        Evaluate.evaluate(["VAR", "$TARGET", "$GAME."<>Enum.at(target_path,0)<>".$TARGET_ID"], ["game_new" | trace])
       else
         game_new
       end
     game_old =
       if is_list(target_path) and Enum.count(target_path) >= 2 do
         game_old |>
-        Evaluate.evaluate(["VAR", "$TARGET_ID", Enum.at(target_path,1)], trace ++ ["game_old"]) |>
-        Evaluate.evaluate(["VAR", "$TARGET", "$GAME."<>Enum.at(target_path,0)<>".$TARGET_ID"], trace ++ ["game_old"])
+        Evaluate.evaluate(["VAR", "$TARGET_ID", Enum.at(target_path,1)], ["game_old" | trace]) |>
+        Evaluate.evaluate(["VAR", "$TARGET", "$GAME."<>Enum.at(target_path,0)<>".$TARGET_ID"], ["game_old" | trace])
       else
         game_old
       end
@@ -294,9 +294,9 @@ defmodule DragnCardsGame.AutomationRules do
     game_new = put_in(game_new["prev_game"], game_old)
     game_new = case rule["type"] do
       "trigger" ->
-        apply_trigger_rule(rule, game_old, game_new, trace ++ ["apply_trigger_rule #{rule['id']}"])
+        apply_trigger_rule(rule, game_old, game_new, ["apply_trigger_rule #{rule['id']}" | trace])
       "passive" ->
-        apply_passive_rule(rule, game_old, game_new, trace ++ ["apply_passive_rule #{rule['id']}"])
+        apply_passive_rule(rule, game_old, game_new, ["apply_passive_rule #{rule['id']}" | trace])
       _ ->
         game_new
     end
@@ -306,7 +306,7 @@ defmodule DragnCardsGame.AutomationRules do
 
   def apply_trigger_rule(rule, _game_old, game_new, trace) do
     if Evaluate.evaluate(game_new, rule["condition"], trace) do
-      run_rule_code(game_new, rule, rule["then"], trace ++ ["then"])
+      run_rule_code(game_new, rule, rule["then"], ["then" | trace])
       #Evaluate.evaluate(game_new, rule["then"], trace ++ [Jason.encode!("THEN")])
     else
       game_new
@@ -314,8 +314,8 @@ defmodule DragnCardsGame.AutomationRules do
   end
 
   def apply_passive_rule(rule, game_old, game_new, trace) do
-    onBefore = Evaluate.evaluate(game_old, rule["condition"], trace ++ ["game_old"])
-    onAfter = Evaluate.evaluate(game_new, rule["condition"], trace ++ ["game_new"])
+    onBefore = Evaluate.evaluate(game_old, rule["condition"], ["game_old" | trace])
+    onAfter = Evaluate.evaluate(game_new, rule["condition"], ["game_new" | trace])
 
     onDo = rule["onDo"]
     offDo = rule["offDo"]
@@ -324,10 +324,10 @@ defmodule DragnCardsGame.AutomationRules do
       onDo == nil && offDo == nil ->
         raise "Tried to trigger a passive rule that does not have an onDo or offDo."
       !onBefore && onAfter && onDo != nil ->
-        run_rule_code(game_new, rule, onDo, trace ++ ["onDo"])
+        run_rule_code(game_new, rule, onDo, ["onDo" | trace])
         #Evaluate.evaluate(game_new, onDo, trace ++ ["onDo"])
       onBefore && !onAfter && offDo != nil ->
-        run_rule_code(game_new, rule, offDo, trace ++ ["offDo"])
+        run_rule_code(game_new, rule, offDo, ["offDo" | trace])
         #Evaluate.evaluate(game_new, offDo, trace ++ ["offDo"])
       true ->
         game_new
@@ -349,8 +349,8 @@ defmodule DragnCardsGame.AutomationRules do
     status = rule["autoRun"]["status"]
     cond do
       status == "prompt" or status == "promptYN" ->
-        promptPlayerI = Evaluate.evaluate(game, rule["autoRun"]["promptPlayerI"], trace ++ ["promptPlayerI"])
-        promptMessage = Evaluate.evaluate(game, rule["autoRun"]["promptMessage"], trace ++ ["promptMessage"])
+        promptPlayerI = Evaluate.evaluate(game, rule["autoRun"]["promptPlayerI"], ["promptPlayerI" | trace])
+        promptMessage = Evaluate.evaluate(game, rule["autoRun"]["promptMessage"], ["promptMessage" | trace])
         if promptPlayerI == nil do
           raise "Tried to confirm rule automation #{rule["id"]} with a null player."
         end
@@ -381,7 +381,7 @@ defmodule DragnCardsGame.AutomationRules do
       status == "never" ->
         game
       true ->
-        game = Evaluate.evaluate(game, rule_code, trace ++ ["run_rule_code"])
+        game = Evaluate.evaluate(game, rule_code, ["run_rule_code" | trace])
         game = if rule["category"] == "card" do
           unix_ms = DateTime.to_unix(DateTime.utc_now(), :millisecond)
           put_in(game, ["cardById", rule["this_id"], "triggeredTimestamp"], unix_ms)

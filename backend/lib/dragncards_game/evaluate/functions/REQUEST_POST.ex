@@ -51,10 +51,10 @@ defmodule DragnCardsGame.Evaluate.Functions.REQUEST_POST do
   """
   def execute(game, code, trace) do
     Evaluate.argc(code, 2, 3)
-    url = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["url"])
-    body = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["body"])
+    url = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["url" | trace])
+    body = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["body" | trace])
     custom_headers = if Enum.count(code) > 3 do
-      Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["headers"])
+      Evaluate.evaluate(game, Evaluate.arg(code, 3), ["headers" | trace])
     else
       %{}
     end

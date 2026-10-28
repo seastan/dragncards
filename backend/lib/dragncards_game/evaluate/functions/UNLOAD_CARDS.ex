@@ -40,7 +40,7 @@ defmodule DragnCardsGame.Evaluate.Functions.UNLOAD_CARDS do
   The result of the 'UNLOAD_CARDS' operation.
   """
   def execute(game, code, trace) do
-    player_i = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["player_i"])
+    player_i = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["player_i" | trace])
 
     unload_code = [
         ["FOR_EACH_KEY_VAL", "$CARD_ID", "$CARD", "$CARD_BY_ID", [
@@ -69,7 +69,7 @@ defmodule DragnCardsGame.Evaluate.Functions.UNLOAD_CARDS do
       unload_code
     end
 
-    game = Evaluate.evaluate(game, unload_code, trace ++ ["unload_code"])
+    game = Evaluate.evaluate(game, unload_code, ["unload_code" | trace])
     game = add_load_code_to_history(game, unload_code, player_i, trace)
 
   end

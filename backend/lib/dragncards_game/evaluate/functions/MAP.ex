@@ -35,10 +35,10 @@ defmodule DragnCardsGame.Evaluate.Functions.MAP do
   The result of the 'MAP' operation.
   """
   def execute(game, code, trace) do
-    input_list = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["input_list"])
-    function_name = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["function_name"])
+    input_list = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["input_list" | trace])
+    function_name = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["function_name" | trace])
     Enum.map(Enum.with_index(input_list), fn {element, index} ->
-      Evaluate.evaluate(game, [["VAR", "$MAP_INDEX", index], [function_name, element]], trace ++ ["index #{index}"])
+      Evaluate.evaluate(game, [["VAR", "$MAP_INDEX", index], [function_name, element]], [{"index", index} | trace])
     end)
   end
 

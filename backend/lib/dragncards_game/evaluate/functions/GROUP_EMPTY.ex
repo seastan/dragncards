@@ -21,7 +21,7 @@ defmodule DragnCardsGame.Evaluate.Functions.GROUP_EMPTY do
   The result of the 'GROUP_EMPTY' operation.
   """
   def execute(game, code, trace) do
-    group_id = Evaluate.evaluate(game, Enum.at(code, 1), trace)
+    group_id = Evaluate.evaluate(game, Evaluate.arg(code, 1), trace)
     cond do
       # If group_id is not in game["groupById"], raise an error.
       not Map.has_key?(game["groupById"], group_id) -> raise("GROUP_EMPTY: Group #{inspect(group_id)} does not exist.")

@@ -23,8 +23,8 @@ defmodule DragnCardsGame.Evaluate.Functions.SHUFFLE_BOTTOM_X do
   The result of the 'SHUFFLE_BOTTOM_X' operation.
   """
   def execute(game, code, trace) do
-    group_id = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["group_id"])
-    x = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["x"])
+    group_id = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["group_id" | trace])
+    x = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["x" | trace])
     stack_ids = game["groupById"][group_id]["stackIds"]
     stack_ids_r = Enum.slice(stack_ids, -x, x)
     stack_ids_l = Enum.slice(stack_ids, 0, Enum.count(stack_ids) - x)

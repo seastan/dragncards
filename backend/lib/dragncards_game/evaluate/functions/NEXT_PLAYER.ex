@@ -43,7 +43,7 @@ defmodule DragnCardsGame.Evaluate.Functions.NEXT_PLAYER do
   The result of the 'NEXT_PLAYER' operation.
   """
   def execute(game, code, trace) do
-    current_player_i = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["current_player_i"])
+    current_player_i = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["current_player_i" | trace])
     current_i = String.to_integer(String.slice(current_player_i, -1..-1))
     next_i = current_i + 1
     next_i = if next_i > game["numPlayers"] do 1 else next_i end

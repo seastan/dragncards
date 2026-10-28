@@ -43,14 +43,14 @@ defmodule DragnCardsGame.Evaluate.Functions.LANGUAGE do
   def execute(game, code, trace) do
     argc = Evaluate.argc(code, 0, 1)
     languageString = if argc > 0 do
-      Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["languageString"])
+      Evaluate.evaluate(game, Evaluate.arg(code, 1), ["languageString" | trace])
     else
       nil
     end
     if !is_nil(languageString) and !is_binary(languageString) do
       raise "LANGUAGE: languageString must be a string"
     end
-    to_language(game, languageString, trace ++ ["to_language"])
+    to_language(game, languageString, ["to_language" | trace])
   end
 
 

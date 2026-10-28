@@ -33,20 +33,20 @@ defmodule DragnCardsGame.Evaluate.Functions.FOR_EACH_VAL do
   The result of the 'FOR_EACH_VAL' operation.
   """
   def execute(game, code, trace) do
-    val_name = Enum.at(code, 1)
+    val_name = Evaluate.arg(code, 1)
     Evaluate.argt("FOR_EACH_VAL", 0, "variable", val_name)
-    list = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["list"])
+    list = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["list" | trace])
     if !is_list(list) and !is_struct(list, MapSet) do
       raise "FOR_EACH_VAL: list must be a list or set"
     end
-    function = Enum.at(code, 3)
+    function = Evaluate.arg(code, 3)
     Evaluate.argt("FOR_EACH_VAL", 2, "code", function)
     if !is_list(function) do
       raise "FOR_EACH_VAL: arg 2 must be DragnLang code"
     end
     Enum.reduce(Enum.with_index(list), game, fn({val, index}, acc) ->
-      acc = Evaluate.evaluate(acc, ["VAR", val_name, val], trace ++ ["index #{index}"])
-      Evaluate.evaluate(acc, function, trace ++ ["index #{index}"])
+      acc = Evaluate.evaluate(acc, ["VAR", val_name, val], [{"index", index} | trace])
+      Evaluate.evaluate(acc, function, [{"index", index} | trace])
     end)
     # # Delete local variable
     # game

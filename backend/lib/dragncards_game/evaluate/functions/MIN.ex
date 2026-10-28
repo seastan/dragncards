@@ -29,7 +29,7 @@ defmodule DragnCardsGame.Evaluate.Functions.MIN do
   """
   def execute(game, code, trace) do
     Evaluate.argc(code, 1)
-    list = Evaluate.evaluate(game, Enum.at(code, 1), trace)
+    list = Evaluate.evaluate(game, Evaluate.arg(code, 1), trace)
     non_nums_removed = Enum.filter(list, &is_number/1)
     if Enum.empty?(non_nums_removed) do
       raise "MIN: No numbers in list"

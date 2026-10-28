@@ -17,6 +17,10 @@ defmodule DragnCardsGame.RuleMap do
     end
   end
 
+  # Nothing below an empty map can match, so stop instead of walking the rest
+  # of the path down both the key and wildcard branches.
+  def get_ids_by_path(map, _path) when map_size(map) == 0, do: []
+
   def get_ids_by_path(map, []) do
     case get_in(map, ["_rule_ids"]) do
       nil -> []

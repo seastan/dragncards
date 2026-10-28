@@ -5,6 +5,6 @@ defmodule DragnCardsGame.Evaluate.Variables.ACTIVE_GROUP do
   """
 
   def execute(game, trace) do
-    Evaluate.evaluate(game, "$GAME.groupById.$ACTIVE_GROUP_ID", trace ++ ["$ACTIVE_GROUP"])
+    Evaluate.evaluate(game, "$GAME.groupById.$ACTIVE_GROUP_ID", ["$ACTIVE_GROUP" | trace])
   end
 end

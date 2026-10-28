@@ -1,4 +1,4 @@
-defmodule DragnCardsGame.GameUiTest do
+defmodule DragnCardsGame.EvaluateTest do
   use ExUnit.Case, async: true
   use DragnCardsWeb.ConnCase
   alias DragnCards.{Plugins, Plugins.Plugin, Repo}
@@ -6,7 +6,7 @@ defmodule DragnCardsGame.GameUiTest do
   import Ecto.Query
   alias Jason
 
-  alias DragnCardsGame.{GameUI, Game, Evaluate}
+  alias DragnCardsGame.{GameUI, Game, Evaluate, AutomationRules, RuleMap}
 
   import ExUnit.Callbacks
 
@@ -53,15 +53,13 @@ defmodule DragnCardsGame.GameUiTest do
 
   end
 
-  test "Check GAME_SET_VAL", %{game: game} do
-    game = Evaluate.evaluate(game, ["GAME_SET_VAL", "/cardById/123qwe/inPlay", true])
+  test "Check SET", %{game: game} do
+    game = Evaluate.evaluate(game, ["SET", "/cardById/123qwe/inPlay", true])
     assert game["cardById"]["123qwe"]["inPlay"] == true
 
     game = Evaluate.evaluate(game, ["DEFINE", "$MY_PATH", ["LIST", "cardById", "123qwe"]])
-    game = Evaluate.evaluate(game, ["GAME_SET_VAL", "/$MY_PATH/inPlay", false])
+    game = Evaluate.evaluate(game, ["SET", "/$MY_PATH/inPlay", false])
     assert game["cardById"]["123qwe"]["inPlay"] == false
-
-
   end
 
   test "Check variables", %{game: game} do
@@ -70,111 +68,69 @@ defmodule DragnCardsGame.GameUiTest do
     assert Evaluate.evaluate(game, "$GAME.cardById.456rty.inPlay") == true
   end
 
-  test "Check path_matches_listenpath?", %{game: game} do
-    assert Evaluate.path_matches_listenpath?([], [], game) == true
-    assert Evaluate.path_matches_listenpath?(["cardById", "123qwe", "inPlay"], ["cardById", "*", "inPlay"], game) == true
-    assert Evaluate.path_matches_listenpath?(["cardById", "123qwe", "inPlay"], ["cardById", "$THIS_ID", "inPlay"], game) == true
-    assert Evaluate.path_matches_listenpath?(["cardById", "123qwe", "prop1"], ["cardById", "*", "prop2"], game) == false
-    assert Evaluate.path_matches_listenpath?(["cardById", "*", "inPlay"], ["cardById", "123qwe", "inPlay"], game) == false
-    assert Evaluate.path_matches_listenpath?(["cardById", "123qwe", "inPlay"], ["cardById", "*"], game) == false
-    assert Evaluate.path_matches_listenpath?(["cardById", "123qwe", "inPlay"], [], game) == false
-    assert Evaluate.path_matches_listenpath?(["cardById", "123qwe", "tokens", "red"], ["cardById", "123qwe", "tokens", "*"], game) == true
-    assert Evaluate.path_matches_listenpath?(["cardById", "123qwe", "tokens", "red"], ["cardById", "123qwe", "tokens", "blue"], game) == false
+  # These used to test Evaluate.path_matches_listenpath?/3 and
+  # Evaluate.apply_automation_rule(s), which were replaced by RuleMap and
+  # AutomationRules; the same behavior is checked through those here.
+  defp rule_game(game, rules) do
+    game
+    |> Map.merge(%{"roomSlug" => "r", "pluginId" => 1, "groupById" => %{}, "playerData" => %{},
+                   "ruleById" => %{}, "ruleMap" => %{}, "automationEnabled" => true, "messages" => []})
+    |> AutomationRules.implement_game_rules(rules)
   end
 
-  test "Check path_matches_listenpaths?", %{game: game} do
-    assert Evaluate.path_matches_listenpaths?([], [[]], game) == true
-    assert Evaluate.path_matches_listenpaths?(["cardById", "123qwe", "inPlay"], [["cardById", "*", "inPlay"]], game) == true
-    assert Evaluate.path_matches_listenpaths?(["cardById", "123qwe", "prop1"], [["cardById", "*", "prop2"],["cardById", "*", "prop2"]], game) == false
-    assert Evaluate.path_matches_listenpaths?(["cardById", "123qwe", "prop1"], [["cardById", "*", "prop2"],["cardById", "*", "prop1"]], game) == true
-    assert Evaluate.path_matches_listenpaths?(["cardById", "123qwe", "prop1"], [["cardById", "*", "prop2"],["cardById", "$THIS_ID", "prop1"]], game) == true
-    assert Evaluate.path_matches_listenpaths?(["cardById", "*", "inPlay"], [["cardById", "123qwe", "inPlay"]], game) == false
-    assert Evaluate.path_matches_listenpaths?(["cardById", "123qwe", "inPlay"], [["cardById", "*"]], game) == false
-    assert Evaluate.path_matches_listenpaths?(["cardById", "123qwe", "inPlay"], [[]], game) == false
-    assert Evaluate.path_matches_listenpaths?(["cardById", "123qwe", "tokens", "red"], [["cardById", "123qwe", "tokens", "*"]], game) == true
-    assert Evaluate.path_matches_listenpaths?(["cardById", "123qwe", "tokens", "red"], [["cardById", "123qwe", "tokens", "blue"]], game) == false
+  test "Check listen paths", %{game: game} do
+    game = rule_game(game, %{
+      "wild" => %{"type" => "trigger", "listenTo" => ["/cardById/*/inPlay"], "condition" => true, "then" => []},
+      "this" => %{"type" => "trigger", "listenTo" => ["/cardById/$THIS_ID/inPlay"], "condition" => true, "then" => []},
+      "tokens" => %{"type" => "trigger", "listenTo" => ["/cardById/123qwe/tokens/*"], "condition" => true, "then" => []}
+    })
+
+    ids = fn path -> RuleMap.get_ids_by_path(game["ruleMap"], path) |> Enum.sort() end
+    assert ids.([]) == []
+    assert ids.(["cardById", "123qwe", "inPlay"]) == ["this", "wild"]
+    assert ids.(["cardById", "456rty", "inPlay"]) == ["wild"]
+    assert ids.(["cardById", "123qwe", "prop1"]) == []
+    assert ids.(["cardById", "123qwe"]) == []
+    assert ids.(["cardById", "123qwe", "tokens", "red"]) == ["tokens"]
+    assert ids.(["cardById", "456rty", "tokens", "red"]) == []
+    assert RuleMap.get_ids_by_paths([["cardById", "123qwe", "prop1"], ["cardById", "456rty", "inPlay"]], game["ruleMap"]) == ["wild"]
   end
 
-  test "Check apply_trigger_rule", %{game: game_old} do
+  test "Check trigger rule", %{game: game} do
+    game = rule_game(game, %{
+      "rule1" => %{
+        "type" => "trigger",
+        "listenTo" => ["/cardById/123qwe/rotation"],
+        "condition" => ["AND", ["PREV", ["NOT_EQUAL", "$GAME.cardById.123qwe.rotation", 0]],
+                               ["EQUAL", "$GAME.cardById.123qwe.rotation", 0]],
+        "then" => [["SET", "/cardById/456rty/rotation", 0]]
+      }
+    })
+    game = put_in(game, ["cardById", "456rty", "rotation"], 90)
 
-    game_new = Evaluate.evaluate(game_old, ["GAME_SET_VAL", "/cardById/123qwe/rotation", 0])
+    game = Evaluate.evaluate(game, ["SET", "/cardById/123qwe/rotation", 0])
+    assert game["cardById"]["123qwe"]["rotation"] == 0
+    assert game["cardById"]["456rty"]["rotation"] == 0
 
-    assert game_new["cardById"]["123qwe"]["rotation"] == 0
-
-    rule1 = %{
-      "type" => "trigger",
-      "listenTo" => [["cardById", "123qwe", "rotation"]],
-      "condition" => ["AND", ["PREV", ["NOT_EQUAL", "$GAME.cardById.123qwe.rotation", 0]],
-        ["EQUAL", "$GAME.cardById.123qwe.rotation", 0]],
-      "then" => [
-        ["GAME_SET_VAL", "/cardById/456rty/rotation", 0]
-      ]
-    }
-
-    game_new = Evaluate.apply_automation_rule(rule1, ["cardById", "123qwe", "rotation"], game_old, game_new)
-
-    assert game_new["cardById"]["456rty"]["rotation"] == 0
-
-    rule2 = %{
-      "type" => "trigger",
-      "listenTo" => [["cardById", "123qwe", "rotation"]],
-      "condition" => ["AND", ["PREV", ["NOT_EQUAL", "$GAME.cardById.123qwe.rotation", 0]],
-                                         ["EQUAL", "$GAME.cardById.123qwe.rotation", 0]],
-      "then" => [
-        ["GAME_SET_VAL", "/cardById/456rty/rotation", 90]
-      ]
-    }
-
-    game_new = Evaluate.apply_automation_rule(rule2, ["cardById", "123qwe", "rotation"], game_new, game_new)
-
-    assert game_new["cardById"]["456rty"]["rotation"] == 0
+    # The rotation was already 0, so the trigger does not fire again.
+    game = Evaluate.evaluate(game, ["SET", "/cardById/456rty/rotation", 90])
+    game = Evaluate.evaluate(game, ["SET", "/cardById/123qwe/rotation", 0])
+    assert game["cardById"]["456rty"]["rotation"] == 90
   end
 
-  test "Check apply_trigger_rule multiple listeners", %{game: game_old} do
+  test "Check trigger rule on any card", %{game: game} do
+    game = rule_game(game, %{
+      "rule" => %{
+        "type" => "trigger",
+        "listenTo" => ["/cardById/*/rotation"],
+        "condition" => ["AND", ["PREV", ["NOT_EQUAL", "$TARGET.rotation", 0]], ["EQUAL", "$TARGET.rotation", 0]],
+        "then" => [["SET", "/cardById/456rty/rotation", 0]]
+      }
+    })
+    game = put_in(game, ["cardById", "456rty", "rotation"], 90)
 
-    game_new = Evaluate.evaluate(game_old, ["GAME_SET_VAL", "/cardById/123qwe/rotation", 0])
-
-    assert game_new["cardById"]["123qwe"]["rotation"] == 0
-
-    rule = %{
-      "type" => "trigger",
-      "listenTo" => [["cardById", "123qwe", "rotation"]],
-      "condition" => ["AND", ["PREV", ["NOT_EQUAL", "$GAME.cardById.123qwe.rotation", 0]],
-                                         ["EQUAL", "$GAME.cardById.123qwe.rotation", 0]],
-      "then" => [
-        ["GAME_SET_VAL", "/cardById/456rty/rotation", 0]
-      ]
-    }
-
-    game_new = Evaluate.apply_automation_rule(rule, ["cardById", "123qwe", "rotation"], game_old, game_new)
-
-    assert game_new["cardById"]["456rty"]["rotation"] == 0
-
-  end
-
-  test "Check apply_trigger_rules", %{game: game_old} do
-
-    game_new = Evaluate.evaluate(game_old, ["GAME_SET_VAL", "/cardById/123qwe/rotation", 0])
-
-    assert game_new["cardById"]["123qwe"]["rotation"] == 0
-
-    rules = [%{
-      "type" => "trigger",
-      "listenTo" => [["cardById", "*", "rotation"]],
-      "condition" => ["AND", ["PREV", ["NOT_EQUAL", "$OBJECT.rotation", 0]], ["EQUAL", "$OBJECT.rotation", 0]],
-      "then" => [
-        ["GAME_SET_VAL", "/cardById/456rty/rotation", 0]
-      ]
-    }]
-
-    automation = %{
-      "this_id" => "123qwe",
-      "rules" => rules
-    }
-
-    game_new = Evaluate.apply_automation_rules(automation, ["cardById", "123qwe", "rotation"], game_old, game_new)
-
-    assert game_new["cardById"]["456rty"]["rotation"] == 0
+    game = Evaluate.evaluate(game, ["SET", "/cardById/123qwe/rotation", 0])
+    assert game["cardById"]["456rty"]["rotation"] == 0
   end
 
   test "Check FADE_TEXT duration argument", %{game: game} do

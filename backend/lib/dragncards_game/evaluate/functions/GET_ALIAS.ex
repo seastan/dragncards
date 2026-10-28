@@ -21,8 +21,8 @@ defmodule DragnCardsGame.Evaluate.Functions.GET_ALIAS do
   The result of the 'GET_ALIAS' operation.
   """
   def execute(game, code, trace) do
-    player_i = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["player_i"])
-    Evaluate.evaluate(game, [["VAR", "$PLAYER_N", player_i], "$ALIAS_N"], trace ++ ["$ALIAS_N"])
+    player_i = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["player_i" | trace])
+    Evaluate.evaluate(game, [["VAR", "$PLAYER_N", player_i], "$ALIAS_N"], ["$ALIAS_N" | trace])
   end
 
 

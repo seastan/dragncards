@@ -33,7 +33,7 @@ defmodule DragnCardsGame.Evaluate.Functions.SHUFFLE_LIST do
   The result of the 'SHUFFLE_LIST' operation.
   """
   def execute(game, code, trace) do
-    Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["arg0"]) |> Enum.shuffle
+    Evaluate.evaluate(game, Evaluate.arg(code, 1), ["arg0" | trace]) |> Enum.shuffle
   end
 
 

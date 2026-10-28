@@ -75,18 +75,18 @@ defmodule DragnCardsGame.Evaluate.Functions.COND do
   def execute(game, code, trace) do
     # Argument count must be between 2 and infinity, and must be an even number
     argc = Evaluate.argc(code, 2, nil)
-    ifthens = Enum.slice(code, 1, Enum.count(code))
+    ifthens = tl(code)
     if rem(argc, 2) != 0 do
       raise "COND: Expected an even number of arguments, but got #{Enum.count(ifthens)}"
     end
     Enum.reduce_while(0..Enum.count(ifthens)-1//2, game, fn(i, _acc) ->
       if_statement = Enum.at(ifthens, i)
-      result = Evaluate.evaluate(game, if_statement, trace ++ ["index #{i} (if)"])
+      result = Evaluate.evaluate(game, if_statement, [{"index", i, "(if)"} | trace])
       #IO.puts("COND #{inspect(if_statement)} is #{result}")
       if is_boolean(result) or is_nil(result) or result == 1 or result == 0 do
         if result do
           then_statement = Enum.at(ifthens, i+1)
-          {:halt, Evaluate.evaluate(game, then_statement, trace ++ ["index #{i} (then)"])}
+          {:halt, Evaluate.evaluate(game, then_statement, [{"index", i, "(then)"} | trace])}
         else
           {:cont, game}
         end

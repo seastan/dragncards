@@ -52,7 +52,7 @@ defmodule DragnCardsGame.Evaluate.Functions.NEXT_STEP do
       ["SET", "/stepId", "$STEP_ID"],
 
     ]
-    game = Evaluate.evaluate(game, next_step_action_list, trace ++ ["next_step_action_list"])
+    game = Evaluate.evaluate(game, next_step_action_list, ["next_step_action_list" | trace])
     # Remove step tokens
     game = TempTokens.remove_all_for_timing(game, "step")
     # Remove phase tokens if the phase has changed

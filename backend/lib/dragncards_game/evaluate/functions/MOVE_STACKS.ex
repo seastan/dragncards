@@ -58,11 +58,11 @@ defmodule DragnCardsGame.Evaluate.Functions.MOVE_STACKS do
   """
   def execute(game, code, trace) do
     argc = Evaluate.argc(code, 2, 5)
-    orig_group_id = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["orig_group_id"])
-    dest_group_id = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["dest_group_id"])
-    top_n = if argc >= 3 do Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["top_n"]) else length(game["groupById"][orig_group_id]["stackIds"]) end
-    position = if argc >= 4 do Evaluate.evaluate(game, Enum.at(code, 4), trace ++ ["position"]) else "shuffle" end
-    options = if argc >= 5 do Evaluate.evaluate(game, Enum.at(code, 4), trace ++ ["options"] ) else nil end
+    orig_group_id = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["orig_group_id" | trace])
+    dest_group_id = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["dest_group_id" | trace])
+    top_n = if argc >= 3 do Evaluate.evaluate(game, Evaluate.arg(code, 3), ["top_n" | trace]) else length(game["groupById"][orig_group_id]["stackIds"]) end
+    position = if argc >= 4 do Evaluate.evaluate(game, Evaluate.arg(code, 4), ["position" | trace]) else "shuffle" end
+    options = if argc >= 5 do Evaluate.evaluate(game, Evaluate.arg(code, 4), ["options" | trace] ) else nil end
     GameUI.move_stacks(game, orig_group_id, dest_group_id, top_n, position, options)
   end
 

@@ -24,8 +24,8 @@ defmodule DragnCardsGame.Evaluate.Functions.INDEX_OF do
   """
   def execute(game, code, trace) do
     Evaluate.argc(code, 2)
-    inputString = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["inputString"])
-    subString = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["subString"])
+    inputString = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["inputString" | trace])
+    subString = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["subString" | trace])
     if !is_binary(inputString) do
       raise "INDEX_OF: inputString must be a string"
     end

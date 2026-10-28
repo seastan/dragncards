@@ -23,8 +23,8 @@ defmodule DragnCardsGame.Evaluate.Functions.CONCAT_LISTS do
   The result of the 'CONCAT_LISTS' operation.
   """
   def execute(game, code, trace) do
-    list1 = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["left"]) || []
-    list2 = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["right"]) || []
+    list1 = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["left" | trace]) || []
+    list2 = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["right" | trace]) || []
     list1 ++ list2
   end
 

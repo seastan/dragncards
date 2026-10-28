@@ -60,13 +60,13 @@ defmodule DragnCardsGame.Evaluate.Functions.SELECT_CARDS do
   """
 
   def execute(game, code, trace) do
-    target_player_list = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["target_player_n"])
+    target_player_list = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["target_player_n" | trace])
     target_player_list = if is_list(target_player_list) do
       target_player_list
     else
       [target_player_list]
     end
-    selected_card_ids = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["selected_card_ids"])
+    selected_card_ids = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["selected_card_ids" | trace])
 
     # Store GUI updates in the game state to be processed later
     gui_updates = Enum.map(target_player_list, fn target_player_n ->

@@ -24,8 +24,8 @@ defmodule DragnCardsGame.Evaluate.Functions.SPLIT_STRING do
   """
   def execute(game, code, trace) do
     Evaluate.argc(code, 2)
-    inputString = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["inputString"])
-    separatorString = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["separatorString"])
+    inputString = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["inputString" | trace])
+    separatorString = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["separatorString" | trace])
     if !is_binary(inputString) do
       raise "SPLIT_STRING: inputString must be a string"
     end

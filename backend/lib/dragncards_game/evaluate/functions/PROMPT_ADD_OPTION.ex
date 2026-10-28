@@ -42,16 +42,16 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT_ADD_OPTION do
   """
   def execute(game, code, trace) do
     argc = Evaluate.argc(code, 3, 4)
-    target_player_list = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["target_player_n"])
+    target_player_list = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["target_player_n" | trace])
     target_player_list = if is_list(target_player_list) do
       target_player_list
     else
       [target_player_list]
     end
-    label = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["label"])
-    hotkey = Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["hotkey"])
+    label = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["label" | trace])
+    hotkey = Evaluate.evaluate(game, Evaluate.arg(code, 3), ["hotkey" | trace])
     prompt_code = if argc >= 4 do
-      prompt_code = Evaluate.evaluate(game, Enum.at(code, 4), trace ++ ["prompt_code"])
+      prompt_code = Evaluate.evaluate(game, Evaluate.arg(code, 4), ["prompt_code" | trace])
       if not is_list(prompt_code) do
         raise "Code given to prompt option is not a list. Remember to use the \"LIST\" function to create a list. For example, [\"LIST\", \"SET\", \"/playerData/player1/health\", 10] will result in the action list [\"SET\", \"/playerData/player1/health\", 10] being assigned to the prompt option."
       end

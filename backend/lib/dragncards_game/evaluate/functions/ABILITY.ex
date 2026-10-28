@@ -23,14 +23,14 @@ defmodule DragnCardsGame.Evaluate.Functions.ABILITY do
   The result of the 'ABILITY' operation.
   """
   def execute(game, code, trace) do
-    card_id = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["list"])
+    card_id = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["list" | trace])
     card = get_in(game, ["cardById", card_id])
-    side = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["list"])
+    side = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["list" | trace])
     Evaluate.evaluate(game, [
       ["VAR", "$THIS_ID", card_id],
       ["VAR", "$THIS", card],
       ["ACTION_LIST", "$GAME.cardById.#{card_id}.sides.#{side}.ability"]
-    ], trace ++ ["ability"])
+    ], ["ability" | trace])
   end
 
 end

@@ -24,8 +24,8 @@ defmodule DragnCardsGame.Evaluate.Functions.MODULO do
   """
   def execute(game, code, trace) do
     Evaluate.argc(code, 2)
-    dividend = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["dividend"])
-    divisor = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["divisor"])
+    dividend = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["dividend" | trace])
+    divisor = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["divisor" | trace])
     if !is_integer(dividend) do
       raise "MODULO: dividend must be an integer"
     end

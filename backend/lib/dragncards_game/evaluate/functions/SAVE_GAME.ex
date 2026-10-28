@@ -35,7 +35,7 @@ defmodule DragnCardsGame.Evaluate.Functions.SAVE_GAME do
   def execute(game, code, trace) do
     try do
       # Get the current player's user_id
-      player_n = Evaluate.evaluate(game, "$PLAYER_N", trace ++ ["player_n"])
+      player_n = Evaluate.evaluate(game, "$PLAYER_N", ["player_n" | trace])
       user_id = game["playerData"][player_n]["user_id"]
 
       if user_id == nil do
@@ -47,7 +47,7 @@ defmodule DragnCardsGame.Evaluate.Functions.SAVE_GAME do
         Game.save_replay_to_db(game, user_id)
       rescue
         e ->
-          reraise "SAVE_GAME failed while saving to database: #{Exception.message(e)}", __STACKTRACE__
+          reraise "SAVE_GAME failed while saving to database: #{Evaluate.error_text(e)}", __STACKTRACE__
       end
 
       # Log the result
@@ -66,7 +66,7 @@ defmodule DragnCardsGame.Evaluate.Functions.SAVE_GAME do
         if String.starts_with?(Exception.message(e), "SAVE_GAME failed") do
           reraise e, __STACKTRACE__
         else
-          reraise "SAVE_GAME failed with unexpected error: #{Exception.message(e)}", __STACKTRACE__
+          reraise "SAVE_GAME failed with unexpected error: #{Evaluate.error_text(e)}", __STACKTRACE__
         end
     end
   end

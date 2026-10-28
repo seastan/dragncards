@@ -41,15 +41,15 @@ defmodule DragnCardsGame.Evaluate.Functions.OBJ_SET_VAL do
   def execute(game, code, trace) do
     case Enum.count(code) do
       4 ->
-        obj = Evaluate.evaluate(game, Enum.at(code,1), trace ++ ["obj"])
-        key = Evaluate.evaluate(game, Enum.at(code,2), trace ++ ["key"])
-        value = Evaluate.evaluate(game, Enum.at(code,3), trace ++ ["value"])
+        obj = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["obj" | trace])
+        key = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["key" | trace])
+        value = Evaluate.evaluate(game, Evaluate.arg(code, 3), ["value" | trace])
         put_in(obj[key], value)
       5 ->
-        obj = Evaluate.evaluate(game, Enum.at(code,1), trace ++ ["obj"])
-        path = Evaluate.evaluate(game, Enum.at(code,2), trace ++ ["path"])
-        key = Evaluate.evaluate(game, Enum.at(code,3), trace ++ ["key"])
-        value = Evaluate.evaluate(game, Enum.at(code,4), trace ++ ["value"])
+        obj = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["obj" | trace])
+        path = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["path" | trace])
+        key = Evaluate.evaluate(game, Evaluate.arg(code, 3), ["key" | trace])
+        value = Evaluate.evaluate(game, Evaluate.arg(code, 4), ["value" | trace])
         put_in(obj, path ++ [key], value)
     end
   end

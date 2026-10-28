@@ -34,7 +34,7 @@ defmodule DragnCardsGame.Evaluate.Functions.UNSET do
   The result of the 'UNSET' operation.
   """
   def execute(game, code, trace) do
-    path = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["path"])
+    path = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["path" | trace])
     path_minus_key = Enum.slice(path, 0, Enum.count(path)-1)
     key_to_delete = Enum.at(path, -1)
     nested_map = get_in(game, path_minus_key)

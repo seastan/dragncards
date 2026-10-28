@@ -72,8 +72,8 @@ defmodule DragnCardsGame.Evaluate.Functions.WHILE do
   The result of the 'WHILE' operation.
   """
   def execute(game, code, trace) do
-    condition = Enum.at(code, 1)
-    action_list = Enum.at(code, 2)
+    condition = Evaluate.arg(code, 1)
+    action_list = Evaluate.arg(code, 2)
     Evaluate.while_loop(game, condition, action_list, trace, 0)
   end
 

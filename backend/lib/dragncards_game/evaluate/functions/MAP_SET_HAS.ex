@@ -24,8 +24,8 @@ defmodule DragnCardsGame.Evaluate.Functions.MAP_SET_HAS do
   """
   def execute(game, code, trace) do
     Evaluate.argc(code, 2)
-    set = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["set"])
-    value = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["value"])
+    set = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["set" | trace])
+    value = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["value" | trace])
     if !is_struct(set, MapSet) do
       raise "MAP_SET_HAS: set must be a set"
     end

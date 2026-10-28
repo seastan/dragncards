@@ -36,7 +36,7 @@ defmodule DragnCardsGame.Evaluate.Functions.RESET_GAME do
     try do
       # Extract required parameters from current game
       room_slug = game["roomSlug"]
-      player_n = Evaluate.evaluate(game, "$PLAYER_N", trace ++ ["player_n"])
+      player_n = Evaluate.evaluate(game, "$PLAYER_N", ["player_n" | trace])
       user_id = game["playerData"][player_n]["user_id"]
       options = game["options"]
 
@@ -57,7 +57,7 @@ defmodule DragnCardsGame.Evaluate.Functions.RESET_GAME do
         PluginCache.get_game_def_cached(game["pluginId"])
       rescue
         e ->
-          reraise "RESET_GAME failed while loading game definition for plugin #{inspect(game["pluginId"])}: #{Exception.message(e)}", __STACKTRACE__
+          reraise "RESET_GAME failed while loading game definition for plugin #{inspect(game["pluginId"])}: #{Evaluate.error_text(e)}", __STACKTRACE__
       end
 
       # Create a new game with the same configuration
@@ -65,11 +65,11 @@ defmodule DragnCardsGame.Evaluate.Functions.RESET_GAME do
         Game.new(room_slug, user_id, game_def, options)
       rescue
         e ->
-          reraise "RESET_GAME failed while creating new game: #{Exception.message(e)}", __STACKTRACE__
+          reraise "RESET_GAME failed while creating new game: #{Evaluate.error_text(e)}", __STACKTRACE__
       end
 
       if game_def["automation"]["postNewGameActionList"] != nil do
-        new_game = Evaluate.evaluate(new_game, game_def["automation"]["postNewGameActionList"], trace ++ ["postNewGameActionList"])
+        new_game = Evaluate.evaluate(new_game, game_def["automation"]["postNewGameActionList"], ["postNewGameActionList" | trace])
       else
         new_game
       end
@@ -80,7 +80,7 @@ defmodule DragnCardsGame.Evaluate.Functions.RESET_GAME do
         if String.starts_with?(Exception.message(e), "RESET_GAME failed") do
           reraise e, __STACKTRACE__
         else
-          reraise "RESET_GAME failed with unexpected error: #{Exception.message(e)}", __STACKTRACE__
+          reraise "RESET_GAME failed with unexpected error: #{Evaluate.error_text(e)}", __STACKTRACE__
         end
     end
   end

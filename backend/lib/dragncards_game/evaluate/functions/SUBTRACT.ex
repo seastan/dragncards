@@ -23,7 +23,7 @@ defmodule DragnCardsGame.Evaluate.Functions.SUBTRACT do
   The result of the 'SUBTRACT' operation.
   """
   def execute(game, code, trace) do
-    (Evaluate.evaluate(game, Enum.at(code,1), trace ++ ["left"]) || 0) - (Evaluate.evaluate(game, Enum.at(code,2), trace ++ ["right"]) || 0)
+    (Evaluate.evaluate(game, Evaluate.arg(code, 1), ["left" | trace]) || 0) - (Evaluate.evaluate(game, Evaluate.arg(code, 2), ["right" | trace]) || 0)
   end
 
 

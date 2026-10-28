@@ -23,8 +23,8 @@ defmodule DragnCardsGame.Evaluate.Functions.CHOOSE_N do
   The result of the 'CHOOSE_N' operation.
   """
   def execute(game, code, trace) do
-    list = Evaluate.evaluate(game, Enum.at(code,1), trace ++ ["list"])
-    n = Evaluate.evaluate(game, Enum.at(code,2), trace ++ ["n"])
+    list = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["list" | trace])
+    n = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["n" | trace])
     Enum.take(Enum.shuffle(list), n)
   end
 

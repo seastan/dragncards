@@ -69,18 +69,18 @@ defmodule DragnCardsGame.Evaluate.Functions.LABEL do
   end
 
   def get_label(game, labelId, languageString, pluralIndex, trace) do
-    language = DragnCardsGame.Evaluate.Functions.LANGUAGE.to_language(game, languageString, trace ++ ["to_language"])
-    get_label_l(game, labelId, language, pluralIndex, trace ++ ["get_label_l"])
+    language = DragnCardsGame.Evaluate.Functions.LANGUAGE.to_language(game, languageString, ["to_language" | trace])
+    get_label_l(game, labelId, language, pluralIndex, ["get_label_l" | trace])
   end
 
   def execute(game, code, trace) do
     argc = Evaluate.argc(code, 1, 3)
-    labelId = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["labelId"])
+    labelId = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["labelId" | trace])
     if !is_binary(labelId) do
       raise "LABEL: labelId must be a string"
     end
     languageString = if argc > 1 do
-      Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["languageString"])
+      Evaluate.evaluate(game, Evaluate.arg(code, 2), ["languageString" | trace])
     else
       nil
     end
@@ -88,14 +88,14 @@ defmodule DragnCardsGame.Evaluate.Functions.LABEL do
       raise "LABEL: languageString must be a string"
     end
     pluralIndex = if argc > 2 do
-      Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["pluralIndex"])
+      Evaluate.evaluate(game, Evaluate.arg(code, 3), ["pluralIndex" | trace])
     else
       nil
     end
     if !is_nil(pluralIndex) and !is_integer(pluralIndex) do
       raise "LABEL: pluralIndex must be an integer"
     end
-    get_label(game, String.replace_leading(labelId, "id:", ""), languageString, pluralIndex, trace ++ ["get_label"])
+    get_label(game, String.replace_leading(labelId, "id:", ""), languageString, pluralIndex, ["get_label" | trace])
   end
 
 

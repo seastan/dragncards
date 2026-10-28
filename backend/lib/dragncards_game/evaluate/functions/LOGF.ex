@@ -23,7 +23,7 @@ defmodule DragnCardsGame.Evaluate.Functions.LOGF do
   The result of the 'LOGF' operation.
   """
   def execute(game, code, trace) do
-    message = DragnCardsGame.Evaluate.Functions.FORMAT.execute(game, code, trace ++ ["message"])
+    message = DragnCardsGame.Evaluate.Functions.FORMAT.execute(game, code, ["message" | trace])
     put_in(game["messages"], game["messages"] ++ [message])
   end
 

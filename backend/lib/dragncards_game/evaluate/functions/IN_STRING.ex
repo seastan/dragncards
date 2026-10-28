@@ -21,8 +21,8 @@ defmodule DragnCardsGame.Evaluate.Functions.IN_STRING do
   The result of the 'IN_STRING' operation.
   """
   def execute(game, code, trace) do
-    container = Evaluate.evaluate(game, Enum.at(code,1), trace ++ ["container"])
-    containee = Evaluate.evaluate(game, Enum.at(code,2), trace ++ ["containee"])
+    container = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["container" | trace])
+    containee = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["containee" | trace])
     if container == nil or containee == nil do
       false
     else

@@ -24,8 +24,8 @@ defmodule DragnCardsGame.Evaluate.Functions.MAP_DELETE do
   """
   def execute(game, code, trace) do
     Evaluate.argc(code, 2)
-    object = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["object"])
-    key = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["key"])
+    object = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["object" | trace])
+    key = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["key" | trace])
     if !is_map(object) or is_struct(object, MapSet) do
       raise "MAP_DELETE: object must be an object"
     end

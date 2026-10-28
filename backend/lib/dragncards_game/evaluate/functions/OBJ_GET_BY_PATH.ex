@@ -43,14 +43,21 @@ defmodule DragnCardsGame.Evaluate.Functions.OBJ_GET_BY_PATH do
   The result of the 'OBJ_GET_BY_PATH' operation.
   """
   def execute(game, code, trace) do
-    map = Evaluate.evaluate(game, Enum.at(code,1), trace ++ ["map"])
-    path = Evaluate.evaluate(game, Enum.at(code,2), trace ++ ["path"])
+    map = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["map" | trace])
+    path = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["path" | trace])
+    get_by_path(game, map, path, trace)
+  end
+
+  @doc """
+  Follows `path` (already evaluated) into `map`, applying the special path keys.
+  """
+  def get_by_path(game, map, path, trace) do
     Enum.reduce(Enum.with_index(path), map, fn({pathi, index}, acc) ->
       cond do
         pathi == nil ->
           raise "Tried to access nil in path #{inspect(path)}."
         String.starts_with?(pathi, "[") and String.ends_with?(pathi, "]") ->
-          int_str = Evaluate.evaluate(game, String.slice(pathi,1..-2), trace ++ ["index #{index}"])
+          int_str = Evaluate.evaluate(game, String.slice(pathi,1..-2), [{"index", index} | trace])
           int = Evaluate.convert_to_integer(int_str)
           if acc == nil do
             raise "Tried to access index #{int} on a null array."
@@ -126,7 +133,7 @@ defmodule DragnCardsGame.Evaluate.Functions.OBJ_GET_BY_PATH do
         not is_map(acc) or is_struct(acc, MapSet) ->
           raise "Tried to access key '#{pathi}' of a non-object: #{inspect(acc)}."
         Map.has_key?(acc, pathi) ->
-          Map.get(acc, Evaluate.evaluate(game, pathi, trace ++ ["key #{index}"]))
+          Map.get(acc, Evaluate.evaluate(game, pathi, [{"key", index} | trace]))
         true ->
           nil
           #raise "Tried to access #{pathi} on an object that doesn't have that key. Only keys are #{Map.keys(acc)}. #{inspect(trace)}"

@@ -23,8 +23,8 @@ defmodule DragnCardsGame.Evaluate.Functions.RANDOM_INT do
   The result of the 'RANDOM_INT' operation.
   """
   def execute(game, code, trace) do
-    mn = Evaluate.evaluate(game, Enum.at(code,1), trace ++ ["min"])
-    mx = Evaluate.evaluate(game, Enum.at(code,2), trace ++ ["max"])
+    mn = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["min" | trace])
+    mx = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["max" | trace])
     :rand.uniform(mx - mn + 1) + mn - 1
   end
 

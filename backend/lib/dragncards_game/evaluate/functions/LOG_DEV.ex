@@ -24,8 +24,8 @@ defmodule DragnCardsGame.Evaluate.Functions.LOG_DEV do
   def execute(game, code, trace) do
     current_scope_index = game["currentScopeIndex"]
     IO.puts("LOG_DEV #{current_scope_index}:")
-    IO.inspect(Enum.at(code, 1))
-    IO.inspect(Evaluate.evaluate(game, Enum.at(code, 1), trace))
+    IO.inspect(Evaluate.arg(code, 1))
+    IO.inspect(Evaluate.evaluate(game, Evaluate.arg(code, 1), trace))
     game
   end
 

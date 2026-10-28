@@ -32,15 +32,15 @@ defmodule DragnCardsGame.Evaluate.Functions.TARGET_PLAYER_I do
   """
   def execute(game, code, trace) do
     argc = Evaluate.argc(code, 2, 3)
-    card_id = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["card_id"])
-    player_i = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["player_i"])
+    card_id = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["card_id" | trace])
+    player_i = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["player_i" | trace])
     value = if argc == 3 do
-      Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["value"])
+      Evaluate.evaluate(game, Evaluate.arg(code, 3), ["value" | trace])
     else
       true
     end
 
-    Evaluate.evaluate(game, ["SET", "/cardById/#{card_id}/targeting/#{player_i}", value], trace ++ ["set"])
+    Evaluate.evaluate(game, ["SET", "/cardById/#{card_id}/targeting/#{player_i}", value], ["set" | trace])
   end
 
 

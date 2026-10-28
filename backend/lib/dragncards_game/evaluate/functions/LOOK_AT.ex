@@ -41,10 +41,10 @@ defmodule DragnCardsGame.Evaluate.Functions.LOOK_AT do
   The result of the 'LOOK_AT' operation.
   """
   def execute(game, code, trace) do
-    player_i = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["player_i"])
-    group_id = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["group_id"])
-    top_n = Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["top_n"])
-    visibility = Evaluate.evaluate(game, Enum.at(code, 4), trace ++ ["visibility"])
+    player_i = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["player_i" | trace])
+    group_id = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["group_id" | trace])
+    top_n = Evaluate.evaluate(game, Evaluate.arg(code, 3), ["top_n" | trace])
+    visibility = Evaluate.evaluate(game, Evaluate.arg(code, 4), ["visibility" | trace])
 
     ArgumentSanitizer.sanitize_args("LOOK_AT", game, [
       {"playerI", player_i, :player},
@@ -52,7 +52,7 @@ defmodule DragnCardsGame.Evaluate.Functions.LOOK_AT do
       {"topN", top_n, :integer},
       {"visibility", visibility, :boolean}
     ])
-    stack_ids = Evaluate.evaluate(game, "$GAME.groupById.#{group_id}.stackIds", trace ++ ["stack_ids"])
+    stack_ids = Evaluate.evaluate(game, "$GAME.groupById.#{group_id}.stackIds", ["stack_ids" | trace])
     # -1 means "all cards". Store it as-is rather than as the current stack count,
     # so that cards added to the group while the browse window is open stay visible
     # instead of falling past a count that was frozen when browsing started.
@@ -74,7 +74,7 @@ defmodule DragnCardsGame.Evaluate.Functions.LOOK_AT do
         ]
       ]
     ];
-    Evaluate.evaluate(game, action_list, trace ++ ["action_list"])
+    Evaluate.evaluate(game, action_list, ["action_list" | trace])
   end
 
 end

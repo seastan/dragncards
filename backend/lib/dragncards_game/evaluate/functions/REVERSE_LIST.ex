@@ -33,7 +33,7 @@ defmodule DragnCardsGame.Evaluate.Functions.REVERSE_LIST do
   The result of the 'REVERSE_LIST' operation.
   """
   def execute(game, code, trace) do
-    list = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["list"])
+    list = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["list" | trace])
     Enum.reverse(list)
   end
 

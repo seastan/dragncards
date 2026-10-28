@@ -22,7 +22,7 @@ defmodule DragnCardsGame.Evaluate.Functions.ADVANCE_TO_STEP do
   The result of the 'ADVANCE_TO_STEP' operation.
   """
   def execute(game, code, trace) do
-    step_id = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["stepId"])
+    step_id = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["stepId" | trace])
     game_def = PluginCache.get_game_def_cached(game["pluginId"])
     step_order = game_def["stepOrder"]
     # If the stepId is not in the list of steps, return the game state as is
@@ -31,7 +31,7 @@ defmodule DragnCardsGame.Evaluate.Functions.ADVANCE_TO_STEP do
     end
     # Make a while loop that calls NEXT_STEP until game["stepId"] is equal to step_id
     Enum.reduce_while(0..Enum.count(step_order), game, fn i, acc ->
-      acc = Evaluate.evaluate(acc, ["NEXT_STEP"], trace ++ ["next_step"])
+      acc = Evaluate.evaluate(acc, ["NEXT_STEP"], ["next_step" | trace])
       if acc["stepId"] == step_id do
         {:halt, acc}
       else

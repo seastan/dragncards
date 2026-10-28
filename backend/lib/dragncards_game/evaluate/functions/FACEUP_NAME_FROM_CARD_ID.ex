@@ -27,7 +27,7 @@ defmodule DragnCardsGame.Evaluate.Functions.FACEUP_NAME_FROM_CARD_ID do
   The result of the 'FACEUP_NAME_FROM_CARD_ID' operation.
   """
   def execute(game, code, trace) do
-    card_id = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["card_id"])
+    card_id = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["card_id" | trace])
     card = game["cardById"][card_id]
     face = card["sides"][card["currentSide"]]
     face["name"]

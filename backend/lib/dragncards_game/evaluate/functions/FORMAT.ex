@@ -74,25 +74,25 @@ defmodule DragnCardsGame.Evaluate.Functions.FORMAT do
   """
   def execute(game, code, trace) do
     Evaluate.argc(code, 1, nil)
-    formatString = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["formatString"])
+    formatString = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["formatString" | trace])
     if !is_binary(formatString) do
       raise "FORMAT: formatString must be a string"
     end
     list = Enum.slice(code, 2, Enum.count(code))
     formatStringResolved = if String.contains?(formatString, "id:") do
-      language = DragnCardsGame.Evaluate.Functions.LANGUAGE.to_language(game, nil, trace ++ ["to_language"])
+      language = DragnCardsGame.Evaluate.Functions.LANGUAGE.to_language(game, nil, ["to_language" | trace])
       labelList = Regex.scan(~r/id:(?<label>[A-Za-z0-9_]+)(-{(?<idx>[0-9]+)})?/, formatString, capture: :all_names)
       Enum.reduce(Enum.uniq(labelList), formatString, fn item, acc ->
         labelId = Enum.at(item, 1)
         idx = Enum.at(item, 0)
         if idx !== "" do
-          element = Evaluate.evaluate(game, Enum.at(list, String.to_integer(idx)), trace ++ ["evaluate #{idx}"])
-          intValue = DragnCardsGame.Evaluate.Functions.INSPECT_INT.to_int(game, element, trace ++ ["to_int #{idx}"])
-          pluralIndex = DragnCardsGame.Evaluate.Functions.PLURAL_INDEX.plural_index_vl(game, intValue, nil, trace ++ ["plural_index_vl #{idx}"])
-          labelContent = String.replace(DragnCardsGame.Evaluate.Functions.LABEL.get_label_l(game, labelId, language, pluralIndex, trace ++ ["get_label_l #{labelId}.#{language}-#{pluralIndex}"]), "#", "#{intValue}")
+          element = Evaluate.evaluate(game, Enum.at(list, String.to_integer(idx)), ["evaluate #{idx}" | trace])
+          intValue = DragnCardsGame.Evaluate.Functions.INSPECT_INT.to_int(game, element, ["to_int #{idx}" | trace])
+          pluralIndex = DragnCardsGame.Evaluate.Functions.PLURAL_INDEX.plural_index_vl(game, intValue, nil, ["plural_index_vl #{idx}" | trace])
+          labelContent = String.replace(DragnCardsGame.Evaluate.Functions.LABEL.get_label_l(game, labelId, language, pluralIndex, ["get_label_l #{labelId}.#{language}-#{pluralIndex}" | trace]), "#", "#{intValue}")
           String.replace(acc, "id:#{labelId}-{#{idx}}", labelContent)
         else
-          labelContent = DragnCardsGame.Evaluate.Functions.LABEL.get_label_l(game, labelId, language, nil, trace ++ ["get_label_l #{labelId}.#{language}"])
+          labelContent = DragnCardsGame.Evaluate.Functions.LABEL.get_label_l(game, labelId, language, nil, ["get_label_l #{labelId}.#{language}" | trace])
           String.replace(acc, "id:#{labelId}", labelContent)
         end
       end)
@@ -104,10 +104,10 @@ defmodule DragnCardsGame.Evaluate.Functions.FORMAT do
       Enum.reduce(Enum.uniq(paramList), formatStringResolved, fn item, acc ->
         idx = Enum.at(item, 1)
         hint = Enum.at(item, 0)
-        element = Evaluate.evaluate(game, Enum.at(list, String.to_integer(idx)), trace ++ ["evaluate #{idx}"])
+        element = Evaluate.evaluate(game, Enum.at(list, String.to_integer(idx)), ["evaluate #{idx}" | trace])
         cond do
-          hint !== "" -> String.replace(acc, "{#{idx}:#{hint}}", DragnCardsGame.Evaluate.Functions.INSPECT.to_string(game, element, hint, trace ++ ["to_string #{idx}"]))
-          true -> String.replace(acc, "{#{idx}}", DragnCardsGame.Evaluate.Functions.INSPECT.to_string(game, element, nil, trace ++ ["to_string #{idx}"]))
+          hint !== "" -> String.replace(acc, "{#{idx}:#{hint}}", DragnCardsGame.Evaluate.Functions.INSPECT.to_string(game, element, hint, ["to_string #{idx}" | trace]))
+          true -> String.replace(acc, "{#{idx}}", DragnCardsGame.Evaluate.Functions.INSPECT.to_string(game, element, nil, ["to_string #{idx}" | trace]))
         end
       end)
     else

@@ -57,10 +57,10 @@ defmodule DragnCardsGame.Evaluate.Functions.FADE_TEXT_PLAYER do
   The updated game state with fade text added.
   """
   def execute(game, code, trace) do
-    player_ids = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["player_ids"])
-    label = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["label"])
+    player_ids = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["player_ids" | trace])
+    label = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["label" | trace])
     duration = if Enum.count(code) > 3 do
-      Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["duration"])
+      Evaluate.evaluate(game, Evaluate.arg(code, 3), ["duration" | trace])
     else
       nil
     end

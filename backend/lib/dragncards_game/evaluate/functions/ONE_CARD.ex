@@ -60,8 +60,8 @@ defmodule DragnCardsGame.Evaluate.Functions.ONE_CARD do
   The result of the 'ONE_CARD' operation.
   """
   def execute(game, code, trace) do
-    var_name = Enum.at(code, 1)
-    condition = Enum.at(code, 2)
+    var_name = Evaluate.arg(code, 1)
+    condition = Evaluate.arg(code, 2)
     one_card = Enum.find(Map.values(game["cardById"]), fn(card) ->
       Evaluate.card_match?(game, var_name, card, condition, trace)
     end)

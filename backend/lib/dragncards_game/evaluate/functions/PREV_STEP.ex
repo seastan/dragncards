@@ -35,7 +35,7 @@ defmodule DragnCardsGame.Evaluate.Functions.PREV_STEP do
       ["LOG", "$ALIAS_N", " reverted the round step to ", "$GAME_DEF.steps.$STEP_ID.label", "."],
       ["SET", "/stepId", "$STEP_ID"]
     ]
-    Evaluate.evaluate(game, prev_step_action_list, trace ++ ["prev_step_action_list"])
+    Evaluate.evaluate(game, prev_step_action_list, ["prev_step_action_list" | trace])
   end
 
 

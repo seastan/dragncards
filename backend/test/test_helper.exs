@@ -1,5 +1,5 @@
 {:ok, _} = Application.ensure_all_started(:dragncards)
-ExUnit.start()
+ExUnit.start(exclude: [:bench, :differential])
 Ecto.Adapters.SQL.Sandbox.mode(DragnCards.Repo, :manual)
 
 # Add this line to require the test support files

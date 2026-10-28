@@ -30,7 +30,7 @@ defmodule DragnCardsGame.Evaluate.Functions.REMOVE_ALL_TEMP_TOKENS do
   def execute(game, code, trace) do
 
     argc = Evaluate.argc(code, 1)
-    timing = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["timing"])
+    timing = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["timing" | trace])
 
     TempTokens.remove_all_for_timing(game, timing)
   end

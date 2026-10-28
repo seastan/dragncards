@@ -25,10 +25,10 @@ defmodule DragnCardsGame.Evaluate.Functions.MAP_GET do
   """
   def execute(game, code, trace) do
     argc = Evaluate.argc(code, 2, 3)
-    object = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["object"])
-    key = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["key"])
+    object = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["object" | trace])
+    key = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["key" | trace])
     default = if argc == 3 do
-      Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["default"])
+      Evaluate.evaluate(game, Evaluate.arg(code, 3), ["default" | trace])
     else
       nil
     end

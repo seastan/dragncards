@@ -23,7 +23,7 @@ defmodule DragnCardsGame.Evaluate.Functions.TYPE_OF do
   """
   def execute(game, code, trace) do
     Evaluate.argc(code, 1)
-    input = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["input"])
+    input = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["input" | trace])
     cond do
       is_nil(input) -> "null"
       is_boolean(input) -> "boolean"

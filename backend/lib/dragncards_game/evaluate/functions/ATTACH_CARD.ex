@@ -27,8 +27,8 @@ defmodule DragnCardsGame.Evaluate.Functions.ATTACH_CARD do
   """
   def execute(game, code, trace) do
     argc = Evaluate.argc(code, 2, 3)
-    card_id = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["card_id"])
-    dest_card_id = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["dest_card_id"])
+    card_id = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["card_id" | trace])
+    dest_card_id = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["dest_card_id" | trace])
 
     # Validate dest_card exists
     dest_card = game["cardById"][dest_card_id]
@@ -45,13 +45,13 @@ defmodule DragnCardsGame.Evaluate.Functions.ATTACH_CARD do
       raise("ATTACH_CARD failed: destination card '#{dest_card_id}' has no stackIndex. Card may not be on the table.")
     end
 
-    options = if argc == 3 do Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["options"]) else %{"combine" => "right"} end
+    options = if argc == 3 do Evaluate.evaluate(game, Evaluate.arg(code, 3), ["options" | trace]) else %{"combine" => "right"} end
 
     try do
       GameUI.move_card(game, card_id, dest_card["groupId"], dest_card["stackIndex"], -1, options)
     rescue
       e ->
-        raise("ATTACH_CARD failed: unable to attach card '#{card_id}' to '#{dest_card_id}'. Error: #{Exception.message(e)}")
+        raise("ATTACH_CARD failed: unable to attach card '#{card_id}' to '#{dest_card_id}'. Error: #{Evaluate.error_text(e)}")
     end
   end
 

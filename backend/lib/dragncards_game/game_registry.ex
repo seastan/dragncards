@@ -26,13 +26,24 @@ defmodule DragnCardsGame.GameRegistry do
   row in the database so it can found in the lobby.
   """
   def update(game_name, %{} = gameui) do
+    update_params(game_name, to_room_param(gameui))
+  end
+
+  @doc """
+  update_params/2
+  Like update/2, with the room params already extracted by room_params/1, so
+  callers can update the Room asynchronously without copying the whole GameUI.
+  """
+  def update_params(game_name, %{} = params) do
     room = Rooms.get_room_by_name(game_name)
 
     case room do
-      %Room{} -> Rooms.update_room(room, to_room_param(gameui))
+      %Room{} -> Rooms.update_room(room, params)
       _ -> nil
     end
   end
+
+  def room_params(%{} = gameui), do: to_room_param(gameui)
 
   @doc """
   remove/1

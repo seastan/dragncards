@@ -25,9 +25,9 @@ defmodule DragnCardsGame.Evaluate.Functions.SUBSTRING do
   The result of the 'SUBSTRING' operation.
   """
   def execute(game, code, trace) do
-    string = Evaluate.evaluate(game, Enum.at(code,1), trace ++ ["string"])
-    start = Evaluate.evaluate(game, Enum.at(code,2), trace ++ ["start"])
-    length = Evaluate.evaluate(game, Enum.at(code,3), trace ++ ["length"])
+    string = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["string" | trace])
+    start = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["start" | trace])
+    length = Evaluate.evaluate(game, Evaluate.arg(code, 3), ["length" | trace])
     if string == nil || start == nil || length == nil do
       raise "Tried to call SUBSTRING with nil arguments. string: #{string}, start: #{start}, length: #{length}"
     else

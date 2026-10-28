@@ -35,10 +35,10 @@ defmodule DragnCardsGame.Evaluate.Functions.PROCESS_MAP do
   """
   def execute(game, code, trace) do
 
-    Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["map"])
+    Evaluate.evaluate(game, Evaluate.arg(code, 1), ["map" | trace])
     |> Enum.reduce(%{}, fn({k, v}, acc) ->
-      k = Evaluate.evaluate(game, k, trace ++ ["key"])
-      v = Evaluate.evaluate(game, v, trace ++ ["value"])
+      k = Evaluate.evaluate(game, k, ["key" | trace])
+      v = Evaluate.evaluate(game, v, ["value" | trace])
       put_in(acc, [k], v)
     end)
   end

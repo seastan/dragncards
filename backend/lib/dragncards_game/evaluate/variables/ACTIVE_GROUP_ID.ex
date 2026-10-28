@@ -14,7 +14,7 @@ defmodule DragnCardsGame.Evaluate.Variables.ACTIVE_GROUP_ID do
       get_in(game, ["playerUi", "dropdownMenu", "group"]) ->
         get_in(game, ["playerUi", "dropdownMenu", "group"])["id"]
       get_in(game, ["playerUi", "activeCardId"]) ->
-        Evaluate.evaluate(game, "$ACTIVE_CARD.groupId", trace ++ ["$ACTIVE_GROUP"])
+        Evaluate.evaluate(game, "$ACTIVE_CARD.groupId", ["$ACTIVE_GROUP" | trace])
       true ->
         raise "Variable $ACTIVE_GROUP_ID is undefined."
     end

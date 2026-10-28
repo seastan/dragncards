@@ -31,7 +31,7 @@ defmodule DragnCardsGame.Evaluate.Functions.REQUEST_HTML do
   """
   def execute(game, code, trace) do
     Evaluate.argc(code, 1)
-    url = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["url"])
+    url = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["url" | trace])
 
     if !is_binary(url) do
       raise "REQUEST_HTML: url must be a string"

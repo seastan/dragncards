@@ -48,13 +48,13 @@ defmodule DragnCardsGame.Evaluate.Functions.SORT_OBJ_LIST do
   The result of the 'SORT_OBJ_LIST' operation.
   """
   def execute(game, code, trace) do
-    list_of_objects = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["listOfObjects"])
-    var_name = Enum.at(code, 2)
-    lambda = Enum.at(code, 3)
+    list_of_objects = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["listOfObjects" | trace])
+    var_name = Evaluate.arg(code, 2)
+    lambda = Evaluate.arg(code, 3)
 
     Enum.sort_by(list_of_objects, fn obj ->
-      game = Evaluate.evaluate(game, ["VAR", var_name, obj], trace ++ ["variableName"])
-      Evaluate.evaluate(game, lambda, trace ++ ["lambdaFunction"])
+      game = Evaluate.evaluate(game, ["VAR", var_name, obj], ["variableName" | trace])
+      Evaluate.evaluate(game, lambda, ["lambdaFunction" | trace])
     end)
   end
 

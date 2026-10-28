@@ -22,8 +22,8 @@ defmodule DragnCardsGame.Evaluate.Functions.ABORT do
   The result of the 'ABORT' operation.
   """
   def execute(game, code, trace) do
-    statements = Enum.slice(code, 1, Enum.count(code))
-    message = Evaluate.message_list_to_string(game, statements, trace ++ ["message_list_to_string"])
+    statements = tl(code)
+    message = Evaluate.message_list_to_string(game, statements, ["message_list_to_string" | trace])
     raise "ABORT: #{message}"
   end
 

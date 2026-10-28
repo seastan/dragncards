@@ -13,28 +13,51 @@ defmodule DragnCardsGame.CardFace do
   @spec trigger_steps_from_face_details(Map.t(), List.t()) :: Map.t()
   def trigger_steps_from_face_details(face_details, step_triggers) do
     if step_triggers do
-      Enum.reduce(step_triggers, %{}, fn(trigger_info, acc) ->
-        prop = trigger_info["faceProperty"]
-        regex_string = trigger_info["regex"]
-        step_id = trigger_info["stepId"]
-        search_string = face_details[prop]
-        if search_string do
-          case Regex.compile(regex_string, "i") do
-            {:ok, regex} ->
-              if String.match?(search_string |> String.downcase(), regex) do
-                Map.put(acc, step_id, true)
-              else
-                acc
-              end
-            _ ->
-              acc
+      {steps, _downcased} =
+        Enum.reduce(step_triggers, {%{}, %{}}, fn(trigger_info, {acc, downcased}) ->
+          prop = trigger_info["faceProperty"]
+          regex_string = trigger_info["regex"]
+          step_id = trigger_info["stepId"]
+          search_string = face_details[prop]
+          if search_string do
+            case compile_step_regex(regex_string) do
+              {:ok, regex} ->
+                {subject, downcased} =
+                  case downcased do
+                    %{^prop => subject} -> {subject, downcased}
+                    _ ->
+                      subject = String.downcase(search_string)
+                      {subject, Map.put(downcased, prop, subject)}
+                  end
+                if String.match?(subject, regex) do
+                  {Map.put(acc, step_id, true), downcased}
+                else
+                  {acc, downcased}
+                end
+              _ ->
+                {acc, downcased}
+            end
+          else
+            {acc, downcased}
           end
-        else
-          acc
-        end
-      end)
+        end)
+      steps
     else
       %{}
+    end
+  end
+
+  # Every card face is checked against the same few plugin regexes, so keep
+  # the compiled versions for the life of the process.
+  defp compile_step_regex(regex_string) do
+    key = {__MODULE__, :step_regex, regex_string}
+    case Process.get(key) do
+      nil ->
+        compiled = Regex.compile(regex_string, "i")
+        Process.put(key, compiled)
+        compiled
+      compiled ->
+        compiled
     end
   end
 

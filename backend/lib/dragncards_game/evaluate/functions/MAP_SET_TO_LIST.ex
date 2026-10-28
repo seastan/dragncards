@@ -23,7 +23,7 @@ defmodule DragnCardsGame.Evaluate.Functions.MAP_SET_TO_LIST do
   """
   def execute(game, code, trace) do
     Evaluate.argc(code, 1)
-    set = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["set"])
+    set = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["set" | trace])
     if !is_struct(set, MapSet) do
       raise "MAP_SET_TO_LIST: set must be a set"
     end

@@ -1,4 +1,5 @@
 defmodule DragnCardsGame.Evaluate.Functions.FUNCTION do
+  alias DragnCardsGame.Evaluate
   @moduledoc """
   *Arguments*:
   First argument: function_name (string, all caps)
@@ -36,7 +37,7 @@ defmodule DragnCardsGame.Evaluate.Functions.FUNCTION do
   The result of the 'FUNCTION' operation.
   """
   def execute(game, code, _trace) do
-    new_func_name = Enum.at(code, 1)
+    new_func_name = Evaluate.arg(code, 1)
     # if func_name is not all caps, raise an error
     if String.upcase(new_func_name) == new_func_name do
       new_func_args = Enum.slice(code, 2, Enum.count(code) - 3)

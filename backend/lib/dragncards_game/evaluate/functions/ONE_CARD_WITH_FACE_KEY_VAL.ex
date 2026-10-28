@@ -35,10 +35,10 @@ defmodule DragnCardsGame.Evaluate.Functions.ONE_CARD_WITH_FACE_KEY_VAL do
   """
   def execute(game, code, trace) do
     argc = Evaluate.argc(code, 2, 3)
-    key = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["name"])
-    val = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["val"])
+    key = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["name" | trace])
+    val = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["val" | trace])
     side = if argc == 3 do
-      Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["side"])
+      Evaluate.evaluate(game, Evaluate.arg(code, 3), ["side" | trace])
     else
       "A"
     end

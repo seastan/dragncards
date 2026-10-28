@@ -33,8 +33,8 @@ defmodule DragnCardsGame.Evaluate.Functions.SET_LAYOUT do
   end
 
   def execute(game, code, trace) do
-    player_i = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["player_i"])
-    layout_id = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["layout_id"])
+    player_i = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["player_i" | trace])
+    layout_id = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["layout_id" | trace])
     layout = get_layout_from_game_def(game["pluginId"], layout_id)
     game = case player_i do
       "shared" ->
@@ -55,7 +55,7 @@ defmodule DragnCardsGame.Evaluate.Functions.SET_LAYOUT do
         |> Evaluate.evaluate(["SET", "/playerData/#{player_i}/layout", layout])
     end
     if layout["postSetActionList"] do
-      Evaluate.evaluate(game, ["ACTION_LIST", layout["postSetActionList"]], trace ++ ["postSetActionList"])
+      Evaluate.evaluate(game, ["ACTION_LIST", layout["postSetActionList"]], ["postSetActionList" | trace])
     else
       game
     end

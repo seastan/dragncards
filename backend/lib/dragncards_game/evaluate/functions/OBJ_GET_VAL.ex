@@ -48,8 +48,8 @@ defmodule DragnCardsGame.Evaluate.Functions.OBJ_GET_VAL do
   The result of the 'OBJ_GET_VAL' operation.
   """
   def execute(game, code, trace) do
-    map = Evaluate.evaluate(game, Enum.at(code,1), trace ++ ["map"])
-    key = Evaluate.evaluate(game, Enum.at(code,2), trace ++ ["key"])
+    map = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["map" | trace])
+    key = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["key" | trace])
     map[key]
   end
 

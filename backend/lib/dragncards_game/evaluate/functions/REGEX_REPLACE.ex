@@ -24,9 +24,9 @@ defmodule DragnCardsGame.Evaluate.Functions.REGEX_REPLACE do
   The result of the 'REGEX_REPLACE' operation.
   """
   def execute(game, code, trace) do
-    input_string = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["inputString"])
-    regex_string = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["regexString"])
-    replacement_string = Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["replacementString"])
+    input_string = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["inputString" | trace])
+    regex_string = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["regexString" | trace])
+    replacement_string = Evaluate.evaluate(game, Evaluate.arg(code, 3), ["replacementString" | trace])
     case Regex.compile(regex_string, "i") do
       {:ok, regex} ->
         result = Regex.replace(regex, input_string, replacement_string)

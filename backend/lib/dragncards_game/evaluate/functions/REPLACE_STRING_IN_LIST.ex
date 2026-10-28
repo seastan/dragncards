@@ -33,9 +33,9 @@ defmodule DragnCardsGame.Evaluate.Functions.REPLACE_STRING_IN_LIST do
 
   def execute(game, code, trace) do
     Evaluate.argc(code, 3)
-    input_string = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["inputString"])
-    string_to_replace = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["stringToReplace"])
-    replacement_string = Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["replacementString"])
+    input_string = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["inputString" | trace])
+    string_to_replace = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["stringToReplace" | trace])
+    replacement_string = Evaluate.evaluate(game, Evaluate.arg(code, 3), ["replacementString" | trace])
     if !is_list(input_string) do
       raise "REPLACE_STRING_IN_LIST: inputString must be a list"
     end

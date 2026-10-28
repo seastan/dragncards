@@ -23,8 +23,8 @@ defmodule DragnCardsGame.Evaluate.Functions.APPEND do
   The result of the 'APPEND' operation.
   """
   def execute(game, code, trace) do
-    list = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["left"]) || []
-    list ++ [Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["right"])]
+    list = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["left" | trace]) || []
+    list ++ [Evaluate.evaluate(game, Evaluate.arg(code, 2), ["right" | trace])]
   end
 
 

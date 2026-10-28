@@ -21,8 +21,8 @@ defmodule DragnCardsGame.Evaluate.Functions.GET_INDEX do
   The result of the 'GET_INDEX' operation.
   """
   def execute(game, code, trace) do
-    list = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["list"])
-    value = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["value"])
+    list = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["list" | trace])
+    value = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["value" | trace])
     Enum.find_index(list, fn(x) -> x == value end)
   end
 

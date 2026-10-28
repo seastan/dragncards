@@ -35,16 +35,16 @@ defmodule DragnCardsGame.Evaluate.Functions.ADD_TEMP_TOKEN do
   def execute(game, code, trace) do
 
     argc = Evaluate.argc(code, 4)
-    timing = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["timing"])
-    card_id = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["card_id"])
-    token_id = Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["token_id"])
-    amount = Evaluate.evaluate(game, Enum.at(code, 4), trace ++ ["amount"])
+    timing = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["timing" | trace])
+    card_id = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["card_id" | trace])
+    token_id = Evaluate.evaluate(game, Evaluate.arg(code, 3), ["token_id" | trace])
+    amount = Evaluate.evaluate(game, Evaluate.arg(code, 4), ["amount" | trace])
 
     game = TempTokens.add(game, timing, card_id, token_id, amount)
 
     game = Evaluate.evaluate(game, [
       ["INCREASE_VAL", "/cardById/#{card_id}/tokens/#{token_id}", amount]
-    ], trace ++ ["increase tokens"])
+    ], ["increase tokens" | trace])
   end
 
 

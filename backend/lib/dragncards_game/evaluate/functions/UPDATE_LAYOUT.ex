@@ -31,11 +31,11 @@ defmodule DragnCardsGame.Evaluate.Functions.UPDATE_LAYOUT do
   The result of the 'UPDATE_LAYOUT' operation.
   """
   def execute(game, code, trace) do
-    path = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["path"])
-    value = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["value"])
+    path = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["path" | trace])
+    value = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["value" | trace])
     game = try do
       shared_path = ["LIST"] ++ path
-      Evaluate.evaluate(game, ["SET", shared_path, value], trace ++ ["set shared"])
+      Evaluate.evaluate(game, ["SET", shared_path, value], ["set shared" | trace])
     rescue
       _ ->
         game
@@ -45,7 +45,7 @@ defmodule DragnCardsGame.Evaluate.Functions.UPDATE_LAYOUT do
     Enum.reduce(game["playerData"], game, fn({player_i, _player_data}, acc) ->
       player_path = ["LIST", "playerData", player_i] ++ path
       try do # Not all players' layouts will have the region defined
-        Evaluate.evaluate(acc, ["SET", player_path, value], trace ++ ["set player_i"])
+        Evaluate.evaluate(acc, ["SET", player_path, value], ["set player_i" | trace])
       rescue
         _ ->
           acc

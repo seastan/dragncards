@@ -24,8 +24,8 @@ defmodule DragnCardsGame.Evaluate.Functions.LIST_DELETE_AT do
   """
   def execute(game, code, trace) do
     Evaluate.argc(code, 2)
-    list = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["list"])
-    index = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["index"])
+    list = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["list" | trace])
+    index = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["index" | trace])
     if !is_list(list) do
       raise "LIST_DELETE_AT: list must be a list"
     end

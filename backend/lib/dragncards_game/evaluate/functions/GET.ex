@@ -31,7 +31,7 @@ defmodule DragnCardsGame.Evaluate.Functions.GET do
   The result of the 'GET' operation.
   """
   def execute(game, code, trace) do
-    path = Evaluate.evaluate(game, Enum.at(code,1), trace ++ ["path"])
+    path = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["path" | trace])
     get_in(game, path)
   end
 

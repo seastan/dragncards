@@ -22,12 +22,12 @@ defmodule DragnCardsGame.Evaluate.Functions.DELETE_CARD do
   The result of the 'DELETE_CARD' operation.
   """
   def execute(game, code, trace) do
-    card_id = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["card_id"])
+    card_id = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["card_id" | trace])
     try do
       GameUI.delete_card(game, card_id)
     rescue
       e ->
-        raise("Failed to delete card #{card_id}. " <> inspect(e) <> inspect(trace))
+        raise("Failed to delete card #{card_id}: " <> Evaluate.error_text(e) <> " | Trace: " <> Evaluate.format_trace(trace))
     end
   end
 

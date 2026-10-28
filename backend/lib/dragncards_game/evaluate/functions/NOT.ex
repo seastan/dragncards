@@ -29,7 +29,7 @@ defmodule DragnCardsGame.Evaluate.Functions.NOT do
   The result of the 'NOT' operation.
   """
   def execute(game, code, trace) do
-    !Evaluate.evaluate(game, Enum.at(code,1), trace)
+    !Evaluate.evaluate(game, Evaluate.arg(code, 1), trace)
   end
 
 

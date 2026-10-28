@@ -43,8 +43,8 @@ defmodule DragnCardsGame.Evaluate.Functions.FILTER_CARDS do
   The result of the 'FILTER_CARDS' operation.
   """
   def execute(game, code, trace) do
-    var_name = Enum.at(code, 1)
-    condition = Enum.at(code, 2)
+    var_name = Evaluate.arg(code, 1)
+    condition = Evaluate.arg(code, 2)
     all_cards = Enum.filter(Map.values(game["cardById"]), fn(card) ->
       Evaluate.card_match?(game, var_name, card, condition, trace)
     end)

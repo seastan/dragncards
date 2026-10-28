@@ -43,13 +43,13 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
   """
 
   def execute(game, code, trace) do
-    target_player_list = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["target_player_n"])
+    target_player_list = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["target_player_n" | trace])
     target_player_list = if is_list(target_player_list) do
       target_player_list
     else
       [target_player_list]
     end
-    prompt_id = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["prompt_id"])
+    prompt_id = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["prompt_id" | trace])
     arg_vals = Enum.slice(code, 3, Enum.count(code))
     game_def = PluginCache.get_game_def_cached(game["pluginId"])
 
@@ -80,7 +80,7 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
             raise "Prompt #{prompt_id} expects #{Enum.count(orig_args)} arguments, but got #{Enum.count(arg_vals)}."
           end
         true -> # We are within the range of input arguments, so use the input argument
-          arg_val = Evaluate.evaluate(game, Enum.at(arg_vals, index), trace ++ ["arg_val #{index}"]) # We evaluate the arguments now rather than when the prompt is triggered
+          arg_val = Evaluate.evaluate(game, Enum.at(arg_vals, index), ["arg_val #{index}" | trace]) # We evaluate the arguments now rather than when the prompt is triggered
           if is_map(arg) and !is_struct(arg, MapSet) do
             arg_name = Enum.at(Map.keys(arg), 0)
             [{arg_name, arg_val}]
@@ -93,8 +93,8 @@ defmodule DragnCardsGame.Evaluate.Functions.PROMPT do
     end)
 
     # Create a temporary game state to evaluate the message
-    game_for_message = Evaluate.evaluate(game, multi_var_command, trace ++ ["define prompt args"])
-    new_message = Evaluate.evaluate(game_for_message, orig_message, trace ++ ["message"])
+    game_for_message = Evaluate.evaluate(game, multi_var_command, ["define prompt args" | trace])
+    new_message = Evaluate.evaluate(game_for_message, orig_message, ["message" | trace])
 
     # Generate a new prompt with a new UUID and the resolved message
     prompt_uuid = Ecto.UUID.generate

@@ -1,6 +1,6 @@
 defmodule DragnCardsGame.Evaluate.Functions.GET_LOAD_LIST do
   alias DragnCardsGame.{Evaluate, GameUI}
-  alias DragnCards.Plugins
+  alias DragnCardsGame.PluginCache
   @moduledoc """
   *Arguments*:
   1. `loadListId` (string)
@@ -45,8 +45,8 @@ defmodule DragnCardsGame.Evaluate.Functions.GET_LOAD_LIST do
   The result of the 'GET_LOAD_LIST' operation.
   """
   def execute(game, code, trace) do
-    load_list_id = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["load_list"])
-    game_def = Plugins.get_game_def(game["pluginId"])
+    load_list_id = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["load_list" | trace])
+    game_def = PluginCache.get_game_def_cached(game["pluginId"])
 
     get_in(game_def, ["preBuiltDecks", load_list_id, "cards"])
 

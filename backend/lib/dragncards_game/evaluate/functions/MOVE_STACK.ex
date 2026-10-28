@@ -58,7 +58,7 @@ defmodule DragnCardsGame.Evaluate.Functions.MOVE_STACK do
   end
 
   def get_parent_card(game, dest_stack_id, trace) do
-    trace = trace ++ ["get_parent_card"]
+    trace = ["get_parent_card" | trace]
     if dest_stack_id do
       GameUI.get_parent_card_by_stack_id(game, dest_stack_id, trace)
     else
@@ -68,10 +68,10 @@ defmodule DragnCardsGame.Evaluate.Functions.MOVE_STACK do
 
   def execute(game, code, trace) do
     argc = Evaluate.argc(code, 3, 4)
-    stack_id = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["stack_id"])
-    dest_group_id = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["dest_group_id"])
-    dest_stack_index = Evaluate.evaluate(game, Enum.at(code, 3), trace ++ ["dest_stack_index"])
-    options = if argc >= 4 do Evaluate.evaluate(game, Enum.at(code, 4), trace ++ ["options"] ) else nil end
+    stack_id = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["stack_id" | trace])
+    dest_group_id = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["dest_group_id" | trace])
+    dest_stack_index = Evaluate.evaluate(game, Evaluate.arg(code, 3), ["dest_stack_index" | trace])
+    options = if argc >= 4 do Evaluate.evaluate(game, Evaluate.arg(code, 4), ["options" | trace] ) else nil end
 
     # Save variables for postMoveStackActionList
     orig_group_id = GameUI.get_group_by_stack_id(game, stack_id)["id"]
@@ -98,7 +98,7 @@ defmodule DragnCardsGame.Evaluate.Functions.MOVE_STACK do
             "$DEST_PARENT_CARD", get_parent_card(game, dest_stack_id, trace)
           ],
           post_move_stack_action_list
-        ], trace ++ ["game postLoadActionList"])
+        ], ["game postLoadActionList" | trace])
       end
     else
       game

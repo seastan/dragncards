@@ -24,8 +24,8 @@ defmodule DragnCardsGame.Evaluate.Functions.JOIN_LIST do
   """
   def execute(game, code, trace) do
     Evaluate.argc(code, 2)
-    inputList = Evaluate.evaluate(game, Enum.at(code, 1), trace ++ ["inputList"])
-    separatorString = Evaluate.evaluate(game, Enum.at(code, 2), trace ++ ["separatorString"])
+    inputList = Evaluate.evaluate(game, Evaluate.arg(code, 1), ["inputList" | trace])
+    separatorString = Evaluate.evaluate(game, Evaluate.arg(code, 2), ["separatorString" | trace])
     if !is_list(inputList) do
       raise "JOIN_LIST: inputList must be a list"
     end

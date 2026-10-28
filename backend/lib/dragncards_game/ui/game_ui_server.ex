@@ -55,6 +55,26 @@ defmodule DragnCardsGame.GameUIServer do
   end
 
   @doc """
+  query/2: Returns `fun.(state)`, computed inside the game server, or nil if
+  the game does not exist. Use this instead of state/1 when only part of the
+  state is needed: state/1 copies the whole GameUI (game and undo history)
+  into the calling process.
+  """
+  def query(game_name, fun) when is_function(fun, 1) do
+    case gameui_pid(game_name) do
+      nil ->
+        nil
+
+      _ ->
+        case GenServer.call(via_tuple(game_name), {:query, fun}, 10_000) do
+          {:ok, result} -> result
+          # Raise in the caller, as if it had computed fun.(state()) itself.
+          {:raise, exception, stacktrace} -> reraise exception, stacktrace
+        end
+    end
+  end
+
+  @doc """
   game_exists?/1:  Check if the game exists.
   """
   @spec game_exists?(String.t()) :: boolean
@@ -63,9 +83,10 @@ defmodule DragnCardsGame.GameUIServer do
   end
 
   @doc """
-  process_update/3: Process an update to the state.
+  process_update/3: Process an update to the state. Returns :ok (false if the
+  game does not exist); use state/1 to read the new state.
   """
-  @spec process_update(String.t(), integer, Map.t()) :: GameUI.t()
+  @spec process_update(String.t(), integer, Map.t()) :: :ok | false
   def process_update(game_name, user_id, old_gameui) do
     game_exists?(game_name) && GenServer.call(via_tuple(game_name), {:process_update, user_id, old_gameui})
   end
@@ -95,9 +116,10 @@ defmodule DragnCardsGame.GameUIServer do
   end
 
   @doc """
-  game_action/4: Perform given action on a card.
+  game_action/4: Perform given action on a card. Returns :ok (false if the
+  game does not exist); use state/1 to read the new state.
   """
-  @spec game_action(String.t(), integer, String.t(), Map.t()) :: GameUI.t()
+  @spec game_action(String.t(), integer, String.t(), Map.t()) :: :ok | false
   def game_action(game_name, user_id, action, options) do
     game_exists?(game_name) && GenServer.call(via_tuple(game_name), {:game_action, user_id, action, options}, 30_000)
   end
@@ -217,6 +239,17 @@ defmodule DragnCardsGame.GameUIServer do
     reply(state)
   end
 
+  def handle_call({:query, fun}, _from, state) do
+    result =
+      try do
+        {:ok, fun.(state)}
+      rescue
+        e -> {:raise, e, __STACKTRACE__}
+      end
+
+    {:reply, result, state, timeout(state)}
+  end
+
   def handle_call({:game_action, user_id, action, options}, _from, gameui) do
     Logger.debug("handle game_action #{user_id} #{action}")
     gameui = case user_id && Users.get_user(user_id) do
@@ -252,8 +285,11 @@ defmodule DragnCardsGame.GameUIServer do
         put_in(gameui["error"], false)
     end
 
-    gameui
-    |> save_and_reply()
+    # The channel always follows a game_action with process_update, which
+    # saves the state (with the new undo delta), so it is not saved here too:
+    # saving copies the whole GameUI into ETS. Callers fetch the state they
+    # need separately.
+    {:reply, :ok, gameui, timeout(gameui)}
   end
 
   def handle_call({:process_update, _user_id, old_gameui}, _from, new_gameui) do
@@ -262,7 +298,7 @@ defmodule DragnCardsGame.GameUIServer do
     GameUI.set_last_room_update(gameui)
 
     gameui
-    |> save_and_reply()
+    |> save_and_reply(:ok)
   end
 
   def handle_call({:reset_game, user_id}, _from, gameui) do
@@ -282,7 +318,7 @@ defmodule DragnCardsGame.GameUIServer do
     new_gameui = GameUI.new(gameui["roomSlug"], user_id, options)
     new_game = new_gameui["game"]
 
-    new_game = Evaluate.evaluate(new_game, ["SET_LAYOUT", "shared", layout_id], ["reset_and_reload", "set_layout"])
+    new_game = Evaluate.evaluate(new_game, ["SET_LAYOUT", "shared", layout_id], ["set_layout", "reset_and_reload"])
 
     # A room created from an external deck link (RingsDB, MarvelCDB, ...) imports
     # that deck once on the client and records the import in loadCardsHistory,
@@ -296,7 +332,7 @@ defmodule DragnCardsGame.GameUIServer do
         load_code = load_list_history_item["loadCode"]
         player_n = load_list_history_item["playerN"]
         acc = put_in(acc["variables"]["$PLAYER_N"], player_n)
-        Evaluate.evaluate(acc, load_code, ["reset_and_reload", "loadCardsHistory"])
+        Evaluate.evaluate(acc, load_code, ["loadCardsHistory", "reset_and_reload"])
       end)
 
     new_gameui = put_in(new_gameui["game"], new_game)
@@ -409,16 +445,23 @@ defmodule DragnCardsGame.GameUIServer do
     {:reply, new_gameui, new_gameui, timeout(new_gameui)}
   end
 
-  defp save_and_reply(new_gameui) do
+  # Saves the new state and replies with it (or with `reply` if given, to
+  # avoid copying the whole GameUI to callers that do not use it).
+  defp save_and_reply(new_gameui, reply \\ :state) do
+    room_slug = new_gameui["roomSlug"]
+    # Only the small room params go to the background task, not the GameUI.
+    room_params = GameRegistry.room_params(new_gameui)
     Task.start(fn ->
-      GameRegistry.update(new_gameui["roomSlug"], new_gameui)
+      GameRegistry.update_params(room_slug, room_params)
     end)
 
-    spawn_link(fn ->
-      :ets.insert(:game_uis, {new_gameui["roomSlug"], new_gameui})
-    end)
+    # Inserting directly costs one copy of the GameUI (into ETS); spawning a
+    # process to do it cost two, and could let an older state overwrite a
+    # newer one.
+    :ets.insert(:game_uis, {room_slug, new_gameui})
 
-    {:reply, new_gameui, new_gameui, new_gameui["cachedTimeout"] || @timeout}
+    reply = if reply == :state, do: new_gameui, else: reply
+    {:reply, reply, new_gameui, new_gameui["cachedTimeout"] || @timeout}
   end
 
   # timeout/1
