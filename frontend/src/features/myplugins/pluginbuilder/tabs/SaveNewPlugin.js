@@ -414,8 +414,8 @@ const processLayout = (inputs) => {
 };
 
 const processPlayerCountMenu = (inputs) => {
-  const minPlayers = inputs.minPlayers;
-  const maxPlayers = inputs.maxPlayers;
+  const minPlayers = parseInt(inputs.minPlayers, 10);
+  const maxPlayers = parseInt(inputs.maxPlayers, 10);
 
   const options = [];
   for (let i = minPlayers; i <= maxPlayers; i++) {

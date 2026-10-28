@@ -32,7 +32,9 @@ export const GameBasics = ({ inputs, setInputs }) => {
   console.log("GameBasics component rendered with inputs:", inputs);
   const siteL10n = useSiteL10n();
 
-  const handleChange = (key, value) => {
+  const handleChange = (key, type, value) => {
+    // Number inputs report strings; store numbers so the exported gameDef has integer types
+    if (type === "number" && value !== "") value = parseInt(value, 10);
     setInputs((prev) => ({
       ...prev,
       [key]: value,
@@ -49,7 +51,7 @@ export const GameBasics = ({ inputs, setInputs }) => {
               type={type}
               placeholder={placeholder}
               value={inputs[key] || ""}
-              onChange={(e) => handleChange(key, e.target.value)}
+              onChange={(e) => handleChange(key, type, e.target.value)}
               className="w-full bg-gray-800 text-white border border-gray-600 rounded px-2 py-1"
             />
           </label>
