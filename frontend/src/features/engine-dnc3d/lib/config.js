@@ -1,5 +1,8 @@
-// Perspective must stay in sync with CSS perspective: 300vw
+// Perspective must stay in sync with CSS perspective: 300vmax (Dnc3DTable.css
+// and cardTransform below). vmax rather than vw so a portrait screen keeps a
+// sane perspective distance; on landscape the two are the same.
 export const PERSP_VW = 300;
+export const perspectivePx = () => PERSP_VW * Math.max(window.innerWidth, window.innerHeight) / 100;
 
 // Card lift / flip animation constants
 export const BASE_LIFT           = 0.01; // keep a tiny non-zero Z to avoid first-drag layer flash
@@ -73,7 +76,7 @@ export function scaleDuration(ms) {
 export function cardTransform(angleDeg, rotDeg, scale = 1, swingPct = 0, heightScale = 1) {
   const swing = swingPct ? ` translateX(${swingPct}%)` : '';
   const hs    = heightScale !== 1 ? ` scaleY(${heightScale})` : '';
-  return `perspective(300vw)${hs} rotateZ(${rotDeg}deg)${swing} rotateY(${angleDeg}deg) scale(${scale})`;
+  return `perspective(300vmax)${hs} rotateZ(${rotDeg}deg)${swing} rotateY(${angleDeg}deg) scale(${scale})`;
 }
 
 // Default region layout — used for demo/sandbox mode.

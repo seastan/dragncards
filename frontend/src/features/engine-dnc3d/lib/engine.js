@@ -63,6 +63,7 @@ function cssUrl(url) {
 // options.cardDefaultH    — card height in cardSize units (e.g. 1.0); default 1.0
 // options.cardDefaultW    — card width  in cardSize units (e.g. 0.72); default 0.72
 // options.zoomFactor      — user zoom setting as a multiplier; default 1.0
+// options.cardUnitPx      — fn() → pixels per cardSize unit; default 1dvh
 // options.touchMode       — true on a touchscreen: hover-gated affordances become
 //                           tap-driven / always-on (see setTouchMode)
 // options.resolveSideImage — callback(dcCard, sideName) → {src, default} image
@@ -107,6 +108,11 @@ export function createDnc3DEngine(options = {}) {
   const _cardDefaultH       = options.cardDefaultH       || 1.0;
   const _cardDefaultW       = options.cardDefaultW       || 0.72;
   const _zoomFactor         = options.zoomFactor         || 1.0;
+  // Pixels per cardSize unit. Desktop layouts measure cards in dvh (1% of the
+  // viewport height), matching the 2D renderer. The mobile layout passes 1% of
+  // the viewport's SHORTER side instead: in portrait the width is what limits
+  // how many cards fit across a row, and a dvh-based card would be far too big.
+  const _cardUnitPx         = options.cardUnitPx         || (() => window.innerHeight / 100);
   const _tableBackgroundUrl = options.tableBackgroundUrl || null;
   const _playerN            = options.playerN            || null;
 
@@ -331,7 +337,7 @@ export function createDnc3DEngine(options = {}) {
     if (_cardSize == null) return;
     const fw  = card.faceW || _cardDefaultW;
     const fh  = card.faceH || _cardDefaultH;
-    const dvh = window.innerHeight / 100;
+    const dvh = _cardUnitPx();
     const w = fw * _cardSize * _zoomFactor * dvh;
     const h = fh * _cardSize * _zoomFactor * dvh;
     card.cardEl.style.setProperty('--card-w', w + 'px');
@@ -365,8 +371,9 @@ export function createDnc3DEngine(options = {}) {
     // legacy tilt-fraction formula for sandbox/demo mode.
     if (_cardSize != null) {
       // 2D renderer sizes cards as face.height * cardSize * zoomFactor dvh.
-      // dvh = 1% of viewport height (same as CSS dvh unit).
-      const dvh = window.innerHeight / 100;
+      // dvh = 1% of viewport height (same as CSS dvh unit) — or the mobile
+      // layout's unit, see _cardUnitPx.
+      const dvh = _cardUnitPx();
       setCardDims(
         _cardDefaultW * _cardSize * _zoomFactor * dvh,
         _cardDefaultH * _cardSize * _zoomFactor * dvh,

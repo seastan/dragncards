@@ -36,12 +36,15 @@ import { useSetTouchAction } from "./hooks/useSetTouchAction";
 import { useTouchAction } from "./hooks/useTouchAction";
 import { CustomContentModal } from "./CustomContentModal";
 import { SpawnPublicDeckModal } from "./SpawnPublicDeckModal";
+import { MobileTable } from "./MobileTable";
+import { useMobileUIActive } from "./hooks/useMobileUI";
 
 export const Table = React.memo(({onDragEnd}) => {
   const gameDef = useGameDefinition();
   const dispatch = useDispatch();
   const tooltipIds = useSelector(state => state?.playerUi?.tooltipIds);
   const touchMode = useSelector(state => state?.playerUi?.userSettings?.touchMode);
+  const mobileUIActive = useMobileUIActive();
   const touchAction = useTouchAction();
   const setTouchAction = useSetTouchAction();
   const showModal = useSelector(state => state?.playerUi?.showModal);
@@ -102,6 +105,7 @@ export const Table = React.memo(({onDragEnd}) => {
       onClick={(event) => handleTableClick(event)}>
       <DropdownMenu/>
       <Hotkeys/>
+      {mobileUIActive ? <MobileTable/> : <>
       {/* Side panel */}
       <SideBar/>
       {/* Main panel */}
@@ -143,10 +147,11 @@ export const Table = React.memo(({onDragEnd}) => {
           </div>}
         </div>
       </div>
+      </>}
       {/* Card hover view */}
       <GiantCard/>
       {/* One-time offer to switch on touch mode, shown only on touch devices */}
-      <TouchModePrompt/>
+      {!mobileUIActive && <TouchModePrompt/>}
       {showModal === "card" ? <SpawnExistingCardModal/> : null}
       {showModal === "prebuilt_deck" ? <SpawnPrebuiltModal/> : null}
       {showModal === "public_deck" ? <SpawnPublicDeckModal/> : null}

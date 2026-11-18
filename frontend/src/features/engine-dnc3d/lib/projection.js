@@ -1,4 +1,4 @@
-import { PERSP_VW } from './config';
+import { perspectivePx } from './config';
 
 export function createProjection() {
   // Updated by applyTilt() so card dimensions always scale proportionally
@@ -21,8 +21,9 @@ export function createProjection() {
   let _stageLeft = 0;
   let _stageTop  = 0;
 
-  // Perspective distance — CSS uses 300vw, so this is always viewport-width-based.
-  function stagePx() { return PERSP_VW * window.innerWidth / 100; }
+  // Perspective distance — CSS uses 300vmax, so this is based on the viewport's
+  // longer side (its width on any landscape screen).
+  function stagePx() { return perspectivePx(); }
 
   let _cardW = window.innerWidth  * 0.05;
   let _cardH = window.innerHeight * 0.07;

@@ -26,7 +26,12 @@ import { Dnc3DTokenExtrudeFilter } from './Dnc3DTokenExtrudeFilter';
 import { FadeTextCard } from '../engine/FadeTextCard';
 import { FadeTextPlayer } from '../engine/FadeTextPlayer';
 import { TOKEN_EXTRUDE, TOKEN_EXTRUDE_FILTER_ID } from './lib/config';
+import { useLayout } from '../engine/hooks/useLayout';
 import './Dnc3DTable.css';
+
+// Mobile layouts measure cardSize in 1% of the screen's shorter side (its
+// width, in portrait) rather than 1% of its height — see engine _cardUnitPx.
+const mobileCardUnitPx = () => Math.min(window.innerWidth, window.innerHeight) / 100;
 
 // CSS `filter` value handed to each token's <img> when the extrusion prototype
 // is on; null when off so the shared Token component renders unchanged.
@@ -87,7 +92,7 @@ export default function Dnc3DTable({
 }) {
   const dispatch         = useDispatch();
   const browseTopN       = useBrowseTopN();
-  const touchMode        = useSelector(s => !!s?.playerUi?.userSettings?.touchMode);
+  const touchModeSetting = useSelector(s => !!s?.playerUi?.userSettings?.touchMode);
   const alwaysShowPileSizes    = useSelector(s => !!s?.playerUi?.userSettings?.alwaysShowPileSizes);
   const alwaysShowGroupButtons = useSelector(s => !!s?.playerUi?.userSettings?.alwaysShowGroupButtons);
   const touchAction      = useTouchAction();
@@ -100,12 +105,14 @@ export default function Dnc3DTable({
   const pluginId         = useSelector(s => s?.gameUi?.game?.pluginId);
   const altArt           = userProfile?.plugin_settings?.[pluginId]?.altArt;
   const numPlayers       = useSelector(s => s?.gameUi?.game?.numPlayers);
-  const cardSize         = useSelector(s => {
-    const obs = s?.playerUi?.observingPlayerN;
-    return s?.gameUi?.game?.playerData?.[obs]?.layout?.cardSize
-        ?? s?.gameUi?.game?.layout?.cardSize
-        ?? null;
-  });
+  // The layout being rendered (the plugin's mobile layout in mobile UI), so
+  // card size comes from the same place as the regions.
+  const renderedLayout   = useLayout();
+  const cardSize         = renderedLayout?.cardSize ?? null;
+  const isMobileLayout   = !!renderedLayout?.isMobile;
+  // The mobile UI is touch-first whatever the touch-mode setting says: tap
+  // instead of hover, a wider drag deadzone, tap-to-act on cards.
+  const touchMode        = touchModeSetting || isMobileLayout;
   const zoomFactor       = useSelector(s => (s?.playerUi?.userSettings?.zoomPercent ?? 100) / 100);
   const tableBackgroundUrl = useSelector(s => {
     const userBg = s?.playerUi?.userSettings?.backgroundUrl;
@@ -153,6 +160,7 @@ export default function Dnc3DTable({
   const observingPlayerRef = useRef(observingPlayerN);
   const numPlayersRef      = useRef(numPlayers);
   const cardSizeRef           = useRef(cardSize);
+  const isMobileLayoutRef     = useRef(isMobileLayout);
   const zoomFactorRef         = useRef(zoomFactor);
   const tableBackgroundUrlRef = useRef(tableBackgroundUrl);
   const browseGroupIdRef      = useRef(browseGroupId);
@@ -173,6 +181,7 @@ export default function Dnc3DTable({
   observingPlayerRef.current = observingPlayerN;
   numPlayersRef.current      = numPlayers;
   cardSizeRef.current           = cardSize;
+  isMobileLayoutRef.current     = isMobileLayout;
   zoomFactorRef.current         = zoomFactor;
   tableBackgroundUrlRef.current = tableBackgroundUrl;
   browseGroupIdRef.current      = browseGroupId;
@@ -222,8 +231,8 @@ export default function Dnc3DTable({
       })
       .filter(Boolean)
       .sort()
-      .join(';') + `#${observingPlayerN}#${numPlayers}`;
-  }, [layoutRegions, observingPlayerN, numPlayers]);
+      .join(';') + `#${observingPlayerN}#${numPlayers}#${cardSize}#${isMobileLayout}`;
+  }, [layoutRegions, observingPlayerN, numPlayers, cardSize, isMobileLayout]);
 
   useEffect(() => {
     const tiltEl = tiltRef.current;
@@ -267,6 +276,7 @@ export default function Dnc3DTable({
         playerN:            observingPlayerRef.current,
         cardSize:           cardSizeRef.current,
         zoomFactor:         zoomFactorRef.current,
+        ...(isMobileLayoutRef.current ? { cardUnitPx: mobileCardUnitPx } : {}),
         tableBackgroundUrl: tableBackgroundUrlRef.current,
         touchMode:          touchModeRef.current,
         alwaysShowPileCounts: alwaysShowPileSizesRef.current,

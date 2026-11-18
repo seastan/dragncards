@@ -3,7 +3,10 @@
 .dnc3d-stage {
   position: absolute;
   inset: 0;
-  perspective: 300vw;
+  /* vmax, not vw: identical on a landscape screen, but on a portrait phone a
+     width-based distance would be so short the tilt turns into a fisheye. Must
+     match PERSP_VW in lib/config.js and cardTransform's perspective(). */
+  perspective: 300vmax;
   perspective-origin: 50% 50%;
   /* clip (not hidden): hidden is a scroll container the browser can scroll
      programmatically (e.g. scroll-into-view when a card near the edge animates),

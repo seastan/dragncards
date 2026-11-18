@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import { updateValues } from "./updateValues";
 import { uiSettings } from "../engine/SettingsModal";
 import { deepMerge } from "../myplugins/uploadPluginFunctions";
+import { readMobileUIPref } from "../engine/functions/mobileLayout";
 
 const draggingDefault = {
   stackId: null,
@@ -43,6 +44,9 @@ const initialState = {
   replayStep: 0,
   showHotkeys: false,
   touchMode: false, // Unused? Use userSettings.touchMode instead
+  // Phone-first table (see functions/mobileLayout.js). Kept out of userSettings
+  // because those sync to the profile, and this is a per-device choice.
+  mobileUI: readMobileUIPref(),
   typing: false,
   activeCardId: null,
   preHotkeyActiveCardGroupId: null,
@@ -86,7 +90,8 @@ const playerUiSlice = createSlice({
   name: "playerUi",
   initialState,
   reducers: {
-    resetPlayerUi: () => initialState,
+    // mobileUI survives a reset: it is a device preference, not room state.
+    resetPlayerUi: (state) => ({...initialState, mobileUI: state.mobileUI}),
     mergePlayerUiValues: (state, { payload }) => {
       deepMerge(state, payload);
     },
@@ -143,6 +148,9 @@ const playerUiSlice = createSlice({
     },
     setObservingPlayerN: (state, { payload }) => {
       state.observingPlayerN = payload;
+    },
+    setMobileUI: (state, { payload }) => {
+      state.mobileUI = !!payload;
     },
     setDropdownMenu: (state, { payload }) => {
       state.dropdownMenu = payload;
@@ -310,6 +318,7 @@ export const {
   setPreHotkeyActiveCardGroupId,
   setScreenLeftRight,
   setObservingPlayerN,
+  setMobileUI,
   setDropdownMenu,
   setShowModal,
   setShowDeveloper,

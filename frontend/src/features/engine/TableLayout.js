@@ -65,7 +65,7 @@ export const TableLayout = React.memo(({onDragEnd}) => {
         })
       }
         
-      <TableChat region={layout.chat}/>
+      {layout.chat && <TableChat region={layout.chat}/>}
       <Prompts/>
       <Alert/>
       <Status/>

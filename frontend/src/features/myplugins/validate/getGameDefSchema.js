@@ -67,7 +67,7 @@ const autoRunSchema = {
 };
 
 export const getGameDefSchema = (gameDef) => {
-    return ({
+    const schema = ({
       "_description_": "The game definition schema",
       "_type_": "object",
       
@@ -1839,4 +1839,40 @@ export const getGameDefSchema = (gameDef) => {
         }
       }
     });
+    schema.mobileLayout = getMobileLayoutSchema(schema.layouts._itemSchema_);
+    return schema;
   }
+
+// gameDef.mobileLayout: one portrait layout used by the mobile UI at every
+// player count (see features/engine/functions/mobileLayout.js). It has the same
+// shape as an entry of gameDef.layouts, minus the required chat box (the mobile
+// UI puts chat in its own panel), plus two per-region options.
+const getMobileLayoutSchema = (layoutSchema) => {
+  const regionSchema = layoutSchema.regions._itemSchema_;
+  return {
+    ...layoutSchema,
+    "_description_": "Optional layout used by the Mobile UI (a per-device setting) in place of gameDef.layouts. One layout serves every player count: shared regions are always shown, and regions whose groupId contains playerN show the board of the player currently on screen, which the user switches between with the player chips. cardSize is measured in 1% of the screen's shorter side (its width, in portrait) instead of 1% of its height. Design it for a portrait phone.",
+    "_required_": false,
+    "chat": {
+      ...layoutSchema.chat,
+      "_description_": "Ignored by the Mobile UI, which shows chat in its own panel.",
+      "_required_": false,
+    },
+    "regions": {
+      ...layoutSchema.regions,
+      "_itemSchema_": {
+        ...regionSchema,
+        "perspective": {
+          "_description_": "Which player `playerN` in this region's groupId refers to. 'viewed' (default) follows the player whose board is on screen; 'self' always means the viewer's own seat, e.g. for a hand that should stay yours while you look at a teammate's board.",
+          "_type_": "string",
+          "_memberOf_": ["viewed", "self"],
+          "_memberOfPath_": `["viewed", "self"]`,
+        },
+        "syncVisibility": {
+          "_description_": "When this region's key also exists in the room's current layout, the Mobile UI copies that region's `visible` flag, so actions that show/hide a region (e.g. a table button) affect both layouts. Set to false to opt out.",
+          "_type_": "boolean",
+        },
+      },
+    },
+  };
+};

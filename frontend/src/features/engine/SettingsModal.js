@@ -17,6 +17,7 @@ import store from "../../store";
 import { useIsHost } from "./hooks/useIsHost";
 import { Z_INDEX, hasSupportedImageExtension } from "./functions/common";
 import { ToggleSwitch } from "./AutomationModal";
+import { useMobileUIEnabled, useSetMobileUI } from "./hooks/useMobileUI";
 
 // Move to another file, use this to set the default falues in playerUiSlice
 export const uiSettings = {
@@ -97,7 +98,7 @@ export const SettingsModal = React.memo(({}) => {
             zIndex: Z_INDEX.Modal
           },
           content: {
-            width: "800px",
+            width: "min(800px, 96vw)",
             maxHeight: "95dvh",
             overflowY: "auto",
           }
@@ -116,6 +117,32 @@ export const SettingsModal = React.memo(({}) => {
       </ReactModal>  
     )
 })
+
+// Settings that belong to this device rather than the account, so they apply
+// immediately and are not saved to the profile (see functions/mobileLayout.js).
+const DeviceSettings = () => {
+  const gameDef = useGameDefinition();
+  const mobileUI = useMobileUIEnabled();
+  const setMobileUI = useSetMobileUI();
+  const hasMobileLayout = !!gameDef?.mobileLayout;
+  return (
+    <div className="mb-3">
+      <h2 className="mb-1">This device</h2>
+      <div className="text-sm text-gray-300 mb-1">Saved on this device only, and applied right away.</div>
+      <div className="flex items-center justify-between rounded bg-gray-700 px-3 py-2">
+        <div className="pr-3">
+          <div>Mobile UI</div>
+          <div className="text-xs text-gray-300">
+            {hasMobileLayout
+              ? "A portrait, phone-first table that shows one player's board at a time."
+              : "This game doesn't have a mobile layout yet, so the regular table is shown."}
+          </div>
+        </div>
+        <ToggleSwitch checked={mobileUI} onChange={(newValue) => setMobileUI(newValue)}/>
+      </div>
+    </div>
+  );
+}
 
 const ModalContent = () => {
   const dispatch = useDispatch();
@@ -302,6 +329,7 @@ const ModalContent = () => {
 
   return(
     <div className="text-white">
+      <DeviceSettings/>
       <h2 className="mb-1">{siteL10n("uiPreferences")}</h2>
       {description("uiPreferencesDescription")}
       <SettingModalTable settings={uiSettings} currentKeyVals={currentUiKeyVals} defaultKeyVals={defaultUiKeyVals} setCurrentFunction={setCurrentUiKeyVals} setDefaultFunction={setDefaultUiKeyVals} l10n={siteL10n}/>
