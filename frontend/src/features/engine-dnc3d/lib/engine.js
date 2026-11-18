@@ -2430,6 +2430,20 @@ export function createDnc3DEngine(options = {}) {
       const clickDy = e.clientY - startY;
       if (!cancelled && Math.hypot(clickDx, clickDy) < dragThreshold(e) && onCardClick) {
         onCardClick(card.id, e.clientX, e.clientY);
+        // A finger tap's synthesized click doesn't land on this card: it
+        // targets the region scroll outer behind it, slips past liftEl's click
+        // stopPropagation, and reaches React's root listener as a table click —
+        // closing the card menu this tap just opened. Swallow that one click
+        // (same fix as the token arrows below). The timeout drops the guard if
+        // the browser never sends one, so it can't eat a later, real click.
+        if (e.pointerType === 'touch') {
+          const blockClick = (ce) => {
+            ce.stopPropagation();
+            window.removeEventListener('click', blockClick, true);
+          };
+          window.addEventListener('click', blockClick, true);
+          setTimeout(() => window.removeEventListener('click', blockClick, true), 400);
+        }
       }
     }
 
