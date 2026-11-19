@@ -1,3 +1,4 @@
+import { EMBEDDED_MENU_STYLE } from "./DropdownMenuHelpers";
 import React from "react";
 import { useSelector } from 'react-redux';
 import { CSSTransition } from 'react-transition-group';
@@ -6,6 +7,7 @@ import "../../css/custom-dropdown.css";
 import { Z_INDEX } from "./functions/common";
 
 export const DropdownMenuFirstPlayer = React.memo(({
+  embedded = false,
   mouseX,
   mouseY,
   menuHeight,
@@ -23,7 +25,7 @@ export const DropdownMenuFirstPlayer = React.memo(({
   return (
     <div 
       className="dropdown" 
-      style={{ height: menuHeight, zIndex: Z_INDEX.DropdownMenu, top: top, left: left }}
+      style={embedded ? EMBEDDED_MENU_STYLE : { height: menuHeight, zIndex: Z_INDEX.DropdownMenu, top: top, left: left }}
       >
       <div className="menu-title">{dropdownMenu.title}</div>
 

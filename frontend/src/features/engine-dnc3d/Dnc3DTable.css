@@ -746,3 +746,28 @@
 .dnc3d-card-border-glow.dnc3d-card-triggered {
   animation: dnc3d-triggered-glow 0.75s ease-out forwards;
 }
+
+/* ── Mobile UI ──────────────────────────────────────────────────────────────
+   These are sized in vw for a landscape desktop, which on a ~390px-wide phone
+   comes out at 2–6px: labels unreadable, buttons untappable. The mobile layout
+   (functions/mobileLayout.js) gives them fixed px sizes instead. */
+.dnc3d-mobile .dnc3d-region-label {
+  font-size: 11px;
+  left: 1px;
+}
+.dnc3d-mobile .dnc3d-region-count {
+  min-width: 20px;
+  padding: 2px 6px;
+  font-size: 12px;
+}
+.dnc3d-mobile .dnc3d-region-icon-btn {
+  width: 28px;
+  height: 28px;
+}
+.dnc3d-mobile .dnc3d-card-ability {
+  width: 26px;
+  height: 26px;
+}
+.dnc3d-mobile .dnc3d-behind-badge {
+  font-size: 14px;
+}

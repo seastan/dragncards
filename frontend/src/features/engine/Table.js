@@ -148,8 +148,10 @@ export const Table = React.memo(({onDragEnd}) => {
         </div>
       </div>
       </>}
-      {/* Card hover view */}
-      <GiantCard/>
+      {/* Card hover view. Not in mobile UI: there's no hover, a tap opens the
+          card sheet (MobileMenuSheet) instead, and a stray emulated hover after
+          a tap would otherwise blow a card up over the whole table. */}
+      {!mobileUIActive && <GiantCard/>}
       {/* One-time offer to switch on touch mode, shown only on touch devices */}
       {!mobileUIActive && <TouchModePrompt/>}
       {showModal === "card" ? <SpawnExistingCardModal/> : null}

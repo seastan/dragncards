@@ -1858,6 +1858,14 @@ const getMobileLayoutSchema = (layoutSchema) => {
       "_description_": "Ignored by the Mobile UI, which shows chat in its own panel.",
       "_required_": false,
     },
+    "hiddenPiles": {
+      "_description_": "Groups kept off the mobile table and listed instead in the 'hidden piles' drawer (opened from the bottom bar), each with browse and menu buttons. Empty groups are left out of the drawer. A groupId containing playerN resolves to the player whose board is on screen. Example: [\"sharedEncounterDeck\", \"sharedEncounterDiscard\", \"playerNDeck\", \"playerNDiscard\"]",
+      "_type_": "array",
+      "_itemSchema_": {
+        "_description_": "A groupId",
+        "_type_": "string",
+      },
+    },
     "regions": {
       ...layoutSchema.regions,
       "_itemSchema_": {

@@ -95,6 +95,14 @@ export function createLayout(state, projection, REGIONS) {
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
+  // Closest a fan packs its cards, as a fraction of the card's width (height,
+  // for a vertical fan). A region can ask for more with `minSpacingFrac` — the
+  // mobile browse fan does, so each card shows enough to recognise and the fan
+  // overflows into a swipeable scroll instead of a stack of slivers.
+  function fanMinSpacingFrac(regionId) {
+    return REGIONS[regionId]?.minSpacingFrac || 0.20;
+  }
+
   function isVertical(regionId) {
     return REGIONS[regionId]?.direction === 'vertical';
   }
@@ -349,7 +357,7 @@ export function createLayout(state, projection, REGIONS) {
 
     if (isVertical(regionId)) {
       const midX       = rp.x + (rp.w - cw) / 2;
-      const minSpacing = ch * 0.20;
+      const minSpacing = ch * fanMinSpacingFrac(regionId);
       let startY, spacing;
       if (n * ch <= rp.h) {
         startY  = rp.y;
@@ -379,7 +387,7 @@ export function createLayout(state, projection, REGIONS) {
     const midY        = rp.y + (rp.h - ch) / 2;
     const LEFT_BUFFER = cw * 0.30;
     const availW      = rp.w - LEFT_BUFFER;
-    const minSpacing  = cw * 0.20;
+    const minSpacing  = cw * fanMinSpacingFrac(regionId);
     let startX, spacing;
     if (n * cw <= availW) {
       startX  = rp.x + LEFT_BUFFER;
@@ -728,7 +736,7 @@ export function createLayout(state, projection, REGIONS) {
       cardDim       = ch;
       regionExtent  = rp.h;
       regionOrigin  = rp.y;
-      const minSpacing = ch * 0.20;
+      const minSpacing = ch * fanMinSpacingFrac(regionId);
       if (n * ch <= rp.h) {
         start   = rp.y;
         spacing = ch;
@@ -751,7 +759,7 @@ export function createLayout(state, projection, REGIONS) {
       cardDim       = cw;
       regionExtent  = rp.w;
       regionOrigin  = rp.x;
-      const minSpacing = cw * 0.20;
+      const minSpacing = cw * fanMinSpacingFrac(regionId);
       if (n * cw <= availW) {
         start   = rp.x + LEFT_BUFFER;
         spacing = cw;
@@ -901,7 +909,7 @@ export function createLayout(state, projection, REGIONS) {
     tiltSpacePosOf, ensureCardParent, moveCardToTilt, moveCardFromTilt, moveStackToTilt,
     stackCardOffsets, stackBaseCardIds, stackPositionsAtAnchor,
     rowTotalExtent,
-    layoutRow, layoutFan, layoutPile, pileSlot,
+    layoutRow, layoutFan, layoutPile, pileSlot, fanMinSpacingFrac,
     placeCardAt, animateCardTo, animateCardArc, applyTokenHostRotation,
     insertStackAtIndex,
     setIndicatorEl, showInsertionIndicator, hideInsertionIndicator,

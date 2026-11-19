@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { DropdownMenuCommon } from "./DropdownMenuCommon";
+import { MobileMenuSheet } from "./MobileMenuSheet";
+import { useMobileUIActive } from "./hooks/useMobileUI";
 
 import "../../css/custom-dropdown.css";
 import { useSelector } from "react-redux";
@@ -10,9 +12,10 @@ export const DropdownMenu = React.memo(({}) => {
   const touchMode = useSelector(state => state?.playerUi?.userSettings?.touchMode);
   const touchAction = useTouchAction();
   const mouseXY = useSelector(state => state?.playerUi?.mouseXY);
-  
+  const mobileUIActive = useMobileUIActive();
+
   const [mouseX, setMouseX] = useState(0);
-  const [mouseY, setMouseY] = useState(0); 
+  const [mouseY, setMouseY] = useState(0);
   const [isNull, setIsNull] = useState(true);
 
   useEffect(() => {
@@ -24,10 +27,13 @@ export const DropdownMenu = React.memo(({}) => {
 
 
   console.log("Rendering DropdownMenu ",mouseXY,dropdownMenu,isNull,touchAction);
-  if (!mouseXY) return null;
   if (!dropdownMenu) return null;
-  if (isNull) return null;
   if (touchAction) return null;
+  // Mobile UI: a full-screen sheet instead of a menu floating at the pointer.
+  // It doesn't need a pointer position, so it skips the mouseXY gate.
+  if (mobileUIActive) return <MobileMenuSheet/>;
+  if (!mouseXY) return null;
+  if (isNull) return null;
 
   return (
     <DropdownMenuCommon

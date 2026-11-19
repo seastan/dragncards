@@ -113,6 +113,7 @@ export function createDnc3DEngine(options = {}) {
   // the viewport's SHORTER side instead: in portrait the width is what limits
   // how many cards fit across a row, and a dvh-based card would be far too big.
   const _cardUnitPx         = options.cardUnitPx         || (() => window.innerHeight / 100);
+  const _browseAtTop        = !!options.browseAtTop;
   const _tableBackgroundUrl = options.tableBackgroundUrl || null;
   const _playerN            = options.playerN            || null;
 
@@ -125,7 +126,7 @@ export function createDnc3DEngine(options = {}) {
 
   const layout = createLayout(state, projection, REGIONS);
   const {
-    initLayout, regionPx, layoutFan, layoutRow, layoutPile, pileSlot,
+    initLayout, regionPx, layoutFan, layoutRow, layoutPile, pileSlot, fanMinSpacingFrac,
     placeCardAt, layoutRegion, setAfterLayoutHook, setScrollOuter, setIndicatorEl, applyTokenHostRotation,
     findRegionAtPoint, insertStackAtIndex, moveCardToTilt, moveCardFromTilt, moveStackToTilt,
     animateCardTo, animateCardArc, tiltSpacePosOf, stackCardOffsets, stackBaseCardIds, stackPositionsAtAnchor,
@@ -303,7 +304,9 @@ export function createDnc3DEngine(options = {}) {
     const tiltW    = parseFloat(_tiltEl?.style.width)  || window.innerWidth;
     const cardH    = cardHeightPx();
     const heightPct = Math.min(88, (cardH / tiltH) * 100 * 1.15 + 3);
-    const topPct    = 100 - heightPct - 25;
+    // Mobile: the browse controls (Dnc3DHudBrowse) take most of a portrait
+    // table's lower half, so the fan goes to the top instead of just above them.
+    const topPct    = _browseAtTop ? 2 : 100 - heightPct - 25;
 
     // The scroll outer sits at translateZ(layerZPx(cardHeightPx()) * layerIndex) above the
     // tilt plane, plus the tilt plane itself is at z = y * sinA at the center Y of
@@ -326,7 +329,8 @@ export function createDnc3DEngine(options = {}) {
     const width       = Math.min(96, (maxCSSW / tiltW) * 100);
     const left        = (100 - width) / 2;
 
-    return { left, top: topPct, width, height: heightPct, type: 'fan', direction: 'horizontal', layerIndex };
+    return { left, top: topPct, width, height: heightPct, type: 'fan', direction: 'horizontal', layerIndex,
+             ...(_browseAtTop ? { minSpacingFrac: 0.5 } : {}) };
   }
 
   // ── Per-card dimension helpers ─────────────────────────────────────────────
@@ -444,7 +448,7 @@ export function createDnc3DEngine(options = {}) {
     if (r.type === 'fan') {
       const dim        = vert ? ch : cw;
       const size       = vert ? rp.h : rp.w;
-      const minSpacing = dim * 0.20;
+      const minSpacing = dim * fanMinSpacingFrac(regionId);
       if (n > 1 && (size - dim) / (n - 1) < minSpacing) return (n - 1) * minSpacing + dim;
       return size;
     }
@@ -1385,6 +1389,9 @@ export function createDnc3DEngine(options = {}) {
     let grabOffScreenX = 0, grabOffScreenY = 0;
     let startX = 0, startY = 0;
     let isDragging = false;
+    // Touch pan: a finger swiped along a scrollable row/fan (e.g. the browse
+    // fan) scrolls it rather than picking the card up. See tryStartTouchPan.
+    let panRegionId = null, panStartOff = 0, panMaxScroll = 0, panVertical = false;
     // The pointer startDragFn armed, or null when no gesture is in flight.
     // liftEl's pointerup listener sees every release over the card, including
     // ones startDragFn declined (a right-click, now that secondary buttons are
@@ -1452,7 +1459,45 @@ export function createDnc3DEngine(options = {}) {
       const dx = e.clientX - startX;
       const dy = e.clientY - startY;
 
+      // An ongoing touch pan: scroll the region with the finger, nothing else.
+      if (panRegionId !== null) {
+        const off = Math.min(Math.max(panStartOff - (panVertical ? dy : dx), 0), panMaxScroll);
+        const rs  = regionState[panRegionId];
+        if (rs && Math.abs((rs.scrollOffset || 0) - off) > 0.5) {
+          rs.scrollOffset = off;
+          const s = sentinelEls[panRegionId];
+          if (s) {
+            s._syncing = true;
+            if (panVertical) s.el.scrollTop = off; else s.el.scrollLeft = off;
+          }
+          layoutRegion(panRegionId, null, true);
+          updateScrollArrows(panRegionId);
+        }
+        return;
+      }
+
       if (!isDragging && Math.hypot(dx, dy) >= dragThreshold(e)) {
+        // On a touchscreen there's no scroll wheel and the arrows are small, so a
+        // swipe along a region that overflows (the browse fan, a long hand)
+        // scrolls it. Moving across the region's axis — pulling a card up out of
+        // a horizontal fan — still picks the card up.
+        if (e.pointerType === 'touch') {
+          const r = REGIONS[card.regionId];
+          if (r && (r.type === 'row' || r.type === 'fan')) {
+            const vert = r.direction === 'vertical';
+            const along = vert ? Math.abs(dy) : Math.abs(dx);
+            const across = vert ? Math.abs(dx) : Math.abs(dy);
+            const rp = regionPx(card.regionId);
+            const maxScroll = Math.max(0, scrollTotalExtent(card.regionId) - (vert ? rp.h : rp.w));
+            if (along > across && maxScroll > 0) {
+              panRegionId  = card.regionId;
+              panStartOff  = regionState[card.regionId]?.scrollOffset || 0;
+              panMaxScroll = maxScroll;
+              panVertical  = vert;
+              return;
+            }
+          }
+        }
         if (!isTopPileCard(card)) return; // non-top pile cards are not draggable
         isDragging = true;
         _isDragging = true;
@@ -1827,6 +1872,11 @@ export function createDnc3DEngine(options = {}) {
       // releasePointerCapture throws if the pointer isn't captured, which is the
       // normal case for pointercancel (the browser released it already).
       if (liftEl.hasPointerCapture(e.pointerId)) liftEl.releasePointerCapture(e.pointerId);
+      // A touch pan ends here: no drop, no click, no menu.
+      if (panRegionId !== null) {
+        panRegionId = null;
+        return;
+      }
       dragTiltAngle = 0;
       dragStackCards.forEach(c => {
         c.cardEl.classList.remove('dnc3d-dragging');

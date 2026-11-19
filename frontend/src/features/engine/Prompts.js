@@ -1,3 +1,4 @@
+import { useMobileUIActive } from "./hooks/useMobileUI";
 import React, { useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { usePlayerN } from "./hooks/usePlayerN";
@@ -170,6 +171,7 @@ export const Prompts = React.memo(({
   }, [sortedPromptIds, prompts]);
   
 
+  const mobileUIActive = useMobileUIActive();
   // Check if all prompts have visible set to false
   if (Object.keys(prompts).length === 0) return null;
 
@@ -183,6 +185,8 @@ export const Prompts = React.memo(({
           top: "4%",
           width: "19%",
           maxHeight: "92vh",       
+          // Mobile UI: 19% of a phone is one word per line.
+          ...(mobileUIActive ? { left: "5%", width: "90%", maxHeight: "70%", fontSize: 15 } : {}),
           overflowY: "auto",       
           zIndex: Z_INDEX.Prompts,
         }}

@@ -30,8 +30,14 @@ const MenuContext = React.createContext<MenuContextValue>({ close: () => {} });
 // The live setting is playerUi.userSettings.touchMode — playerUi.touchMode is a
 // vestigial field that is never written, so reading it kept the menus in
 // hover-open mode even with touch mode on.
+// The mobile UI is touch-first, so it opens menus on tap too.
 const useTouchMode = (): boolean =>
-  useSelector((state: any) => !!state?.playerUi?.userSettings?.touchMode);
+  useSelector((state: any) => !!state?.playerUi?.userSettings?.touchMode || !!state?.playerUi?.mobileUI);
+
+// On a phone a flyout to the right runs off the screen, so nested menus expand
+// in place (accordion-style) instead.
+const useInlineSubMenus = (): boolean =>
+  useSelector((state: any) => !!state?.playerUi?.mobileUI);
 
 // Hover-intent open/close: opening is immediate, but closing is deferred by a
 // short delay so that briefly crossing the small gap between a trigger and its
@@ -174,6 +180,7 @@ export const Menu: React.FC<MenuProps> = ({
   disabledReason = null,
 }) => {
   const touchMode = useTouchMode();
+  const inlineSubMenus = useInlineSubMenus();
   const ref = useRef<HTMLLIElement>(null);
   const id = useMenuNodeId();
   const tipId = `${id}-tip`;
@@ -306,7 +313,14 @@ export const Menu: React.FC<MenuProps> = ({
         <ul
           role="menu"
           className={cx("absolute left-0", panelClasses)}
-          style={{ zIndex: 10001, minWidth: `${panelMinWidthRem}rem`, top: "100%" }}
+          style={{
+            zIndex: 10001,
+            minWidth: `${panelMinWidthRem}rem`,
+            top: "100%",
+            // Mobile: submenus expand inside this panel, so it can outgrow the
+            // screen — cap it and let it scroll.
+            ...(inlineSubMenus ? { maxHeight: "70dvh", overflowY: "auto", maxWidth: "94vw" } : {}),
+          }}
         >
           <MenuContext.Provider value={{ close }}>
             <SubMenuGroupProvider>{children}</SubMenuGroupProvider>
@@ -362,6 +376,7 @@ export const SubMenu: React.FC<SubMenuProps> = ({
   panelMinWidthRem = 16,
 }) => {
   const touchMode = useTouchMode();
+  const inline = useInlineSubMenus();
   const ref = useRef<HTMLLIElement>(null);
   const id = useMenuNodeId();
   const group = useContext(SubMenuGroupContext);
@@ -404,8 +419,10 @@ export const SubMenu: React.FC<SubMenuProps> = ({
       {open && (
         <ul
           role="menu"
-          className={cx("absolute top-0 left-full overflow-y-auto", panelClasses)}
-          style={{ zIndex: 10002, minWidth: `${panelMinWidthRem}rem`, maxHeight: "60dvh" }}
+          className={inline
+            ? "list-none m-0 py-0.5 pl-3 border-l border-gray-600 ml-3"
+            : cx("absolute top-0 left-full overflow-y-auto", panelClasses)}
+          style={inline ? undefined : { zIndex: 10002, minWidth: `${panelMinWidthRem}rem`, maxHeight: "60dvh" }}
         >
           <SubMenuGroupProvider>{children}</SubMenuGroupProvider>
         </ul>

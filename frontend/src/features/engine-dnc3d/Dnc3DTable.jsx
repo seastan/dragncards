@@ -276,7 +276,7 @@ export default function Dnc3DTable({
         playerN:            observingPlayerRef.current,
         cardSize:           cardSizeRef.current,
         zoomFactor:         zoomFactorRef.current,
-        ...(isMobileLayoutRef.current ? { cardUnitPx: mobileCardUnitPx } : {}),
+        ...(isMobileLayoutRef.current ? { cardUnitPx: mobileCardUnitPx, browseAtTop: true } : {}),
         tableBackgroundUrl: tableBackgroundUrlRef.current,
         touchMode:          touchModeRef.current,
         alwaysShowPileCounts: alwaysShowPileSizesRef.current,
@@ -572,7 +572,7 @@ export default function Dnc3DTable({
   }, []);
 
   return (
-    <div className="dnc3d-stage">
+    <div className={isMobileLayout ? "dnc3d-stage dnc3d-mobile" : "dnc3d-stage"}>
       {TOKEN_EXTRUDE && <Dnc3DTokenExtrudeFilter />}
       <div className="dnc3d-tilt" ref={tiltRef} />
       {game && <Dnc3DHudChat />}

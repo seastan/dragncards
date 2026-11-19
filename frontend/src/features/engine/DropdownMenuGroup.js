@@ -1,7 +1,7 @@
 import React from "react";
 import { faArrowUp, faArrowDown, faRandom, faChevronRight, faCheck } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { DropdownItem, GoBack } from "./DropdownMenuHelpers";
+import { DropdownItem, GoBack, EMBEDDED_MENU_STYLE } from "./DropdownMenuHelpers";
 import "../../css/custom-dropdown.css";
 import { useDispatch, useSelector, shallowEqual } from "react-redux";
 import { useGameDefinition } from "./hooks/useGameDefinition";
@@ -40,6 +40,7 @@ const DropdownMoveTo = ({ destGroupId, origGroupId, numStacks, handleDropdownCli
 }
 
 export const DropdownMenuGroup = React.memo(({
+  embedded = false,
   mouseX,
   mouseY,
   menuHeight,
@@ -90,7 +91,7 @@ export const DropdownMenuGroup = React.memo(({
   return (
     <div 
       className="dropdown" 
-      style={{ height: menuHeight, zIndex: Z_INDEX.DropdownMenu, top: top, left: left }}>
+      style={embedded ? EMBEDDED_MENU_STYLE : { height: menuHeight, zIndex: Z_INDEX.DropdownMenu, top: top, left: left }}>
         <div className="menu-title">{dropdownMenu.title}</div>
         {activeMenu === "main" &&
         <div className="menu">

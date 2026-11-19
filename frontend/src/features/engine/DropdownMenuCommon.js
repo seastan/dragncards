@@ -11,6 +11,7 @@ import { useDoActionList } from "./hooks/useDoActionList";
 export const DropdownMenuCommon = React.memo(({
   mouseX,
   mouseY,
+  embedded = false,
 }) => {
   
   const dispatch = useDispatch();
@@ -45,6 +46,7 @@ export const DropdownMenuCommon = React.memo(({
         handleDropdownClick={handleDropdownClick}
         calcHeight={calcHeight}
         activeMenu={activeMenu}
+        embedded={embedded}
       />
     )
   } else if (dropdownMenu.type === "group") {
@@ -56,6 +58,7 @@ export const DropdownMenuCommon = React.memo(({
         handleDropdownClick={handleDropdownClick}
         calcHeight={calcHeight}
         activeMenu={activeMenu}
+        embedded={embedded}
       />
     )
   } else if (dropdownMenu.type === "firstPlayer") {
@@ -67,6 +70,7 @@ export const DropdownMenuCommon = React.memo(({
         handleDropdownClick={handleDropdownClick}
         calcHeight={calcHeight}
         activeMenu={activeMenu}
+        embedded={embedded}
       />
     )
   } else return null;
