@@ -47,7 +47,7 @@ export const DropdownItem = (props) => {
   }
 
   return (
-    <a href="#" className="menu-item" onClick={(event) => handleDropDownItemClick(event)}>    
+    <a href="#" className={props.className ? `menu-item ${props.className}` : "menu-item"} onClick={(event) => handleDropDownItemClick(event)}>
       {props.leftIcon && <span className="icon-button">{props.leftIcon}</span>}
       {props.children}
       {props.rightIconClickCallback ? 

@@ -136,6 +136,18 @@
     text-decoration: none;
   }
   
+  /* A row whose label may wrap: grows to fit it instead of keeping the fixed
+     height, which let a second line spill over the next row. */
+  .menu-item.menu-item-wrap {
+    height: auto;
+    min-height: 4dvh;
+    line-height: 1.25;
+  }
+  .menu-item.menu-item-wrap .icon-right {
+    flex-shrink: 0;
+    padding-left: 0.5rem;
+  }
+
   .menu-item .icon-button {
     margin-right: 0.5rem;
   }

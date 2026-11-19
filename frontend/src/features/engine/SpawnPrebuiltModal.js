@@ -542,7 +542,7 @@ const Menu = ({favorites, toggleFavorite, canFavorite, favoriteUrls, addFavorite
           <>
             <a
               href="#"
-              className="menu-item"
+              className="menu-item menu-item-wrap"
               onClick={(e) => { e.preventDefault(); dispatch(setShowModal("patreon")); }}
               style={{fontSize: "0.9rem", color: "#6b7280", justifyContent: "center", gap: "6px", padding: "8px 10px", borderRadius: "6px"}}
             >
@@ -561,6 +561,10 @@ const Menu = ({favorites, toggleFavorite, canFavorite, favoriteUrls, addFavorite
           return(
             <DropdownItem
               key={index}
+              // Category names can be long ("Heirs of Númenor & Against the
+              // Shadow"); let the row grow to fit them rather than spill over
+              // the row below.
+              className="menu-item-wrap"
               rightIcon={<FontAwesomeIcon icon={faChevronRight}/>}
               goToMenu={subMenuOption}
               clickCallback={handleSubMenuClick}>
