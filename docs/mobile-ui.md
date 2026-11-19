@@ -89,6 +89,26 @@ Region keys matter for visibility sync, which matches by key: regions that
 plugin buttons toggle (e.g. `sharedSetAside`, `sharedMap`) should reuse the
 desktop key.
 
+## Fling (`gameDef.cardFling`)
+
+A card released while still moving fast (a flick of the finger) runs an action
+list instead of being dropped, with `$ACTIVE_CARD` set to it. The card carries
+on in the flick's direction, slows to a stop, and the action's result (e.g. a
+discard) moves it on from there. If the action leaves the card where it was,
+it slides home after ~1.5s. 3D renderer only; works on desktop too, but by
+default only for touch.
+
+```json
+{"cardFling": {"actionList": [["DISCARD_CARD", "$ACTIVE_CARD"]]}}
+```
+
+| | |
+|---|---|
+| `actionList` | Action list (or an `actionLists` id) for a fling in any direction. |
+| `up` / `down` / `left` / `right` | Per-direction action lists, overriding `actionList`. A direction with neither isn't a fling: the card just drops. |
+| `minSpeed` | Release speed needed, px per second (default 1000; an ordinary drag is well under, a flick well over). |
+| `touchOnly` | Default `true`: a fast mouse drag to a far region would otherwise often count. |
+
 ## Local testing from a phone
 
 `npm start` with `HOST=0.0.0.0`, then open `http://<laptop-ip>:3000` on a phone

@@ -8,6 +8,9 @@ import { playFlipSound, playPickupSound, playDropSound } from './sound';
 
 // Marker classes on the card the attach gesture is currently targeting.
 const ATTACH_HOVER_CLASSES = ATTACH_DIRECTIONS.map(dir => `dnc3d-attach-hover-${dir}`);
+// A fling's speed is measured over the last this-many ms of the drag, so a
+// drag that slows to a stop before release isn't one.
+const FLING_WINDOW_MS = 100;
 
 // Applies a game-definition region `style` CSS object (mirrors how TableRegion
 // spreads `region.style`) onto a region's outline element. Accepts both
@@ -114,6 +117,10 @@ export function createDnc3DEngine(options = {}) {
   // how many cards fit across a row, and a dvh-based card would be far too big.
   const _cardUnitPx         = options.cardUnitPx         || (() => window.innerHeight / 100);
   const _browseAtTop        = !!options.browseAtTop;
+  // Fling: callback(cardId, direction, speedPxPerSec, pointerType) → true if it
+  // ran an action (the drop is then skipped). Speed threshold in px per ms.
+  const onCardFling         = options.onCardFling || null;
+  const _flingMinSpeed      = (options.flingMinSpeed || 1000) / 1000;
   const _tableBackgroundUrl = options.tableBackgroundUrl || null;
   const _playerN            = options.playerN            || null;
 
@@ -1392,6 +1399,8 @@ export function createDnc3DEngine(options = {}) {
     // Touch pan: a finger swiped along a scrollable row/fan (e.g. the browse
     // fan) scrolls it rather than picking the card up. See tryStartTouchPan.
     let panRegionId = null, panStartOff = 0, panMaxScroll = 0, panVertical = false;
+    // Recent pointer positions during a drag, for fling detection at release.
+    let flingSamples = [];
     // The pointer startDragFn armed, or null when no gesture is in flight.
     // liftEl's pointerup listener sees every release over the card, including
     // ones startDragFn declined (a right-click, now that secondary buttons are
@@ -1433,6 +1442,7 @@ export function createDnc3DEngine(options = {}) {
       startX = e.clientX;
       startY = e.clientY;
       isDragging = false;
+      flingSamples = [];
       dragStack  = null;
       dragStackCards = [];
 
@@ -1550,6 +1560,12 @@ export function createDnc3DEngine(options = {}) {
       }
 
       if (!isDragging) return;
+
+      if (onCardFling) {
+        const now = performance.now();
+        flingSamples.push({ x: e.clientX, y: e.clientY, t: now });
+        while (flingSamples.length > 2 && now - flingSamples[0].t > FLING_WINDOW_MS) flingSamples.shift();
+      }
 
       const Z_current   = BASE_LIFT + card.liftPx;
       const tp          = screenToTableAtZ(e.clientX - grabOffScreenX, e.clientY - grabOffScreenY, Z_current, _tiltEl, _currentDeg);
@@ -1903,12 +1919,34 @@ export function createDnc3DEngine(options = {}) {
         let dropSoundPlayed = false;
         const signalDrop = () => { if (!dropSoundPlayed) { dropSoundPlayed = true; playDropSound(); } };
 
+        // Fling: released while still moving fast. The plugin's action for that
+        // direction replaces the drop (onCardFling returns whether one ran), and
+        // the card takes the "missed every region" path below — it slides home,
+        // and the server's result (e.g. a discard) then moves it where it goes.
+        let flung = false, flingVx = 0, flingVy = 0;
+        if (onCardFling && !cancelled) {
+          const now    = performance.now();
+          const recent = flingSamples.filter(s => now - s.t <= FLING_WINDOW_MS);
+          if (recent.length >= 2) {
+            const dt = Math.max(1, now - recent[0].t);
+            const vx = (e.clientX - recent[0].x) / dt;
+            const vy = (e.clientY - recent[0].y) / dt;
+            const speed = Math.hypot(vx, vy);   // px per ms
+            if (speed >= _flingMinSpeed) {
+              const direction = Math.abs(vx) > Math.abs(vy) ? (vx > 0 ? 'right' : 'left') : (vy > 0 ? 'down' : 'up');
+              flung = !!onCardFling(card.id, direction, speed * 1000, e.pointerType);
+              flingVx = vx; flingVy = vy;
+            }
+          }
+        }
+        flingSamples = [];
+
         const droppedStackCards  = [...dragStackCards];
         const droppedStack       = dragStack;
-        const droppedAttachSid   = hoverAttachStackId;
+        const droppedAttachSid   = flung ? null : hoverAttachStackId;
         const droppedAttachSide  = hoverAttachSide;
         const droppedInsertIdx   = currentInsertIdx;
-        const droppedInsertRgn   = currentInsertRegion;
+        const droppedInsertRgn   = flung ? null : currentInsertRegion;
 
         hideInsertionIndicator();
         _overlay.setInsertProbe(null);
@@ -1924,7 +1962,7 @@ export function createDnc3DEngine(options = {}) {
         // drawn on top rather than one an elevated panel merely covers.
         const _rawTargetRegion = hoverRegionAt(e.clientX, e.clientY).region;
         // Treat the browse home region as empty while it's being browsed.
-        const targetRegionId = (_rawTargetRegion === _browseGroupId) ? null : _rawTargetRegion;
+        const targetRegionId = (flung || _rawTargetRegion === _browseGroupId) ? null : _rawTargetRegion;
 
         function liftDown(dur, cb, targets = null, options = {}) {
           const { wiggleXPx = 0, wiggleYPx = 0, settleProgressAt = 1, deferZIndex = false } = options;
@@ -1976,8 +2014,46 @@ export function createDnc3DEngine(options = {}) {
           });
         }
 
+        // ── Priority 0: Fling ─────────────────────────────────────────────────
+        // The card carries on in the fling's direction, slowing to a stop, and
+        // settles there — no snap back home. The plugin's action (already sent)
+        // decides where it really goes; when the server's state arrives,
+        // reconcile moves it on from wherever it came to rest. If that action
+        // leaves the card where it was, it slides home after a short wait
+        // rather than being stranded mid-table.
+        if (flung) {
+          const homeRegionId = cards[droppedStack.cardIds[0]]?.regionId;
+          const glideDur = scaleDuration(240);
+          // Distance covered while easing out from the release velocity.
+          const glideX = flingVx * glideDur * 0.4;
+          const glideY = flingVy * glideDur * 0.4;
+          const fromPos = droppedStackCards.map(c => ({
+            left: parseFloat(c.liftEl.style.left) || 0,
+            top:  parseFloat(c.liftEl.style.top)  || 0,
+          }));
+          const glideStart = performance.now();
+          (function glideFrame(now) {
+            const t  = Math.min((now - glideStart) / glideDur, 1);
+            const ef = easeOut(t);
+            droppedStackCards.forEach((c, idx) => {
+              c.liftEl.style.left = (fromPos[idx].left + glideX * ef) + 'px';
+              c.liftEl.style.top  = (fromPos[idx].top  + glideY * ef) + 'px';
+            });
+            if (t < 1) {
+              requestAnimationFrame(glideFrame);
+              return;
+            }
+            liftDown(180, () => {
+              const c0 = droppedStackCards[0];
+              setTimeout(() => {
+                if (!cards[c0.id] || c0.regionId !== homeRegionId || c0.cardEl._animating) return;
+                if (homeRegionId) layoutRegion(homeRegionId);
+              }, 1500);
+            });
+          })(performance.now());
+
         // ── Priority 1: Attach gesture ────────────────────────────────────────
-        if (droppedAttachSid !== null && stacks[droppedAttachSid]) {
+        } else if (droppedAttachSid !== null && stacks[droppedAttachSid]) {
           const targetStack  = stacks[droppedAttachSid];
           const targetParent = cards[targetStack.cardIds[0]];
           const targetRegion = targetParent.regionId;

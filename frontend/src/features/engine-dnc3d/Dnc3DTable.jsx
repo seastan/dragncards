@@ -277,6 +277,29 @@ export default function Dnc3DTable({
         cardSize:           cardSizeRef.current,
         zoomFactor:         zoomFactorRef.current,
         ...(isMobileLayoutRef.current ? { cardUnitPx: mobileCardUnitPx, browseAtTop: true } : {}),
+        // gameDef.cardFling: a card released mid-swipe runs an action list
+        // instead of dropping (see validate/getGameDefSchema.js for the options).
+        ...(gd?.cardFling ? {
+          flingMinSpeed: gd.cardFling.minSpeed,
+          onCardFling: (engineId, direction, _speed, pointerType) => {
+            const fling = gameDefRef.current?.cardFling;
+            if (!fling) return false;
+            if (fling.touchOnly !== false && pointerType !== 'touch') return false;
+            const listOrId = fling[direction] ?? fling.actionList;
+            if (!listOrId) return false;
+            const list = Array.isArray(listOrId) ? listOrId : gameDefRef.current?.actionLists?.[listOrId];
+            if (!list) return false;
+            const dcId = reverseIdMap.get(engineId);
+            if (dcId == null) return false;
+            const card = gameRef.current?.cardById?.[dcId];
+            const name = card?.sides?.[card?.currentSide]?.name || dcId;
+            doActionListRef.current(
+              [["DEFINE", "$ACTIVE_CARD_ID", dcId], ...list],
+              `Fling ${direction} on ${name}`
+            );
+            return true;
+          },
+        } : {}),
         tableBackgroundUrl: tableBackgroundUrlRef.current,
         touchMode:          touchModeRef.current,
         alwaysShowPileCounts: alwaysShowPileSizesRef.current,

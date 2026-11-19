@@ -1789,6 +1789,39 @@ export const getGameDefSchema = (gameDef) => {
           }
         }
       },
+      "cardFling": {
+        "_description_": "Fling gesture (3D renderer): a card released while still moving fast runs an action list instead of being dropped. $ACTIVE_CARD is the flung card. The card glides on in the fling's direction and settles; wherever the action puts it, it moves on from there. Example: {\"actionList\": [[\"DISCARD_CARD\", \"$ACTIVE_CARD\"]]}",
+        "_type_": "object",
+        "_strictKeys_": true,
+        "actionList": {
+          "_description_": "Action list (or the id of one in actionLists) run for a fling in any direction that has no action of its own.",
+          "_type_": "actionList",
+        },
+        "up": {
+          "_description_": "Action list for a fling upward, overriding actionList.",
+          "_type_": "actionList",
+        },
+        "down": {
+          "_description_": "Action list for a fling downward, overriding actionList.",
+          "_type_": "actionList",
+        },
+        "left": {
+          "_description_": "Action list for a fling to the left, overriding actionList.",
+          "_type_": "actionList",
+        },
+        "right": {
+          "_description_": "Action list for a fling to the right, overriding actionList.",
+          "_type_": "actionList",
+        },
+        "minSpeed": {
+          "_description_": "How fast the card must be moving at release, in pixels per second (default 1000; an ordinary drag is well under that, a flick of the finger well over).",
+          "_type_": "float",
+        },
+        "touchOnly": {
+          "_description_": "Only fling with a finger, not a mouse (default true): a quick mouse drag to a far region would otherwise often count as a fling.",
+          "_type_": "boolean",
+        },
+      },
       "touchBar": {
         "_description_": "List of touch bar rows",
         "_type_": "array",
