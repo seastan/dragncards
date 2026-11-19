@@ -15,9 +15,10 @@ Without one the regular table is shown.
   left half; the players (`TopBarUser`) on the right half, one per page, swiped
   sideways. ☰ drops down Menu / View / Builder; menus open on tap and nested
   menus expand in place.
-- **Bottom bar**: *Piles* opens the hidden-piles drawer from the left (the
-  layout's `hiddenPiles` that have cards, each with browse and menu buttons;
-  scrolls past four); *Chat* slides chat/log up from the bottom.
+- **Bottom bar**: *Piles* opens the hidden-piles drawer from the left: the
+  layout's `hiddenPiles` as real piles you drag cards onto and off, each with
+  its name, count, and browse / menu buttons. Four per page, with arrows past
+  that. *Chat* slides chat/log up from the bottom.
 - **Card tap** opens a full-screen sheet: the card on the top half, its menu
   options (scrollable) on the next third, and a *View table* button. Group menus
   use the same sheet with the group's name on top. No hover preview.
@@ -38,7 +39,7 @@ Same shape as an entry of `gameDef.layouts`, with these differences:
 | One layout for every player count | Shared regions are always shown. A region whose `groupId` contains `playerN` shows the board of the player currently on screen. You don't write separate 1/2/3/4-player mobile layouts. |
 | `cardSize` | Measured in 1% of the screen's **shorter side** (the width, in portrait), not 1% of the height. `cardSize: 22` → a card about 22% of the screen width tall, so about six cards fit across a row. |
 | `chat` | Optional and ignored; chat has its own panel. |
-| `hiddenPiles` | groupIds kept off the table and listed in the Piles drawer instead. `playerN` resolves to the player on screen. |
+| `hiddenPiles` | Groups kept off the table and shown as piles in the Piles drawer instead. Each entry is a groupId, or `{"groupId": ..., "showWhenEmpty": true}`: empty piles are left out unless marked, and a pile you drop the first card onto (a discard) needs the mark. `playerN` resolves to the player on screen. |
 | `region.perspective` | `"viewed"` (default) follows the on-screen player. `"self"` always means the viewer's own seat — use it for your hand so it stays yours while you look at a teammate's board. |
 | `region.syncVisibility` | If a mobile region's key also exists in the room's current layout, the mobile region copies that region's `visible` flag, so show/hide buttons (e.g. `TOGGLE_TABLE_BUTTON`) keep working. `false` opts out. |
 
@@ -66,9 +67,10 @@ and your hand. Decks, discards and the other piles live in the drawer.
       "playerNHand":          {"groupId": "playerNHand",          "type": "fan", "direction": "horizontal", "left": 0,    "top": "5/6", "width": 1,    "height": "1/6", "perspective": "self", "style": {"background": "rgba(0, 0, 0, 0.3)"}}
     },
     "hiddenPiles": [
-      "sharedEncounterDeck", "sharedEncounterDiscard", "sharedEncounterDeck2", "sharedEncounterDiscard2",
-      "sharedSetAside", "sharedVictory", "playerNDeck", "playerNDiscard", "playerNSideboard",
-      "sharedExtra1", "sharedExtra2", "sharedExtra3"
+      {"groupId": "sharedEncounterDeck", "showWhenEmpty": true}, {"groupId": "sharedEncounterDiscard", "showWhenEmpty": true},
+      "sharedEncounterDeck2", "sharedEncounterDiscard2",
+      {"groupId": "playerNDeck", "showWhenEmpty": true}, {"groupId": "playerNDiscard", "showWhenEmpty": true},
+      "sharedSetAside", "sharedVictory", "playerNSideboard", "sharedExtra1", "sharedExtra2", "sharedExtra3"
     ]
   }
 }
@@ -88,8 +90,9 @@ DevTools device mode works regardless.
 
 ## Not done yet
 
-- Drop targets for hidden piles while dragging (today a card reaches a hidden
-  pile through its card sheet's *Move To*).
+- Opening the drawer on its own when a drag starts (it has to be open first:
+  opening it adds table regions, which rebuilds the table, and that can't
+  happen mid-drag).
 - Double-tap → token sheet; tap-again-for-default-action is still on.
 - Hold a player to peek at their board; overview of every board.
 - Hotkeys in the menu; unread badge on Chat.

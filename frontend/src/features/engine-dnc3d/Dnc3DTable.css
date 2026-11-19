@@ -771,3 +771,9 @@
 .dnc3d-mobile .dnc3d-behind-badge {
   font-size: 14px;
 }
+/* The hidden-piles drawer (MobileHiddenPiles.js) is built from elevated pile
+   regions; it has to hide the table under it, so undo the debug see-through
+   opacity on elevated fills above. */
+.dnc3d-mobile .dnc3d-region-fill.dnc3d-region-elevated {
+  opacity: 1;
+}

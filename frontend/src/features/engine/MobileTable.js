@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useSelector } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars, faComment, faTimes, faEye, faLayerGroup } from "@fortawesome/free-solid-svg-icons";
 import Dnc3DTable from "../engine-dnc3d/Dnc3DTable";
@@ -14,12 +14,9 @@ import { useLayout } from "./hooks/useLayout";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { useDoActionList } from "./hooks/useDoActionList";
 import { usePlayerIList } from "./hooks/usePlayerIList";
-import { useFormatGroupId } from "./hooks/useFormatGroupId";
-import { useGameL10n } from "./hooks/useGameL10n";
-import { useBrowseTopN } from "./hooks/useBrowseTopN";
 import useProfile from "../../hooks/useProfile";
-import { setDropdownMenu } from "../store/playerUiSlice";
 import { Z_INDEX } from "./functions/common";
+import { useHiddenPilesGeometry, hiddenPileRegions, HiddenPilesOverlay } from "./MobileHiddenPiles";
 
 // Phone-first table (mobile UI). Portrait, flat (0° tilt) 3D renderer, driven by
 // the plugin's gameDef.mobileLayout (see functions/mobileLayout.js).
@@ -36,7 +33,6 @@ import { Z_INDEX } from "./functions/common";
 const TOP_H = 64;
 const MENU_ROW_H = 44;
 const BOTTOM_H = 52;
-const PILE_ROW_H = 72;   // the drawer shows 4 rows before it scrolls
 
 const tapStyle = {
   touchAction: "manipulation",
@@ -158,101 +154,7 @@ const MenuRow = () => (
   </div>
 );
 
-// ── Hidden piles ───────────────────────────────────────────────────────────
-
-const PileIconButton = ({ icon, onClick }) => (
-  <div
-    onClick={(e) => { e.stopPropagation(); onClick(e); }}
-    style={{
-      ...tapStyle,
-      width: 34,
-      height: 30,
-      borderRadius: 6,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      background: "rgba(255,255,255,0.1)",
-      color: "rgba(255,255,255,0.85)",
-      fontSize: 14,
-    }}>
-    <FontAwesomeIcon icon={icon}/>
-  </div>
-);
-
-const HiddenPileRow = ({ groupId, onDone }) => {
-  const dispatch = useDispatch();
-  const gameL10n = useGameL10n();
-  const browseTopN = useBrowseTopN();
-  const playerN = useSelector(state => state?.playerUi?.playerN);
-  const group = useSelector(state => state?.gameUi?.game?.groupById?.[groupId]);
-  const count = group?.stackIds?.length || 0;
-  if (!group || count === 0) return null;   // empty piles stay hidden
-  const label = gameL10n(group.label);
-  return (
-    <div style={{
-      height: PILE_ROW_H,
-      flexShrink: 0,
-      boxSizing: "border-box",
-      padding: "6px 8px",
-      borderBottom: "1px solid rgba(255,255,255,0.08)",
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "space-between",
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-        <span style={{ flex: 1, minWidth: 0, fontSize: 12, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
-        <span style={{ fontSize: 11, padding: "1px 6px", borderRadius: 8, background: "rgba(255,255,255,0.15)" }}>{count}</span>
-      </div>
-      {playerN &&
-        <div style={{ display: "flex", gap: 6 }}>
-          <PileIconButton icon={faEye} onClick={() => { browseTopN(groupId, "All"); onDone(); }}/>
-          <PileIconButton icon={faBars} onClick={() => {
-            dispatch(setDropdownMenu({ type: "group", group, title: label }));
-            onDone();
-          }}/>
-        </div>
-      }
-    </div>
-  );
-};
-
-const HiddenPilesDrawer = ({ open, onClose }) => {
-  const layout = useLayout();
-  const formatGroupId = useFormatGroupId();
-  const groupById = useSelector(state => state?.gameUi?.game?.groupById);
-  const groupIds = (layout?.hiddenPiles || []).map(formatGroupId);
-  const nonEmpty = groupIds.filter(id => groupById?.[id]?.stackIds?.length > 0);
-  return (
-    <div
-      onClick={(e) => e.stopPropagation()}
-      style={{
-        position: "absolute",
-        left: 0,
-        bottom: 8,
-        width: "33.333%",
-        minWidth: 128,
-        maxHeight: PILE_ROW_H * 4,
-        overflowY: "auto",
-        WebkitOverflowScrolling: "touch",
-        display: "flex",
-        flexDirection: "column",
-        background: "rgba(24,24,30,0.97)",
-        border: "1px solid rgba(255,255,255,0.12)",
-        borderLeft: "none",
-        borderRadius: "0 12px 12px 0",
-        boxShadow: "6px 0 20px rgba(0,0,0,0.6)",
-        color: "white",
-        transform: open ? "translateX(0)" : "translateX(-105%)",
-        transition: "transform 0.2s ease-out",
-        visibility: open ? "visible" : "hidden",
-        zIndex: Z_INDEX.ChatHover,
-      }}>
-      {nonEmpty.length === 0
-        ? <div style={{ padding: 12, fontSize: 12, color: "rgba(255,255,255,0.6)" }}>No hidden piles have cards.</div>
-        : nonEmpty.map(id => <HiddenPileRow key={id} groupId={id} onDone={onClose}/>)}
-    </div>
-  );
-};
+// ── Hidden piles: see MobileHiddenPiles.js ─────────────────────────────────
 
 // An eye over a deck of cards.
 const HiddenPilesIcon = () => (
@@ -330,6 +232,32 @@ export const MobileTable = React.memo(() => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [pilesOpen, setPilesOpen] = useState(false);
+  const [pilesPage, setPilesPage] = useState(0);
+
+  // The drawer's piles are table regions positioned in px, so it needs the
+  // table area's size.
+  const tableRef = useRef(null);
+  const [tableSize, setTableSize] = useState(null);
+  useEffect(() => {
+    const el = tableRef.current;
+    if (!el) return;
+    const measure = () => setTableSize(s => {
+      const w = el.clientWidth, h = el.clientHeight;
+      return s && s.w === w && s.h === h ? s : { w, h };
+    });
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const pilesGeometry = useHiddenPilesGeometry(pilesOpen, tableSize, pilesPage);
+  const pileRegionsKey = JSON.stringify(pilesGeometry?.rows?.map(r => r.region) || []);
+  const tableRegions = useMemo(
+    () => (pilesGeometry ? { ...layout?.regions, ...hiddenPileRegions(pilesGeometry) } : layout?.regions),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [layout?.regions, pileRegionsKey]
+  );
 
   // Extend under the notch / home indicator so the safe-area padding below has
   // something to do. Only while this table is mounted: the desktop UI doesn't
@@ -358,12 +286,12 @@ export const MobileTable = React.memo(() => {
         paddingRight: "env(safe-area-inset-right)",
       }}>
       <MobileTopBar menuOpen={menuOpen} setMenuOpen={setMenuOpen}/>
-      <div style={{ position: "relative", flex: 1, minHeight: 0 }}>
+      <div ref={tableRef} style={{ position: "relative", flex: 1, minHeight: 0 }}>
         {/* Flat: on a phone the tilt only costs space and sharpness. */}
         <Dnc3DTable
           tiltDeg={0}
           game={game}
-          layoutRegions={layout?.regions}
+          layoutRegions={tableRegions}
           layoutTextBoxes={layout?.textBoxes}
           layoutTableButtons={layout?.tableButtons}
           gameDef={gameDef}
@@ -371,7 +299,7 @@ export const MobileTable = React.memo(() => {
           doActionList={doActionList}
         />
         {menuOpen && <MenuRow/>}
-        <HiddenPilesDrawer open={pilesOpen} onClose={() => setPilesOpen(false)}/>
+        <HiddenPilesOverlay geometry={pilesGeometry} setPage={setPilesPage} onDone={() => setPilesOpen(false)}/>
         {/* Chat / log sheet. Always mounted — MessageBox only collects messages
             while it exists — and slid out of view when closed. */}
         <div
