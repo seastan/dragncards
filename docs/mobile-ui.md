@@ -48,8 +48,9 @@ exactly like desktop layouts.
 
 ### Example (LotR LCG, portrait)
 
-Six rows of 1/6 each: quest/active location, staging, engaged, two play rows,
-and your hand. Decks, discards and the other piles live in the drawer.
+Seven rows of 1/7 each: quest / active location / encounter deck and discard,
+staging, engaged, three play rows (the last shared with your deck and
+discard), and your hand. The other piles live in the drawer.
 
 ```json
 {
@@ -57,20 +58,28 @@ and your hand. Decks, discards and the other piles live in the drawer.
     "cardSize": 22,
     "rowSpacing": 3,
     "regions": {
-      "sharedMainQuest":      {"groupId": "sharedMainQuest",      "type": "row", "direction": "horizontal", "left": 0,    "top": 0,     "width": 0.32, "height": "1/6"},
-      "sharedActiveLocation": {"groupId": "sharedActiveLocation", "type": "row", "direction": "horizontal", "left": 0.32, "top": 0,     "width": 0.26, "height": "1/6"},
-      "sharedStagingArea":    {"groupId": "sharedStagingArea",    "type": "row", "direction": "horizontal", "left": 0,    "top": "1/6", "width": 1,    "height": "1/6", "style": {"background": "rgba(30, 0, 0, 0.3)"}},
-      "playerNEngaged":       {"groupId": "playerNEngaged",       "type": "row", "direction": "horizontal", "left": 0,    "top": "2/6", "width": 1,    "height": "1/6"},
-      "playerNPlay1":         {"groupId": "playerNPlay1",         "type": "row", "direction": "horizontal", "left": 0,    "top": "3/6", "width": 1,    "height": "1/6"},
-      "playerNPlay2":         {"groupId": "playerNPlay2",         "type": "row", "direction": "horizontal", "left": 0,    "top": "4/6", "width": 0.8,  "height": "1/6"},
-      "playerNEvent":         {"groupId": "playerNEvent",         "type": "row", "direction": "horizontal", "left": 0.8,  "top": "4/6", "width": 0.2,  "height": "1/6"},
-      "playerNHand":          {"groupId": "playerNHand",          "type": "fan", "direction": "horizontal", "left": 0,    "top": "5/6", "width": 1,    "height": "1/6", "perspective": "self", "style": {"background": "rgba(0, 0, 0, 0.3)"}}
+      "sharedMainQuest":        {"groupId": "sharedMainQuest",        "type": "row",  "direction": "horizontal", "left": 0,    "top": 0,     "width": 0.3,  "height": "1/7"},
+      "sharedActiveLocation":   {"groupId": "sharedActiveLocation",   "type": "row",  "direction": "horizontal", "left": 0.3,  "top": 0,     "width": 0.28, "height": "1/7"},
+      "sharedEncounterDeck":    {"groupId": "sharedEncounterDeck",    "type": "pile", "direction": "horizontal", "left": 0.6,  "top": 0,     "width": 0.2,  "height": "1/7"},
+      "sharedEncounterDiscard": {"groupId": "sharedEncounterDiscard", "type": "pile", "direction": "horizontal", "left": 0.8,  "top": 0,     "width": 0.2,  "height": "1/7"},
+      "sharedStagingArea":      {"groupId": "sharedStagingArea",      "type": "row",  "direction": "horizontal", "left": 0,    "top": "1/7", "width": 1,    "height": "1/7", "style": {"background": "rgba(30, 0, 0, 0.3)"}},
+      "playerNEngaged":         {"groupId": "playerNEngaged",         "type": "row",  "direction": "horizontal", "left": 0,    "top": "2/7", "width": 1,    "height": "1/7"},
+      "playerNPlay1":           {"groupId": "playerNPlay1",           "type": "row",  "direction": "horizontal", "left": 0,    "top": "3/7", "width": 1,    "height": "1/7"},
+      "playerNPlay2":           {"groupId": "playerNPlay2",           "type": "row",  "direction": "horizontal", "left": 0,    "top": "4/7", "width": 1,    "height": "1/7"},
+      "playerNPlay3":           {"groupId": "playerNPlay3",           "type": "row",  "direction": "horizontal", "left": 0,    "top": "5/7", "width": 0.6,  "height": "1/7"},
+      "playerNDeck":            {"groupId": "playerNDeck",            "type": "pile", "direction": "horizontal", "left": 0.6,  "top": "5/7", "width": 0.2,  "height": "1/7"},
+      "playerNDiscard":         {"groupId": "playerNDiscard",         "type": "pile", "direction": "horizontal", "left": 0.8,  "top": "5/7", "width": 0.2,  "height": "1/7"},
+      "playerNHand":            {"groupId": "playerNHand",            "type": "fan",  "direction": "horizontal", "left": 0,    "top": "6/7", "width": 1,    "height": "1/7", "perspective": "self", "style": {"background": "rgba(0, 0, 0, 0.3)"}}
     },
     "hiddenPiles": [
-      {"groupId": "sharedEncounterDeck", "showWhenEmpty": true}, {"groupId": "sharedEncounterDiscard", "showWhenEmpty": true},
-      "sharedEncounterDeck2", "sharedEncounterDiscard2",
-      {"groupId": "playerNDeck", "showWhenEmpty": true}, {"groupId": "playerNDiscard", "showWhenEmpty": true},
-      "sharedSetAside", "sharedVictory", "playerNSideboard", "sharedExtra1", "sharedExtra2", "sharedExtra3"
+      "sharedEncounterDeck2",
+      "sharedEncounterDiscard2",
+      "sharedSetAside",
+      "sharedVictory",
+      "playerNSideboard",
+      "sharedExtra1",
+      "sharedExtra2",
+      "sharedExtra3"
     ]
   }
 }
