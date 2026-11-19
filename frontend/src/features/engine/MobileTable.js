@@ -7,6 +7,7 @@ import { MenuBar } from "../../components/basic/Menu";
 import { TopBarMenu } from "./TopBarMenu";
 import { TopBarView } from "./TopBarView";
 import { TopBarBuilder } from "./TopBarBuilder";
+import { MobileSiteMenu } from "./MobileSiteMenu";
 import { TopBarShared } from "./TopBarShared";
 import { TopBarUser } from "./TopBarUser";
 import MessageBox from "../messages/MessageBox";
@@ -130,7 +131,8 @@ const MobileTopBar = ({ menuOpen, setMenuOpen }) => (
   </div>
 );
 
-// Menu / View / Builder, dropped down from ☰ over the top of the table.
+// Menu / View / Builder, plus the site navbar's links (Site), dropped down
+// from ☰ over the top of the table.
 const MenuRow = () => (
   <div
     onClick={(e) => e.stopPropagation()}
@@ -150,6 +152,7 @@ const MenuRow = () => (
       <TopBarMenu />
       <TopBarView />
       <TopBarBuilder />
+      <MobileSiteMenu />
     </MenuBar>
   </div>
 );

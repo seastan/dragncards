@@ -318,8 +318,18 @@ export const Menu: React.FC<MenuProps> = ({
             minWidth: `${panelMinWidthRem}rem`,
             top: "100%",
             // Mobile: submenus expand inside this panel, so it can outgrow the
-            // screen — cap it and let it scroll.
-            ...(inlineSubMenus ? { maxHeight: "70dvh", overflowY: "auto", maxWidth: "94vw" } : {}),
+            // screen — cap it and let it scroll. And span the screen width just
+            // under the bar, so a menu at the right end (Site) doesn't hang off
+            // the edge.
+            ...(inlineSubMenus ? {
+              position: "fixed",
+              left: 4,
+              right: 4,
+              top: (ref.current?.getBoundingClientRect().bottom ?? 0) + 2,
+              minWidth: 0,
+              maxHeight: "70dvh",
+              overflowY: "auto",
+            } : {}),
           }}
         >
           <MenuContext.Provider value={{ close }}>
