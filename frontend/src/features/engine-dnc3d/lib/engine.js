@@ -4539,6 +4539,12 @@ export function createDnc3DEngine(options = {}) {
   // which slide with the drawer panel.
   function slideEl(el, px, ms) {
     if (!el) return;
+    // Nothing to do if it's already there. Besides saving work, this keeps a
+    // repeat of the current offset from (re)starting a transition: a region
+    // built already slid aside (init) and then handed the same offset again
+    // with a duration would animate in from 0, popping into place first.
+    if ((el._slidePx || 0) === (px || 0)) return;
+    el._slidePx = px || 0;
     if (ms) {
       if (el._slideTimer) { clearTimeout(el._slideTimer); el.style.transition = el._slideBaseTransition || ''; }
       el._slideBaseTransition = el.style.transition;

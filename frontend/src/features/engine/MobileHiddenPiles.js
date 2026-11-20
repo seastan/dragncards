@@ -210,6 +210,12 @@ export const HiddenPilesDrawer = ({ geometry, slidIn, setPage, onDone, onSlideEn
   useEffect(() => {
     if (ref.current) ref.current.style.transform = slideTransform;
   }, [slideTransform]);
+  // ...but the very first frame must already be off to the side, or the panel
+  // flashes up in place before the effect moves it away. The style prop gets
+  // the transform it mounts with and never changes it, so React leaves the
+  // effect's later updates alone.
+  const mountTransform = useRef(null);
+  if (mountTransform.current === null && geometry) mountTransform.current = slideTransform;
 
   if (!geometry) return null;
   return (
@@ -226,6 +232,7 @@ export const HiddenPilesDrawer = ({ geometry, slidIn, setPage, onDone, onSlideEn
         // transform (set by the effect above): half a px under the piles'
         // cards (which rest at layerZ), above the region fills (layerZ - 1)
         // and everything on the table below; slid aside while closed.
+        transform: mountTransform.current,
         transition: `transform ${SLIDE_MS}ms ease-out`,
         background: DRAWER_BG,
         borderRadius: "0 12px 12px 0",
