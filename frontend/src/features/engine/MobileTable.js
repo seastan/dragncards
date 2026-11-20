@@ -234,11 +234,12 @@ export const MobileTable = React.memo(() => {
   const doActionList = useDoActionList();
   const [menuOpen, setMenuOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  // Hidden piles drawer: "closed" → "opening" (sliding in) → "open" (its piles
-  // are live table regions) → "closing" (piles gone, sliding out) → "closed".
-  // The piles only join the table once the panel is in place, and leave before
-  // it slides away: adding or removing regions rebuilds the table, which would
-  // otherwise happen mid-slide.
+  // Hidden piles drawer: "closed" → "opening" (sliding in) → "open" →
+  // "closing" (sliding out) → "closed". Its piles are table regions for the
+  // whole time it's showing: they join the table off-screen as it starts to
+  // open (adding regions rebuilds the table, so that happens before the slide,
+  // not during it), slide with the panel (Dnc3DTable regionSlideX), and leave
+  // once it has slid away.
   const [pilesPhase, setPilesPhase] = useState("closed");
   const [pilesSlidIn, setPilesSlidIn] = useState(false);
   const [pilesPage, setPilesPage] = useState(0);
@@ -285,7 +286,16 @@ export const MobileTable = React.memo(() => {
   }, []);
 
   const pilesGeometry = useHiddenPilesGeometry(pilesPhase !== "closed", tableSize, pilesPage);
-  const pilesLive = pilesPhase === "open" ? pilesGeometry : null;
+  // The piles are on the table whenever the drawer is, sliding with it: added
+  // (off-screen) when it starts to open, removed once it has slid away.
+  const pilesLive = pilesGeometry;
+  const pileSlideX = useMemo(() => {
+    if (!pilesGeometry) return null;
+    const px = pilesSlidIn ? 0 : -(pilesGeometry.width + 24);   // same as the panel
+    const map = {};
+    pilesGeometry.rows.forEach(r => { map[r.groupId] = px; });
+    return map;
+  }, [pilesGeometry, pilesSlidIn]);
   const pileRegionsKey = JSON.stringify(pilesLive?.rows?.map(r => r.region) || []);
   const tableRegions = useMemo(
     () => (pilesLive ? { ...layout?.regions, ...hiddenPileRegions(pilesLive) } : layout?.regions),
@@ -331,6 +341,8 @@ export const MobileTable = React.memo(() => {
           gameDef={gameDef}
           language={language}
           doActionList={doActionList}
+          regionSlideX={pileSlideX}
+          regionSlideMs={SLIDE_MS}
           tiltOverlay={pilesGeometry &&
             <HiddenPilesDrawer
               geometry={pilesGeometry}

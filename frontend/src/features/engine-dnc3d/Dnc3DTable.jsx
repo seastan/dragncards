@@ -94,6 +94,11 @@ export default function Dnc3DTable({
   // ordering — e.g. the mobile hidden-piles drawer, which has to line up with
   // its elevated pile regions and sit under a card being dragged over it.
   tiltOverlay = null,
+  // { groupId: px } — regions slid sideways with their cards (no re-init);
+  // changes animate over regionSlideMs. Used by the mobile hidden-piles
+  // drawer, whose piles slide in and out with the drawer panel.
+  regionSlideX = null,
+  regionSlideMs = 0,
 }) {
   const dispatch         = useDispatch();
   const browseTopN       = useBrowseTopN();
@@ -179,6 +184,8 @@ export default function Dnc3DTable({
   const numPlayersRef      = useRef(numPlayers);
   const cardSizeRef           = useRef(cardSize);
   const isMobileLayoutRef     = useRef(isMobileLayout);
+  const regionSlideXRef       = useRef(regionSlideX);
+  regionSlideXRef.current     = regionSlideX;
   const zoomFactorRef         = useRef(zoomFactor);
   const tableBackgroundUrlRef = useRef(tableBackgroundUrl);
   const browseGroupIdRef      = useRef(browseGroupId);
@@ -295,6 +302,7 @@ export default function Dnc3DTable({
         cardSize:           cardSizeRef.current,
         zoomFactor:         zoomFactorRef.current,
         ...(isMobileLayoutRef.current ? { cardUnitPx: mobileCardUnitPx, browseAtTop: true } : {}),
+        regionSlideX: regionSlideXRef.current || {},
         // gameDef.cardFling: a card released mid-swipe runs an action list
         // instead of dropping (see validate/getGameDefSchema.js for the options).
         ...(gd?.cardFling ? {
@@ -599,6 +607,14 @@ export default function Dnc3DTable({
     engine.applyTilt(tiltEl, tiltDeg);
     engine.onTiltUpdated();
   }, [tiltDeg]);
+
+  // ── Slide regions sideways (regionSlideX) ──────────────────────────────────
+  // After the init effect above, so when a render both adds regions and moves
+  // them, they're built at their starting offset and then animated.
+  const regionSlideKey = JSON.stringify(regionSlideX || {});
+  useEffect(() => {
+    engineRef.current?.setRegionSlideX(regionSlideX || {}, regionSlideMs);
+  }, [regionSlideKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Respond to table opacity changes ───────────────────────────────────────
   useEffect(() => {

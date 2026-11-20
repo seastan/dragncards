@@ -201,6 +201,16 @@ export const HiddenPilesDrawer = ({ geometry, slidIn, setPage, onDone, onSlideEn
     };
   }, [mounted]);
 
+  // The slide is applied from an effect, not the style prop, so it starts in
+  // the same frame as the piles' slide (Dnc3DTable applies regionSlideX from
+  // an effect too); set through render, the panel ran a frame ahead of them.
+  const slideTransform = geometry
+    ? `translateZ(${geometry.layerZ - 0.5}px) translateX(${slidIn ? 0 : -(geometry.width + 24)}px)`
+    : "";
+  useEffect(() => {
+    if (ref.current) ref.current.style.transform = slideTransform;
+  }, [slideTransform]);
+
   if (!geometry) return null;
   return (
     <div
@@ -213,9 +223,9 @@ export const HiddenPilesDrawer = ({ geometry, slidIn, setPage, onDone, onSlideEn
         top: geometry.top,
         width: geometry.width,
         height: geometry.height,
-        // Half a px under the piles' cards (which rest at layerZ), above the
-        // region fills (layerZ - 1) and everything on the table below.
-        transform: `translateZ(${geometry.layerZ - 0.5}px) translateX(${slidIn ? 0 : -(geometry.width + 24)}px)`,
+        // transform (set by the effect above): half a px under the piles'
+        // cards (which rest at layerZ), above the region fills (layerZ - 1)
+        // and everything on the table below; slid aside while closed.
         transition: `transform ${SLIDE_MS}ms ease-out`,
         background: DRAWER_BG,
         borderRadius: "0 12px 12px 0",

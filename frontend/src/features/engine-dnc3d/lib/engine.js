@@ -117,6 +117,8 @@ export function createDnc3DEngine(options = {}) {
   // how many cards fit across a row, and a dvh-based card would be far too big.
   const _cardUnitPx         = options.cardUnitPx         || (() => window.innerHeight / 100);
   const _browseAtTop        = !!options.browseAtTop;
+  // { regionId: px } — regions shifted sideways (see setRegionSlideX).
+  const _regionSlideX       = { ...(options.regionSlideX || {}) };
   // Fling: callback(cardId, direction, speedPxPerSec, pointerType) → true if it
   // ran an action (the drop is then skipped). Speed threshold in px per ms.
   const onCardFling         = options.onCardFling || null;
@@ -3335,6 +3337,10 @@ export function createDnc3DEngine(options = {}) {
     applyAlwaysIcons();
     refreshPileCounts();
 
+    // Regions created already slid aside (e.g. the mobile hidden-piles drawer,
+    // built off-screen and then slid in) must be there before the first paint.
+    setRegionSlideX(_regionSlideX, 0);
+
     // ── Cleanup ──────────────────────────────────────────────────────────────
     return function cleanup() {
       tiltEl.removeEventListener('pointermove',  onTiltPointerMove);
@@ -4524,6 +4530,41 @@ export function createDnc3DEngine(options = {}) {
   // Called by the React layer when the touchMode user setting changes. Touch mode
   // is a live toggle (a user can flip it mid-game from Settings), so this
   // re-sweeps every hover-gated affordance instead of relying on init-time state.
+  // Slides whole regions — their fill, outline and every card in them —
+  // sideways by px, optionally animated over `ms` (ease-out), without a
+  // re-init. map: { regionId: px }; a region left out (or 0) goes back to 0.
+  // Uses the CSS `translate` property, which composes with the `transform`
+  // the engine sets on these elements, so none of the engine's own
+  // positioning is disturbed. Drives the mobile hidden-piles drawer's piles,
+  // which slide with the drawer panel.
+  function slideEl(el, px, ms) {
+    if (!el) return;
+    if (ms) {
+      if (el._slideTimer) { clearTimeout(el._slideTimer); el.style.transition = el._slideBaseTransition || ''; }
+      el._slideBaseTransition = el.style.transition;
+      el.style.transition = (el._slideBaseTransition ? el._slideBaseTransition + ', ' : '') + `translate ${ms}ms ease-out`;
+      el._slideTimer = setTimeout(() => {
+        el.style.transition = el._slideBaseTransition || '';
+        el._slideTimer = null;
+      }, ms + 50);
+    }
+    el.style.translate = px ? `${px}px 0` : '';
+  }
+  function setRegionSlideX(map = {}, ms = 0) {
+    const next = { ...map };   // map may be _regionSlideX itself (init)
+    const ids = new Set([...Object.keys(_regionSlideX), ...Object.keys(next)]);
+    Object.keys(_regionSlideX).forEach(k => delete _regionSlideX[k]);
+    Object.entries(next).forEach(([k, v]) => { if (v) _regionSlideX[k] = v; });
+    ids.forEach(id => {
+      const px = _regionSlideX[id] || 0;
+      [regionFillEls[id], regionOutlineEls[id], scrollOuterEls[id]].forEach(el => slideEl(el, px, ms));
+    });
+    Object.values(cards).forEach(c => {
+      const px = (c.regionId && _regionSlideX[c.regionId]) || 0;
+      if (px || c.liftEl?.style.translate) slideEl(c.liftEl, px, ms);
+    });
+  }
+
   function setTouchMode(touchMode) {
     if (touchMode === _touchMode) return;
     _touchMode = touchMode;
@@ -4686,5 +4727,5 @@ export function createDnc3DEngine(options = {}) {
     });
   }
 
-  return { init, applyTilt, applyTableOpacity, setCurrentDeg, onTiltUpdated, reconcile, openBrowse, closeBrowse, updateBrowseFilter, getCardElements, syncOverlay, animatePileShuffle, setHoverSuppressed, setTouchMode, setAlwaysShowPileCounts, setAlwaysShowGroupIcons, spawnCards, despawnCards, repaintCardFaces };
+  return { init, applyTilt, applyTableOpacity, setCurrentDeg, onTiltUpdated, reconcile, openBrowse, closeBrowse, updateBrowseFilter, getCardElements, syncOverlay, animatePileShuffle, setHoverSuppressed, setTouchMode, setAlwaysShowPileCounts, setAlwaysShowGroupIcons, spawnCards, despawnCards, repaintCardFaces, setRegionSlideX };
 }
