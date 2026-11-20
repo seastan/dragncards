@@ -1,30 +1,18 @@
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { DropdownMenuCommon } from "./DropdownMenuCommon";
-import { useVisibleFaceSrc } from "./hooks/useVisibleFaceSrc";
+import { MobileCardWithTokens } from "./MobileCardTokens";
 import { setActiveCardId, setDropdownMenu } from "../store/playerUiSlice";
 import { Z_INDEX } from "./functions/common";
 
 // Mobile UI's replacement for the floating card / group menu, which a phone
 // screen clips. A full-screen sheet:
-//   top 1/2  — the card, as large as it fits (a group menu shows its title)
+//   top 1/2  — the card and its token adjusters (MobileCardTokens); a group
+//              menu shows its title
 //   next 1/3 — the menu's options, scrollable
 //   last 1/6 — "View table", which closes the sheet
 // The options are the regular menus (DropdownMenuCommon) in embedded mode, so
 // everything a plugin adds to its card/group menus shows up here unchanged.
-
-const CardImage = ({ cardId }) => {
-  const src = useVisibleFaceSrc(cardId);
-  if (!src?.src) return null;
-  return (
-    <img
-      alt=""
-      src={src.src}
-      onError={(e) => { if (src.default && e.currentTarget.src !== src.default) e.currentTarget.src = src.default; }}
-      style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: 10, boxShadow: "0 6px 24px rgba(0,0,0,0.7)" }}
-    />
-  );
-};
 
 export const MobileMenuSheet = React.memo(() => {
   const dispatch = useDispatch();
@@ -54,10 +42,10 @@ export const MobileMenuSheet = React.memo(() => {
         color: "white",
       }}>
       <div
-        onClick={close}
-        style={{ flex: "0 0 50%", minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 12 }}>
+        onClick={isCard ? undefined : close}
+        style={{ flex: "0 0 50%", minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 12, boxSizing: "border-box" }}>
         {isCard
-          ? <CardImage cardId={dropdownMenu.cardId}/>
+          ? <MobileCardWithTokens cardId={dropdownMenu.cardId} onImageTap={close}/>
           : <div style={{ fontSize: 22, fontWeight: 600, textAlign: "center" }}>{dropdownMenu.title}</div>}
       </div>
       <div
