@@ -29,9 +29,11 @@ import { TOKEN_EXTRUDE, TOKEN_EXTRUDE_FILTER_ID } from './lib/config';
 import { useLayout } from '../engine/hooks/useLayout';
 import './Dnc3DTable.css';
 
-// Mobile layouts measure cardSize in 1% of the screen's shorter side (its
-// width, in portrait) rather than 1% of its height — see engine _cardUnitPx.
-const mobileCardUnitPx = () => Math.min(window.innerWidth, window.innerHeight) / 100;
+// Mobile layouts measure cardSize in 1% of the table area's height (the stage,
+// between the mobile top and bottom bars) rather than of the window's, so a
+// card fits its row — also a fraction of that height — the same on any device,
+// whatever its width. See engine _cardUnitPx.
+const mobileCardUnitPx = (stageEl) => () => (stageEl?.clientHeight || window.innerHeight) / 100;
 
 // CSS `filter` value handed to each token's <img> when the extrusion prototype
 // is on; null when off so the shared Token component renders unchanged.
@@ -301,7 +303,7 @@ export default function Dnc3DTable({
         playerN:            observingPlayerRef.current,
         cardSize:           cardSizeRef.current,
         zoomFactor:         zoomFactorRef.current,
-        ...(isMobileLayoutRef.current ? { cardUnitPx: mobileCardUnitPx, browseAtTop: true } : {}),
+        ...(isMobileLayoutRef.current ? { cardUnitPx: mobileCardUnitPx(tiltEl.parentElement), browseAtTop: true } : {}),
         regionSlideX: regionSlideXRef.current || {},
         // gameDef.cardFling: a card released mid-swipe runs an action list
         // instead of dropping (see validate/getGameDefSchema.js for the options).

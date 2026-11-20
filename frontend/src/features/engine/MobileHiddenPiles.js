@@ -63,7 +63,7 @@ export const useHiddenPilesGeometry = (enabled, tableSize, page) => {
 
   // Same card size the 3D table uses for the mobile layout (Dnc3DTable's
   // mobileCardUnitPx and the engine's cardDefaultW/H from any card back).
-  const unit = Math.min(window.innerWidth, window.innerHeight) / 100;
+  const unit = tableSize.h / 100;   // 1% of the table area's height
   const back = Object.values(gameDef?.cardBacks || {})[0];
   const cardH = (back?.height ?? 1) * (layout?.cardSize || 16) * zoom * unit;
   const cardW = (back?.width ?? 0.72) * (layout?.cardSize || 16) * zoom * unit;

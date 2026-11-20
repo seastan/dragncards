@@ -37,7 +37,7 @@ Same shape as an entry of `gameDef.layouts`, with these differences:
 | | |
 |---|---|
 | One layout for every player count | Shared regions are always shown. A region whose `groupId` contains `playerN` shows the board of the player currently on screen. You don't write separate 1/2/3/4-player mobile layouts. |
-| `cardSize` | Measured in 1% of the screen's **shorter side** (the width, in portrait), not 1% of the height. `cardSize: 22` → a card about 22% of the screen width tall, so about six cards fit across a row. |
+| `cardSize` | Measured in 1% of the **table area's height** (between the mobile top and bottom bars), which region positions are also fractions of, so a card fits its row the same on a phone or a tablet; width only changes how many fit across. With seven rows of 1/7 (≈14.3%), `cardSize: 12` leaves a little room in each. |
 | `chat` | Optional and ignored; chat has its own panel. |
 | `hiddenPiles` | Groups kept off the table and shown as piles in the Piles drawer instead. Each entry is a groupId, or `{"groupId": ..., "showWhenEmpty": true}`: empty piles are left out unless marked, and a pile you drop the first card onto (a discard) needs the mark. `playerN` resolves to the player on screen. |
 | `region.perspective` | `"viewed"` (default) follows the on-screen player. `"self"` always means the viewer's own seat — use it for your hand so it stays yours while you look at a teammate's board. |
@@ -55,7 +55,7 @@ discard), and your hand. The other piles live in the drawer.
 ```json
 {
   "mobileLayout": {
-    "cardSize": 22,
+    "cardSize": 12,
     "rowSpacing": 3,
     "regions": {
       "sharedMainQuest":        {"groupId": "sharedMainQuest",        "type": "row",  "direction": "horizontal", "left": 0,    "top": 0,     "width": 0.3,  "height": "1/7"},

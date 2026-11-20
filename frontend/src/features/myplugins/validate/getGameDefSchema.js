@@ -1884,7 +1884,7 @@ const getMobileLayoutSchema = (layoutSchema) => {
   const regionSchema = layoutSchema.regions._itemSchema_;
   return {
     ...layoutSchema,
-    "_description_": "Optional layout used by the Mobile UI (a per-device setting) in place of gameDef.layouts. One layout serves every player count: shared regions are always shown, and regions whose groupId contains playerN show the board of the player currently on screen, which the user switches between with the player chips. cardSize is measured in 1% of the screen's shorter side (its width, in portrait) instead of 1% of its height. Design it for a portrait phone.",
+    "_description_": "Optional layout used by the Mobile UI (a per-device setting) in place of gameDef.layouts. One layout serves every player count: shared regions are always shown, and regions whose groupId contains playerN show the board of the player currently on screen, which the user switches between with the player chips. cardSize is measured in 1% of the table area's height (the space between the mobile top and bottom bars, which region positions are also fractions of), so a card fits its row the same way on any device; width only changes how many fit across. Design it for a portrait phone.",
     "_required_": false,
     "chat": {
       ...layoutSchema.chat,

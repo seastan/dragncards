@@ -113,8 +113,9 @@ export function createDnc3DEngine(options = {}) {
   const _zoomFactor         = options.zoomFactor         || 1.0;
   // Pixels per cardSize unit. Desktop layouts measure cards in dvh (1% of the
   // viewport height), matching the 2D renderer. The mobile layout passes 1% of
-  // the viewport's SHORTER side instead: in portrait the width is what limits
-  // how many cards fit across a row, and a dvh-based card would be far too big.
+  // the table area's height instead (the space between its top and bottom
+  // bars), the same space its rows are fractions of — so cards fit their rows
+  // identically on any device, whatever its width.
   const _cardUnitPx         = options.cardUnitPx         || (() => window.innerHeight / 100);
   const _browseAtTop        = !!options.browseAtTop;
   // { regionId: px } — regions shifted sideways (see setRegionSlideX).
