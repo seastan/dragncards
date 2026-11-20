@@ -114,6 +114,10 @@ export const useHiddenPilesGeometry = (enabled, tableSize, page) => {
   return { rows, top, width, height, cellW, rowH, page: p, pageCount, paged, layerZ };
 };
 
+// How far the drawer (panel and piles) is slid off the left edge while closed:
+// its width plus enough that its drop shadow doesn't peek in either.
+export const drawerParkedOffset = (geometry) => geometry.width + 40;
+
 // Layout regions for the drawer's piles, keyed apart from the layout's own.
 export const hiddenPileRegions = (geometry) => {
   const regions = {};
@@ -180,9 +184,9 @@ const PileInfo = ({ row, geometry, onDone }) => {
 };
 
 // The drawer panel, rendered in the table's 3D space (Dnc3DTable tiltOverlay).
-// `slidIn` drives the slide from the screen's left edge; onSlideEnd fires when
-// a slide finishes (MobileTable adds the pile regions once it's in).
-export const HiddenPilesDrawer = ({ geometry, slidIn, setPage, onDone, onSlideEnd }) => {
+// `slidIn` drives the slide from the screen's left edge. It stays mounted while
+// closed, parked off-screen with its piles (see MobileTable).
+export const HiddenPilesDrawer = ({ geometry, slidIn, setPage, onDone }) => {
   const ref = useRef(null);
   const mounted = !!geometry;
 
@@ -205,7 +209,7 @@ export const HiddenPilesDrawer = ({ geometry, slidIn, setPage, onDone, onSlideEn
   // the same frame as the piles' slide (Dnc3DTable applies regionSlideX from
   // an effect too); set through render, the panel ran a frame ahead of them.
   const slideTransform = geometry
-    ? `translateZ(${geometry.layerZ - 0.5}px) translateX(${slidIn ? 0 : -(geometry.width + 24)}px)`
+    ? `translateZ(${geometry.layerZ - 0.5}px) translateX(${slidIn ? 0 : -drawerParkedOffset(geometry)}px)`
     : "";
   useEffect(() => {
     if (ref.current) ref.current.style.transform = slideTransform;
@@ -222,7 +226,6 @@ export const HiddenPilesDrawer = ({ geometry, slidIn, setPage, onDone, onSlideEn
     <div
       ref={ref}
       onClick={(e) => e.stopPropagation()}
-      onTransitionEnd={(e) => { if (e.target === ref.current && e.propertyName === "transform") onSlideEnd(); }}
       style={{
         position: "absolute",
         left: 0,

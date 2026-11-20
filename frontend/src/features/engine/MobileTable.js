@@ -17,7 +17,7 @@ import { useDoActionList } from "./hooks/useDoActionList";
 import { usePlayerIList } from "./hooks/usePlayerIList";
 import useProfile from "../../hooks/useProfile";
 import { Z_INDEX } from "./functions/common";
-import { useHiddenPilesGeometry, hiddenPileRegions, HiddenPilesDrawer, SLIDE_MS } from "./MobileHiddenPiles";
+import { useHiddenPilesGeometry, hiddenPileRegions, HiddenPilesDrawer, SLIDE_MS, drawerParkedOffset } from "./MobileHiddenPiles";
 
 // Phone-first table (mobile UI). Portrait, flat (0° tilt) 3D renderer, driven by
 // the plugin's gameDef.mobileLayout (see functions/mobileLayout.js).
@@ -234,39 +234,16 @@ export const MobileTable = React.memo(() => {
   const doActionList = useDoActionList();
   const [menuOpen, setMenuOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  // Hidden piles drawer: "closed" → "opening" (sliding in) → "open" →
-  // "closing" (sliding out) → "closed". Its piles are table regions for the
-  // whole time it's showing: they join the table off-screen as it starts to
-  // open (adding regions rebuilds the table, so that happens before the slide,
-  // not during it), slide with the panel (Dnc3DTable regionSlideX), and leave
-  // once it has slid away.
-  const [pilesPhase, setPilesPhase] = useState("closed");
-  const [pilesSlidIn, setPilesSlidIn] = useState(false);
+  // Hidden piles drawer. Its piles are table regions for as long as the mobile
+  // table is up, parked off-screen (with the drawer panel) while it's closed:
+  // opening and closing then only slide things that already exist. Adding or
+  // removing regions rebuilds the whole table — ~150ms on a fast laptop, more
+  // on a phone — so doing that on every open made the slide start late. It
+  // still rebuilds when the drawer's pile list changes (a pile gets its first
+  // card, the pager turns), which comes from game actions, not the button.
+  const [pilesOpen, setPilesOpen] = useState(false);
   const [pilesPage, setPilesPage] = useState(0);
-  const pilesOpen = pilesPhase === "opening" || pilesPhase === "open";
-  const setPilesOpen = (open) => {
-    if (open && (pilesPhase === "closed" || pilesPhase === "closing")) setPilesPhase("opening");
-    if (!open && (pilesPhase === "opening" || pilesPhase === "open")) { setPilesPhase("closing"); setPilesSlidIn(false); }
-  };
-  // Mounted off-screen first, then slid in on the next frame so the transition
-  // runs.
-  useEffect(() => {
-    if (pilesPhase !== "opening") return;
-    const id = requestAnimationFrame(() => requestAnimationFrame(() => setPilesSlidIn(true)));
-    return () => cancelAnimationFrame(id);
-  }, [pilesPhase]);
-  // transitionend can be missed (e.g. the panel re-mounts during a table
-  // rebuild), so each slide also completes on a timer.
-  useEffect(() => {
-    if (pilesPhase !== "opening" && pilesPhase !== "closing") return;
-    if (pilesPhase === "opening" && !pilesSlidIn) return;
-    const t = setTimeout(() => setPilesPhase(pilesPhase === "opening" ? "open" : "closed"), SLIDE_MS + 60);
-    return () => clearTimeout(t);
-  }, [pilesPhase, pilesSlidIn]);
-  const onPilesSlideEnd = () => {
-    if (pilesPhase === "opening" && pilesSlidIn) setPilesPhase("open");
-    if (pilesPhase === "closing") setPilesPhase("closed");
-  };
+  const pilesSlidIn = pilesOpen;
 
   // The drawer's piles are table regions positioned in px, so it needs the
   // table area's size.
@@ -285,13 +262,11 @@ export const MobileTable = React.memo(() => {
     return () => ro.disconnect();
   }, []);
 
-  const pilesGeometry = useHiddenPilesGeometry(pilesPhase !== "closed", tableSize, pilesPage);
-  // The piles are on the table whenever the drawer is, sliding with it: added
-  // (off-screen) when it starts to open, removed once it has slid away.
+  const pilesGeometry = useHiddenPilesGeometry(true, tableSize, pilesPage);
   const pilesLive = pilesGeometry;
   const pileSlideX = useMemo(() => {
     if (!pilesGeometry) return null;
-    const px = pilesSlidIn ? 0 : -(pilesGeometry.width + 24);   // same as the panel
+    const px = pilesSlidIn ? 0 : -drawerParkedOffset(pilesGeometry);   // same as the panel
     const map = {};
     pilesGeometry.rows.forEach(r => { map[r.groupId] = px; });
     return map;
@@ -349,7 +324,6 @@ export const MobileTable = React.memo(() => {
               slidIn={pilesSlidIn}
               setPage={setPilesPage}
               onDone={() => setPilesOpen(false)}
-              onSlideEnd={onPilesSlideEnd}
             />}
         />
         {menuOpen && <MenuRow/>}
