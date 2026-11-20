@@ -89,6 +89,11 @@ export default function Dnc3DTable({
   gameDef,
   language,
   doActionList,
+  // React content drawn inside the table's 3D space (positioned in table px,
+  // free to translateZ), so it shares the table's perspective and depth
+  // ordering — e.g. the mobile hidden-piles drawer, which has to line up with
+  // its elevated pile regions and sit under a card being dragged over it.
+  tiltOverlay = null,
 }) {
   const dispatch         = useDispatch();
   const browseTopN       = useBrowseTopN();
@@ -133,6 +138,19 @@ export default function Dnc3DTable({
   const [tokenPortals, setTokenPortals] = useState([]);
 
   const tiltRef         = useRef(null);
+  // Host for tiltOverlay. The engine empties tiltEl on every re-init, so this
+  // element is ours (React's portal target stays valid) and is re-appended
+  // after each init.
+  const overlayHostRef  = useRef(null);
+  if (!overlayHostRef.current && typeof document !== 'undefined') {
+    const host = document.createElement('div');
+    host.className = 'dnc3d-tilt-overlay';
+    Object.assign(host.style, {
+      position: 'absolute', left: '0', top: '0', width: '100%', height: '100%',
+      pointerEvents: 'none', transformStyle: 'preserve-3d',
+    });
+    overlayHostRef.current = host;
+  }
   const engineRef       = useRef(null);
   const idMapRef        = useRef(null);
   // Tracks dcCardIds seen on the previous init so we can detect newly-spawned
@@ -410,6 +428,7 @@ export default function Dnc3DTable({
 
     engine.applyTilt(tiltEl, tiltDegRef.current);
     const cleanup = engine.init(tiltEl, tiltDegRef.current, initData);
+    if (overlayHostRef.current) tiltEl.appendChild(overlayHostRef.current);
 
     if (connected && reverseIdMap) {
       const portals = engine.getCardElements().flatMap(({ id, tokenHostEl, faceW, faceH }) => {
@@ -638,6 +657,7 @@ export default function Dnc3DTable({
         if (tableButton.visible === false) return null;
         return <TableButton key={id} tableButton={tableButton} />;
       })}
+      {tiltOverlay && overlayHostRef.current && createPortal(tiltOverlay, overlayHostRef.current)}
       {tokenPortals.map(({ dcId, tokenHostEl, aspectRatio }) =>
         createPortal(<CardTokens cardId={dcId} aspectRatio={aspectRatio} />, tokenHostEl, dcId)
       )}

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars, faEye, faChevronUp, faChevronDown } from "@fortawesome/free-solid-svg-icons";
@@ -8,26 +8,33 @@ import { useFormatGroupId } from "./hooks/useFormatGroupId";
 import { useGameL10n } from "./hooks/useGameL10n";
 import { useBrowseTopN } from "./hooks/useBrowseTopN";
 import { setDropdownMenu } from "../store/playerUiSlice";
-import { Z_INDEX } from "./functions/common";
+import { LAYER_Z_FRAC, perspectivePx } from "../engine-dnc3d/lib/config";
 
 // The mobile layout's hidden piles drawer (gameDef.mobileLayout.hiddenPiles).
 //
 // The piles are real table regions while the drawer is open — not pictures of
 // piles — so cards drag onto and off them like any other region. Each row is a
 // `pile` region on the left (added to the layout the 3D table renders; it draws
-// the cards and takes the drops) and, beside it, a column drawn here with the
-// pile's name, count, and browse / menu buttons. Because the piles are regions
-// they can't sit in a scrolling box, so more than ROWS_PER_PAGE piles page with
-// the arrows instead.
+// the cards and takes the drops) and, beside it, the pile's name, count, and
+// browse / menu buttons.
 //
-// Empty piles are left out, except entries marked showWhenEmpty: something has
-// to be there to drop the first card onto a discard pile.
+// The drawer itself (background, labels, buttons) is drawn INSIDE the table's
+// 3D space (Dnc3DTable's tiltOverlay), at the height of the raised pile regions.
+// That matters twice over: raised content is magnified by the perspective, so
+// a drawer drawn over the table as page content drifted out of line with its
+// piles, more so further from the screen's centre; and a card being dragged is
+// lifted higher still, so it passes over the drawer rather than under it.
+//
+// Regions can't sit in a scrolling box, so more than ROWS_PER_PAGE piles page
+// with the arrows. Empty piles are left out, except entries marked
+// showWhenEmpty: something has to be there to drop the first card onto.
 
 const ROWS_PER_PAGE = 4;
 const MARGIN = 8;            // px between the drawer and the table's bottom edge
-const PAGER_H = 28;
+const PAGER_H = 36;
 export const DRAWER_BG = "rgb(24,24,30)";
 const LAYER = 2;             // above the table's own regions
+export const SLIDE_MS = 200;
 
 const normalizeEntry = (entry) => (typeof entry === "string" ? { groupId: entry } : entry || {});
 
@@ -47,12 +54,12 @@ export const useHiddenPileList = () => {
 // Pixel geometry of the drawer and the regions for the piles on this page.
 // tableSize is the measured size of the table area (the 3D stage); region
 // positions are fractions of it, as layout regions are.
-export const useHiddenPilesGeometry = (open, tableSize, page) => {
+export const useHiddenPilesGeometry = (enabled, tableSize, page) => {
   const layout = useLayout();
   const gameDef = useGameDefinition();
   const zoom = useSelector(state => (state?.playerUi?.userSettings?.zoomPercent ?? 100) / 100);
   const piles = useHiddenPileList();
-  if (!open || !tableSize?.w || !tableSize?.h) return null;
+  if (!enabled || !tableSize?.w || !tableSize?.h) return null;
 
   // Same card size the 3D table uses for the mobile layout (Dnc3DTable's
   // mobileCardUnitPx and the engine's cardDefaultW/H from any card back).
@@ -72,15 +79,24 @@ export const useHiddenPilesGeometry = (open, tableSize, page) => {
   const shown = piles.slice(p * rowsPerPage, (p + 1) * rowsPerPage);
   const paged = pageCount > 1;
 
-  const height = shown.length * rowH + (paged ? PAGER_H : 0);
-  const top = tableSize.h - MARGIN - height;
-  const rowsTop = top + (paged ? PAGER_H : 0);
+  const height = (shown.length ? shown.length * rowH : 48) + (paged ? PAGER_H : 0);
+
+  // Depth of the raised pile regions (engine: layerZPx(cardH) * layerIndex).
+  // At that depth the perspective (centred on the table) magnifies everything
+  // by P / (P - Z), so place the drawer such that its magnified bottom edge
+  // lands MARGIN px above the table's bottom on screen.
+  const layerZ = LAYER_Z_FRAC * cardH * LAYER;
+  const P = perspectivePx();
+  const scale = P / (P - layerZ);
+  const cy = tableSize.h / 2;
+  const top = cy + (tableSize.h - MARGIN - cy) / scale - height;
+  const rowsTop = paged ? PAGER_H : 0;   // within the drawer
 
   const rows = shown.map((pile, i) => {
-    const y = rowsTop + i * rowH;
+    const y = top + rowsTop + i * rowH;   // in the table
     return {
       ...pile,
-      y,
+      yInDrawer: rowsTop + i * rowH,
       region: {
         groupId: pile.groupId,
         type: "pile",
@@ -95,7 +111,7 @@ export const useHiddenPilesGeometry = (open, tableSize, page) => {
     };
   });
 
-  return { rows, top, width, height, cellW, rowH, page: p, pageCount, paged };
+  return { rows, top, width, height, cellW, rowH, page: p, pageCount, paged, layerZ };
 };
 
 // Layout regions for the drawer's piles, keyed apart from the layout's own.
@@ -136,25 +152,19 @@ const PileInfo = ({ row, geometry, onDone }) => {
   const label = gameL10n(group.label);
   const count = group.stackIds?.length || 0;
   return (
-    <div
-      onClick={(e) => e.stopPropagation()}
-      style={{
-        position: "absolute",
-        // Overlaps the pile cell by a few px so no sliver of table shows between.
-        left: geometry.cellW - 4,
-        top: row.y,
-        width: geometry.width - geometry.cellW + 4,
-        height: geometry.rowH,
-        boxSizing: "border-box",
-        padding: "6px 8px 6px 2px",
-        background: DRAWER_BG,
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        color: "white",
-        zIndex: Z_INDEX.ChatHover,
-      }}>
+    <div style={{
+      position: "absolute",
+      left: geometry.cellW,
+      top: row.yInDrawer,
+      width: geometry.width - geometry.cellW,
+      height: geometry.rowH,
+      boxSizing: "border-box",
+      padding: "6px 8px 6px 2px",
+      borderBottom: "1px solid rgba(255,255,255,0.06)",
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "space-between",
+    }}>
       <div style={{ fontSize: 12, lineHeight: 1.2, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
         {label}
       </div>
@@ -169,52 +179,74 @@ const PileInfo = ({ row, geometry, onDone }) => {
   );
 };
 
-// The part of the drawer drawn as page content: each pile's info column and the
-// pager. The piles themselves are the regions from hiddenPileRegions.
-export const HiddenPilesOverlay = ({ geometry, setPage, onDone }) => {
+// The drawer panel, rendered in the table's 3D space (Dnc3DTable tiltOverlay).
+// `slidIn` drives the slide from the screen's left edge; onSlideEnd fires when
+// a slide finishes (MobileTable adds the pile regions once it's in).
+export const HiddenPilesDrawer = ({ geometry, slidIn, setPage, onDone, onSlideEnd }) => {
+  const ref = useRef(null);
+  const mounted = !!geometry;
+
+  // The table listens for pointerdown on its own element (tiltEl), which this
+  // panel now sits inside; React's stopPropagation can't stop a native listener
+  // on an ancestor, so stop it natively before it reaches the table.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const stop = (e) => e.stopPropagation();
+    el.addEventListener("pointerdown", stop);
+    el.addEventListener("contextmenu", stop);
+    return () => {
+      el.removeEventListener("pointerdown", stop);
+      el.removeEventListener("contextmenu", stop);
+    };
+  }, [mounted]);
+
   if (!geometry) return null;
-  if (geometry.rows.length === 0) {
-    return (
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          position: "absolute", left: 0, bottom: MARGIN, width: geometry.width, padding: 12,
-          background: DRAWER_BG, borderRadius: "0 12px 12px 0", color: "rgba(255,255,255,0.6)",
-          fontSize: 12, zIndex: Z_INDEX.ChatHover,
-        }}>
-        No hidden piles have cards.
-      </div>
-    );
-  }
   return (
-    <>
+    <div
+      ref={ref}
+      onClick={(e) => e.stopPropagation()}
+      onTransitionEnd={(e) => { if (e.target === ref.current && e.propertyName === "transform") onSlideEnd(); }}
+      style={{
+        position: "absolute",
+        left: 0,
+        top: geometry.top,
+        width: geometry.width,
+        height: geometry.height,
+        // Half a px under the piles' cards (which rest at layerZ), above the
+        // region fills (layerZ - 1) and everything on the table below.
+        transform: `translateZ(${geometry.layerZ - 0.5}px) translateX(${slidIn ? 0 : -(geometry.width + 24)}px)`,
+        transition: `transform ${SLIDE_MS}ms ease-out`,
+        background: DRAWER_BG,
+        borderRadius: "0 12px 12px 0",
+        boxShadow: "6px 0 20px rgba(0,0,0,0.6)",
+        color: "white",
+        pointerEvents: "auto",
+        overflow: "hidden",
+      }}>
       {geometry.paged &&
-        <div
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            position: "absolute",
-            left: 0,
-            top: geometry.top,
-            width: geometry.width,
-            height: PAGER_H,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "0 6px",
-            boxSizing: "border-box",
-            background: DRAWER_BG,
-            borderRadius: "0 12px 0 0",
-            borderBottom: "1px solid rgba(255,255,255,0.08)",
-            color: "white",
-            fontSize: 11,
-            zIndex: Z_INDEX.ChatHover,
-          }}>
+        <div style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          width: "100%",
+          height: PAGER_H,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 6px",
+          boxSizing: "border-box",
+          borderBottom: "1px solid rgba(255,255,255,0.08)",
+          fontSize: 11,
+        }}>
           <IconButton icon={faChevronUp} onClick={() => setPage(Math.max(0, geometry.page - 1))}/>
           <span style={{ opacity: 0.7 }}>{geometry.page + 1} / {geometry.pageCount}</span>
           <IconButton icon={faChevronDown} onClick={() => setPage(Math.min(geometry.pageCount - 1, geometry.page + 1))}/>
         </div>
       }
-      {geometry.rows.map(row => <PileInfo key={row.groupId} row={row} geometry={geometry} onDone={onDone}/>)}
-    </>
+      {geometry.rows.length === 0
+        ? <div style={{ padding: 12, fontSize: 12, color: "rgba(255,255,255,0.6)" }}>No hidden piles have cards.</div>
+        : geometry.rows.map(row => <PileInfo key={row.groupId} row={row} geometry={geometry} onDone={onDone}/>)}
+    </div>
   );
 };

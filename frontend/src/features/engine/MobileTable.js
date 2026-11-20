@@ -17,7 +17,7 @@ import { useDoActionList } from "./hooks/useDoActionList";
 import { usePlayerIList } from "./hooks/usePlayerIList";
 import useProfile from "../../hooks/useProfile";
 import { Z_INDEX } from "./functions/common";
-import { useHiddenPilesGeometry, hiddenPileRegions, HiddenPilesOverlay } from "./MobileHiddenPiles";
+import { useHiddenPilesGeometry, hiddenPileRegions, HiddenPilesDrawer, SLIDE_MS } from "./MobileHiddenPiles";
 
 // Phone-first table (mobile UI). Portrait, flat (0° tilt) 3D renderer, driven by
 // the plugin's gameDef.mobileLayout (see functions/mobileLayout.js).
@@ -234,8 +234,38 @@ export const MobileTable = React.memo(() => {
   const doActionList = useDoActionList();
   const [menuOpen, setMenuOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  const [pilesOpen, setPilesOpen] = useState(false);
+  // Hidden piles drawer: "closed" → "opening" (sliding in) → "open" (its piles
+  // are live table regions) → "closing" (piles gone, sliding out) → "closed".
+  // The piles only join the table once the panel is in place, and leave before
+  // it slides away: adding or removing regions rebuilds the table, which would
+  // otherwise happen mid-slide.
+  const [pilesPhase, setPilesPhase] = useState("closed");
+  const [pilesSlidIn, setPilesSlidIn] = useState(false);
   const [pilesPage, setPilesPage] = useState(0);
+  const pilesOpen = pilesPhase === "opening" || pilesPhase === "open";
+  const setPilesOpen = (open) => {
+    if (open && (pilesPhase === "closed" || pilesPhase === "closing")) setPilesPhase("opening");
+    if (!open && (pilesPhase === "opening" || pilesPhase === "open")) { setPilesPhase("closing"); setPilesSlidIn(false); }
+  };
+  // Mounted off-screen first, then slid in on the next frame so the transition
+  // runs.
+  useEffect(() => {
+    if (pilesPhase !== "opening") return;
+    const id = requestAnimationFrame(() => requestAnimationFrame(() => setPilesSlidIn(true)));
+    return () => cancelAnimationFrame(id);
+  }, [pilesPhase]);
+  // transitionend can be missed (e.g. the panel re-mounts during a table
+  // rebuild), so each slide also completes on a timer.
+  useEffect(() => {
+    if (pilesPhase !== "opening" && pilesPhase !== "closing") return;
+    if (pilesPhase === "opening" && !pilesSlidIn) return;
+    const t = setTimeout(() => setPilesPhase(pilesPhase === "opening" ? "open" : "closed"), SLIDE_MS + 60);
+    return () => clearTimeout(t);
+  }, [pilesPhase, pilesSlidIn]);
+  const onPilesSlideEnd = () => {
+    if (pilesPhase === "opening" && pilesSlidIn) setPilesPhase("open");
+    if (pilesPhase === "closing") setPilesPhase("closed");
+  };
 
   // The drawer's piles are table regions positioned in px, so it needs the
   // table area's size.
@@ -254,10 +284,11 @@ export const MobileTable = React.memo(() => {
     return () => ro.disconnect();
   }, []);
 
-  const pilesGeometry = useHiddenPilesGeometry(pilesOpen, tableSize, pilesPage);
-  const pileRegionsKey = JSON.stringify(pilesGeometry?.rows?.map(r => r.region) || []);
+  const pilesGeometry = useHiddenPilesGeometry(pilesPhase !== "closed", tableSize, pilesPage);
+  const pilesLive = pilesPhase === "open" ? pilesGeometry : null;
+  const pileRegionsKey = JSON.stringify(pilesLive?.rows?.map(r => r.region) || []);
   const tableRegions = useMemo(
-    () => (pilesGeometry ? { ...layout?.regions, ...hiddenPileRegions(pilesGeometry) } : layout?.regions),
+    () => (pilesLive ? { ...layout?.regions, ...hiddenPileRegions(pilesLive) } : layout?.regions),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [layout?.regions, pileRegionsKey]
   );
@@ -300,9 +331,16 @@ export const MobileTable = React.memo(() => {
           gameDef={gameDef}
           language={language}
           doActionList={doActionList}
+          tiltOverlay={pilesGeometry &&
+            <HiddenPilesDrawer
+              geometry={pilesGeometry}
+              slidIn={pilesSlidIn}
+              setPage={setPilesPage}
+              onDone={() => setPilesOpen(false)}
+              onSlideEnd={onPilesSlideEnd}
+            />}
         />
         {menuOpen && <MenuRow/>}
-        <HiddenPilesOverlay geometry={pilesGeometry} setPage={setPilesPage} onDone={() => setPilesOpen(false)}/>
         {/* Chat / log sheet. Always mounted — MessageBox only collects messages
             while it exists — and slid out of view when closed. */}
         <div
