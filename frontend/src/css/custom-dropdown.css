@@ -185,3 +185,16 @@
   
     transition: height var(--speed) ease;
   }
+
+  /* Mobile card / group sheet (MobileMenuSheet): the "View table" button,
+     in the colours of the game's own controls. */
+  .mobile-sheet-button {
+    background-color: #374151;
+    transition: background-color 120ms ease-out;
+  }
+  .mobile-sheet-button:hover {
+    background-color: #4b5563;
+  }
+  .mobile-sheet-button:active {
+    background-color: #2d3748;
+  }

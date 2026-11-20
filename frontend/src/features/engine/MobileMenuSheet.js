@@ -73,21 +73,32 @@ export const MobileMenuSheet = React.memo(() => {
         }}>
         <DropdownMenuCommon mouseX={0} mouseY={0} embedded/>
       </div>
-      <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "8px 16px" }}>
+      {/* Styled like the game's own controls (top bar, Get Up / Look):
+          gray-700 on a gray-800 strip, gray-600 border, gray-200 text. */}
+      <div style={{
+        flex: "1 1 auto",
+        minHeight: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "10px 16px",
+        background: "#1f2937",
+      }}>
         <button
           type="button"
           onClick={close}
+          className="mobile-sheet-button"
           style={{
             width: "100%",
-            height: "100%",
-            maxHeight: 72,
-            borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.15)",
-            background: "#1d4ed8",
-            color: "white",
-            fontSize: 18,
-            fontWeight: 600,
+            height: 48,
+            borderRadius: 6,
+            border: "1px solid #4b5563",
+            color: "#e5e7eb",
+            fontSize: 16,
+            fontWeight: 500,
+            letterSpacing: "0.01em",
             touchAction: "manipulation",
+            WebkitTapHighlightColor: "transparent",
           }}>
           View table
         </button>
