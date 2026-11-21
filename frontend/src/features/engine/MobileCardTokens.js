@@ -17,8 +17,8 @@ import { useVisibleFaceSrc } from "./hooks/useVisibleFaceSrc";
 // Portrait card: card against the left edge, tokens in a column to its right.
 // Landscape card: card along the top, tokens below it in two rows.
 
-const BTN = 38;      // − / + button size
-const ICON = 34;     // token image size
+const BTN = 28;      // − / + button size
+const ICON = 26;     // token image size
 
 const useCardTokenTypes = (cardId) => {
   const gameDef = useGameDefinition();
@@ -43,10 +43,10 @@ const StepButton = ({ label, onClick }) => (
       width: BTN,
       height: BTN,
       flexShrink: 0,
-      borderRadius: 6,
+      borderRadius: 5,
       border: "1px solid #4b5563",
       color: "#e5e7eb",
-      fontSize: 22,
+      fontSize: 17,
       fontWeight: 500,
       lineHeight: 1,
       padding: 0,
@@ -88,11 +88,11 @@ const TokenAdjuster = ({ cardId, tokenType }) => {
 
   const shown = tokenDef?.modifier && amount >= 0 ? `+${amount}` : `${amount}`;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
       <StepButton label="−" onClick={() => step(-1)}/>
       <div
         title={gameL10n(tokenDef?.label)}
-        style={{ position: "relative", width: ICON + 18, height: ICON, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        style={{ position: "relative", width: ICON + 14, height: ICON, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
         <img alt={gameL10n(tokenDef?.label) || tokenType} src={tokenDef?.imageUrl} style={{ width: ICON, height: ICON, objectFit: "contain", opacity: amount === 0 ? 0.45 : 1 }}/>
         <span style={{
           position: "absolute",
@@ -100,7 +100,7 @@ const TokenAdjuster = ({ cardId, tokenType }) => {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: 17,
+          fontSize: 13,
           fontWeight: 700,
           color: "white",
           textShadow: "0 0 3px #000, 0 0 3px #000, 0 0 6px #000",
@@ -156,8 +156,8 @@ export const MobileCardWithTokens = ({ cardId, onImageTap }) => {
             gridTemplateRows: "repeat(2, auto)",
             gridAutoFlow: "column",
             gridAutoColumns: "max-content",
-            columnGap: 18,
-            rowGap: 8,
+            columnGap: 14,
+            rowGap: 6,
             width: "max-content",
             margin: "0 auto",
           }}>
@@ -183,7 +183,7 @@ export const MobileCardWithTokens = ({ cardId, onImageTap }) => {
           display: "flex",
           flexDirection: "column",
           justifyContent: "safe center",
-          gap: 8,
+          gap: 6,
           paddingRight: 2,
         }}>
         {tokenTypes.map(t => <TokenAdjuster key={t} cardId={cardId} tokenType={t}/>)}
