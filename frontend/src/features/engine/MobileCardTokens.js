@@ -15,7 +15,8 @@ import { useVisibleFaceSrc } from "./hooks/useVisibleFaceSrc";
 //   a token can't go below 0 unless its def allows canBeNegative
 //
 // Portrait card: card against the left edge, tokens in a column to its right.
-// Landscape card: card along the top, tokens below it in two rows.
+// Landscape card: card along the top, tokens below it in three rows on an
+// upright screen (two if the screen is wider than tall).
 
 const BTN = 28;      // − / + button size
 const ICON = 26;     // token image size
@@ -153,7 +154,9 @@ export const MobileCardWithTokens = ({ cardId, onImageTap }) => {
         <div onClick={stop} style={{ flex: "0 0 auto", overflowX: "auto", WebkitOverflowScrolling: "touch", paddingBottom: 2 }}>
           <div style={{
             display: "grid",
-            gridTemplateRows: "repeat(2, auto)",
+            // Three rows on an upright screen (there's height to spare under a
+            // landscape card), two when the screen is wider than tall.
+            gridTemplateRows: `repeat(${window.innerHeight > window.innerWidth ? 3 : 2}, auto)`,
             gridAutoFlow: "column",
             gridAutoColumns: "max-content",
             columnGap: 14,
