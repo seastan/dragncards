@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars, faComment, faTimes, faEye, faLayerGroup } from "@fortawesome/free-solid-svg-icons";
+import { faBars, faComment, faTimes, faEye, faLayerGroup, faKeyboard } from "@fortawesome/free-solid-svg-icons";
 import Dnc3DTable from "../engine-dnc3d/Dnc3DTable";
 import { MenuBar } from "../../components/basic/Menu";
 import { TopBarMenu } from "./TopBarMenu";
@@ -17,6 +17,7 @@ import { useDoActionList } from "./hooks/useDoActionList";
 import { usePlayerIList } from "./hooks/usePlayerIList";
 import useProfile from "../../hooks/useProfile";
 import { Z_INDEX } from "./functions/common";
+import { MobileHotkeyList, SectionLabel, HotkeyLabel, hotkeyId, useGameHotkeyItems, useFavoriteHotkeys, useRunHotkey, useHotkeyLabel } from "./MobileHotkeys";
 import { useHiddenPilesGeometry, hiddenPileRegions, HiddenPilesDrawer, SLIDE_MS, drawerParkedOffset } from "./MobileHiddenPiles";
 
 // Phone-first table (mobile UI). Portrait, flat (0° tilt) 3D renderer, driven by
@@ -198,31 +199,118 @@ const BottomButton = ({ active, onClick, children, label }) => (
   </div>
 );
 
-const MobileBottomBar = ({ pilesOpen, setPilesOpen, chatOpen, setChatOpen }) => (
-  <div
-    onClick={(e) => e.stopPropagation()}
-    style={{
-      height: BOTTOM_H,
-      flexShrink: 0,
-      display: "flex",
-      alignItems: "stretch",
-      gap: 4,
-      padding: "3px 6px",
-      boxSizing: "border-box",
-      background: "#1f2937",
-      borderTop: "1px solid rgba(255,255,255,0.08)",
-      position: "relative",
-      zIndex: Z_INDEX.TopBarHover,
-    }}>
-    <BottomButton active={pilesOpen} label="PILES" onClick={() => { setPilesOpen(!pilesOpen); setChatOpen(false); }}>
-      <HiddenPilesIcon/>
-    </BottomButton>
-    <div style={{ flex: 1 }}/>
-    <BottomButton active={chatOpen} label="CHAT" onClick={() => { setChatOpen(!chatOpen); setPilesOpen(false); }}>
-      <FontAwesomeIcon icon={chatOpen ? faTimes : faComment}/>
-    </BottomButton>
-  </div>
-);
+// A starred hotkey on the bottom bar: its label (icons included), tap to run.
+const FavoriteHotkeyButton = ({ item }) => {
+  const runHotkey = useRunHotkey();
+  const labelOf = useHotkeyLabel();
+  return (
+    <div
+      onClick={(e) => { e.stopPropagation(); runHotkey(item); }}
+      className="mobile-sheet-button"
+      style={{
+        ...tapStyle,
+        flexShrink: 0,
+        maxWidth: 104,
+        minWidth: 44,
+        height: "100%",
+        boxSizing: "border-box",
+        padding: "0 8px",
+        borderRadius: 6,
+        border: "1px solid #4b5563",
+        color: "#e5e7eb",
+        fontSize: 11,
+        lineHeight: 1.15,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        overflow: "hidden",
+      }}>
+      <span style={{ overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+        <HotkeyLabel text={labelOf(item)} iconSize={18}/>
+      </span>
+    </div>
+  );
+};
+
+const MobileBottomBar = ({ pilesOpen, setPilesOpen, chatOpen, setChatOpen, hotkeysOpen, setHotkeysOpen }) => {
+  const { game, dragn } = useGameHotkeyItems();
+  const { favs } = useFavoriteHotkeys();
+  const byId = Object.fromEntries([...game, ...dragn].map(item => [hotkeyId(item), item]));
+  const favItems = favs.map(id => byId[id]).filter(Boolean);
+  const only = (which) => {
+    setPilesOpen(which === "piles" ? !pilesOpen : false);
+    setChatOpen(which === "chat" ? !chatOpen : false);
+    setHotkeysOpen(which === "hotkeys" ? !hotkeysOpen : false);
+  };
+  return (
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        height: BOTTOM_H,
+        flexShrink: 0,
+        display: "flex",
+        alignItems: "stretch",
+        gap: 4,
+        padding: "3px 6px",
+        boxSizing: "border-box",
+        background: "#1f2937",
+        borderTop: "1px solid rgba(255,255,255,0.08)",
+        position: "relative",
+        zIndex: Z_INDEX.TopBarHover,
+      }}>
+      <BottomButton active={pilesOpen} label="PILES" onClick={() => only("piles")}>
+        <HiddenPilesIcon/>
+      </BottomButton>
+      {/* Starred hotkeys; scrolls sideways when there are more than fit. */}
+      <div style={{ flex: 1, minWidth: 0, display: "flex", gap: 4, padding: "3px 0", overflowX: "auto", scrollbarWidth: "none" }}>
+        {favItems.map(item => <FavoriteHotkeyButton key={hotkeyId(item)} item={item}/>)}
+      </div>
+      <BottomButton active={hotkeysOpen} label="HOTKEYS" onClick={() => only("hotkeys")}>
+        <FontAwesomeIcon icon={hotkeysOpen ? faTimes : faKeyboard}/>
+      </BottomButton>
+      <BottomButton active={chatOpen} label="CHAT" onClick={() => only("chat")}>
+        <FontAwesomeIcon icon={chatOpen ? faTimes : faComment}/>
+      </BottomButton>
+    </div>
+  );
+};
+
+// Game and engine hotkeys, slid up from the bottom like chat. Tap a row to run
+// it (and close the sheet); star it to put it on the bottom bar.
+const HotkeysSheet = ({ open, onClose }) => {
+  const { game, dragn } = useGameHotkeyItems();
+  const favorites = useFavoriteHotkeys();
+  const runHotkey = useRunHotkey();
+  const run = (item) => { runHotkey(item); onClose(); };
+  return (
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: "60%",
+        transform: open ? "translateY(0)" : "translateY(105%)",
+        transition: "transform 0.2s ease-out",
+        visibility: open ? "visible" : "hidden",
+        background: "#242526",
+        borderTop: "1px solid rgba(255,255,255,0.12)",
+        borderRadius: "12px 12px 0 0",
+        boxShadow: "0 -8px 24px rgba(0,0,0,0.6)",
+        zIndex: Z_INDEX.ChatHover,
+        color: "white",
+        overflowY: "auto",
+        WebkitOverflowScrolling: "touch",
+      }}>
+      {game.length > 0 && <SectionLabel>Game hotkeys</SectionLabel>}
+      <MobileHotkeyList items={game} onRun={run} favorites={favorites}/>
+      <SectionLabel>DragnCards hotkeys</SectionLabel>
+      <MobileHotkeyList items={dragn} onRun={run} favorites={favorites}/>
+    </div>
+  );
+};
 
 // ── Table ──────────────────────────────────────────────────────────────────
 
@@ -234,6 +322,7 @@ export const MobileTable = React.memo(() => {
   const doActionList = useDoActionList();
   const [menuOpen, setMenuOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [hotkeysOpen, setHotkeysOpen] = useState(false);
   // Hidden piles drawer. Its piles are table regions for as long as the mobile
   // table is up, parked off-screen (with the drawer panel) while it's closed:
   // opening and closing then only slide things that already exist. Adding or
@@ -350,8 +439,9 @@ export const MobileTable = React.memo(() => {
           }}>
           <MessageBox hover={chatOpen}/>
         </div>
+        <HotkeysSheet open={hotkeysOpen} onClose={() => setHotkeysOpen(false)}/>
       </div>
-      <MobileBottomBar pilesOpen={pilesOpen} setPilesOpen={setPilesOpen} chatOpen={chatOpen} setChatOpen={setChatOpen}/>
+      <MobileBottomBar pilesOpen={pilesOpen} setPilesOpen={setPilesOpen} chatOpen={chatOpen} setChatOpen={setChatOpen} hotkeysOpen={hotkeysOpen} setHotkeysOpen={setHotkeysOpen}/>
     </div>
   );
 });

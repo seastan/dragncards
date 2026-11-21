@@ -8,7 +8,7 @@ import { useGameDefinition } from "./hooks/useGameDefinition";
 import { usePlayerIList } from "./hooks/usePlayerIList";
 import { useBrowseTopN } from "./hooks/useBrowseTopN";
 import { dragnActionLists } from "./functions/dragnActionLists";
-import { setDropdownMenu } from "../store/playerUiSlice";
+import { setActiveCardId, setDropdownMenu } from "../store/playerUiSlice";
 import { useSiteL10n } from "../../hooks/useSiteL10n";
 import { useGameL10n } from "./hooks/useGameL10n";
 import { Z_INDEX } from "./functions/common";
@@ -82,6 +82,19 @@ export const DropdownMenuGroup = React.memo(({
     ["LOG", "$ALIAS_N", " shuffled ", group.label]
   ]
 
+  const topCardId = useSelector(state => {
+    const stackId = state?.gameUi?.game?.groupById?.[menuGroup.id]?.stackIds?.[0];
+    return stackId ? state?.gameUi?.game?.stackById?.[stackId]?.cardIds?.[0] : null;
+  });
+  const topCardTitle = useSelector(state => {
+    const card = state?.gameUi?.game?.cardById?.[topCardId];
+    return card?.sides?.[card?.currentSide]?.name || "";
+  });
+  const selectTopCard = () => {
+    dispatch(setActiveCardId(topCardId));
+    dispatch(setDropdownMenu({ type: "card", cardId: topCardId, title: topCardTitle, visible: true }));
+  };
+
   const handleLookAtClick = (dropdownOptions) => {
     browseTopN(menuGroup.id, dropdownOptions.topN);
     dispatch(setDropdownMenu(null));
@@ -95,6 +108,11 @@ export const DropdownMenuGroup = React.memo(({
         <div className="menu-title">{dropdownMenu.title}</div>
         {activeMenu === "main" &&
         <div className="menu">
+          {/* Mobile card sheet only: a tap on a pile opens this menu rather
+              than the top card's, so offer the card from here. */}
+          {embedded && topCardId &&
+            <DropdownItem clickCallback={selectTopCard}>Select top card</DropdownItem>
+          }
           {gameDef?.groupMenu?.suppress?.includes("Shuffle") ? null :
             <DropdownItem action={actionListShuffle} clickCallback={handleDropdownClick}>{siteL10n("Shuffle")}</DropdownItem>
           }

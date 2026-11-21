@@ -1891,6 +1891,16 @@ const getMobileLayoutSchema = (layoutSchema) => {
       "_description_": "Ignored by the Mobile UI, which shows chat in its own panel.",
       "_required_": false,
     },
+    "textBoxes": {
+      ...layoutSchema.textBoxes,
+      "_itemSchema_": {
+        ...layoutSchema.textBoxes._itemSchema_,
+        "syncContent": {
+          "_description_": "When this text box's key also exists in the room's current layout, the Mobile UI shows that box's label and visibility (which game actions update, e.g. a round-advancement hint) with this box's own position and style. Set to false to opt out.",
+          "_type_": "boolean",
+        },
+      },
+    },
     "hiddenPiles": {
       "_description_": "Groups kept off the mobile table and shown instead as piles in the 'hidden piles' drawer (opened from the bottom bar): cards can be dragged onto and off them, and each has browse and menu buttons. Empty groups are left out unless the entry sets showWhenEmpty, which a pile you drop onto (a discard) usually wants. A groupId containing playerN resolves to the player whose board is on screen. Example: [{\"groupId\": \"playerNDiscard\", \"showWhenEmpty\": true}, \"sharedSetAside\"]",
       "_type_": "array",

@@ -68,7 +68,7 @@ const HelpText = ({ children }) => (
   <p className="my-1 text-sm leading-snug text-gray-400">{children}</p>
 );
 
-const processLabel = (label) => {
+export const processLabel = (label) => {
   const tokList = [];
   var currentTok = "";
   const len = label.length;

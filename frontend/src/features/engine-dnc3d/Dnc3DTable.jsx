@@ -5,7 +5,7 @@ import { setActiveCardId, setDropdownMenu, setMouseTopBottom, setMouseXY, setScr
 import store from '../../store';
 import { createDnc3DEngine } from './lib/engine';
 import { playShuffleSound } from './lib/sound';
-import { adaptRegions, gameL10n } from './adapters/regions';
+import { adaptRegions, gameL10n, formatGroupId } from './adapters/regions';
 import { adaptGameState, resolveFaceImage } from './adapters/cards';
 import { buildEngineCallbacks } from './adapters/actions';
 import useProfile from '../../hooks/useProfile';
@@ -350,6 +350,19 @@ export default function Dnc3DTable({
           }
           const card = gameRef.current?.cardById?.[dcId];
           console.log('dnc3d card click', card);
+          // Mobile UI: a tap on a pile (deck, discard, a hidden pile) opens the
+          // pile's menu, which offers "Select top card" for the card itself.
+          if (isMobileLayoutRef.current && card) {
+            const lr = layoutRef.current || {};
+            const isPile = Object.values(lr).some(r => r?.type === 'pile' && r.visible !== false &&
+              formatGroupId(r.groupId, observingPlayerRef.current, numPlayersRef.current) === card.groupId);
+            const group = gameRef.current?.groupById?.[card.groupId];
+            if (isPile && group) {
+              dispatch(setMouseXY({ x: clientX, y: clientY }));
+              dispatch(setDropdownMenu({ type: 'group', group, title: gameL10n(group.label, gameDefRef.current, languageRef.current) }));
+              return;
+            }
+          }
           const title = card?.sides?.[card?.currentSide]?.name || '';
           // Touch mode: same three-way branch as CardMouseRegion.handleClick in
           // the 2D engine, so the touch bar and default actions behave

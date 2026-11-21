@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { DropdownMenuCommon } from "./DropdownMenuCommon";
 import { MobileCardWithTokens } from "./MobileCardTokens";
+import { MobileHotkeyList, useCardHotkeyItems, useRunHotkey } from "./MobileHotkeys";
 import { setActiveCardId, setDropdownMenu } from "../store/playerUiSlice";
 import { Z_INDEX } from "./functions/common";
 
@@ -9,14 +10,42 @@ import { Z_INDEX } from "./functions/common";
 // screen clips. A full-screen sheet:
 //   top 1/2  — the card and its token adjusters (MobileCardTokens); a group
 //              menu shows its title
-//   next 1/3 — the menu's options, scrollable
-//   last 1/6 — "View table", which closes the sheet
+//   next 1/3 — the menu's options, scrollable — or, for a card, its hotkeys
+//   last 1/6 — Hotkeys / Menu toggle (cards only) and "View table", which
+//              closes the sheet
 // The options are the regular menus (DropdownMenuCommon) in embedded mode, so
 // everything a plugin adds to its card/group menus shows up here unchanged.
+
+const SheetButton = ({ onClick, children, active = false }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="mobile-sheet-button"
+    style={{
+      flex: 1,
+      height: 48,
+      borderRadius: 6,
+      border: `1px solid ${active ? "#9ca3af" : "#4b5563"}`,
+      color: "#e5e7eb",
+      fontSize: 16,
+      fontWeight: 500,
+      letterSpacing: "0.01em",
+      touchAction: "manipulation",
+      WebkitTapHighlightColor: "transparent",
+    }}>
+    {children}
+  </button>
+);
 
 export const MobileMenuSheet = React.memo(() => {
   const dispatch = useDispatch();
   const dropdownMenu = useSelector(state => state?.playerUi?.dropdownMenu);
+  const cardHotkeys = useCardHotkeyItems();
+  const runHotkey = useRunHotkey();
+  const [showHotkeys, setShowHotkeys] = useState(false);
+  // Each sheet opens on its menu.
+  const sheetKey = dropdownMenu ? `${dropdownMenu.type}:${dropdownMenu.cardId || dropdownMenu.group?.id}` : null;
+  useEffect(() => { setShowHotkeys(false); }, [sheetKey]);
   if (!dropdownMenu) return null;
 
   const close = () => {
@@ -24,6 +53,7 @@ export const MobileMenuSheet = React.memo(() => {
     dispatch(setActiveCardId(null));
   };
   const isCard = dropdownMenu.type === "card";
+  const listingHotkeys = isCard && showHotkeys;
 
   return (
     <div
@@ -59,7 +89,12 @@ export const MobileMenuSheet = React.memo(() => {
           background: "#242526",
           fontSize: 16,
         }}>
-        <DropdownMenuCommon mouseX={0} mouseY={0} embedded/>
+        {listingHotkeys
+          ? <>
+              <div className="menu-title" style={{ padding: "8px 0 4px" }}>{dropdownMenu.title}: hotkeys</div>
+              <MobileHotkeyList items={cardHotkeys} onRun={(item) => { runHotkey(item); close(); }}/>
+            </>
+          : <DropdownMenuCommon mouseX={0} mouseY={0} embedded/>}
       </div>
       {/* Styled like the game's own controls (top bar, Get Up / Look):
           gray-700 on a gray-800 strip, gray-600 border, gray-200 text. */}
@@ -69,27 +104,15 @@ export const MobileMenuSheet = React.memo(() => {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        gap: 10,
         padding: "10px 16px",
         background: "#1f2937",
       }}>
-        <button
-          type="button"
-          onClick={close}
-          className="mobile-sheet-button"
-          style={{
-            width: "100%",
-            height: 48,
-            borderRadius: 6,
-            border: "1px solid #4b5563",
-            color: "#e5e7eb",
-            fontSize: 16,
-            fontWeight: 500,
-            letterSpacing: "0.01em",
-            touchAction: "manipulation",
-            WebkitTapHighlightColor: "transparent",
-          }}>
-          View table
-        </button>
+        {isCard && cardHotkeys.length > 0 &&
+          <SheetButton onClick={() => setShowHotkeys(!showHotkeys)} active={showHotkeys}>
+            {showHotkeys ? "Menu" : "Hotkeys"}
+          </SheetButton>}
+        <SheetButton onClick={close}>View table</SheetButton>
       </div>
     </div>
   );

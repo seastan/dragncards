@@ -63,6 +63,24 @@ export const buildMobileLayout = (mobileLayout, liveLayout, playerN) => {
     }
     regions[key] = next;
   });
+  // Text boxes are driven by the game (e.g. a plugin writing
+  // /layout/textBoxes/roundAdvancement/label as the round moves on), so a
+  // mobile text box takes its label and visibility from the live layout's box
+  // of the same key, keeping its own position and style.
+  const liveTextBoxes = liveLayout?.textBoxes || {};
+  let textBoxes = mobileLayout.textBoxes;
+  if (textBoxes) {
+    textBoxes = {};
+    Object.entries(mobileLayout.textBoxes).forEach(([key, box]) => {
+      const live = liveTextBoxes[key];
+      if (!live || box.syncContent === false) { textBoxes[key] = box; return; }
+      textBoxes[key] = {
+        ...box,
+        ...(live.label !== undefined ? { label: live.label } : {}),
+        ...(live.visible !== undefined ? { visible: live.visible } : {}),
+      };
+    });
+  }
   return {
     // Nothing a mobile layout leaves out is inherited from the live layout except
     // the fields a renderer can't do without. No chat on the table: the mobile
@@ -71,6 +89,7 @@ export const buildMobileLayout = (mobileLayout, liveLayout, playerN) => {
     rowSpacing: liveLayout?.rowSpacing ?? 3,
     ...mobileLayout,
     regions,
+    ...(textBoxes ? { textBoxes } : {}),
     isMobile: true,
   };
 };

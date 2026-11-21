@@ -40,6 +40,7 @@ Same shape as an entry of `gameDef.layouts`, with these differences:
 | `cardSize` | Measured in 1% of the **table area's height** (between the mobile top and bottom bars), which region positions are also fractions of, so a card fits its row the same on a phone or a tablet; width only changes how many fit across. With seven rows of 1/7 (≈14.3%), `cardSize: 12` leaves a little room in each. |
 | `chat` | Optional and ignored; chat has its own panel. |
 | `hiddenPiles` | Groups kept off the table and shown as piles in the Piles drawer instead. Each entry is a groupId, or `{"groupId": ..., "showWhenEmpty": true}`: empty piles are left out unless marked, and a pile you drop the first card onto (a discard) needs the mark. `playerN` resolves to the player on screen. |
+| `textBoxes` | As in desktop layouts. A box whose key also exists in the room's current layout shows that box's `label` and `visible` (which game actions update, e.g. LotR's `roundAdvancement` hint) at this box's own position and style; `syncContent: false` opts out. Like the 3D table generally, only boxes with `hover: true` are drawn. |
 | `region.perspective` | `"viewed"` (default) follows the on-screen player. `"self"` always means the viewer's own seat — use it for your hand so it stays yours while you look at a teammate's board. |
 | `region.syncVisibility` | If a mobile region's key also exists in the room's current layout, the mobile region copies that region's `visible` flag, so show/hide buttons (e.g. `TOGGLE_TABLE_BUTTON`) keep working. `false` opts out. |
 
@@ -88,6 +89,17 @@ discard), and your hand. The other piles live in the drawer.
 Region keys matter for visibility sync, which matches by key: regions that
 plugin buttons toggle (e.g. `sharedSetAside`, `sharedMap`) should reuse the
 desktop key.
+
+## Hotkeys without a keyboard
+
+- **Card view → Hotkeys** lists the plugin's card hotkeys (`hotkeys.card`)
+  and the engine's card ones (target, arrow, trigger ability); a tap runs one
+  on that card and returns to the table.
+- **Bottom bar → Hotkeys** lists the game hotkeys (`hotkeys.game`) and the
+  engine's own. A tap runs one; the star adds it to the bottom bar as a
+  button. Favourites are saved per device and per plugin (localStorage).
+- **Piles:** tapping a card in a pile (deck, discard, drawer pile) opens the
+  pile's menu; its first option, *Select top card*, opens that card's view.
 
 ## Fling (`gameDef.cardFling`)
 
