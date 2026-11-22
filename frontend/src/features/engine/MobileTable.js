@@ -18,6 +18,7 @@ import { usePlayerIList } from "./hooks/usePlayerIList";
 import useProfile from "../../hooks/useProfile";
 import { Z_INDEX } from "./functions/common";
 import { MobileHotkeyList, SectionLabel, HotkeyLabel, hotkeyId, useGameHotkeyItems, useFavoriteHotkeys, useRunHotkey, useHotkeyLabel } from "./MobileHotkeys";
+import { useBoardSwipe } from "./MobileBoardSwipe";
 import { useHiddenPilesGeometry, hiddenPileRegions, HiddenPilesDrawer, SLIDE_MS, drawerParkedOffset } from "./MobileHiddenPiles";
 
 // Phone-first table (mobile UI). Portrait, flat (0° tilt) 3D renderer, driven by
@@ -62,12 +63,19 @@ const PlayerCarousel = () => {
   const ref = useRef(null);
   const [page, setPage] = useState(0);
 
+  // Shows whoever's board is on screen (your own seat to begin with), so it
+  // follows a swipe between boards.
+  const observingPlayerN = useSelector(state => state?.playerUi?.observingPlayerN);
+  const shown = observingPlayerN || playerN;
+  const firstScroll = useRef(true);
   useEffect(() => {
     const el = ref.current;
-    const i = playerIList.indexOf(playerN);
-    if (el && i > 0) el.scrollLeft = i * el.clientWidth;
+    const i = playerIList.indexOf(shown);
+    if (!el || i < 0) return;
+    el.scrollTo({ left: i * el.clientWidth, behavior: firstScroll.current ? "auto" : "smooth" });
+    firstScroll.current = false;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playerN, playerIList.length]);
+  }, [shown, playerIList.length]);
 
   const onScroll = () => {
     const el = ref.current;
@@ -360,6 +368,16 @@ export const MobileTable = React.memo(() => {
     pilesGeometry.rows.forEach(r => { map[r.groupId] = px; });
     return map;
   }, [pilesGeometry, pilesSlidIn]);
+  // Swipe sideways on empty table to change whose board is on screen. Not
+  // while something is open over the table.
+  const dropdownMenu = useSelector(state => state?.playerUi?.dropdownMenu);
+  const boardSwipe = useBoardSwipe({
+    tableRef,
+    layoutRegions: layout?.regions,
+    tableWidth: tableSize?.w || window.innerWidth,
+    enabled: !pilesOpen && !chatOpen && !hotkeysOpen && !menuOpen && !dropdownMenu,
+  });
+  const tableSlideX = useMemo(() => ({ ...pileSlideX, ...boardSwipe.slideMap }), [pileSlideX, boardSwipe.slideMap]);
   const pileRegionsKey = JSON.stringify(pilesLive?.rows?.map(r => r.region) || []);
   const tableRegions = useMemo(
     () => (pilesLive ? { ...layout?.regions, ...hiddenPileRegions(pilesLive) } : layout?.regions),
@@ -405,8 +423,8 @@ export const MobileTable = React.memo(() => {
           gameDef={gameDef}
           language={language}
           doActionList={doActionList}
-          regionSlideX={pileSlideX}
-          regionSlideMs={SLIDE_MS}
+          regionSlideX={tableSlideX}
+          regionSlideMs={boardSwipe.slideMs ?? SLIDE_MS}
           tiltOverlay={pilesGeometry &&
             <HiddenPilesDrawer
               geometry={pilesGeometry}

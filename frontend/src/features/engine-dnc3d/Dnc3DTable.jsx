@@ -476,6 +476,10 @@ export default function Dnc3DTable({
       // so without this an active target/arrow would vanish until the next tick.
       if (idMapRef.current && gameRef.current) {
         engine.syncOverlay(gameRef.current, idMapRef.current);
+        // Likewise card state the build doesn't carry — rotation (exhausted
+        // cards), mainly. A re-init without a game change (switching to
+        // another player's board) otherwise drew exhausted cards upright.
+        engine.reconcile(gameRef.current, idMapRef.current);
       }
 
       // Spawn-animate any cards that didn't exist on the previous init.
