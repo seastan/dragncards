@@ -7,6 +7,7 @@ import DOMPurify from "dompurify";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes } from "@fortawesome/free-solid-svg-icons";
 import { Z_INDEX } from "./functions/common";
+import { useMobileUIActive } from "./hooks/useMobileUI";
 
 const promptStyle = {
   MozBoxShadow: '0 0 50px 20px black',
@@ -28,6 +29,7 @@ export const Alert = React.memo(({
   const autoClose = alert?.autoClose === false ? false : true;
 
   const [progress, setProgress] = useState(0);
+  const mobileUIActive = useMobileUIActive();
 
   // use effect to clear alert after 8 seconds and update progress bar
   useEffect(() => {
@@ -69,16 +71,20 @@ export const Alert = React.memo(({
   if (alertLevel === "warning") alertColor = "bg-yellow-700";
 
   return (
-    <div className="absolute text-white" 
+    <div className="absolute text-white"
       style={{
-        left: "65%", 
-        top: "2%", 
+        left: "65%",
+        top: "2%",
         width: "30%",
         zIndex: Z_INDEX.Alert,
         textAlign: "center",
         opacity: 0.9,
+        // Mobile UI: 30% of a phone is a few words per line — span the table.
+        ...(mobileUIActive ? { left: 0, top: 0, width: "100%", fontSize: 14, lineHeight: 1.35 } : {}),
       }}>
-      <div className={`p-1 ${alertColor} rounded`} style={promptStyle}>
+      <div
+        className={`p-1 ${alertColor} ${mobileUIActive ? "" : "rounded"}`}
+        style={mobileUIActive ? { ...promptStyle, padding: "8px 36px 6px" } : promptStyle}>
         <div 
           className=""
           style={{
@@ -121,17 +127,21 @@ export const Alert = React.memo(({
 
         <div 
           className={`${alertColor} absolute text-white p-1 flex justify-center items-center cursor-pointer`}
-          style={{
-            left: "100%",
-            top: "0%",
-            width: "3dvh",
-            height: "3dvh",
-            transform: "translate(-50%, -50%)",
-            borderRadius: "1.5dvh",
-          }}
+          style={mobileUIActive
+            // Inside the top-right corner: half outside it, as on desktop, is
+            // off-screen when the alert spans the full width.
+            ? { right: 6, top: 6, width: 26, height: 26, borderRadius: 13, border: "1px solid rgba(255,255,255,0.5)" }
+            : {
+              left: "100%",
+              top: "0%",
+              width: "3dvh",
+              height: "3dvh",
+              transform: "translate(-50%, -50%)",
+              borderRadius: "1.5dvh",
+            }}
           onClick={() => dispatch(setAlert(null))}
           >
-            <FontAwesomeIcon style={{fontSize: "1.7dvh"}} icon={faTimes} />
+            <FontAwesomeIcon style={{fontSize: mobileUIActive ? 13 : "1.7dvh"}} icon={faTimes} />
         </div>
       </div>  
     </div>
