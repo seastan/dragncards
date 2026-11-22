@@ -1,25 +1,32 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setObservingPlayerN } from "../store/playerUiSlice";
-import { useFormatGroupId } from "./hooks/useFormatGroupId";
 import { usePlayerIList } from "./hooks/usePlayerIList";
+import { formatGroupId } from "../engine-dnc3d/adapters/regions";
 
 // Swipe between players' boards in the mobile UI.
 //
-// A sideways drag that starts on empty table moves the on-screen player's
-// board — the layout's regions whose groupId contains playerN, i.e. not the
-// shared regions and not perspective:"self" ones like your hand — with the
-// finger. Let go past a quarter of the table's width (or with a flick) and that
-// board slides off while the next player's slides in from the other side;
-// otherwise it springs back. Dragging left goes to the next player, right to
-// the previous one, wrapping round.
+// A player's "board" is the layout's regions whose groupId contains playerN —
+// not the shared regions, and not perspective:"self" ones like your hand
+// (those are already resolved to your own seat).
 //
-// The movement is Dnc3DTable's regionSlideX. Switching players rebuilds the
-// table (observingPlayerN changes which groups the regions show), so the new
-// board is built already slid off to the side, then slid in.
+// The neighbouring players' boards are on the table all the time, as extra
+// regions parked one table-width off to either side: the next player's to the
+// right, the previous player's to the left (with two players, the one other
+// board parks on whichever side the drag is heading). A sideways drag that
+// starts on empty table moves all of them with the finger, so the incoming
+// board slides in alongside the outgoing one. Let go past a quarter of the
+// width (or with a flick) and they finish the slide; otherwise they spring
+// back. Once the slide is done, observingPlayerN switches to the new player.
+// That rebuilds the table, but every board is already where the rebuilt table
+// puts it (the new player's at 0, its neighbours parked), so the switch is
+// invisible.
+//
+// The movement is Dnc3DTable's regionSlideX. Regions are keyed by groupId, so
+// a neighbour board's regions (e.g. player2Play1) are the very regions that
+// player's board uses once it is the one on screen.
 
-const OUT_MS = 170;
-const IN_MS = 220;
+const SLIDE_MS = 240;
 const START_PX = 12;        // movement before a press counts as a swipe
 const COMMIT_FRAC = 0.25;   // of the table width
 const FLICK_PX_PER_MS = 0.5;
@@ -28,36 +35,63 @@ const FLICK_PX_PER_MS = 0.5;
 // piles drawer, scroll arrows, buttons.
 const IGNORE = ".dnc3d-card-lift, .dnc3d-tilt-overlay, .dnc3d-scroll-arrow, button, [role=menuitem]";
 
+const neighbours = (list, obs) => {
+  const i = Math.max(0, list.indexOf(obs));
+  const n = list.length;
+  return { next: list[(i + 1) % n], prev: list[(i - 1 + n) % n] };
+};
+
 export const useBoardSwipe = ({ tableRef, layoutRegions, tableWidth, enabled }) => {
   const dispatch = useDispatch();
-  const formatGroupId = useFormatGroupId();
   const playerIList = usePlayerIList();
+  const numPlayers = playerIList.length;
   const observingPlayerN = useSelector(state => state?.playerUi?.observingPlayerN);
-  const [slide, setSlide] = useState({ px: 0, ms: null });   // ms null: idle
+  // px: how far the on-screen board is moved; ms: animate the change over ms
+  // (0 = follow the finger), null = idle.
+  const [slide, setSlide] = useState({ px: 0, ms: null });
 
-  const boardRegionIds = useMemo(
-    () => Object.values(layoutRegions || {})
-      .filter(r => typeof r?.groupId === "string" && /playerN/.test(r.groupId))
-      .map(r => formatGroupId(r.groupId)),
-    // formatGroupId follows observingPlayerN
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [layoutRegions, observingPlayerN, playerIList.length]
+  const boardRegions = useMemo(
+    () => Object.entries(layoutRegions || {})
+      .filter(([, r]) => typeof r?.groupId === "string" && /playerN/.test(r.groupId) && r.visible !== false),
+    [layoutRegions]
   );
+  const forPlayer = (player) => boardRegions.map(([key, r]) => [key, formatGroupId(r.groupId, player, numPlayers), r]);
+
+  const { next, prev } = numPlayers > 1 ? neighbours(playerIList, observingPlayerN) : {};
+  const neighbourPlayers = numPlayers > 1 ? [...new Set([next, prev])].filter(p => p && p !== observingPlayerN) : [];
+
+  // Extra regions for the neighbouring boards. Same geometry as the on-screen
+  // board; the slide map keeps them off-screen until a swipe brings one in.
+  const ghostRegions = useMemo(() => {
+    const regions = {};
+    neighbourPlayers.forEach(player => {
+      forPlayer(player).forEach(([key, groupId, r]) => {
+        regions[`_board_${player}_${key}`] = { ...r, groupId };
+      });
+    });
+    return regions;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [boardRegions, observingPlayerN, numPlayers]);
 
   // Latest values for the native listeners below.
   const live = useRef({});
-  live.current = { enabled: enabled && playerIList.length > 1, tableWidth, playerIList, observingPlayerN };
+  live.current = { enabled: enabled && numPlayers > 1, tableWidth, playerIList, observingPlayerN };
 
   useEffect(() => {
     const el = tableRef.current;
     if (!el) return;
     let g = null;            // the gesture in progress
     let raf = null;
+    let busy = false;        // a committed slide is finishing
     const timers = [];
     const later = (fn, ms) => timers.push(setTimeout(fn, ms));
+    const settle = (px = 0) => {
+      setSlide({ px, ms: SLIDE_MS });
+      later(() => setSlide({ px: 0, ms: null }), SLIDE_MS + 30);
+    };
 
     const onDown = (e) => {
-      if (!live.current.enabled || g || (e.button !== undefined && e.button !== 0)) return;
+      if (!live.current.enabled || g || busy || (e.button !== undefined && e.button !== 0)) return;
       if (e.target.closest?.(IGNORE)) return;
       g = { x0: e.clientX, y0: e.clientY, id: e.pointerId, dragging: false, samples: [] };
     };
@@ -84,11 +118,7 @@ export const useBoardSwipe = ({ tableRef, layoutRegions, tableWidth, enabled }) 
       // A cancelled pointer (the browser took the gesture over, a second
       // finger, the app backgrounded) carries no meaningful position: spring
       // back rather than read a swipe into it.
-      if (e.type === "pointercancel") {
-        setSlide({ px: 0, ms: OUT_MS });
-        later(() => setSlide({ px: 0, ms: null }), OUT_MS + 30);
-        return;
-      }
+      if (e.type === "pointercancel") { settle(0); return; }
       // A swipe is not a tap: keep the click that follows from reaching the
       // table (which would close menus etc.).
       const block = (ce) => { ce.stopPropagation(); window.removeEventListener("click", block, true); };
@@ -100,25 +130,19 @@ export const useBoardSwipe = ({ tableRef, layoutRegions, tableWidth, enabled }) 
       const s = gesture.samples;
       const v = s.length >= 2 ? (s[s.length - 1].x - s[0].x) / Math.max(1, s[s.length - 1].t - s[0].t) : 0;
       const commit = Math.abs(dx) > W * COMMIT_FRAC || (Math.abs(v) > FLICK_PX_PER_MS && Math.sign(v) === Math.sign(dx));
-      if (!commit) {
-        setSlide({ px: 0, ms: OUT_MS });
-        later(() => setSlide({ px: 0, ms: null }), OUT_MS + 30);
-        return;
-      }
-      const step = dx < 0 ? 1 : -1;   // drag left → next player
-      const i = Math.max(0, list.indexOf(obs));
-      const next = list[(i + step + list.length) % list.length];
-      setSlide({ px: dx < 0 ? -W : W, ms: OUT_MS });
+      if (!commit) { settle(0); return; }
+      const { next: nextP, prev: prevP } = neighbours(list, obs);
+      const target = dx < 0 ? nextP : prevP;   // drag left → next player
+      // Finish the slide: the outgoing board off one side, the incoming one
+      // (already following the finger) into place.
+      busy = true;
+      setSlide({ px: dx < 0 ? -W : W, ms: SLIDE_MS });
       later(() => {
-        // Same render: the new player's board, built off the other side.
-        dispatch(setObservingPlayerN(next));
-        setSlide({ px: dx < 0 ? W : -W, ms: 0 });
-        // Then, once the rebuilt table has painted, slide it in.
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-          setSlide({ px: 0, ms: IN_MS });
-          later(() => setSlide({ px: 0, ms: null }), IN_MS + 30);
-        }));
-      }, OUT_MS + 20);
+        // Everything is now where the table will be rebuilt to put it.
+        dispatch(setObservingPlayerN(target));
+        setSlide({ px: 0, ms: null });
+        busy = false;
+      }, SLIDE_MS + 20);
     };
 
     el.addEventListener("pointerdown", onDown);
@@ -135,11 +159,23 @@ export const useBoardSwipe = ({ tableRef, layoutRegions, tableWidth, enabled }) 
     };
   }, [tableRef, dispatch]);
 
+  const W = tableWidth || window.innerWidth;
   const slideMap = useMemo(() => {
     const map = {};
-    boardRegionIds.forEach(id => { map[id] = slide.px; });
+    const px = slide.px;
+    forPlayer(observingPlayerN).forEach(([, groupId]) => { map[groupId] = px; });
+    if (numPlayers > 1) {
+      if (next === prev) {
+        // Two players: the other board follows whichever side the drag is on.
+        forPlayer(next).forEach(([, groupId]) => { map[groupId] = px > 0 ? px - W : px + W; });
+      } else {
+        forPlayer(next).forEach(([, groupId]) => { map[groupId] = px + W; });
+        forPlayer(prev).forEach(([, groupId]) => { map[groupId] = px - W; });
+      }
+    }
     return map;
-  }, [boardRegionIds, slide.px]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [boardRegions, observingPlayerN, numPlayers, slide.px, W]);
 
-  return { slideMap, slideMs: slide.ms };
+  return { slideMap, slideMs: slide.ms, ghostRegions };
 };

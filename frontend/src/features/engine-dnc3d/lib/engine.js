@@ -4567,6 +4567,12 @@ export function createDnc3DEngine(options = {}) {
       [regionFillEls[id], regionOutlineEls[id], scrollOuterEls[id]].forEach(el => slideEl(el, px, ms));
     });
     Object.values(cards).forEach(c => {
+      // Cards laid out inside a region's scroll outer (rows, fans) move with
+      // it; translating them as well would move them twice as far.
+      if (c.liftEl && c.liftEl.parentElement !== _tiltEl) {
+        if (c.liftEl.style.translate) slideEl(c.liftEl, 0, ms);
+        return;
+      }
       const px = (c.regionId && _regionSlideX[c.regionId]) || 0;
       if (px || c.liftEl?.style.translate) slideEl(c.liftEl, px, ms);
     });

@@ -386,9 +386,14 @@ export const MobileTable = React.memo(() => {
   const tableSlideX = useMemo(() => ({ ...pileSlideX, ...boardSwipe.slideMap }), [pileSlideX, boardSwipe.slideMap]);
   const pileRegionsKey = JSON.stringify(pilesLive?.rows?.map(r => r.region) || []);
   const tableRegions = useMemo(
-    () => (pilesLive ? { ...layout?.regions, ...hiddenPileRegions(pilesLive) } : layout?.regions),
+    () => ({
+      ...layout?.regions,
+      // The neighbouring players' boards, parked off-screen for the board swipe.
+      ...boardSwipe.ghostRegions,
+      ...(pilesLive ? hiddenPileRegions(pilesLive) : {}),
+    }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [layout?.regions, pileRegionsKey]
+    [layout?.regions, pileRegionsKey, boardSwipe.ghostRegions]
   );
 
   // Extend under the notch / home indicator so the safe-area padding below has
