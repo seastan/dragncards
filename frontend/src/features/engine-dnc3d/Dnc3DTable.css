@@ -777,3 +777,12 @@
 .dnc3d-mobile .dnc3d-region-fill.dnc3d-region-elevated {
   opacity: 1;
 }
+/* No eye / menu buttons on region labels in the mobile UI: piles open their
+   menu on a tap and the drawer has its own buttons. The label normally fades
+   out to make room for the buttons when a region is tapped — keep it. */
+.dnc3d-mobile .dnc3d-region-icons {
+  display: none !important;
+}
+.dnc3d-mobile .dnc3d-region-label {
+  opacity: 1 !important;
+}

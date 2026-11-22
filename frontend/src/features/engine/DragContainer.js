@@ -143,7 +143,11 @@ export const DragContainer = React.memo(({}) => {
 
   const updateMouseDown = (e) => {
     const {clientX, clientY} = getXY(e);
-    const rect = e.target.parentElement.parentElement.getBoundingClientRect();
+    // A press on the page root (e.g. a tap at the screen's edge in the mobile
+    // UI) has no grandparent element; there's nothing to measure then.
+    const container = e.target?.parentElement?.parentElement;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
     const x = clientX - rect.left;
     const y = clientY - rect.top;
     console.log(`Relative mouse position: ${x}, ${y}`);
