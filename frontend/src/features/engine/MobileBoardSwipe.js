@@ -81,6 +81,14 @@ export const useBoardSwipe = ({ tableRef, layoutRegions, tableWidth, enabled }) 
       g = null;
       if (!gesture.dragging) return;
       if (raf) { cancelAnimationFrame(raf); raf = null; }
+      // A cancelled pointer (the browser took the gesture over, a second
+      // finger, the app backgrounded) carries no meaningful position: spring
+      // back rather than read a swipe into it.
+      if (e.type === "pointercancel") {
+        setSlide({ px: 0, ms: OUT_MS });
+        later(() => setSlide({ px: 0, ms: null }), OUT_MS + 30);
+        return;
+      }
       // A swipe is not a tap: keep the click that follows from reaching the
       // table (which would close menus etc.).
       const block = (ce) => { ce.stopPropagation(); window.removeEventListener("click", block, true); };
