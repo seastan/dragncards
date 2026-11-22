@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars, faComment, faTimes, faEye, faLayerGroup, faKeyboard } from "@fortawesome/free-solid-svg-icons";
+import { faBars, faComment, faTimes, faEye, faLayerGroup, faKeyboard, faListOl } from "@fortawesome/free-solid-svg-icons";
 import Dnc3DTable from "../engine-dnc3d/Dnc3DTable";
 import { MenuBar } from "../../components/basic/Menu";
 import { TopBarMenu } from "./TopBarMenu";
@@ -19,6 +19,7 @@ import useProfile from "../../hooks/useProfile";
 import { Z_INDEX } from "./functions/common";
 import { MobileHotkeyList, SectionLabel, HotkeyLabel, hotkeyId, useGameHotkeyItems, useFavoriteHotkeys, useRunHotkey, useHotkeyLabel } from "./MobileHotkeys";
 import { useBoardSwipe } from "./MobileBoardSwipe";
+import { MobileStepTracker } from "./MobileStepTracker";
 import { useHiddenPilesGeometry, hiddenPileRegions, HiddenPilesDrawer, SLIDE_MS, drawerParkedOffset } from "./MobileHiddenPiles";
 
 // Phone-first table (mobile UI). Portrait, flat (0° tilt) 3D renderer, driven by
@@ -241,7 +242,7 @@ const FavoriteHotkeyButton = ({ item }) => {
   );
 };
 
-const MobileBottomBar = ({ pilesOpen, setPilesOpen, chatOpen, setChatOpen, hotkeysOpen, setHotkeysOpen }) => {
+const MobileBottomBar = ({ pilesOpen, setPilesOpen, chatOpen, setChatOpen, hotkeysOpen, setHotkeysOpen, stepsOpen, setStepsOpen }) => {
   const { game, dragn } = useGameHotkeyItems();
   const { favs } = useFavoriteHotkeys();
   const byId = Object.fromEntries([...game, ...dragn].map(item => [hotkeyId(item), item]));
@@ -250,6 +251,7 @@ const MobileBottomBar = ({ pilesOpen, setPilesOpen, chatOpen, setChatOpen, hotke
     setPilesOpen(which === "piles" ? !pilesOpen : false);
     setChatOpen(which === "chat" ? !chatOpen : false);
     setHotkeysOpen(which === "hotkeys" ? !hotkeysOpen : false);
+    setStepsOpen(which === "steps" ? !stepsOpen : false);
   };
   return (
     <div
@@ -269,6 +271,9 @@ const MobileBottomBar = ({ pilesOpen, setPilesOpen, chatOpen, setChatOpen, hotke
       }}>
       <BottomButton active={pilesOpen} label="PILES" onClick={() => only("piles")}>
         <HiddenPilesIcon/>
+      </BottomButton>
+      <BottomButton active={stepsOpen} label="ROUND" onClick={() => only("steps")}>
+        <FontAwesomeIcon icon={stepsOpen ? faTimes : faListOl}/>
       </BottomButton>
       {/* Starred hotkeys; scrolls sideways when there are more than fit. */}
       <div style={{ flex: 1, minWidth: 0, display: "flex", gap: 4, padding: "3px 0", overflowX: "auto", scrollbarWidth: "none" }}>
@@ -331,6 +336,7 @@ export const MobileTable = React.memo(() => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [hotkeysOpen, setHotkeysOpen] = useState(false);
+  const [stepsOpen, setStepsOpen] = useState(false);
   // Hidden piles drawer. Its piles are table regions for as long as the mobile
   // table is up, parked off-screen (with the drawer panel) while it's closed:
   // opening and closing then only slide things that already exist. Adding or
@@ -375,7 +381,7 @@ export const MobileTable = React.memo(() => {
     tableRef,
     layoutRegions: layout?.regions,
     tableWidth: tableSize?.w || window.innerWidth,
-    enabled: !pilesOpen && !chatOpen && !hotkeysOpen && !menuOpen && !dropdownMenu,
+    enabled: !pilesOpen && !chatOpen && !hotkeysOpen && !stepsOpen && !menuOpen && !dropdownMenu,
   });
   const tableSlideX = useMemo(() => ({ ...pileSlideX, ...boardSwipe.slideMap }), [pileSlideX, boardSwipe.slideMap]);
   const pileRegionsKey = JSON.stringify(pilesLive?.rows?.map(r => r.region) || []);
@@ -458,8 +464,9 @@ export const MobileTable = React.memo(() => {
           <MessageBox hover={chatOpen}/>
         </div>
         <HotkeysSheet open={hotkeysOpen} onClose={() => setHotkeysOpen(false)}/>
+        <MobileStepTracker open={stepsOpen}/>
       </div>
-      <MobileBottomBar pilesOpen={pilesOpen} setPilesOpen={setPilesOpen} chatOpen={chatOpen} setChatOpen={setChatOpen} hotkeysOpen={hotkeysOpen} setHotkeysOpen={setHotkeysOpen}/>
+      <MobileBottomBar pilesOpen={pilesOpen} setPilesOpen={setPilesOpen} chatOpen={chatOpen} setChatOpen={setChatOpen} hotkeysOpen={hotkeysOpen} setHotkeysOpen={setHotkeysOpen} stepsOpen={stepsOpen} setStepsOpen={setStepsOpen}/>
     </div>
   );
 });
