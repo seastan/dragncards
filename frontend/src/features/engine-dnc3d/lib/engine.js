@@ -126,6 +126,10 @@ export function createDnc3DEngine(options = {}) {
   const _flingMinSpeed      = (options.flingMinSpeed || 1000) / 1000;
   // Card swipe: callback(cardId, 'up'|'down'), active while setCardSwipe(true).
   const onCardSwipe         = options.onCardSwipe || null;
+  // Card slide (with card swipe on): a sideways drag on a card reports
+  // onCardSlide(cardId, phase, dx, rect) — phase 'start' | 'move' | 'end' |
+  // 'cancel', dx the drag's horizontal travel, rect the card's screen box.
+  const onCardSlide         = options.onCardSlide || null;
   let _cardSwipeOn          = !!options.cardSwipe;
   const _tableBackgroundUrl = options.tableBackgroundUrl || null;
   const _playerN            = options.playerN            || null;
@@ -1408,6 +1412,7 @@ export function createDnc3DEngine(options = {}) {
     // Card swipe (setCardSwipe on): a vertical swipe on the card reports
     // onCardSwipe(up/down) instead of picking the card up.
     let swipeGesture = false;
+    let slideGesture = false;
     // Recent pointer positions during a drag, for fling detection at release.
     let flingSamples = [];
     // The pointer startDragFn armed, or null when no gesture is in flight.
@@ -1452,6 +1457,7 @@ export function createDnc3DEngine(options = {}) {
       startY = e.clientY;
       isDragging = false;
       swipeGesture = false;
+      slideGesture = false;
       flingSamples = [];
       dragStack  = null;
       dragStackCards = [];
@@ -1497,9 +1503,15 @@ export function createDnc3DEngine(options = {}) {
       }
 
       if (swipeGesture) return;
+      if (slideGesture) { onCardSlide(card.id, 'move', dx, null); return; }
       if (!isDragging && Math.hypot(dx, dy) >= dragThreshold(e)) {
         if (_cardSwipeOn && onCardSwipe && Math.abs(dy) > Math.abs(dx)) {
           swipeGesture = true;
+          return;
+        }
+        if (_cardSwipeOn && onCardSlide && Math.abs(dx) >= Math.abs(dy)) {
+          slideGesture = true;
+          onCardSlide(card.id, 'start', dx, cardEl.getBoundingClientRect());
           return;
         }
         // On a touchscreen there's no scroll wheel and the arrows are small, so a
@@ -1909,6 +1921,14 @@ export function createDnc3DEngine(options = {}) {
         return;
       }
       // So does a card swipe, which reports its direction instead.
+      if (slideGesture) {
+        slideGesture = false;
+        onCardSlide(card.id, cancelled ? 'cancel' : 'end', e.clientX - startX, null);
+        const blockClick = (ce) => { ce.stopPropagation(); window.removeEventListener('click', blockClick, true); };
+        window.addEventListener('click', blockClick, true);
+        setTimeout(() => window.removeEventListener('click', blockClick, true), 400);
+        return;
+      }
       if (swipeGesture) {
         swipeGesture = false;
         if (!cancelled && onCardSwipe) onCardSwipe(card.id, (e.clientY - startY) < 0 ? 'up' : 'down');

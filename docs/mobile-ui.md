@@ -102,7 +102,9 @@ desktop key.
     (like touch mode's armed button, but kept on the device rather than in the
     game, so it isn't logged and undo never re-arms it), and the bottom bar
     shows what's armed, with Undo and an × to disarm. An armed token also takes swipes
-    on cards: up adds one, down removes one.
+    on cards: up adds one, down removes one. A sideways drag on a card opens a
+    slider above it (+1 right / −1 left, then a step per ~22px); letting go
+    adds / removes that many.
   - *Game* (`hotkeys.game`) and *Dragn* (the engine's own): tap to run; the star
     adds one as a button to the favourites bar, which sits just above the
     bottom bar and is shown / hidden with the bottom bar's *Favorites* button.

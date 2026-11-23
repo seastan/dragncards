@@ -23,6 +23,7 @@ import { useSetTouchAction } from "./hooks/useSetTouchAction";
 import { useDoDragnHotkey } from "./hooks/useDragnHotkeys";
 import { useBoardSwipe } from "./MobileBoardSwipe";
 import { MobileStepTracker } from "./MobileStepTracker";
+import { useTokenSlider, TokenSliderOverlay } from "./MobileTokenSlider";
 import { useHiddenPilesGeometry, hiddenPileRegions, HiddenPilesDrawer, SLIDE_MS, drawerParkedOffset } from "./MobileHiddenPiles";
 
 // Phone-first table (mobile UI). Portrait, flat (0° tilt) 3D renderer, driven by
@@ -574,7 +575,7 @@ const HotkeysSheet = ({ open, onClose }) => {
         {armable &&
           <div style={{ padding: "8px 12px 2px", fontSize: 12, color: "#9ca3af" }}>
             {tab === "token"
-              ? "Pick a token. Tap a card to add a token. Swipe down on a card to remove a token. Tap the table when done."
+              ? "Pick a token. Tap a card to add a token. Swipe down on a card to remove a token. Drag sideways on a card to add or remove several. Tap the table when done."
               : "Pick an action, then tap the cards to apply it to. Tap the table when done."}
           </div>}
         {items.length
@@ -639,6 +640,7 @@ export const MobileTable = React.memo(() => {
   // An armed token responds to vertical swipes on cards: up +1, down −1. Same
   // rules as touch mode's token taps (useHandleTouchAction): a non-modifier
   // token can't be taken below zero.
+  const tokenSlider = useTokenSlider(touchAction);
   const onCardSwipe = (cardId, direction) => {
     if (touchAction?.actionType !== "token") return;
     const tokenType = touchAction.tokenType;
@@ -765,6 +767,7 @@ export const MobileTable = React.memo(() => {
           doActionList={doActionList}
           cardSwipe={touchAction?.actionType === "token"}
           onCardSwipe={onCardSwipe}
+          onCardSlide={tokenSlider.onCardSlide}
           regionSlideX={tableSlideX}
           regionSlideMs={boardSwipe.slideMs ?? SLIDE_MS}
           tiltOverlay={pilesGeometry &&
@@ -801,6 +804,7 @@ export const MobileTable = React.memo(() => {
         </div>
         <HotkeysSheet open={hotkeysOpen} onClose={() => setHotkeysOpen(false)}/>
         <MobileStepTracker open={stepsOpen}/>
+        <TokenSliderOverlay slide={tokenSlider.slide} tokenDef={tokenSlider.tokenDef}/>
       </div>
       {favBarOpen && <FavoritesBar/>}
       {touchAction ? <ActiveHotkeyBar touchAction={touchAction}/> :

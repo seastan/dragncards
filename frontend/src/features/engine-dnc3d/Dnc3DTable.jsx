@@ -105,6 +105,8 @@ export default function Dnc3DTable({
   // onCardSwipe(dcCardId, 'up' | 'down') instead of picking the card up.
   cardSwipe = false,
   onCardSwipe = null,
+  // ...and a sideways drag calls onCardSlide(dcCardId, phase, dx, rect).
+  onCardSlide = null,
 }) {
   const dispatch         = useDispatch();
   const browseTopN       = useBrowseTopN();
@@ -196,6 +198,8 @@ export default function Dnc3DTable({
   cardSwipeRef.current        = cardSwipe;
   const onCardSwipeRef        = useRef(onCardSwipe);
   onCardSwipeRef.current      = onCardSwipe;
+  const onCardSlideRef        = useRef(onCardSlide);
+  onCardSlideRef.current      = onCardSlide;
   const zoomFactorRef         = useRef(zoomFactor);
   const tableBackgroundUrlRef = useRef(tableBackgroundUrl);
   const browseGroupIdRef      = useRef(browseGroupId);
@@ -317,6 +321,10 @@ export default function Dnc3DTable({
         onCardSwipe: (engineId, direction) => {
           const dcId = reverseIdMap.get(engineId);
           if (dcId != null && onCardSwipeRef.current) onCardSwipeRef.current(dcId, direction);
+        },
+        onCardSlide: (engineId, phase, dx, rect) => {
+          const dcId = reverseIdMap.get(engineId);
+          if (dcId != null && onCardSlideRef.current) onCardSlideRef.current(dcId, phase, dx, rect);
         },
         // gameDef.cardFling: a card released mid-swipe runs an action list
         // instead of dropping (see validate/getGameDefSchema.js for the options).
