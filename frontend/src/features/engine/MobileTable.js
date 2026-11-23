@@ -575,7 +575,7 @@ const HotkeysSheet = ({ open, onClose }) => {
         {armable &&
           <div style={{ padding: "8px 12px 2px", fontSize: 12, color: "#9ca3af" }}>
             {tab === "token"
-              ? "Pick a token. Tap a card to add a token. Swipe down on a card to remove a token. Drag sideways on a card to add or remove several. Tap the table when done."
+              ? "Pick a token. Tap a card to add a token. Swipe down to remove a token. Swipe sidewards to open a slider. Tap the table when done."
               : "Pick an action, then tap the cards to apply it to. Tap the table when done."}
           </div>}
         {items.length
@@ -612,7 +612,7 @@ const ActiveHotkeyBar = ({ touchAction }) => {
           <HotkeyLabel text={touchAction.label || touchAction.id} iconSize={18}/>
         </div>
         <div style={{ fontSize: 10.5, opacity: 0.8 }}>
-          {isToken ? "Tap a card to add a token. Swipe down on a card to remove a token." : "Tap cards to apply · tap the table to stop"}
+          {isToken ? "Tap a card to add a token. Swipe down to remove a token. Swipe sidewards to open a slider." : "Tap cards to apply · tap the table to stop"}
         </div>
       </div>
       {/* Undo stays reachable while armed, for a tap on the wrong card. */}
