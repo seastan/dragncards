@@ -17,7 +17,7 @@ import { useDoActionList } from "./hooks/useDoActionList";
 import { usePlayerIList } from "./hooks/usePlayerIList";
 import useProfile from "../../hooks/useProfile";
 import { Z_INDEX } from "./functions/common";
-import { MobileHotkeyList, SectionLabel, HotkeyLabel, hotkeyId, useGameHotkeyItems, useFavoriteHotkeys, useRunHotkey, useHotkeyLabel, useHotkeyTabs, useHotkeyToTouchAction } from "./MobileHotkeys";
+import { MobileHotkeyList, HotkeyLabel, hotkeyId, useGameHotkeyItems, useFavoriteHotkeys, useRunHotkey, useHotkeyLabel, useHotkeyTabs, useHotkeyToTouchAction } from "./MobileHotkeys";
 import { useTouchAction } from "./hooks/useTouchAction";
 import { useSetTouchAction } from "./hooks/useSetTouchAction";
 import { useBoardSwipe } from "./MobileBoardSwipe";
