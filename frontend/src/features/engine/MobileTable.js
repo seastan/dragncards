@@ -17,7 +17,9 @@ import { useDoActionList } from "./hooks/useDoActionList";
 import { usePlayerIList } from "./hooks/usePlayerIList";
 import useProfile from "../../hooks/useProfile";
 import { Z_INDEX } from "./functions/common";
-import { MobileHotkeyList, SectionLabel, HotkeyLabel, hotkeyId, useGameHotkeyItems, useFavoriteHotkeys, useRunHotkey, useHotkeyLabel } from "./MobileHotkeys";
+import { MobileHotkeyList, SectionLabel, HotkeyLabel, hotkeyId, useGameHotkeyItems, useFavoriteHotkeys, useRunHotkey, useHotkeyLabel, useHotkeyTabs, useHotkeyToTouchAction } from "./MobileHotkeys";
+import { useTouchAction } from "./hooks/useTouchAction";
+import { useSetTouchAction } from "./hooks/useSetTouchAction";
 import { useBoardSwipe } from "./MobileBoardSwipe";
 import { MobileStepTracker } from "./MobileStepTracker";
 import { useHiddenPilesGeometry, hiddenPileRegions, HiddenPilesDrawer, SLIDE_MS, drawerParkedOffset } from "./MobileHiddenPiles";
@@ -325,13 +327,28 @@ const FavoritesBar = () => {
 const FAV_BAR_KEY = "dragncards_mobile_fav_bar";
 const readFavBarOpen = () => { try { return window.localStorage.getItem(FAV_BAR_KEY) !== "false"; } catch (e) { return true; } };
 
-// Game and engine hotkeys, slid up from the bottom like chat. Tap a row to run
-// it (and close the sheet); star it to put it on the favourites bar.
+// The hotkeys sheet, slid up from the bottom like chat, with a tab per kind:
+//   Token / Card — tap one to arm it: it then applies to every card you tap
+//                  until you tap the table (touch mode's armed button, shared
+//                  through playerData[n].touchAction). An armed token also
+//                  responds to swipes on a card: up adds one, down removes one.
+//   Game / Dragn — tap one to run it; star it for the favourites bar.
+const HOTKEY_TABS = [["token", "Token"], ["card", "Card"], ["game", "Game"], ["dragn", "Dragn"]];
+
 const HotkeysSheet = ({ open, onClose }) => {
-  const { game, dragn } = useGameHotkeyItems();
+  const tabs = useHotkeyTabs();
   const favorites = useFavoriteHotkeys();
   const runHotkey = useRunHotkey();
-  const run = (item) => { runHotkey(item); onClose(); };
+  const toTouchAction = useHotkeyToTouchAction();
+  const setTouchAction = useSetTouchAction();
+  const [tab, setTab] = useState("game");
+  const armable = tab === "token" || tab === "card";
+  const onRun = (item) => {
+    if (armable) setTouchAction(toTouchAction(item));
+    else runHotkey(item);
+    onClose();
+  };
+  const items = tabs[tab] || [];
   return (
     <div
       onClick={(e) => e.stopPropagation()}
@@ -341,6 +358,8 @@ const HotkeysSheet = ({ open, onClose }) => {
         right: 0,
         bottom: 0,
         height: "60%",
+        display: "flex",
+        flexDirection: "column",
         transform: open ? "translateY(0)" : "translateY(105%)",
         transition: "transform 0.2s ease-out",
         visibility: open ? "visible" : "hidden",
@@ -350,13 +369,78 @@ const HotkeysSheet = ({ open, onClose }) => {
         boxShadow: "0 -8px 24px rgba(0,0,0,0.6)",
         zIndex: Z_INDEX.ChatHover,
         color: "white",
-        overflowY: "auto",
-        WebkitOverflowScrolling: "touch",
+        overflow: "hidden",
       }}>
-      {game.length > 0 && <SectionLabel>Game hotkeys</SectionLabel>}
-      <MobileHotkeyList items={game} onRun={run} favorites={favorites}/>
-      <SectionLabel>DragnCards hotkeys</SectionLabel>
-      <MobileHotkeyList items={dragn} onRun={run} favorites={favorites}/>
+      <div style={{ display: "flex", flexShrink: 0, borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+        {HOTKEY_TABS.map(([id, label]) => (
+          <div
+            key={id}
+            onClick={() => setTab(id)}
+            style={{
+              ...tapStyle,
+              flex: 1,
+              textAlign: "center",
+              padding: "11px 0 9px",
+              fontSize: 13,
+              fontWeight: 600,
+              letterSpacing: "0.04em",
+              color: tab === id ? "white" : "#9ca3af",
+              borderBottom: `2px solid ${tab === id ? "#e5e7eb" : "transparent"}`,
+            }}>
+            {label}
+          </div>
+        ))}
+      </div>
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+        {armable &&
+          <div style={{ padding: "8px 12px 2px", fontSize: 12, color: "#9ca3af" }}>
+            {tab === "token"
+              ? "Pick a token, then tap cards to add one or swipe up / down on a card to add / remove. Tap the table when done."
+              : "Pick an action, then tap the cards to apply it to. Tap the table when done."}
+          </div>}
+        {items.length
+          ? <MobileHotkeyList items={items} onRun={onRun} favorites={armable ? null : favorites}/>
+          : <div style={{ padding: 14, fontSize: 13, color: "#9ca3af" }}>No hotkeys of this kind.</div>}
+      </div>
+    </div>
+  );
+};
+
+// Replaces the bottom bar while a token or card hotkey is armed.
+const ActiveHotkeyBar = ({ touchAction }) => {
+  const setTouchAction = useSetTouchAction();
+  const isToken = touchAction.actionType === "token";
+  return (
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        height: BOTTOM_H,
+        flexShrink: 0,
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "4px 8px 4px 12px",
+        boxSizing: "border-box",
+        background: "#14532d",
+        borderTop: "1px solid #22c55e",
+        color: "white",
+        position: "relative",
+        zIndex: Z_INDEX.TopBarHover,
+      }}>
+      <div style={{ flex: 1, minWidth: 0, lineHeight: 1.2 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
+          <HotkeyLabel text={touchAction.label || touchAction.id} iconSize={18}/>
+        </div>
+        <div style={{ fontSize: 10.5, opacity: 0.8 }}>
+          {isToken ? "Tap a card: +1 · swipe up / down: + / − · tap the table to stop" : "Tap cards to apply · tap the table to stop"}
+        </div>
+      </div>
+      <div
+        onClick={() => setTouchAction(null)}
+        style={{ ...tapStyle, flexShrink: 0, width: 36, height: 36, borderRadius: 18, border: "1px solid rgba(255,255,255,0.5)",
+          display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>
+        <FontAwesomeIcon icon={faTimes}/>
+      </div>
     </div>
   );
 };
@@ -370,6 +454,24 @@ export const MobileTable = React.memo(() => {
   const language = useProfile()?.language;
   const doActionList = useDoActionList();
   const [menuOpen, setMenuOpen] = useState(false);
+  const touchAction = useTouchAction();
+  // An armed token responds to vertical swipes on cards: up +1, down −1. Same
+  // rules as touch mode's token taps (useHandleTouchAction): a non-modifier
+  // token can't be taken below zero.
+  const onCardSwipe = (cardId, direction) => {
+    if (touchAction?.actionType !== "token") return;
+    const tokenType = touchAction.tokenType;
+    const tokenDef = gameDef?.tokens?.[tokenType];
+    const card = game?.cardById?.[cardId];
+    if (!card || !tokenDef) return;
+    const increment = direction === "up" ? 1 : -1;
+    if (increment < 0 && !(card.tokens?.[tokenType] > 0) && tokenDef.modifier !== true && !tokenDef.canBeNegative) return;
+    doActionList([
+      ["DEFINE", "$ACTIVE_CARD_ID", cardId],
+      ["LOG", "$ALIAS_N", increment > 0 ? " added " : " removed ", 1, " ", tokenDef.name || tokenDef.label, increment > 0 ? " token to " : " token from ", "$ACTIVE_FACE.name", "."],
+      ["INCREASE_VAL", "/cardById/$ACTIVE_CARD_ID/tokens/" + tokenType, increment],
+    ], `Swipe ${direction} with token ${tokenType} on card ${cardId}`);
+  };
   const [chatOpen, setChatOpen] = useState(false);
   const [hotkeysOpen, setHotkeysOpen] = useState(false);
   const [stepsOpen, setStepsOpen] = useState(false);
@@ -480,6 +582,8 @@ export const MobileTable = React.memo(() => {
           gameDef={gameDef}
           language={language}
           doActionList={doActionList}
+          cardSwipe={touchAction?.actionType === "token"}
+          onCardSwipe={onCardSwipe}
           regionSlideX={tableSlideX}
           regionSlideMs={boardSwipe.slideMs ?? SLIDE_MS}
           tiltOverlay={pilesGeometry &&
@@ -518,7 +622,8 @@ export const MobileTable = React.memo(() => {
         <MobileStepTracker open={stepsOpen}/>
       </div>
       {favBarOpen && <FavoritesBar/>}
-      <MobileBottomBar pilesOpen={pilesOpen} setPilesOpen={setPilesOpen} chatOpen={chatOpen} setChatOpen={setChatOpen} hotkeysOpen={hotkeysOpen} setHotkeysOpen={setHotkeysOpen} stepsOpen={stepsOpen} setStepsOpen={setStepsOpen} favBarOpen={favBarOpen} setFavBarOpen={setFavBarOpen}/>
+      {touchAction ? <ActiveHotkeyBar touchAction={touchAction}/> :
+      <MobileBottomBar pilesOpen={pilesOpen} setPilesOpen={setPilesOpen} chatOpen={chatOpen} setChatOpen={setChatOpen} hotkeysOpen={hotkeysOpen} setHotkeysOpen={setHotkeysOpen} stepsOpen={stepsOpen} setStepsOpen={setStepsOpen} favBarOpen={favBarOpen} setFavBarOpen={setFavBarOpen}/>}
     </div>
   );
 });

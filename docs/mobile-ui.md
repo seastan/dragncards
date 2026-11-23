@@ -95,11 +95,17 @@ desktop key.
 - **Card view → Hotkeys** lists the plugin's card hotkeys (`hotkeys.card`)
   and the engine's card ones (target, arrow, trigger ability); a tap runs one
   on that card and returns to the table.
-- **Bottom bar → Hotkeys** lists the game hotkeys (`hotkeys.game`) and the
-  engine's own. A tap runs one; the star adds it as a button to the
-  favourites bar, which sits just above the bottom bar and is shown / hidden
-  with the bottom bar's *Favorites* button. Favourites are saved per device
-  and per plugin, the bar's on/off per device (localStorage).
+- **Bottom bar → Hotkeys** has four tabs:
+  - *Token* (`hotkeys.token` entries with a `tokenType`) and *Card* (`hotkeys.card`,
+    action entries in `hotkeys.token`, and the engine's target / arrow): tap one
+    to arm it. It then applies to every card you tap until you tap the table
+    (touch mode's armed button, `playerData[n].touchAction`), and the bottom bar
+    shows what's armed, with an × to disarm. An armed token also takes swipes
+    on cards: up adds one, down removes one.
+  - *Game* (`hotkeys.game`) and *Dragn* (the engine's own): tap to run; the star
+    adds one as a button to the favourites bar, which sits just above the
+    bottom bar and is shown / hidden with the bottom bar's *Favorites* button.
+    Favourites are saved per device and per plugin, the bar's on/off per device.
 - **Piles:** tapping a card in a pile (deck, discard, drawer pile) opens the
   pile's menu; its first option, *Select top card*, opens that card's view.
 

@@ -101,6 +101,10 @@ export default function Dnc3DTable({
   // drawer, whose piles slide in and out with the drawer panel.
   regionSlideX = null,
   regionSlideMs = 0,
+  // While cardSwipe is true, a vertical swipe on a card calls
+  // onCardSwipe(dcCardId, 'up' | 'down') instead of picking the card up.
+  cardSwipe = false,
+  onCardSwipe = null,
 }) {
   const dispatch         = useDispatch();
   const browseTopN       = useBrowseTopN();
@@ -188,6 +192,10 @@ export default function Dnc3DTable({
   const isMobileLayoutRef     = useRef(isMobileLayout);
   const regionSlideXRef       = useRef(regionSlideX);
   regionSlideXRef.current     = regionSlideX;
+  const cardSwipeRef          = useRef(cardSwipe);
+  cardSwipeRef.current        = cardSwipe;
+  const onCardSwipeRef        = useRef(onCardSwipe);
+  onCardSwipeRef.current      = onCardSwipe;
   const zoomFactorRef         = useRef(zoomFactor);
   const tableBackgroundUrlRef = useRef(tableBackgroundUrl);
   const browseGroupIdRef      = useRef(browseGroupId);
@@ -305,6 +313,11 @@ export default function Dnc3DTable({
         zoomFactor:         zoomFactorRef.current,
         ...(isMobileLayoutRef.current ? { cardUnitPx: mobileCardUnitPx(tiltEl.parentElement), browseAtTop: true } : {}),
         regionSlideX: regionSlideXRef.current || {},
+        cardSwipe: cardSwipeRef.current,
+        onCardSwipe: (engineId, direction) => {
+          const dcId = reverseIdMap.get(engineId);
+          if (dcId != null && onCardSwipeRef.current) onCardSwipeRef.current(dcId, direction);
+        },
         // gameDef.cardFling: a card released mid-swipe runs an action list
         // instead of dropping (see validate/getGameDefSchema.js for the options).
         ...(gd?.cardFling ? {
@@ -352,7 +365,7 @@ export default function Dnc3DTable({
           console.log('dnc3d card click', card);
           // Mobile UI: a tap on a pile (deck, discard, a hidden pile) opens the
           // pile's menu, which offers "Select top card" for the card itself.
-          if (isMobileLayoutRef.current && card) {
+          if (isMobileLayoutRef.current && card && !touchActionRef.current) {
             const lr = layoutRef.current || {};
             const isPile = Object.values(lr).some(r => r?.type === 'pile' && r.visible !== false &&
               formatGroupId(r.groupId, observingPlayerRef.current, numPlayersRef.current) === card.groupId);
@@ -644,6 +657,8 @@ export default function Dnc3DTable({
   // ── Slide regions sideways (regionSlideX) ──────────────────────────────────
   // After the init effect above, so when a render both adds regions and moves
   // them, they're built at their starting offset and then animated.
+  useEffect(() => { engineRef.current?.setCardSwipe(cardSwipe); }, [cardSwipe]);
+
   const regionSlideKey = JSON.stringify(regionSlideX || {});
   useEffect(() => {
     engineRef.current?.setRegionSlideX(regionSlideX || {}, regionSlideMs);

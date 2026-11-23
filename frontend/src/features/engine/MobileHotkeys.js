@@ -38,6 +38,41 @@ const dedupeByAction = (list) => {
 
 export const hotkeyId = (item) => `${item.kind}:${item.key}`;
 
+// ── Tabs of the hotkeys sheet ───────────────────────────────────────────────
+// Token: gameDef.hotkeys.token entries that add a token (tokenType).
+// Card: gameDef.hotkeys.card, the action entries plugins also put in the token
+//       list (LotR does), and the engine's target / arrow hotkeys. (The engine's
+//       trigger-ability hotkey needs the card's ability passed in, which an
+//       armed action can't supply; cards have their own ability button.)
+// Game / Dragn: as useGameHotkeyItems.
+export const useHotkeyTabs = () => {
+  const gameDef = useGameDefinition();
+  const tokenList = (gameDef?.hotkeys?.token || []).filter(h => !h.hideFromTable);
+  const { game, dragn } = useGameHotkeyItems();
+  return {
+    token: tokenList.filter(h => h.tokenType).map(h => ({ ...h, kind: "token" })),
+    card: [
+      ...(gameDef?.hotkeys?.card || []).filter(h => !h.hideFromTable).map(h => ({ ...h, kind: "card" })),
+      ...tokenList.filter(h => !h.tokenType && h.actionList).map(h => ({ ...h, kind: "card" })),
+      ...dedupeByAction(dragnHotkeys.filter(h => ["targetCard", "drawArrow"].includes(h.actionList))).map(h => ({ ...h, kind: "dragn" })),
+    ],
+    game,
+    dragn,
+  };
+};
+
+// The armed action (playerData[n].touchAction, as touch mode's bar uses) for a
+// token or card hotkey: applied to each card tapped until the table is tapped.
+export const useHotkeyToTouchAction = () => {
+  const gameDef = useGameDefinition();
+  const labelOf = useHotkeyLabel();
+  return (item) => item.kind === "token"
+    ? { id: `mobile_${hotkeyId(item)}`, actionType: "token", tokenType: item.tokenType,
+        label: labelOf(item), imageUrl: gameDef?.tokens?.[item.tokenType]?.imageUrl }
+    : { id: `mobile_${hotkeyId(item)}`, actionType: "card", actionList: item.actionList,
+        label: labelOf(item), isDragnButton: item.kind === "dragn" };
+};
+
 // [{kind, key, label, actionList}] for the card sheet's hotkey list.
 export const useCardHotkeyItems = () => {
   const gameDef = useGameDefinition();
@@ -76,7 +111,16 @@ export const useRunHotkey = () => {
 export const useHotkeyLabel = () => {
   const gameL10n = useGameL10n();
   const siteL10n = useSiteL10n();
-  return (item) => (item.kind === "dragn" ? siteL10n(item.label) : gameL10n(item.label)) || item.key;
+  const gameDef = useGameDefinition();
+  return (item) => {
+    const label = (item.kind === "dragn" ? siteL10n(item.label) : gameL10n(item.label)) || item.key;
+    // Token hotkeys are often labelled with just the token's icon: add its name.
+    if (item.kind === "token") {
+      const name = gameL10n(gameDef?.tokens?.[item.tokenType]?.label) || item.tokenType;
+      return /^\s*icon\([^)]*\)\s*$/.test(label) ? `${label} ${name}` : label;
+    }
+    return label;
+  };
 };
 
 export const HotkeyLabel = ({ text, iconSize = 22 }) => (
@@ -129,12 +173,12 @@ export const MobileHotkeyList = ({ items, onRun, favorites = null }) => {
   const labelOf = useHotkeyLabel();
   return (
     <div>
-      {items.map(item => {
+      {items.map((item, index) => {
         const id = hotkeyId(item);
         const fav = favorites?.favs.includes(id);
         return (
           <div
-            key={id}
+            key={`${id}:${index}`}  // ids can repeat: plugins bind two actions to one key
             onClick={(e) => { e.stopPropagation(); onRun(item); }}
             className="menu-item"
             style={{ height: "auto", minHeight: 44, gap: 10, padding: "6px 12px", fontSize: 15, cursor: "pointer", touchAction: "manipulation" }}>

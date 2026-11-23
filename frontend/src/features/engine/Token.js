@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { useDoActionList } from "./hooks/useDoActionList";
 import Draggable from "react-draggable";
+import { useMobileUIActive } from "./hooks/useMobileUI";
 
 var delayBroadcast;
 
@@ -18,6 +19,7 @@ export const Token = React.memo(({
 }) => {
 
     const doActionList = useDoActionList();
+    const mobileUIActive = useMobileUIActive();
     const rotation = useSelector(state => state?.gameUi?.game?.cardById?.[cardId]?.rotation);
     const tokenValue = useSelector(state => state?.gameUi?.game?.cardById?.[cardId]?.tokens?.[tokenType]) || 0;
     const [buttonDownVisible, setButtonDownVisible] = useState(false);
@@ -72,7 +74,9 @@ export const Token = React.memo(({
     }
     
     return(
-        <Draggable>
+        // Not in mobile UI: a swipe on a card there means +/− a token (or drags
+        // the card); a token that moved with the finger slid off its card.
+        <Draggable disabled={mobileUIActive}>
         <div
             style={{
                 position: "absolute",

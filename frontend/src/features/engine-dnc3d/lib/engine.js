@@ -124,6 +124,9 @@ export function createDnc3DEngine(options = {}) {
   // ran an action (the drop is then skipped). Speed threshold in px per ms.
   const onCardFling         = options.onCardFling || null;
   const _flingMinSpeed      = (options.flingMinSpeed || 1000) / 1000;
+  // Card swipe: callback(cardId, 'up'|'down'), active while setCardSwipe(true).
+  const onCardSwipe         = options.onCardSwipe || null;
+  let _cardSwipeOn          = !!options.cardSwipe;
   const _tableBackgroundUrl = options.tableBackgroundUrl || null;
   const _playerN            = options.playerN            || null;
 
@@ -1402,6 +1405,9 @@ export function createDnc3DEngine(options = {}) {
     // Touch pan: a finger swiped along a scrollable row/fan (e.g. the browse
     // fan) scrolls it rather than picking the card up. See tryStartTouchPan.
     let panRegionId = null, panStartOff = 0, panMaxScroll = 0, panVertical = false;
+    // Card swipe (setCardSwipe on): a vertical swipe on the card reports
+    // onCardSwipe(up/down) instead of picking the card up.
+    let swipeGesture = false;
     // Recent pointer positions during a drag, for fling detection at release.
     let flingSamples = [];
     // The pointer startDragFn armed, or null when no gesture is in flight.
@@ -1445,6 +1451,7 @@ export function createDnc3DEngine(options = {}) {
       startX = e.clientX;
       startY = e.clientY;
       isDragging = false;
+      swipeGesture = false;
       flingSamples = [];
       dragStack  = null;
       dragStackCards = [];
@@ -1489,7 +1496,12 @@ export function createDnc3DEngine(options = {}) {
         return;
       }
 
+      if (swipeGesture) return;
       if (!isDragging && Math.hypot(dx, dy) >= dragThreshold(e)) {
+        if (_cardSwipeOn && onCardSwipe && Math.abs(dy) > Math.abs(dx)) {
+          swipeGesture = true;
+          return;
+        }
         // On a touchscreen there's no scroll wheel and the arrows are small, so a
         // swipe along a region that overflows (the browse fan, a long hand)
         // scrolls it. Moving across the region's axis — pulling a card up out of
@@ -1894,6 +1906,15 @@ export function createDnc3DEngine(options = {}) {
       // A touch pan ends here: no drop, no click, no menu.
       if (panRegionId !== null) {
         panRegionId = null;
+        return;
+      }
+      // So does a card swipe, which reports its direction instead.
+      if (swipeGesture) {
+        swipeGesture = false;
+        if (!cancelled && onCardSwipe) onCardSwipe(card.id, (e.clientY - startY) < 0 ? 'up' : 'down');
+        const blockClick = (ce) => { ce.stopPropagation(); window.removeEventListener('click', blockClick, true); };
+        window.addEventListener('click', blockClick, true);
+        setTimeout(() => window.removeEventListener('click', blockClick, true), 400);
         return;
       }
       dragTiltAngle = 0;
@@ -4578,6 +4599,8 @@ export function createDnc3DEngine(options = {}) {
     });
   }
 
+  function setCardSwipe(on) { _cardSwipeOn = !!on; }
+
   function setTouchMode(touchMode) {
     if (touchMode === _touchMode) return;
     _touchMode = touchMode;
@@ -4740,5 +4763,5 @@ export function createDnc3DEngine(options = {}) {
     });
   }
 
-  return { init, applyTilt, applyTableOpacity, setCurrentDeg, onTiltUpdated, reconcile, openBrowse, closeBrowse, updateBrowseFilter, getCardElements, syncOverlay, animatePileShuffle, setHoverSuppressed, setTouchMode, setAlwaysShowPileCounts, setAlwaysShowGroupIcons, spawnCards, despawnCards, repaintCardFaces, setRegionSlideX };
+  return { init, applyTilt, applyTableOpacity, setCurrentDeg, onTiltUpdated, reconcile, openBrowse, closeBrowse, updateBrowseFilter, getCardElements, syncOverlay, animatePileShuffle, setHoverSuppressed, setTouchMode, setAlwaysShowPileCounts, setAlwaysShowGroupIcons, spawnCards, despawnCards, repaintCardFaces, setRegionSlideX, setCardSwipe };
 }
