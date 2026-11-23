@@ -99,8 +99,9 @@ desktop key.
   - *Token* (`hotkeys.token` entries with a `tokenType`) and *Card* (`hotkeys.card`,
     action entries in `hotkeys.token`, and the engine's target / arrow): tap one
     to arm it. It then applies to every card you tap until you tap the table
-    (touch mode's armed button, `playerData[n].touchAction`), and the bottom bar
-    shows what's armed, with an × to disarm. An armed token also takes swipes
+    (like touch mode's armed button, but kept on the device rather than in the
+    game, so it isn't logged and undo never re-arms it), and the bottom bar
+    shows what's armed, with Undo and an × to disarm. An armed token also takes swipes
     on cards: up adds one, down removes one.
   - *Game* (`hotkeys.game`) and *Dragn* (the engine's own): tap to run; the star
     adds one as a button to the favourites bar, which sits just above the

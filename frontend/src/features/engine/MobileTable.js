@@ -509,7 +509,8 @@ const readFavBarOpen = () => { try { return window.localStorage.getItem(FAV_BAR_
 // The hotkeys sheet, slid up from the bottom like chat, with a tab per kind:
 //   Token / Card — tap one to arm it: it then applies to every card you tap
 //                  until you tap the table (touch mode's armed button, shared
-//                  through playerData[n].touchAction). An armed token also
+//                  through useTouchAction; in the mobile UI that's local to the device, so
+//                  undo never re-arms one). An armed token also
 //                  responds to swipes on a card: up adds one, down removes one.
 //   Game / Dragn — tap one to run it; star it for the favourites bar.
 const HOTKEY_TABS = [["token", "Token"], ["card", "Card"], ["game", "Game"], ["dragn", "Dragn"]];
@@ -614,6 +615,8 @@ const ActiveHotkeyBar = ({ touchAction }) => {
           {isToken ? "Tap a card to add a token. Swipe down on a card to remove a token." : "Tap cards to apply · tap the table to stop"}
         </div>
       </div>
+      {/* Undo stays reachable while armed, for a tap on the wrong card. */}
+      <div style={{ flexShrink: 0, width: 56, height: "100%", display: "flex" }}><UndoButton/></div>
       <div
         onClick={() => setTouchAction(null)}
         style={{ ...tapStyle, flexShrink: 0, width: 36, height: 36, borderRadius: 18, border: "1px solid rgba(255,255,255,0.5)",

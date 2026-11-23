@@ -64,7 +64,7 @@ export const useHotkeyTabs = () => {
   };
 };
 
-// The armed action (playerData[n].touchAction, as touch mode's bar uses) for a
+// The armed action (the same shape as touch mode's armed button) for a
 // token or card hotkey: applied to each card tapped until the table is tapped.
 export const useHotkeyToTouchAction = () => {
   const gameDef = useGameDefinition();

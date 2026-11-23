@@ -47,6 +47,10 @@ const initialState = {
   // Phone-first table (see functions/mobileLayout.js). Kept out of userSettings
   // because those sync to the profile, and this is a per-device choice.
   mobileUI: readMobileUIPref(),
+  // Mobile UI's armed token / card hotkey. Kept here rather than in the game
+  // (playerData[n].touchAction, which touch mode uses) so arming isn't a game
+  // action: it doesn't log, and undo doesn't re-arm it.
+  mobileTouchAction: null,
   typing: false,
   activeCardId: null,
   preHotkeyActiveCardGroupId: null,
@@ -151,6 +155,9 @@ const playerUiSlice = createSlice({
     },
     setMobileUI: (state, { payload }) => {
       state.mobileUI = !!payload;
+    },
+    setMobileTouchAction: (state, { payload }) => {
+      state.mobileTouchAction = payload;
     },
     setDropdownMenu: (state, { payload }) => {
       state.dropdownMenu = payload;
@@ -319,6 +326,7 @@ export const {
   setScreenLeftRight,
   setObservingPlayerN,
   setMobileUI,
+  setMobileTouchAction,
   setDropdownMenu,
   setShowModal,
   setShowDeveloper,
