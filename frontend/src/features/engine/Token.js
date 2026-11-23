@@ -98,7 +98,8 @@ export const Token = React.memo(({
                 // card in a stack) flips the cursor back to the default arrow.
                 cursor: extrudeFilter ? "grab" : undefined,
                 // dnc3d: shrink tokens 20% in place (origin defaults to center).
-                transform: extrudeFilter ? "scale(0.8)" : undefined,
+                // (Mobile UI: a further 25% smaller, to suit its smaller cards.)
+                transform: extrudeFilter ? (mobileUIActive ? "scale(0.6)" : "scale(0.8)") : undefined,
                 display: showButtons || (amount!==0 && amount!==null && amount!==undefined) ? "block" : "none"}}>
             <div
                 className="flex absolute text-white text-center w-full h-full items-center justify-center"

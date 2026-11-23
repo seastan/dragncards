@@ -200,7 +200,7 @@ const BottomButton = ({ active, onClick, children, label }) => (
     onClick={(e) => { e.stopPropagation(); onClick(); }}
     style={{
       ...barButton,
-      flex: "1 1 0", maxWidth: 64, minWidth: 0,   // share a narrow bar evenly
+      flex: "1 1 0", minWidth: 0,   // the buttons share the bar evenly
       flexDirection: "column",
       gap: 2,
       background: active ? "rgba(255,255,255,0.12)" : "transparent",
@@ -249,7 +249,7 @@ const UndoButton = () => {
       title="Tap to undo, hold to redo"
       style={{
         ...barButton,
-        flex: "1 1 0", maxWidth: 64, minWidth: 0,   // share a narrow bar evenly
+        flex: "1 1 0", minWidth: 0,   // the buttons share the bar evenly
         flexDirection: "column",
         gap: 2,
         background: redo ? "rgba(255,255,255,0.12)" : "transparent",
@@ -349,7 +349,6 @@ const MobileBottomBar = ({ pilesOpen, setPilesOpen, chatOpen, setChatOpen, hotke
         <FontAwesomeIcon icon={stepsOpen ? faTimes : faListOl}/>
       </BottomButton>
       <UndoButton/>
-      <div style={{ flex: 1 }}/>
       {/* Shows / hides the favourites bar; not a sheet, so it leaves the
           others alone. */}
       <BottomButton active={favBarOpen} label="FAVORITES" onClick={() => setFavBarOpen(!favBarOpen)}>

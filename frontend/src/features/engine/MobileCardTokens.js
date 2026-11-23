@@ -19,7 +19,7 @@ import { useVisibleFaceSrc } from "./hooks/useVisibleFaceSrc";
 // upright screen (two if the screen is wider than tall).
 
 const BTN = 28;      // − / + button size
-const ICON = 26;     // token image size
+const ICON = 33;     // token image size
 
 const useCardTokenTypes = (cardId) => {
   const gameDef = useGameDefinition();
@@ -94,14 +94,14 @@ const TokenAdjuster = ({ cardId, tokenType }) => {
       <div
         title={gameL10n(tokenDef?.label)}
         style={{ position: "relative", width: ICON + 14, height: ICON, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-        <img alt={gameL10n(tokenDef?.label) || tokenType} src={tokenDef?.imageUrl} style={{ width: ICON, height: ICON, objectFit: "contain", opacity: amount === 0 ? 0.45 : 1 }}/>
+        <img alt={gameL10n(tokenDef?.label) || tokenType} src={tokenDef?.imageUrl} style={{ width: ICON, height: ICON, objectFit: "contain", opacity: amount === 0 ? 0.8 : 1 }}/>
         <span style={{
           position: "absolute",
           inset: 0,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: 13,
+          fontSize: 16,
           fontWeight: 700,
           color: "white",
           textShadow: "0 0 3px #000, 0 0 3px #000, 0 0 6px #000",
