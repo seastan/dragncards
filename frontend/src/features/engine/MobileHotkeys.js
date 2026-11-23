@@ -151,13 +151,15 @@ export const useFavoriteHotkeys = () => {
     window.addEventListener(FAV_EVENT, onChange);
     return () => window.removeEventListener(FAV_EVENT, onChange);
   }, [pluginId]);
-  const toggle = (id) => {
-    const next = favs.includes(id) ? favs.filter(f => f !== id) : [...favs, id];
+  const save = (next) => {
     try { window.localStorage.setItem(favKey(pluginId), JSON.stringify(next)); } catch (e) { /* session only */ }
     setFavs(next);
     window.dispatchEvent(new Event(FAV_EVENT));
   };
-  return { favs, toggle };
+  const toggle = (id) => save(favs.includes(id) ? favs.filter(f => f !== id) : [...favs, id]);
+  // A new order for the same favourites (the favourites bar's drag to reorder).
+  const reorder = (ids) => save(ids);
+  return { favs, toggle, reorder };
 };
 
 // ── List ────────────────────────────────────────────────────────────────────

@@ -212,7 +212,7 @@ const BottomButton = ({ active, onClick, children, label }) => (
 
 // A starred hotkey on the favourites bar: its label (icons included). A tap
 // runs a game / dragn hotkey, or arms a token / card one (as in the sheet).
-const FavoriteHotkeyButton = ({ item }) => {
+const FavoriteHotkeyButton = ({ item, buttonRef, held = false, onPointerDown, suppressClick }) => {
   const runHotkey = useRunHotkey();
   const labelOf = useHotkeyLabel();
   const toTouchAction = useHotkeyToTouchAction();
@@ -222,7 +222,13 @@ const FavoriteHotkeyButton = ({ item }) => {
   const tokenImage = item.kind === "token" ? gameDef?.tokens?.[item.tokenType]?.imageUrl : null;
   return (
     <div
-      onClick={(e) => { e.stopPropagation(); item.armable ? setTouchAction(toTouchAction(item)) : runHotkey(item); }}
+      ref={buttonRef}
+      onPointerDown={onPointerDown}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (suppressClick?.current) return;   // the release that ends a reorder drag
+        item.armable ? setTouchAction(toTouchAction(item)) : runHotkey(item);
+      }}
       title={tokenImage ? labelOf(item).replace(/icon\([^)]*\)\s*/g, "") : undefined}
       aria-label={tokenImage ? labelOf(item).replace(/icon\([^)]*\)\s*/g, "") : undefined}
       className="mobile-sheet-button"
@@ -244,6 +250,11 @@ const FavoriteHotkeyButton = ({ item }) => {
         justifyContent: "center",
         textAlign: "center",
         overflow: "hidden",
+        // Picked up for reordering.
+        ...(held ? { background: "#4b5563", borderColor: "#e5e7eb", transform: "scale(1.08)", boxShadow: "0 4px 12px rgba(0,0,0,0.6)" } : {}),
+        transition: "transform 0.12s ease-out",
+        userSelect: "none",
+        WebkitUserSelect: "none",
       }}>
       {tokenImage
         ? <img alt="" src={tokenImage} style={{ height: 26, width: 26, objectFit: "contain" }}/>
@@ -302,14 +313,107 @@ const MobileBottomBar = ({ pilesOpen, setPilesOpen, chatOpen, setChatOpen, hotke
 // The starred hotkeys, on their own bar just above the bottom bar (toggled by
 // the bottom bar's FAVORITES button). Scrolls sideways when they don't fit.
 const FAV_BAR_H = 44;
+const HOLD_MS = 400;        // press this long to pick a favourite up
+const HOLD_SLOP_PX = 8;     // moving further first means a scroll, not a hold
+
 const FavoritesBar = () => {
   const { token, card, game, dragn } = useHotkeyTabs();
-  const { favs } = useFavoriteHotkeys();
+  const { favs, reorder } = useFavoriteHotkeys();
   const byId = Object.fromEntries([...token, ...card, ...game, ...dragn].map(item => [hotkeyId(item), item]));
-  const favItems = favs.map(id => byId[id]).filter(Boolean);
+  const barRef = useRef(null);
+  const buttonEls = useRef({});            // id → button element
+  const hold = useRef(null);               // { id, x0, y0, timer, pointerId, el }
+  const suppressClick = useRef(false);     // the click that ends a drag isn't a tap
+  // While dragging: the order being shown (ids) and which one is held.
+  const [drag, setDrag] = useState(null);  // { id, order }
+  const dragRef = useRef(null);
+  dragRef.current = drag;
+
+  const order = drag ? drag.order : favs;
+  const favItems = order.map(id => byId[id] ? { id, item: byId[id] } : null).filter(Boolean);
+
+  // Once a favourite is picked up, the finger's moves belong to the drag, not
+  // to scrolling the bar. A non-passive listener can cancel them (React's
+  // touch listeners are passive).
+  useEffect(() => {
+    const el = barRef.current;
+    if (!el) return;
+    const onTouchMove = (e) => { if (dragRef.current) e.preventDefault(); };
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    return () => el.removeEventListener("touchmove", onTouchMove);
+  }, []);
+
+  const endHold = () => {
+    if (hold.current?.timer) clearTimeout(hold.current.timer);
+    hold.current = null;
+  };
+
+  const onPointerDown = (id) => (e) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    endHold();
+    const el = e.currentTarget;
+    const pointerId = e.pointerId;
+    hold.current = {
+      id, el, pointerId, x0: e.clientX, y0: e.clientY,
+      timer: setTimeout(() => {
+        // Picked up.
+        hold.current.timer = null;
+        try { el.setPointerCapture(pointerId); } catch (err) { /* already released */ }
+        if (navigator.vibrate) navigator.vibrate(15);
+        setDrag({ id, order: favs.filter(f => byId[f]) });
+      }, HOLD_MS),
+    };
+  };
+
+  const onPointerMove = (e) => {
+    const h = hold.current;
+    if (!h || e.pointerId !== h.pointerId) return;
+    const d = dragRef.current;
+    if (!d) {
+      // Still deciding: moving away before the hold completes is a scroll.
+      if (Math.hypot(e.clientX - h.x0, e.clientY - h.y0) > HOLD_SLOP_PX) endHold();
+      return;
+    }
+    // The held favourite goes before the first other one whose middle is
+    // right of the finger.
+    const others = d.order.filter(id => id !== d.id);
+    let index = others.length;
+    for (let i = 0; i < others.length; i++) {
+      const r = buttonEls.current[others[i]]?.getBoundingClientRect();
+      if (r && e.clientX < r.left + r.width / 2) { index = i; break; }
+    }
+    const next = [...others.slice(0, index), d.id, ...others.slice(index)];
+    if (next.join("|") !== d.order.join("|")) setDrag({ ...d, order: next });
+    // Near either end, scroll the bar so the rest of the row can be reached.
+    const bar = barRef.current?.getBoundingClientRect();
+    if (bar) {
+      if (e.clientX < bar.left + 24) barRef.current.scrollLeft -= 8;
+      else if (e.clientX > bar.right - 24) barRef.current.scrollLeft += 8;
+    }
+  };
+
+  const onPointerUp = (e) => {
+    const h = hold.current;
+    if (!h || e.pointerId !== h.pointerId) return;
+    const d = dragRef.current;
+    endHold();
+    if (!d) return;   // a plain tap: its click runs the hotkey
+    suppressClick.current = true;
+    setTimeout(() => { suppressClick.current = false; }, 400);
+    // Keep favourites this bar doesn't show (another plugin version's) at the end.
+    const hidden = favs.filter(f => !d.order.includes(f));
+    if (e.type !== "pointercancel") reorder([...d.order, ...hidden]);
+    setDrag(null);
+  };
+
   return (
     <div
+      ref={barRef}
       onClick={(e) => e.stopPropagation()}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      onContextMenu={(e) => e.preventDefault()}
       style={{
         height: FAV_BAR_H,
         flexShrink: 0,
@@ -324,9 +428,19 @@ const FavoritesBar = () => {
         scrollbarWidth: "none",
         position: "relative",
         zIndex: Z_INDEX.TopBarHover,
+        WebkitTouchCallout: "none",
       }}>
       {favItems.length
-        ? favItems.map(item => <FavoriteHotkeyButton key={hotkeyId(item)} item={item}/>)
+        ? favItems.map(({ id, item }) => (
+            <FavoriteHotkeyButton
+              key={id}
+              item={item}
+              buttonRef={(el) => { if (el) buttonEls.current[id] = el; else delete buttonEls.current[id]; }}
+              held={drag?.id === id}
+              onPointerDown={onPointerDown(id)}
+              suppressClick={suppressClick}
+            />
+          ))
         : <div style={{ display: "flex", alignItems: "center", padding: "0 6px", fontSize: 12, color: "#9ca3af" }}>
             Star hotkeys in the Hotkeys menu to add them here.
           </div>}
