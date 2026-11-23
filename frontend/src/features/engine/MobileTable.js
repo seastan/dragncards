@@ -217,9 +217,14 @@ const FavoriteHotkeyButton = ({ item }) => {
   const labelOf = useHotkeyLabel();
   const toTouchAction = useHotkeyToTouchAction();
   const setTouchAction = useSetTouchAction();
+  const gameDef = useGameDefinition();
+  // Tokens: just the token's image (its name stays as the tooltip / label).
+  const tokenImage = item.kind === "token" ? gameDef?.tokens?.[item.tokenType]?.imageUrl : null;
   return (
     <div
       onClick={(e) => { e.stopPropagation(); item.armable ? setTouchAction(toTouchAction(item)) : runHotkey(item); }}
+      title={tokenImage ? labelOf(item).replace(/icon\([^)]*\)\s*/g, "") : undefined}
+      aria-label={tokenImage ? labelOf(item).replace(/icon\([^)]*\)\s*/g, "") : undefined}
       className="mobile-sheet-button"
       style={{
         ...tapStyle,
@@ -240,9 +245,11 @@ const FavoriteHotkeyButton = ({ item }) => {
         textAlign: "center",
         overflow: "hidden",
       }}>
-      <span style={{ overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
-        <HotkeyLabel text={labelOf(item)} iconSize={18}/>
-      </span>
+      {tokenImage
+        ? <img alt="" src={tokenImage} style={{ height: 26, width: 26, objectFit: "contain" }}/>
+        : <span style={{ overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+            <HotkeyLabel text={labelOf(item)} iconSize={18}/>
+          </span>}
     </div>
   );
 };
