@@ -48,6 +48,18 @@ const resolveSelf = (groupId, playerN) => {
   return groupId.replace(/\{playerN\}/g, playerN).replace(/playerN(?![+-]\d)/g, playerN);
 };
 
+// A layout position ("25%", "1/7", 0.3) as a 0-1 fraction; null if unreadable.
+const toFrac = (v) => {
+  if (typeof v === "number") return v;
+  if (typeof v !== "string") return null;
+  const s = v.trim();
+  if (s.endsWith("%")) return parseFloat(s) / 100;
+  const m = s.match(/^(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)$/);
+  if (m) return parseFloat(m[1]) / parseFloat(m[2]);
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+};
+
 export const buildMobileLayout = (mobileLayout, liveLayout, playerN) => {
   if (!mobileLayout) return null;
   const liveRegions = liveLayout?.regions || {};
@@ -79,6 +91,20 @@ export const buildMobileLayout = (mobileLayout, liveLayout, playerN) => {
         ...(live.label !== undefined ? { label: live.label } : {}),
         ...(live.visible !== undefined ? { visible: live.visible } : {}),
       };
+    });
+  }
+  // A visible text box spanning the top edge of the table (top 0, full width —
+  // e.g. a round-advancement banner) reserves its height: every region is
+  // squeezed into the space below it instead of being drawn underneath.
+  const reserved = Math.max(0, ...Object.values(textBoxes || {})
+    .filter(b => b.visible !== false && toFrac(b.top) === 0 && toFrac(b.left) === 0 && toFrac(b.width) >= 0.999)
+    .map(b => toFrac(b.height) || 0));
+  if (reserved > 0 && reserved < 1) {
+    Object.keys(regions).forEach(key => {
+      const r = regions[key];
+      const top = toFrac(r.top), height = toFrac(r.height);
+      if (top === null || height === null) return;
+      regions[key] = { ...r, top: reserved + top * (1 - reserved), height: height * (1 - reserved) };
     });
   }
   return {

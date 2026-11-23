@@ -89,3 +89,23 @@ describe('mobileLayout schema', () => {
     expect(errors.some(e => /perspective/.test(e))).toBe(true);
   });
 });
+
+describe('top banner text box', () => {
+  const ml = {
+    cardSize: 12,
+    regions: { a: { groupId: 'g', type: 'row', left: 0, top: 0, width: 1, height: '1/2' },
+               b: { groupId: 'h', type: 'row', left: 0, top: '50%', width: 1, height: 0.5 } },
+    textBoxes: { banner: { label: '', left: 0, top: 0, width: 1, height: '10%', hover: true } },
+  };
+  test('squeezes regions below a visible banner', () => {
+    const built = buildMobileLayout(ml, { textBoxes: { banner: { visible: true, label: 'hi' } } }, 'player1');
+    expect(built.regions.a.top).toBeCloseTo(0.1);
+    expect(built.regions.a.height).toBeCloseTo(0.45);
+    expect(built.regions.b.top).toBeCloseTo(0.55);
+  });
+  test('leaves regions alone while the banner is hidden', () => {
+    const built = buildMobileLayout(ml, { textBoxes: { banner: { visible: false } } }, 'player1');
+    expect(built.regions.a.top).toBe(0);
+    expect(built.regions.b.top).toBe('50%');
+  });
+});
