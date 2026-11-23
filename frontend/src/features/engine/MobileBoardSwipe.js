@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { unstable_batchedUpdates } from "react-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { setObservingPlayerN } from "../store/playerUiSlice";
 import { usePlayerIList } from "./hooks/usePlayerIList";
@@ -138,9 +139,17 @@ export const useBoardSwipe = ({ tableRef, layoutRegions, tableWidth, enabled }) 
       busy = true;
       setSlide({ px: dx < 0 ? -W : W, ms: SLIDE_MS });
       later(() => {
-        // Everything is now where the table will be rebuilt to put it.
-        dispatch(setObservingPlayerN(target));
-        setSlide({ px: 0, ms: null });
+        // Everything is now where the table will be rebuilt to put it. The
+        // player switch and the offset reset must land in ONE render: this
+        // app renders the React 17 way (ReactDOM.render), which doesn't batch
+        // updates made in a timeout, so unbatched the switch rendered first —
+        // rebuilding the table with the new board still offset a full width —
+        // and the reset then slid it in a second time.
+        unstable_batchedUpdates(() => {
+          dispatch(setObservingPlayerN(target));
+          setSlide({ px: 0, ms: 0 });
+        });
+        later(() => setSlide({ px: 0, ms: null }), 50);
         busy = false;
       }, SLIDE_MS + 20);
     };
