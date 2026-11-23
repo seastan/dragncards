@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars, faComment, faTimes, faEye, faLayerGroup, faKeyboard, faListOl, faStar } from "@fortawesome/free-solid-svg-icons";
+import { faBars, faComment, faTimes, faEye, faLayerGroup, faKeyboard, faListOl, faStar, faUndo, faRedo } from "@fortawesome/free-solid-svg-icons";
 import Dnc3DTable from "../engine-dnc3d/Dnc3DTable";
 import { MenuBar } from "../../components/basic/Menu";
 import { TopBarMenu } from "./TopBarMenu";
@@ -20,6 +20,7 @@ import { Z_INDEX } from "./functions/common";
 import { MobileHotkeyList, HotkeyLabel, hotkeyId, useFavoriteHotkeys, useRunHotkey, useHotkeyLabel, useHotkeyTabs, useHotkeyToTouchAction } from "./MobileHotkeys";
 import { useTouchAction } from "./hooks/useTouchAction";
 import { useSetTouchAction } from "./hooks/useSetTouchAction";
+import { useDoDragnHotkey } from "./hooks/useDragnHotkeys";
 import { useBoardSwipe } from "./MobileBoardSwipe";
 import { MobileStepTracker } from "./MobileStepTracker";
 import { useHiddenPilesGeometry, hiddenPileRegions, HiddenPilesDrawer, SLIDE_MS, drawerParkedOffset } from "./MobileHiddenPiles";
@@ -199,7 +200,7 @@ const BottomButton = ({ active, onClick, children, label }) => (
     onClick={(e) => { e.stopPropagation(); onClick(); }}
     style={{
       ...barButton,
-      flex: "0 0 64px",
+      flex: "1 1 0", maxWidth: 64, minWidth: 0,   // share a narrow bar evenly
       flexDirection: "column",
       gap: 2,
       background: active ? "rgba(255,255,255,0.12)" : "transparent",
@@ -209,6 +210,59 @@ const BottomButton = ({ active, onClick, children, label }) => (
     <span style={{ fontSize: 9, letterSpacing: "0.04em", opacity: 0.7 }}>{label}</span>
   </div>
 );
+
+// Undo one action on a tap; redo one on a press and hold. While held long
+// enough the button shows REDO, so the release does what it says.
+const UNDO_HOLD_MS = 450;
+const UndoButton = () => {
+  const doDragnHotkey = useDoDragnHotkey();
+  const [redo, setRedo] = useState(false);
+  const timer = useRef(null);
+  const held = useRef(false);
+  const cancel = () => { clearTimeout(timer.current); timer.current = null; };
+  useEffect(() => cancel, []);
+  return (
+    <div
+      onPointerDown={(e) => {
+        if (e.button !== undefined && e.button !== 0) return;
+        held.current = false;
+        cancel();
+        timer.current = setTimeout(() => {
+          held.current = true;
+          setRedo(true);
+          if (navigator.vibrate) navigator.vibrate(15);
+        }, UNDO_HOLD_MS);
+      }}
+      // Acts on release, not click: after a long press a touch browser may not
+      // send a click at all.
+      onPointerUp={() => {
+        if (timer.current === null && !held.current) return;   // left / cancelled
+        cancel();
+        doDragnHotkey(held.current ? "redo" : "undo");
+        held.current = false;
+        setRedo(false);
+      }}
+      onPointerLeave={() => { cancel(); held.current = false; setRedo(false); }}
+      onPointerCancel={() => { cancel(); held.current = false; setRedo(false); }}
+      onContextMenu={(e) => e.preventDefault()}
+      onClick={(e) => e.stopPropagation()}
+      title="Tap to undo, hold to redo"
+      style={{
+        ...barButton,
+        flex: "1 1 0", maxWidth: 64, minWidth: 0,   // share a narrow bar evenly
+        flexDirection: "column",
+        gap: 2,
+        background: redo ? "rgba(255,255,255,0.12)" : "transparent",
+        borderRadius: 8,
+        userSelect: "none",
+        WebkitUserSelect: "none",
+        WebkitTouchCallout: "none",
+      }}>
+      <FontAwesomeIcon icon={redo ? faRedo : faUndo}/>
+      <span style={{ fontSize: 9, letterSpacing: "0.04em", opacity: 0.7 }}>{redo ? "REDO" : "UNDO"}</span>
+    </div>
+  );
+};
 
 // A starred hotkey on the favourites bar: its label (icons included). A tap
 // runs a game / dragn hotkey, or arms a token / card one (as in the sheet).
@@ -294,6 +348,7 @@ const MobileBottomBar = ({ pilesOpen, setPilesOpen, chatOpen, setChatOpen, hotke
       <BottomButton active={stepsOpen} label="ROUND" onClick={() => only("steps")}>
         <FontAwesomeIcon icon={stepsOpen ? faTimes : faListOl}/>
       </BottomButton>
+      <UndoButton/>
       <div style={{ flex: 1 }}/>
       {/* Shows / hides the favourites bar; not a sheet, so it leaves the
           others alone. */}
@@ -519,7 +574,7 @@ const HotkeysSheet = ({ open, onClose }) => {
         {armable &&
           <div style={{ padding: "8px 12px 2px", fontSize: 12, color: "#9ca3af" }}>
             {tab === "token"
-              ? "Pick a token, then tap cards to add one or swipe up / down on a card to add / remove. Tap the table when done."
+              ? "Pick a token. Tap a card to add a token. Swipe down on a card to remove a token. Tap the table when done."
               : "Pick an action, then tap the cards to apply it to. Tap the table when done."}
           </div>}
         {items.length
@@ -556,7 +611,7 @@ const ActiveHotkeyBar = ({ touchAction }) => {
           <HotkeyLabel text={touchAction.label || touchAction.id} iconSize={18}/>
         </div>
         <div style={{ fontSize: 10.5, opacity: 0.8 }}>
-          {isToken ? "Tap a card: +1 · swipe up / down: + / − · tap the table to stop" : "Tap cards to apply · tap the table to stop"}
+          {isToken ? "Tap a card to add a token. Swipe down on a card to remove a token." : "Tap cards to apply · tap the table to stop"}
         </div>
       </div>
       <div
