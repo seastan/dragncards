@@ -753,8 +753,11 @@ export const MobileTable = React.memo(() => {
       {/* pan-y: horizontal drags here are ours (the board swipe), so the
           browser must not claim them and cancel the pointer partway, which it
           does on any part of the area not covered by the 3D surface's own
-          touch-action. Vertical stays native so the sheets inside scroll. */}
-      <div ref={tableRef} style={{ position: "relative", flex: 1, minHeight: 0, touchAction: "pan-y" }}>
+          touch-action. Vertical stays native so the sheets inside scroll.
+          overflow clip (not hidden, which the browser can scroll from code,
+          shifting the whole table): the sheets slide in from just below,
+          and must not paint over the favourites and bottom bars on the way. */}
+      <div ref={tableRef} style={{ position: "relative", flex: 1, minHeight: 0, touchAction: "pan-y", overflow: "clip" }}>
         {/* Flat: on a phone the tilt only costs space and sharpness. */}
         <Dnc3DTable
           tiltDeg={0}
