@@ -17,7 +17,7 @@ import { useDoActionList } from "./hooks/useDoActionList";
 import { usePlayerIList } from "./hooks/usePlayerIList";
 import useProfile from "../../hooks/useProfile";
 import { Z_INDEX } from "./functions/common";
-import { MobileHotkeyList, HotkeyLabel, hotkeyId, useGameHotkeyItems, useFavoriteHotkeys, useRunHotkey, useHotkeyLabel, useHotkeyTabs, useHotkeyToTouchAction } from "./MobileHotkeys";
+import { MobileHotkeyList, HotkeyLabel, hotkeyId, useFavoriteHotkeys, useRunHotkey, useHotkeyLabel, useHotkeyTabs, useHotkeyToTouchAction } from "./MobileHotkeys";
 import { useTouchAction } from "./hooks/useTouchAction";
 import { useSetTouchAction } from "./hooks/useSetTouchAction";
 import { useBoardSwipe } from "./MobileBoardSwipe";
@@ -210,13 +210,16 @@ const BottomButton = ({ active, onClick, children, label }) => (
   </div>
 );
 
-// A starred hotkey on the bottom bar: its label (icons included), tap to run.
+// A starred hotkey on the favourites bar: its label (icons included). A tap
+// runs a game / dragn hotkey, or arms a token / card one (as in the sheet).
 const FavoriteHotkeyButton = ({ item }) => {
   const runHotkey = useRunHotkey();
   const labelOf = useHotkeyLabel();
+  const toTouchAction = useHotkeyToTouchAction();
+  const setTouchAction = useSetTouchAction();
   return (
     <div
-      onClick={(e) => { e.stopPropagation(); runHotkey(item); }}
+      onClick={(e) => { e.stopPropagation(); item.armable ? setTouchAction(toTouchAction(item)) : runHotkey(item); }}
       className="mobile-sheet-button"
       style={{
         ...tapStyle,
@@ -293,9 +296,9 @@ const MobileBottomBar = ({ pilesOpen, setPilesOpen, chatOpen, setChatOpen, hotke
 // the bottom bar's FAVORITES button). Scrolls sideways when they don't fit.
 const FAV_BAR_H = 44;
 const FavoritesBar = () => {
-  const { game, dragn } = useGameHotkeyItems();
+  const { token, card, game, dragn } = useHotkeyTabs();
   const { favs } = useFavoriteHotkeys();
-  const byId = Object.fromEntries([...game, ...dragn].map(item => [hotkeyId(item), item]));
+  const byId = Object.fromEntries([...token, ...card, ...game, ...dragn].map(item => [hotkeyId(item), item]));
   const favItems = favs.map(id => byId[id]).filter(Boolean);
   return (
     <div
@@ -399,7 +402,7 @@ const HotkeysSheet = ({ open, onClose }) => {
               : "Pick an action, then tap the cards to apply it to. Tap the table when done."}
           </div>}
         {items.length
-          ? <MobileHotkeyList items={items} onRun={onRun} favorites={armable ? null : favorites}/>
+          ? <MobileHotkeyList items={items} onRun={onRun} favorites={favorites}/>
           : <div style={{ padding: 14, fontSize: 13, color: "#9ca3af" }}>No hotkeys of this kind.</div>}
       </div>
     </div>

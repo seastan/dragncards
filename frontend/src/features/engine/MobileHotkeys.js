@@ -36,7 +36,10 @@ const dedupeByAction = (list) => {
   });
 };
 
-export const hotkeyId = (item) => `${item.kind}:${item.key}`;
+// Armable (Token / Card tab) items get their own ids: the same engine hotkey
+// can be both run (Dragn tab) and armed (Card tab), and favourites are keyed
+// by id.
+export const hotkeyId = (item) => `${item.armable ? "arm:" : ""}${item.kind}:${item.key}`;
 
 // ── Tabs of the hotkeys sheet ───────────────────────────────────────────────
 // Token: gameDef.hotkeys.token entries that add a token (tokenType).
@@ -50,11 +53,11 @@ export const useHotkeyTabs = () => {
   const tokenList = (gameDef?.hotkeys?.token || []).filter(h => !h.hideFromTable);
   const { game, dragn } = useGameHotkeyItems();
   return {
-    token: tokenList.filter(h => h.tokenType).map(h => ({ ...h, kind: "token" })),
+    token: tokenList.filter(h => h.tokenType).map(h => ({ ...h, kind: "token", armable: true })),
     card: [
-      ...(gameDef?.hotkeys?.card || []).filter(h => !h.hideFromTable).map(h => ({ ...h, kind: "card" })),
-      ...tokenList.filter(h => !h.tokenType && h.actionList).map(h => ({ ...h, kind: "card" })),
-      ...dedupeByAction(dragnHotkeys.filter(h => ["targetCard", "drawArrow"].includes(h.actionList))).map(h => ({ ...h, kind: "dragn" })),
+      ...(gameDef?.hotkeys?.card || []).filter(h => !h.hideFromTable).map(h => ({ ...h, kind: "card", armable: true })),
+      ...tokenList.filter(h => !h.tokenType && h.actionList).map(h => ({ ...h, kind: "card", armable: true })),
+      ...dedupeByAction(dragnHotkeys.filter(h => ["targetCard", "drawArrow"].includes(h.actionList))).map(h => ({ ...h, kind: "dragn", armable: true })),
     ],
     game,
     dragn,
