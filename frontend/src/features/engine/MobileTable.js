@@ -162,7 +162,7 @@ const MenuRow = () => (
       boxShadow: "0 6px 16px rgba(0,0,0,0.5)",
       fontSize: 15,
     }}>
-    <MenuBar>
+    <MenuBar className="w-full">
       <TopBarMenu />
       <TopBarView />
       <TopBarBuilder />

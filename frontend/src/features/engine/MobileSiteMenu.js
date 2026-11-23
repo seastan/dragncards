@@ -1,13 +1,15 @@
 import React, { useState } from "react";
 import { useHistory } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faUserCircle } from "@fortawesome/free-solid-svg-icons";
 import { Menu, MenuItem } from "../../components/basic/Menu";
 import useAuth from "../../hooks/useAuth";
 import useProfile from "../../hooks/useProfile";
 import { PatreonModal } from "../store/support/PatreonModal";
 
 // The site navbar (AppNav + ProfileMenu) for the mobile UI, which covers it with
-// the full-screen table: home, the profile menu's pages, support and sign out,
-// as one more menu in the ☰ row beside Menu / View / Builder.
+// the full-screen table: at the right end of the ☰ row, the DragnCards logo
+// (home) and a profile icon opening the profile menu.
 export const MobileSiteMenu = () => {
   const history = useHistory();
   const { authToken, logOut } = useAuth();
@@ -17,10 +19,24 @@ export const MobileSiteMenu = () => {
 
   return (
     <>
-      <Menu label="Site">
-        <MenuItem onClick={() => go("/")}>DragnCards home</MenuItem>
+      {/* Pushes the two icons to the right end of the row. */}
+      <li role="none" style={{ marginLeft: "auto" }}/>
+      <li role="none" className="h-full">
+        <button
+          type="button"
+          aria-label="DragnCards home"
+          title="DragnCards home"
+          onClick={() => go("/")}
+          className="h-full px-3 flex items-center bg-transparent border-0 cursor-pointer hover:bg-gray-700">
+          <img src={process.env.PUBLIC_URL + "/logosvg.svg"} alt="DragnCards" style={{ height: 22 }}/>
+        </button>
+      </li>
+      <Menu label={<FontAwesomeIcon icon={faUserCircle} style={{ fontSize: 22 }} aria-label="Profile"/>}>
         {authToken && user ? (
           <>
+            <li role="none" className="px-3 py-1.5 text-xs text-gray-400 border-b border-gray-600 mb-1">
+              Signed in as <span className="font-semibold text-gray-200">{user.alias}</span>
+            </li>
             <MenuItem onClick={() => go("/profile")}>Settings</MenuItem>
             <MenuItem onClick={() => go("/myplugins/" + user.id)}>My Plugins</MenuItem>
             <MenuItem onClick={() => go("/myimages")}>My Images</MenuItem>
