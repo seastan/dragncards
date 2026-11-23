@@ -124,7 +124,7 @@ const KeyHint = ({ keys }) => (
 );
 
 // Rows of hotkeys: tap the row to run it; the star (when favourites are
-// passed) adds it to the bottom bar.
+// passed) adds it to the favourites bar.
 export const MobileHotkeyList = ({ items, onRun, favorites = null }) => {
   const labelOf = useHotkeyLabel();
   return (

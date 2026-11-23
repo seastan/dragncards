@@ -513,8 +513,22 @@ export default function Dnc3DTable({
       engine.onTiltUpdated();
     }
     window.addEventListener('resize', handleResize);
+    // The table's own area can change size without the window doing so (the
+    // mobile favourites bar showing or hiding above the bottom bar): lay out
+    // again then too. Skips the initial observation and same-size reports.
+    let lastStageSize = null;
+    const stageEl = tiltEl.parentElement;
+    const resizeObserver = (typeof ResizeObserver !== 'undefined' && stageEl)
+      ? new ResizeObserver(() => {
+          const size = `${stageEl.clientWidth}x${stageEl.clientHeight}`;
+          if (lastStageSize !== null && size !== lastStageSize) handleResize();
+          lastStageSize = size;
+        })
+      : null;
+    resizeObserver?.observe(stageEl);
 
     return () => {
+      resizeObserver?.disconnect();
       // Despawn-animate cards that were removed from cardById before the engine
       // tears down. prevCardIdsRef still holds the old set (updated in the body
       // above, which hasn't run yet). gameRef.current is already the new state.

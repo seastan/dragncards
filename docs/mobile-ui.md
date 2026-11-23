@@ -96,8 +96,10 @@ desktop key.
   and the engine's card ones (target, arrow, trigger ability); a tap runs one
   on that card and returns to the table.
 - **Bottom bar → Hotkeys** lists the game hotkeys (`hotkeys.game`) and the
-  engine's own. A tap runs one; the star adds it to the bottom bar as a
-  button. Favourites are saved per device and per plugin (localStorage).
+  engine's own. A tap runs one; the star adds it as a button to the
+  favourites bar, which sits just above the bottom bar and is shown / hidden
+  with the bottom bar's *Favorites* button. Favourites are saved per device
+  and per plugin, the bar's on/off per device (localStorage).
 - **Piles:** tapping a card in a pile (deck, discard, drawer pile) opens the
   pile's menu; its first option, *Select top card*, opens that card's view.
 

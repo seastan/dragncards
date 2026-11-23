@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars, faComment, faTimes, faEye, faLayerGroup, faKeyboard, faListOl } from "@fortawesome/free-solid-svg-icons";
+import { faBars, faComment, faTimes, faEye, faLayerGroup, faKeyboard, faListOl, faStar } from "@fortawesome/free-solid-svg-icons";
 import Dnc3DTable from "../engine-dnc3d/Dnc3DTable";
 import { MenuBar } from "../../components/basic/Menu";
 import { TopBarMenu } from "./TopBarMenu";
@@ -242,11 +242,7 @@ const FavoriteHotkeyButton = ({ item }) => {
   );
 };
 
-const MobileBottomBar = ({ pilesOpen, setPilesOpen, chatOpen, setChatOpen, hotkeysOpen, setHotkeysOpen, stepsOpen, setStepsOpen }) => {
-  const { game, dragn } = useGameHotkeyItems();
-  const { favs } = useFavoriteHotkeys();
-  const byId = Object.fromEntries([...game, ...dragn].map(item => [hotkeyId(item), item]));
-  const favItems = favs.map(id => byId[id]).filter(Boolean);
+const MobileBottomBar = ({ pilesOpen, setPilesOpen, chatOpen, setChatOpen, hotkeysOpen, setHotkeysOpen, stepsOpen, setStepsOpen, favBarOpen, setFavBarOpen }) => {
   const only = (which) => {
     setPilesOpen(which === "piles" ? !pilesOpen : false);
     setChatOpen(which === "chat" ? !chatOpen : false);
@@ -275,10 +271,12 @@ const MobileBottomBar = ({ pilesOpen, setPilesOpen, chatOpen, setChatOpen, hotke
       <BottomButton active={stepsOpen} label="ROUND" onClick={() => only("steps")}>
         <FontAwesomeIcon icon={stepsOpen ? faTimes : faListOl}/>
       </BottomButton>
-      {/* Starred hotkeys; scrolls sideways when there are more than fit. */}
-      <div style={{ flex: 1, minWidth: 0, display: "flex", gap: 4, padding: "3px 0", overflowX: "auto", scrollbarWidth: "none" }}>
-        {favItems.map(item => <FavoriteHotkeyButton key={hotkeyId(item)} item={item}/>)}
-      </div>
+      <div style={{ flex: 1 }}/>
+      {/* Shows / hides the favourites bar; not a sheet, so it leaves the
+          others alone. */}
+      <BottomButton active={favBarOpen} label="FAVORITES" onClick={() => setFavBarOpen(!favBarOpen)}>
+        <FontAwesomeIcon icon={faStar}/>
+      </BottomButton>
       <BottomButton active={hotkeysOpen} label="HOTKEYS" onClick={() => only("hotkeys")}>
         <FontAwesomeIcon icon={hotkeysOpen ? faTimes : faKeyboard}/>
       </BottomButton>
@@ -289,8 +287,46 @@ const MobileBottomBar = ({ pilesOpen, setPilesOpen, chatOpen, setChatOpen, hotke
   );
 };
 
+// The starred hotkeys, on their own bar just above the bottom bar (toggled by
+// the bottom bar's FAVORITES button). Scrolls sideways when they don't fit.
+const FAV_BAR_H = 44;
+const FavoritesBar = () => {
+  const { game, dragn } = useGameHotkeyItems();
+  const { favs } = useFavoriteHotkeys();
+  const byId = Object.fromEntries([...game, ...dragn].map(item => [hotkeyId(item), item]));
+  const favItems = favs.map(id => byId[id]).filter(Boolean);
+  return (
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        height: FAV_BAR_H,
+        flexShrink: 0,
+        display: "flex",
+        alignItems: "stretch",
+        gap: 4,
+        padding: "4px 6px",
+        boxSizing: "border-box",
+        background: "#18202c",
+        borderTop: "1px solid rgba(255,255,255,0.08)",
+        overflowX: "auto",
+        scrollbarWidth: "none",
+        position: "relative",
+        zIndex: Z_INDEX.TopBarHover,
+      }}>
+      {favItems.length
+        ? favItems.map(item => <FavoriteHotkeyButton key={hotkeyId(item)} item={item}/>)
+        : <div style={{ display: "flex", alignItems: "center", padding: "0 6px", fontSize: 12, color: "#9ca3af" }}>
+            Star hotkeys in the Hotkeys menu to add them here.
+          </div>}
+    </div>
+  );
+};
+
+const FAV_BAR_KEY = "dragncards_mobile_fav_bar";
+const readFavBarOpen = () => { try { return window.localStorage.getItem(FAV_BAR_KEY) !== "false"; } catch (e) { return true; } };
+
 // Game and engine hotkeys, slid up from the bottom like chat. Tap a row to run
-// it (and close the sheet); star it to put it on the bottom bar.
+// it (and close the sheet); star it to put it on the favourites bar.
 const HotkeysSheet = ({ open, onClose }) => {
   const { game, dragn } = useGameHotkeyItems();
   const favorites = useFavoriteHotkeys();
@@ -337,6 +373,12 @@ export const MobileTable = React.memo(() => {
   const [chatOpen, setChatOpen] = useState(false);
   const [hotkeysOpen, setHotkeysOpen] = useState(false);
   const [stepsOpen, setStepsOpen] = useState(false);
+  // Favourites bar: shown by default; the choice is remembered on this device.
+  const [favBarOpen, setFavBarOpenState] = useState(readFavBarOpen);
+  const setFavBarOpen = (open) => {
+    setFavBarOpenState(open);
+    try { window.localStorage.setItem(FAV_BAR_KEY, open ? "true" : "false"); } catch (e) { /* session only */ }
+  };
   // Hidden piles drawer. Its piles are table regions for as long as the mobile
   // table is up, parked off-screen (with the drawer panel) while it's closed:
   // opening and closing then only slide things that already exist. Adding or
@@ -475,7 +517,8 @@ export const MobileTable = React.memo(() => {
         <HotkeysSheet open={hotkeysOpen} onClose={() => setHotkeysOpen(false)}/>
         <MobileStepTracker open={stepsOpen}/>
       </div>
-      <MobileBottomBar pilesOpen={pilesOpen} setPilesOpen={setPilesOpen} chatOpen={chatOpen} setChatOpen={setChatOpen} hotkeysOpen={hotkeysOpen} setHotkeysOpen={setHotkeysOpen} stepsOpen={stepsOpen} setStepsOpen={setStepsOpen}/>
+      {favBarOpen && <FavoritesBar/>}
+      <MobileBottomBar pilesOpen={pilesOpen} setPilesOpen={setPilesOpen} chatOpen={chatOpen} setChatOpen={setChatOpen} hotkeysOpen={hotkeysOpen} setHotkeysOpen={setHotkeysOpen} stepsOpen={stepsOpen} setStepsOpen={setStepsOpen} favBarOpen={favBarOpen} setFavBarOpen={setFavBarOpen}/>
     </div>
   );
 });
