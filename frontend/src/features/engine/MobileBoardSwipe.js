@@ -169,7 +169,7 @@ export const useBoardSwipe = ({ tableRef, layoutRegions, tableWidth, enabled, bl
       if (raf) cancelAnimationFrame(raf);
       timers.forEach(clearTimeout);
     };
-  }, [tableRef, dispatch]);
+  }, [tableRef, dispatch, blockedRef]);
 
   const W = tableWidth || window.innerWidth;
   const slideMap = useMemo(() => {
