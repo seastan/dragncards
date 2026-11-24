@@ -1,0 +1,463 @@
+/* Gesture Guide (features/engine/MobileGestureGuide.js): small looping demos
+   of the mobile UI's gestures. Each demo is a 280x150 stage of drawn
+   placeholder cards and a finger; every animation in a stage has the same
+   duration, so they stay in step, and the stage fades out and back in at the
+   loop point so nothing visibly jumps back to its start.
+
+   The finger sits at the stage's top-left and is moved with translate():
+   translate(x - 13px, y - 13px) puts its centre on (x, y). */
+
+.gg-stage {
+  position: relative;
+  width: 280px;
+  height: 150px;
+  margin: 0 auto;
+  border-radius: 10px;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 40%, #3a4350 0%, #262d37 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --gg-dur: 4.2s;
+}
+.gg-stage * { animation-duration: var(--gg-dur); animation-iteration-count: infinite; animation-timing-function: ease-in-out; animation-fill-mode: both; }
+.gg-scene { position: absolute; inset: 0; animation-name: gg-loop; animation-timing-function: linear; }
+@keyframes gg-loop { 0% { opacity: 0; } 4%, 92% { opacity: 1; } 100% { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .gg-stage * { animation-play-state: paused; }
+}
+
+/* Placeholder card: a title bar, an art box and two lines of text. */
+.gg-card {
+  position: absolute;
+  width: 40px;
+  height: 56px;
+  border-radius: 4px;
+  box-sizing: border-box;
+  border: 1px solid rgba(0, 0, 0, 0.45);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.45);
+  background:
+    linear-gradient(#7c6a4f, #7c6a4f) 4px 4px / calc(100% - 8px) 5px no-repeat,
+    linear-gradient(#94a3b8, #94a3b8) 4px 12px / calc(100% - 8px) 20px no-repeat,
+    linear-gradient(#cbbf9f, #cbbf9f) 4px 37px / calc(100% - 8px) 3px no-repeat,
+    linear-gradient(#cbbf9f, #cbbf9f) 4px 43px / calc(100% - 14px) 3px no-repeat,
+    #efe7d2;
+}
+.gg-card.gg-back {
+  background: repeating-linear-gradient(45deg, #4c3d75 0 4px, #3b2f5c 4px 8px);
+  background-size: cover;
+  background-position: center;
+}
+
+.gg-finger {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  border: 2px solid rgba(0, 0, 0, 0.25);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
+  z-index: 10;
+}
+
+.gg-slot {
+  position: absolute;
+  border: 1.5px dashed rgba(255, 255, 255, 0.25);
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+.gg-label {
+  position: absolute;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.55);
+  text-transform: uppercase;
+}
+
+.gg-token {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #d4a017 center / contain no-repeat;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  box-sizing: border-box;
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-shadow: 0 0 3px black, 0 0 2px black;
+}
+
+/* ── Tap a card ─────────────────────────────────────────────────────────── */
+.gg-tap-finger { animation-name: gg-tap-finger; }
+@keyframes gg-tap-finger {
+  0% { opacity: 0; transform: translate(190px, 120px); }
+  12% { opacity: 1; transform: translate(127px, 55px); }
+  20% { transform: translate(127px, 55px) scale(0.75); }
+  26% { opacity: 1; transform: translate(127px, 55px) scale(1); }
+  34%, 100% { opacity: 0; transform: translate(127px, 55px); }
+}
+.gg-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 122px;
+  background: #1f2937;
+  border-radius: 10px 10px 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  animation-name: gg-sheet;
+}
+@keyframes gg-sheet {
+  0%, 30% { transform: translateY(105%); }
+  40%, 85% { transform: translateY(0); }
+  95%, 100% { transform: translateY(105%); }
+}
+.gg-sheet-line { position: absolute; height: 8px; border-radius: 4px; background: #374151; }
+
+/* ── Drag a card ────────────────────────────────────────────────────────── */
+.gg-drag-card { animation-name: gg-drag-card; }
+@keyframes gg-drag-card {
+  0%, 15% { transform: translate(0, 0); }
+  22% { transform: translate(0, -4px) scale(1.08); }
+  60% { transform: translate(160px, -4px) scale(1.08); }
+  66%, 100% { transform: translate(160px, 0) scale(1); }
+}
+.gg-drag-finger { animation-name: gg-drag-finger; }
+@keyframes gg-drag-finger {
+  0% { opacity: 0; transform: translate(47px, 62px); }
+  10% { opacity: 1; transform: translate(47px, 62px); }
+  18% { transform: translate(47px, 62px) scale(0.8); }
+  22% { transform: translate(47px, 58px) scale(0.8); }
+  60% { opacity: 1; transform: translate(207px, 58px) scale(0.8); }
+  66%, 100% { opacity: 0; transform: translate(207px, 62px) scale(1); }
+}
+
+/* ── Fling a card ───────────────────────────────────────────────────────── */
+.gg-fling-card { animation-name: gg-fling-card; }
+@keyframes gg-fling-card {
+  0%, 15% { transform: translate(0, 0); }
+  25% { transform: translate(70px, -6px) rotate(6deg); }
+  40%, 100% { transform: translate(185px, 0) rotate(0deg); }
+}
+.gg-fling-finger { animation-name: gg-fling-finger; }
+@keyframes gg-fling-finger {
+  0% { opacity: 0; transform: translate(37px, 62px); }
+  8% { opacity: 1; transform: translate(37px, 62px); }
+  15% { transform: translate(37px, 62px) scale(0.8); }
+  25% { opacity: 1; transform: translate(107px, 56px) scale(0.8); }
+  32%, 100% { opacity: 0; transform: translate(120px, 56px) scale(1); }
+}
+
+/* ── Tap a pile ─────────────────────────────────────────────────────────── */
+.gg-pile-finger { animation-name: gg-pile-finger; }
+@keyframes gg-pile-finger {
+  0% { opacity: 0; transform: translate(190px, 130px); }
+  12% { opacity: 1; transform: translate(127px, 65px); }
+  18% { transform: translate(127px, 65px) scale(0.75); }
+  24% { opacity: 1; transform: translate(127px, 65px) scale(1); }
+  32%, 100% { opacity: 0; transform: translate(127px, 65px); }
+}
+.gg-popup {
+  position: absolute;
+  left: 70px;
+  top: 14px;
+  width: 140px;
+  padding: 5px;
+  border-radius: 8px;
+  background: #242526;
+  border: 1px solid #474a4d;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
+  box-sizing: border-box;
+  z-index: 5;
+  transform-origin: 50% 100%;
+  animation-name: gg-popup;
+}
+@keyframes gg-popup {
+  0%, 24% { opacity: 0; transform: scale(0.9); }
+  30%, 85% { opacity: 1; transform: scale(1); }
+  92%, 100% { opacity: 0; transform: scale(1); }
+}
+.gg-popup-row {
+  height: 22px;
+  border-radius: 5px;
+  margin-bottom: 3px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 11px;
+  color: white;
+}
+
+/* ── Radial menu ────────────────────────────────────────────────────────── */
+.gg-radial-finger { animation-name: gg-radial-finger; }
+@keyframes gg-radial-finger {
+  0% { opacity: 0; transform: translate(127px, 65px); }
+  8% { opacity: 1; transform: translate(127px, 65px) scale(1); }
+  12%, 25% { transform: translate(127px, 65px) scale(0.8); }
+  45%, 58% { opacity: 1; transform: translate(127px, 17px) scale(0.8); }
+  64%, 100% { opacity: 0; transform: translate(127px, 17px) scale(1); }
+}
+.gg-ring {
+  position: absolute;
+  left: 140px;
+  top: 78px;
+  width: 0;
+  height: 0;
+  animation-name: gg-ring;
+}
+@keyframes gg-ring {
+  0%, 10% { opacity: 0; transform: scale(0.6); }
+  16%, 60% { opacity: 1; transform: scale(1); }
+  68%, 100% { opacity: 0; transform: scale(1); }
+}
+.gg-bubble {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #374151 center / 70% no-repeat;
+  border: 2px solid #4b5563;
+  box-sizing: border-box;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.gg-bubble.gg-pick { animation-name: gg-pick; }
+@keyframes gg-pick {
+  0%, 40% { border-color: #4b5563; transform: scale(1); }
+  46%, 60% { border-color: #e5e7eb; transform: scale(1.3); }
+  66%, 100% { border-color: #4b5563; transform: scale(1); }
+}
+.gg-hub {
+  position: absolute;
+  left: -20px;
+  top: -20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(17, 17, 22, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-sizing: border-box;
+}
+
+/* ── Swipe the player panel ─────────────────────────────────────────────── */
+.gg-strip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 30px;
+  overflow: hidden;
+  background: #111827;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.gg-strip-pages { position: absolute; top: 0; left: 0; width: 560px; height: 30px; display: flex; animation-name: gg-strip; }
+@keyframes gg-strip { 0%, 10% { transform: translateX(0); } 35%, 100% { transform: translateX(-280px); } }
+.gg-strip-page { width: 280px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #e5e7eb; }
+.gg-boards { position: absolute; left: 0; right: 0; top: 31px; bottom: 0; overflow: hidden; }
+.gg-boards-inner { position: absolute; top: 0; left: 0; width: 560px; height: 100%; animation-name: gg-boards; }
+@keyframes gg-boards { 0%, 40% { transform: translateX(0); } 55%, 100% { transform: translateX(-280px); } }
+.gg-panel-finger { animation-name: gg-panel-finger; }
+@keyframes gg-panel-finger {
+  0% { opacity: 0; transform: translate(207px, 2px); }
+  10% { opacity: 1; transform: translate(207px, 2px) scale(0.85); }
+  35% { opacity: 1; transform: translate(67px, 2px) scale(0.85); }
+  42%, 100% { opacity: 0; transform: translate(67px, 2px) scale(1); }
+}
+
+/* ── Token hotkey: tap, swipe down ──────────────────────────────────────── */
+.gg-tok-finger { animation-name: gg-tok-finger; }
+@keyframes gg-tok-finger {
+  0% { opacity: 0; transform: translate(190px, 130px); }
+  10% { opacity: 1; transform: translate(127px, 55px); }
+  16% { transform: translate(127px, 55px) scale(0.75); }
+  22% { transform: translate(127px, 55px) scale(1); }
+  40% { transform: translate(127px, 35px) scale(1); }
+  45% { transform: translate(127px, 35px) scale(0.8); }
+  60% { opacity: 1; transform: translate(127px, 95px) scale(0.8); }
+  66%, 100% { opacity: 0; transform: translate(127px, 95px) scale(1); }
+}
+.gg-tok-token { animation-name: gg-tok-token; }
+@keyframes gg-tok-token {
+  0%, 18% { opacity: 0; transform: scale(0.4); }
+  24%, 56% { opacity: 1; transform: scale(1); }
+  62%, 100% { opacity: 0; transform: scale(0.4); }
+}
+
+/* ── Token hotkey: slider ───────────────────────────────────────────────── */
+.gg-sl-finger { animation-name: gg-sl-finger; }
+@keyframes gg-sl-finger {
+  0% { opacity: 0; transform: translate(127px, 77px); }
+  10% { opacity: 1; transform: translate(127px, 77px) scale(0.8); }
+  25% { transform: translate(147px, 77px) scale(0.8); }
+  60% { opacity: 1; transform: translate(197px, 77px) scale(0.8); }
+  66%, 100% { opacity: 0; transform: translate(197px, 77px) scale(1); }
+}
+.gg-sl-pill {
+  position: absolute;
+  left: 95px;
+  top: 16px;
+  width: 90px;
+  height: 30px;
+  border-radius: 15px;
+  background: rgba(17, 17, 22, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  animation-name: gg-sl-pill;
+}
+@keyframes gg-sl-pill { 0%, 18% { opacity: 0; } 22%, 62% { opacity: 1; } 68%, 100% { opacity: 0; } }
+.gg-sl-n { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; color: #86efac; }
+.gg-sl-n1 { animation-name: gg-sl-n1; }
+.gg-sl-n2 { animation-name: gg-sl-n2; }
+.gg-sl-n3 { animation-name: gg-sl-n3; }
+@keyframes gg-sl-n1 { 0%, 20% { opacity: 0; } 22%, 35% { opacity: 1; } 37%, 100% { opacity: 0; } }
+@keyframes gg-sl-n2 { 0%, 35% { opacity: 0; } 37%, 48% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes gg-sl-n3 { 0%, 48% { opacity: 0; } 50%, 64% { opacity: 1; } 66%, 100% { opacity: 0; } }
+.gg-sl-token { animation-name: gg-sl-token; }
+@keyframes gg-sl-token { 0%, 64% { opacity: 0; transform: scale(0.4); } 70%, 100% { opacity: 1; transform: scale(1); } }
+
+/* ── Undo / redo ────────────────────────────────────────────────────────── */
+.gg-undo-card { animation-name: gg-undo-card; }
+@keyframes gg-undo-card {
+  0%, 30% { transform: translateX(0); }
+  38%, 76% { transform: translateX(-140px); }
+  84%, 100% { transform: translateX(0); }
+}
+.gg-undo-btn {
+  position: absolute;
+  left: 112px;
+  top: 106px;
+  width: 56px;
+  height: 34px;
+  border-radius: 8px;
+  background: #374151;
+  color: #e5e7eb;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation-name: gg-undo-btn;
+}
+@keyframes gg-undo-btn {
+  0%, 22% { background: #374151; box-shadow: none; }
+  24%, 28% { background: #4b5563; box-shadow: none; }
+  30%, 54% { background: #374151; box-shadow: none; }
+  58%, 76% { background: #4b5563; box-shadow: 0 0 0 3px #e5e7eb; }
+  80%, 100% { background: #374151; box-shadow: none; }
+}
+.gg-undo-finger { animation-name: gg-undo-finger; }
+@keyframes gg-undo-finger {
+  0% { opacity: 0; transform: translate(190px, 140px); }
+  15% { opacity: 1; transform: translate(127px, 110px); }
+  23% { transform: translate(127px, 110px) scale(0.75); }
+  29%, 52% { transform: translate(127px, 110px) scale(1); }
+  57%, 76% { transform: translate(127px, 110px) scale(0.75); }
+  80% { opacity: 1; transform: translate(127px, 110px) scale(1); }
+  88%, 100% { opacity: 0; transform: translate(127px, 110px) scale(1); }
+}
+.gg-cap { position: absolute; left: 0; right: 0; top: 8px; text-align: center; font-size: 11px; font-weight: 600; color: #e5e7eb; }
+.gg-cap-undo { animation-name: gg-cap-undo; }
+.gg-cap-redo { animation-name: gg-cap-redo; }
+@keyframes gg-cap-undo { 0%, 22% { opacity: 0; } 26%, 50% { opacity: 1; } 54%, 100% { opacity: 0; } }
+@keyframes gg-cap-redo { 0%, 56% { opacity: 0; } 60%, 88% { opacity: 1; } 92%, 100% { opacity: 0; } }
+
+/* ── Reorder favourites ─────────────────────────────────────────────────── */
+.gg-favbar { position: absolute; left: 10px; right: 10px; top: 47px; height: 56px; border-radius: 8px; background: #1f2937; }
+.gg-fav {
+  position: absolute;
+  top: 55px;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: #374151;
+  border: 1px solid #4b5563;
+  box-sizing: border-box;
+  color: #e5e7eb;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.gg-fav0 { animation-name: gg-fav0; z-index: 2; }
+.gg-fav1 { animation-name: gg-fav1; }
+.gg-fav2 { animation-name: gg-fav2; }
+@keyframes gg-fav0 {
+  0%, 20% { transform: translateX(0) scale(1); box-shadow: none; }
+  26% { transform: translateX(0) scale(1.15); box-shadow: 0 6px 14px rgba(0, 0, 0, 0.6); }
+  60% { transform: translateX(120px) scale(1.15); box-shadow: 0 6px 14px rgba(0, 0, 0, 0.6); }
+  66%, 100% { transform: translateX(120px) scale(1); box-shadow: none; }
+}
+@keyframes gg-fav1 { 0%, 35% { transform: translateX(0); } 41%, 100% { transform: translateX(-60px); } }
+@keyframes gg-fav2 { 0%, 50% { transform: translateX(0); } 56%, 100% { transform: translateX(-60px); } }
+.gg-favr-finger { animation-name: gg-favr-finger; }
+@keyframes gg-favr-finger {
+  0% { opacity: 0; transform: translate(37px, 62px); }
+  8% { opacity: 1; transform: translate(37px, 62px) scale(1); }
+  14%, 26% { transform: translate(37px, 62px) scale(0.8); }
+  60% { opacity: 1; transform: translate(157px, 62px) scale(0.8); }
+  66%, 100% { opacity: 0; transform: translate(157px, 62px) scale(1); }
+}
+
+/* ── Scroll a row ───────────────────────────────────────────────────────── */
+.gg-row { position: absolute; left: 0; right: 0; top: 38px; height: 76px; overflow: hidden; border-top: 1px solid rgba(255,255,255,0.08); border-bottom: 1px solid rgba(255,255,255,0.08); }
+.gg-row-inner { position: absolute; top: 0; left: 0; height: 100%; width: 400px; animation-name: gg-row; }
+@keyframes gg-row { 0%, 15% { transform: translateX(0); } 45%, 100% { transform: translateX(-140px); } }
+.gg-row-finger { animation-name: gg-row-finger; }
+@keyframes gg-row-finger {
+  0% { opacity: 0; transform: translate(217px, 63px); }
+  10% { opacity: 1; transform: translate(217px, 63px) scale(0.85); }
+  45% { opacity: 1; transform: translate(77px, 63px) scale(0.85); }
+  52%, 100% { opacity: 0; transform: translate(77px, 63px) scale(1); }
+}
+
+/* ── Hidden piles drawer ────────────────────────────────────────────────── */
+.gg-drawer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100px;
+  height: 112px;
+  background: #1f2937;
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 0 0 8px 0;
+  animation-name: gg-drawer;
+}
+@keyframes gg-drawer { 0%, 18% { transform: translateX(-105%); } 26%, 100% { transform: translateX(0); } }
+.gg-drawer-card { animation-name: gg-drawer-card; z-index: 3; }
+@keyframes gg-drawer-card {
+  0%, 18% { transform: translate(-105px, 0); }
+  26%, 40% { transform: translate(0, 0) scale(1); }
+  46% { transform: translate(0, -4px) scale(1.08); }
+  70% { transform: translate(150px, 6px) scale(1.08); }
+  76%, 100% { transform: translate(150px, 10px) scale(1); }
+}
+.gg-piles-btn {
+  position: absolute;
+  left: 8px;
+  top: 118px;
+  width: 36px;
+  height: 26px;
+  border-radius: 6px;
+  background: #374151;
+  color: #e5e7eb;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.gg-drawer-finger { animation-name: gg-drawer-finger; }
+@keyframes gg-drawer-finger {
+  0% { opacity: 0; transform: translate(13px, 118px); }
+  8% { opacity: 1; transform: translate(13px, 118px) scale(1); }
+  12% { transform: translate(13px, 118px) scale(0.75); }
+  16% { transform: translate(13px, 118px) scale(1); }
+  34% { transform: translate(37px, 45px) scale(1); }
+  42% { transform: translate(37px, 45px) scale(0.8); }
+  70% { opacity: 1; transform: translate(187px, 51px) scale(0.8); }
+  76%, 100% { opacity: 0; transform: translate(187px, 55px) scale(1); }
+}

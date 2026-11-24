@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { hotkeyId, useHotkeyTabs, useFavoriteHotkeys, useRunHotkey, useHotkeyLabel, useHotkeyToTouchAction, HotkeyLabel } from "./MobileHotkeys";
+import { hotkeyId, FAV_REORDERED_KEY, RADIAL_USES_KEY, useHotkeyTabs, useFavoriteHotkeys, useRunHotkey, useHotkeyLabel, useHotkeyToTouchAction, HotkeyLabel } from "./MobileHotkeys";
 import { useSetTouchAction } from "./hooks/useSetTouchAction";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { Z_INDEX } from "./functions/common";
@@ -14,7 +14,7 @@ import { Z_INDEX } from "./functions/common";
 // here competes for the drag.
 
 const SLOP_PX = 8;           // moving further than this makes it a menu gesture, not a tap
-const DEAD_ZONE = 45;        // release within the centre circle selects nothing
+const DEAD_ZONE = 45;        // within this of where the press started, nothing is picked
 const ITEM = 58;             // item bubble size
 
 // Presses that belong to something else: cards, the drawer, buttons.
@@ -51,12 +51,24 @@ export const useRadialMenu = ({ tableRef, enabled }) => {
         radius,
       };
     };
+    // The item the finger is heading for: the one whose direction from where
+    // the press started is closest to the direction the finger has moved.
+    // Measured from the press, not the ring's centre — near a screen edge the
+    // ring is shifted inward to fit, and the finger then starts off-centre.
     const pick = (m, x, y, n) => {
-      const dx = x - m.cx, dy = y - m.cy;
+      const dx = x - m.x0, dy = y - m.y0;
       if (n === 0 || Math.hypot(dx, dy) < DEAD_ZONE) return -1;
-      // Items go clockwise from the top.
-      const a = (Math.atan2(dy, dx) + Math.PI / 2 + 2 * Math.PI) % (2 * Math.PI);
-      return Math.round(a / (2 * Math.PI / n)) % n;
+      const heading = Math.atan2(dy, dx);
+      let best = -1, bestDiff = Infinity;
+      for (let i = 0; i < n; i++) {
+        // Items go clockwise from the top.
+        const a = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+        const ix = m.cx + m.radius * Math.cos(a) - m.x0, iy = m.cy + m.radius * Math.sin(a) - m.y0;
+        let diff = Math.abs(Math.atan2(iy, ix) - heading);
+        if (diff > Math.PI) diff = 2 * Math.PI - diff;
+        if (diff < bestDiff) { bestDiff = diff; best = i; }
+      }
+      return best;
     };
     const close = () => {
       if (g?.timer) clearTimeout(g.timer);
@@ -69,7 +81,7 @@ export const useRadialMenu = ({ tableRef, enabled }) => {
       if (!live.current.enabled || g || (e.button !== undefined && e.button !== 0)) return;
       if (e.target.closest?.(IGNORE)) return;
       const x = e.clientX, y = e.clientY;
-      const m = { ...layout(x, y, live.current.items.length), selected: -1 };
+      const m = { ...layout(x, y, live.current.items.length), x0: x, y0: y, selected: -1 };
       g = { id: e.pointerId, x0: x, y0: y, menu: m, moved: false };
       openRef.current = true;
       setMenu(m);
@@ -87,7 +99,8 @@ export const useRadialMenu = ({ tableRef, enabled }) => {
       if (!g || e.pointerId !== g.id) return;
       const m = g.menu;
       const moved = g.moved;
-      const item = m && e.type === "pointerup" ? live.current.items[pick(m, e.clientX, e.clientY, live.current.items.length)] : null;
+      // A press released without moving is a tap on the table, never a pick.
+      const item = m && moved && e.type === "pointerup" ? live.current.items[pick(m, e.clientX, e.clientY, live.current.items.length)] : null;
       close();
       // Released where it was pressed: a tap on the table; let its click through.
       if (!m || (!moved && !item)) return;
@@ -96,7 +109,13 @@ export const useRadialMenu = ({ tableRef, enabled }) => {
       const block = (ce) => { ce.stopPropagation(); window.removeEventListener("click", block, true); };
       window.addEventListener("click", block, true);
       setTimeout(() => window.removeEventListener("click", block, true), 400);
-      if (item) live.current.run(item);
+      if (item) {
+        live.current.run(item);
+        try {
+          const uses = Number(window.localStorage.getItem(RADIAL_USES_KEY)) || 0;
+          window.localStorage.setItem(RADIAL_USES_KEY, String(uses + 1));
+        } catch (e) { /* fine */ }
+      }
     };
     // Once the menu is open the finger's moves are ours: keep the browser from
     // turning them into a pan (which would cancel the pointer).
@@ -160,8 +179,21 @@ const RadialItem = ({ item, x, y, selected }) => {
   );
 };
 
+// Shown with the ring until the player has reordered their favourites, or has
+// used the ring a good few times without wanting to.
+const HINT_USES = 10;
+const showReorderHint = () => {
+  try {
+    return !window.localStorage.getItem(FAV_REORDERED_KEY)
+      && (Number(window.localStorage.getItem(RADIAL_USES_KEY)) || 0) < HINT_USES;
+  } catch (e) { return false; }
+};
+
 export const RadialMenuOverlay = ({ menu, items }) => {
   const labelOf = useHotkeyLabel();
+  const [hint, setHint] = useState(false);
+  const isOpen = !!menu;
+  useEffect(() => { if (isOpen) setHint(showReorderHint()); }, [isOpen]);
   if (!menu) return null;
   const n = items.length;
   const selected = items[menu.selected];
@@ -199,6 +231,28 @@ export const RadialMenuOverlay = ({ menu, items }) => {
       }}>
         {n === 0 ? "No favorites yet" : selected ? <HotkeyLabel text={labelOf(selected)} iconSize={20}/> : "Cancel"}
       </div>
+      {hint && items.length > 1 &&
+        <div style={{
+          position: "fixed",
+          left: 16,
+          right: 16,
+          // Top or bottom, whichever is further from the ring.
+          ...(menu.cy > window.innerHeight / 2 ? { top: 150 } : { bottom: 150 }),
+          textAlign: "center",
+        }}>
+          <span style={{
+            display: "inline-block",
+            padding: "8px 14px",
+            borderRadius: 18,
+            background: "rgba(17,17,22,0.92)",
+            border: "1px solid rgba(255,255,255,0.15)",
+            color: "#e5e7eb",
+            fontSize: 13,
+            lineHeight: 1.3,
+          }}>
+            Rearrange your favourites by holding and dragging them in the favourites bar.
+          </span>
+        </div>}
       {items.map((item, i) => {
         const a = -Math.PI / 2 + (i * 2 * Math.PI) / n;
         return (

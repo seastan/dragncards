@@ -1884,7 +1884,7 @@ const getMobileLayoutSchema = (layoutSchema) => {
   const regionSchema = layoutSchema.regions._itemSchema_;
   return {
     ...layoutSchema,
-    "_description_": "Optional layout used by the Mobile UI (a per-device setting) in place of gameDef.layouts. One layout serves every player count: shared regions are always shown, and regions whose groupId contains playerN show the board of the player currently on screen, which the user switches between with the player chips. cardSize is measured in 1% of the table area's height (the space between the mobile top and bottom bars, which region positions are also fractions of), so a card fits its row the same way on any device; width only changes how many fit across. Design it for a portrait phone.",
+    "_description_": "Optional layout used by the Mobile UI (a per-device setting) in place of gameDef.layouts. One layout serves every player count: shared regions are always shown, and regions whose groupId contains playerN show the board of the player currently on screen, which the user switches between by swiping the player panel in the top bar. cardSize is measured in 1% of the table area's height (the space between the mobile top and bottom bars, which region positions are also fractions of), so a card fits its row the same way on any device; width only changes how many fit across. Design it for a portrait phone.",
     "_required_": false,
     "chat": {
       ...layoutSchema.chat,
@@ -1899,6 +1899,13 @@ const getMobileLayoutSchema = (layoutSchema) => {
           "_description_": "When this text box's key also exists in the room's current layout, the Mobile UI shows that box's label and visibility (which game actions update, e.g. a round-advancement hint) with this box's own position and style. Set to false to opt out.",
           "_type_": "boolean",
         },
+      },
+    },
+    "defaultFavorites": {
+      "_description_": "The hotkeys a player starts with as favourites (the favourites bar and the radial menu opened by pressing the table), until they star or unstar one themselves. Each entry is \"<tab>:<key>\", naming a hotkey by its tab in the mobile hotkeys sheet and its key: token:<key> (gameDef.hotkeys.token entries with a tokenType), card:<key> (gameDef.hotkeys.card, plus token-list entries without a tokenType), game:<key> (gameDef.hotkeys.game) or dragn:<key> (the engine's own hotkeys). Entries that match no hotkey are skipped. Example: [\"game:D\", \"token:1\", \"card:A\"]",
+      "_type_": "array",
+      "_itemSchema_": {
+        "_type_": "string",
       },
     },
     "hiddenPiles": {

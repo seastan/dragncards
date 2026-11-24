@@ -18,6 +18,7 @@ import { useIsHost } from "./hooks/useIsHost";
 import { Z_INDEX, hasSupportedImageExtension } from "./functions/common";
 import { ToggleSwitch } from "./AutomationModal";
 import { useMobileUIEnabled, useSetMobileUI } from "./hooks/useMobileUI";
+import { openGestureGuide } from "./MobileGestureGuide";
 
 // Move to another file, use this to set the default falues in playerUiSlice
 export const uiSettings = {
@@ -121,6 +122,7 @@ export const SettingsModal = React.memo(({}) => {
 // Settings that belong to this device rather than the account, so they apply
 // immediately and are not saved to the profile (see functions/mobileLayout.js).
 const DeviceSettings = () => {
+  const dispatch = useDispatch();
   const gameDef = useGameDefinition();
   const mobileUI = useMobileUIEnabled();
   const setMobileUI = useSetMobileUI();
@@ -140,6 +142,14 @@ const DeviceSettings = () => {
         </div>
         <ToggleSwitch checked={mobileUI} onChange={(newValue) => setMobileUI(newValue)}/>
       </div>
+      {mobileUI && hasMobileLayout &&
+        <div className="flex items-center justify-between rounded bg-gray-700 px-3 py-2 mt-1">
+          <div className="pr-3">
+            <div>Gesture Guide</div>
+            <div className="text-xs text-gray-300">How to play the mobile table with your fingers.</div>
+          </div>
+          <Button className="w-24" onClick={() => { dispatch(setShowModal(null)); openGestureGuide(); }}>Open</Button>
+        </div>}
     </div>
   );
 }

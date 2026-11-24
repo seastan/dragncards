@@ -6,6 +6,7 @@ import { Menu, MenuItem } from "../../components/basic/Menu";
 import useAuth from "../../hooks/useAuth";
 import useProfile from "../../hooks/useProfile";
 import { PatreonModal } from "../store/support/PatreonModal";
+import { GestureGuideLink } from "./MobileGestureGuide";
 
 // The site navbar (AppNav + ProfileMenu) for the mobile UI, which covers it with
 // the full-screen table: at the right end of the ☰ row, the DragnCards logo
@@ -21,7 +22,8 @@ export const MobileSiteMenu = () => {
     <>
       {/* Pushes the two icons to the right end of the row. */}
       <li role="none" style={{ marginLeft: "auto" }}/>
-      <li role="none" className="h-full">
+      <GestureGuideLink/>
+      <li role="none" className="h-full" style={{ flexShrink: 0 }}>
         <button
           type="button"
           aria-label="DragnCards home"

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { setAlert } from "../store/playerUiSlice";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars, faComment, faTimes, faEye, faLayerGroup, faKeyboard, faListOl, faStar, faUndo, faRedo } from "@fortawesome/free-solid-svg-icons";
 import Dnc3DTable from "../engine-dnc3d/Dnc3DTable";
@@ -23,6 +24,8 @@ import { useSetTouchAction } from "./hooks/useSetTouchAction";
 import { useDoDragnHotkey } from "./hooks/useDragnHotkeys";
 import { useBoardSwipe } from "./MobileBoardSwipe";
 import { useRadialMenu, RadialMenuOverlay } from "./MobileRadialMenu";
+import { GestureGuideHost } from "./MobileGestureGuide";
+import { RADIAL_USES_KEY } from "./MobileHotkeys";
 import { MobileStepTracker } from "./MobileStepTracker";
 import { useTokenSlider, TokenSliderOverlay } from "./MobileTokenSlider";
 import { useHiddenPilesGeometry, hiddenPileRegions, HiddenPilesDrawer, SLIDE_MS, drawerParkedOffset } from "./MobileHiddenPiles";
@@ -649,6 +652,7 @@ export const MobileTable = React.memo(() => {
   const game = useSelector(state => state?.gameUi?.game);
   const language = useProfile()?.language;
   const doActionList = useDoActionList();
+  const dispatch = useDispatch();
   const [menuOpen, setMenuOpen] = useState(false);
   const touchAction = useTouchAction();
   // An armed token responds to vertical swipes on cards: up +1, down −1. Same
@@ -676,6 +680,13 @@ export const MobileTable = React.memo(() => {
   const [favBarOpen, setFavBarOpenState] = useState(readFavBarOpen);
   const setFavBarOpen = (open) => {
     setFavBarOpenState(open);
+    // Turning the bar on: point out the other way to the same favourites, for
+    // as long as the player hasn't used the ring yet.
+    let ringUsed = false;
+    try { ringUsed = (Number(window.localStorage.getItem(RADIAL_USES_KEY)) || 0) > 0; } catch (e) { /* not yet */ }
+    if (open && !ringUsed) {
+      dispatch(setAlert({ level: "info", text: "Tip: you can also reach your favourites by pressing anywhere on the table and sliding to one." }));
+    }
     try { window.localStorage.setItem(FAV_BAR_KEY, open ? "true" : "false"); } catch (e) { /* session only */ }
   };
   // Hidden piles drawer. Its piles are table regions for as long as the mobile
@@ -826,6 +837,7 @@ export const MobileTable = React.memo(() => {
         <MobileStepTracker open={stepsOpen}/>
         <TokenSliderOverlay slide={tokenSlider.slide} tokenDef={tokenSlider.tokenDef}/>
         <RadialMenuOverlay menu={radial.menu} items={radial.items}/>
+        <GestureGuideHost onOpen={() => setMenuOpen(false)}/>
       </div>
       {favBarOpen && <FavoritesBar/>}
       {touchAction ? <ActiveHotkeyBar touchAction={touchAction}/> :

@@ -138,13 +138,38 @@ export const HotkeyLabel = ({ text, iconSize = 22 }) => (
 
 const FAV_EVENT = "dragncards-mobile-fav-hotkeys";
 const favKey = (pluginId) => `dragncards_mobile_fav_hotkeys_${pluginId}`;
+// The saved list, or null when this device has none for the plugin yet (the
+// plugin's defaults apply until the player changes them).
 const readFavs = (pluginId) => {
-  try { return JSON.parse(window.localStorage.getItem(favKey(pluginId)) || "[]"); } catch (e) { return []; }
+  try {
+    const raw = window.localStorage.getItem(favKey(pluginId));
+    return raw === null ? null : JSON.parse(raw);
+  } catch (e) { return null; }
 };
+
+// gameDef.mobileLayout.defaultFavorites: ["<tab>:<key>", ...] → hotkey ids.
+// The tab is the hotkeys sheet's (token / card / game / dragn).
+export const resolveDefaultFavorites = (entries, tabs) => (Array.isArray(entries) ? entries : [])
+  .map(entry => {
+    if (typeof entry !== "string") return null;
+    const i = entry.indexOf(":");
+    if (i < 0) return null;
+    const item = (tabs[entry.slice(0, i)] || []).find(h => h.key === entry.slice(i + 1));
+    return item ? hotkeyId(item) : null;
+  })
+  .filter(Boolean);
+
+// What the player has done with favourites on this device, which retires the
+// hints that teach it (MobileGestureGuide.js).
+export const FAV_REORDERED_KEY = "dragncards_mobile_fav_reordered";
+export const RADIAL_USES_KEY = "dragncards_mobile_radial_uses";
 
 export const useFavoriteHotkeys = () => {
   const pluginId = usePlugin()?.id;
-  const [favs, setFavs] = useState(() => readFavs(pluginId));
+  const gameDef = useGameDefinition();
+  const tabs = useHotkeyTabs();
+  const [stored, setFavs] = useState(() => readFavs(pluginId));
+  const favs = stored ?? resolveDefaultFavorites(gameDef?.mobileLayout?.defaultFavorites, tabs);
   useEffect(() => {
     setFavs(readFavs(pluginId));
     const onChange = () => setFavs(readFavs(pluginId));
@@ -158,7 +183,10 @@ export const useFavoriteHotkeys = () => {
   };
   const toggle = (id) => save(favs.includes(id) ? favs.filter(f => f !== id) : [...favs, id]);
   // A new order for the same favourites (the favourites bar's drag to reorder).
-  const reorder = (ids) => save(ids);
+  const reorder = (ids) => {
+    try { window.localStorage.setItem(FAV_REORDERED_KEY, "1"); } catch (e) { /* fine */ }
+    save(ids);
+  };
   return { favs, toggle, reorder };
 };
 

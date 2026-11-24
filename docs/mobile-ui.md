@@ -40,6 +40,7 @@ Same shape as an entry of `gameDef.layouts`, with these differences:
 | One layout for every player count | Shared regions are always shown. A region whose `groupId` contains `playerN` shows the board of the player currently on screen. You don't write separate 1/2/3/4-player mobile layouts. |
 | `cardSize` | Measured in 1% of the **table area's height** (between the mobile top and bottom bars), which region positions are also fractions of, so a card fits its row the same on a phone or a tablet; width only changes how many fit across. With seven rows of 1/7 (≈14.3%), `cardSize: 12` leaves a little room in each. |
 | `chat` | Optional and ignored; chat has its own panel. |
+| `defaultFavorites` | The hotkeys a player starts with as favourites (favourites bar and radial menu) until they star or unstar one themselves. Entries are `"<tab>:<key>"`, the tab being the hotkeys sheet's: `token:<key>`, `card:<key>`, `game:<key>` or `dragn:<key>`. Entries matching no hotkey are skipped. LotR: `["game:D", "game:E", "token:1", "token:2", "token:3", "card:A", "card:Q"]`. |
 | `hiddenPiles` | Groups kept off the table and shown as piles in the Piles drawer instead. Each entry is a groupId, or `{"groupId": ..., "showWhenEmpty": true}`: empty piles are left out unless marked, and a pile you drop the first card onto (a discard) needs the mark. `playerN` resolves to the player on screen. |
 | `textBoxes` | As in desktop layouts. A box whose key also exists in the room's current layout shows that box's `label` and `visible` (which game actions update, e.g. LotR's `roundAdvancement` hint) at this box's own position and style; `syncContent: false` opts out. A visible box spanning the top edge (top 0, left 0, full width) reserves its height: the regions are squeezed into the space below it. Like the 3D table generally, only boxes with `hover: true` are drawn. |
 | `region.perspective` | `"viewed"` (default) follows the on-screen player. `"self"` always means the viewer's own seat — use it for your hand so it stays yours while you look at a teammate's board. |
@@ -109,12 +110,38 @@ desktop key.
   - *Game* (`hotkeys.game`) and *Dragn* (the engine's own): tap to run; the star
     adds one as a button to the favourites bar, which sits just above the
     bottom bar and is shown / hidden with the bottom bar's *Favorites* button.
-    Favourites are saved per device and per plugin, the bar's on/off per device.
+    Favourites are saved per device and per plugin, the bar's on/off per device;
+    until a player changes them, the plugin's `mobileLayout.defaultFavorites`
+    apply.
   - Press on empty table: the favourites open in a ring around the finger
     straight away; drag toward one and release to run / arm it, come back to
     the middle to cancel. A press released without moving is a normal tap.
+    Near a screen edge the ring is shifted inward to fit; the pick follows the
+    direction the finger moves from where it pressed, so it still goes to the
+    bubble the finger heads for.
 - **Piles:** tapping a card in a pile (deck, discard, drawer pile) opens the
   pile's menu; its first option, *Select top card*, opens that card's view.
+
+## Gesture Guide
+
+`MobileGestureGuide.js`: a full-screen page with one card per gesture, each with
+a small looping demo (`css/mobile-guide.css`) drawn with placeholder cards, so
+it suits any plugin. Face-down cards use the plugin's first card back, and the
+token demos its first token hotkey's image. The flick card only appears when
+the plugin has `cardFling`.
+
+- Opens by itself the first time the mobile UI is used on a device.
+- Always reachable from *Gesture Guide* in the ☰ strip, and from View →
+  Preferences → This device.
+- A dismissable banner at the bottom of the table offers it to a player who
+  hasn't used the mobile UI for 30 days, or when `GUIDE_VERSION` has gone up
+  since they last saw it: bump `GUIDE_VERSION` when gestures change.
+- Hints that retire once you've shown you know the gesture:
+  - turning the favourites bar on shows an alert that the table press reaches
+    the same favourites, until the radial menu has been used once;
+  - the radial menu shows "rearrange your favourites by holding and dragging
+    them in the favourites bar" until you have reordered favourites, or used
+    the ring 10 times.
 
 ## Fling (`gameDef.cardFling`)
 
