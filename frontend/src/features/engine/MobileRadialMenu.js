@@ -9,9 +9,9 @@ import { Z_INDEX } from "./functions/common";
 // (token / card hotkeys arm, as from the favourites bar); release near the
 // middle to cancel.
 
-const HOLD_MS = 450;
+const HOLD_MS = 200;
 const SLOP_PX = 10;          // moving further before the hold completes cancels it
-const DEAD_ZONE = 32;        // release this close to the centre selects nothing
+const DEAD_ZONE = 45;        // release within the centre circle selects nothing
 const ITEM = 58;             // item bubble size
 
 // Presses that belong to something else (as for the board swipe).
@@ -183,25 +183,25 @@ export const RadialMenuOverlay = ({ menu, items }) => {
       {/* Centre: what a release would do. */}
       <div style={{
         position: "fixed",
-        left: menu.cx - 30,
-        top: menu.cy - 30,
-        width: 60,
-        height: 60,
-        borderRadius: 30,
+        left: menu.cx - 45,
+        top: menu.cy - 45,
+        width: 90,
+        height: 90,
+        borderRadius: 45,
         background: "rgba(17,17,22,0.92)",
         border: "1px solid rgba(255,255,255,0.2)",
         color: "#9ca3af",
-        fontSize: 9.5,
+        fontSize: 12,
         lineHeight: 1.15,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         textAlign: "center",
-        padding: 4,
+        padding: 6,
         boxSizing: "border-box",
         overflow: "hidden",
       }}>
-        {n === 0 ? "No favorites yet" : selected ? <HotkeyLabel text={labelOf(selected)} iconSize={14}/> : "Cancel"}
+        {n === 0 ? "No favorites yet" : selected ? <HotkeyLabel text={labelOf(selected)} iconSize={20}/> : "Cancel"}
       </div>
       {items.map((item, i) => {
         const a = -Math.PI / 2 + (i * 2 * Math.PI) / n;
