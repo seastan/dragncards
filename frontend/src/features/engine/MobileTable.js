@@ -63,7 +63,7 @@ const barButton = {
 
 // One player per page, swiped sideways (native scroll-snap, so it's a real
 // finger drag). Opens on your own seat.
-const PlayerCarousel = () => {
+const PlayerCarousel = ({ onSwitchPlayer }) => {
   const playerIList = usePlayerIList();
   const playerN = useSelector(state => state?.playerUi?.playerN);
   const ref = useRef(null);
@@ -83,10 +83,23 @@ const PlayerCarousel = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shown, playerIList.length]);
 
+  // Swiping the panel to another player's page puts their board on the table
+  // (with the board slide), once the scroll settles on that page. The scroll
+  // this component makes itself, to follow the board, lands on the shown
+  // player, so it doesn't trigger a switch.
+  const settle = useRef(null);
   const onScroll = () => {
     const el = ref.current;
-    if (el && el.clientWidth) setPage(Math.round(el.scrollLeft / el.clientWidth));
+    if (!el || !el.clientWidth) return;
+    const p = Math.round(el.scrollLeft / el.clientWidth);
+    setPage(p);
+    clearTimeout(settle.current);
+    settle.current = setTimeout(() => {
+      const target = playerIList[Math.round(el.scrollLeft / el.clientWidth)];
+      if (target && target !== shown && onSwitchPlayer) onSwitchPlayer(target);
+    }, 120);
   };
+  useEffect(() => () => clearTimeout(settle.current), []);
 
   return (
     <div style={{ position: "relative", height: "100%", minWidth: 0 }}>
@@ -119,7 +132,7 @@ const PlayerCarousel = () => {
   );
 };
 
-const MobileTopBar = ({ menuOpen, setMenuOpen }) => (
+const MobileTopBar = ({ menuOpen, setMenuOpen, onSwitchPlayer }) => (
   <div
     onClick={(e) => e.stopPropagation()}
     style={{
@@ -141,7 +154,7 @@ const MobileTopBar = ({ menuOpen, setMenuOpen }) => (
       </div>
     </div>
     <div style={{ width: "50%", minWidth: 0, borderLeft: "1px solid rgba(255,255,255,0.08)" }}>
-      <PlayerCarousel/>
+      <PlayerCarousel onSwitchPlayer={onSwitchPlayer}/>
     </div>
   </div>
 );
@@ -711,11 +724,8 @@ export const MobileTable = React.memo(() => {
     enabled: !pilesOpen && !chatOpen && !hotkeysOpen && !stepsOpen && !menuOpen && !dropdownMenu,
   });
   const boardSwipe = useBoardSwipe({
-    blockedRef: radial.openRef,
-    tableRef,
     layoutRegions: layout?.regions,
     tableWidth: tableSize?.w || window.innerWidth,
-    enabled: !pilesOpen && !chatOpen && !hotkeysOpen && !stepsOpen && !menuOpen && !dropdownMenu,
   });
   const tableSlideX = useMemo(() => ({ ...pileSlideX, ...boardSwipe.slideMap }), [pileSlideX, boardSwipe.slideMap]);
   const pileRegionsKey = JSON.stringify(pilesLive?.rows?.map(r => r.region) || []);
@@ -756,7 +766,7 @@ export const MobileTable = React.memo(() => {
         paddingLeft: "env(safe-area-inset-left)",
         paddingRight: "env(safe-area-inset-right)",
       }}>
-      <MobileTopBar menuOpen={menuOpen} setMenuOpen={setMenuOpen}/>
+      <MobileTopBar menuOpen={menuOpen} setMenuOpen={setMenuOpen} onSwitchPlayer={boardSwipe.goTo}/>
       {/* pan-y: horizontal drags here are ours (the board swipe), so the
           browser must not claim them and cancel the pointer partway, which it
           does on any part of the area not covered by the 3D surface's own

@@ -4,17 +4,20 @@ import { useSetTouchAction } from "./hooks/useSetTouchAction";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { Z_INDEX } from "./functions/common";
 
-// Press and hold on empty table (mobile UI): the favourite hotkeys open in a
-// ring around the finger. Drag toward one to highlight it, release to run it
-// (token / card hotkeys arm, as from the favourites bar); release near the
-// middle to cancel.
+// Press on empty table (mobile UI): the favourite hotkeys open in a ring
+// around the finger, straight away. Drag toward one to highlight it, release
+// to run it (token / card hotkeys arm, as from the favourites bar); drag and
+// come back to the middle to cancel. A press released without moving is an
+// ordinary tap on the table (it clears the selection, disarms a hotkey, ...);
+// the ring fades in after a moment (MobileRadialMenu CSS), so a tap barely
+// shows it. Switching boards is the top bar's player panel's job, so nothing
+// here competes for the drag.
 
-const HOLD_MS = 200;
-const SLOP_PX = 10;          // moving further before the hold completes cancels it
+const SLOP_PX = 8;           // moving further than this makes it a menu gesture, not a tap
 const DEAD_ZONE = 45;        // release within the centre circle selects nothing
 const ITEM = 58;             // item bubble size
 
-// Presses that belong to something else (as for the board swipe).
+// Presses that belong to something else: cards, the drawer, buttons.
 const IGNORE = ".dnc3d-card-lift, .dnc3d-tilt-overlay, .dnc3d-scroll-arrow, button, [role=menuitem]";
 
 const useFavoriteItems = () => {
@@ -30,7 +33,7 @@ export const useRadialMenu = ({ tableRef, enabled }) => {
   const toTouchAction = useHotkeyToTouchAction();
   const setTouchAction = useSetTouchAction();
   const [menu, setMenu] = useState(null);     // { cx, cy, radius, selected }
-  const openRef = useRef(false);              // read by the board swipe
+  const openRef = useRef(false);              // true while the ring is up
   const live = useRef({});
   live.current = { enabled, items, run: (item) => (item.armable ? setTouchAction(toTouchAction(item)) : runHotkey(item)) };
 
@@ -66,23 +69,14 @@ export const useRadialMenu = ({ tableRef, enabled }) => {
       if (!live.current.enabled || g || (e.button !== undefined && e.button !== 0)) return;
       if (e.target.closest?.(IGNORE)) return;
       const x = e.clientX, y = e.clientY;
-      g = { id: e.pointerId, x0: x, y0: y, menu: null };
-      g.timer = setTimeout(() => {
-        if (!g) return;
-        g.timer = null;
-        const m = { ...layout(x, y, live.current.items.length), selected: -1 };
-        g.menu = m;
-        openRef.current = true;
-        if (navigator.vibrate) navigator.vibrate(15);
-        setMenu(m);
-      }, HOLD_MS);
+      const m = { ...layout(x, y, live.current.items.length), selected: -1 };
+      g = { id: e.pointerId, x0: x, y0: y, menu: m, moved: false };
+      openRef.current = true;
+      setMenu(m);
     };
     const onMove = (e) => {
       if (!g || e.pointerId !== g.id) return;
-      if (!g.menu) {
-        if (Math.hypot(e.clientX - g.x0, e.clientY - g.y0) > SLOP_PX) close();
-        return;
-      }
+      if (!g.moved && Math.hypot(e.clientX - g.x0, e.clientY - g.y0) > SLOP_PX) g.moved = true;
       const selected = pick(g.menu, e.clientX, e.clientY, live.current.items.length);
       if (selected !== g.menu.selected) {
         g.menu = { ...g.menu, selected };
@@ -92,10 +86,12 @@ export const useRadialMenu = ({ tableRef, enabled }) => {
     const onUp = (e) => {
       if (!g || e.pointerId !== g.id) return;
       const m = g.menu;
+      const moved = g.moved;
       const item = m && e.type === "pointerup" ? live.current.items[pick(m, e.clientX, e.clientY, live.current.items.length)] : null;
       close();
-      if (!m) return;
-      // The click after a long press isn't a tap on the table (which would,
+      // Released where it was pressed: a tap on the table; let its click through.
+      if (!m || (!moved && !item)) return;
+      // Otherwise the click that follows isn't a tap on the table (which would,
       // among other things, disarm the hotkey just armed).
       const block = (ce) => { ce.stopPropagation(); window.removeEventListener("click", block, true); };
       window.addEventListener("click", block, true);
@@ -170,7 +166,7 @@ export const RadialMenuOverlay = ({ menu, items }) => {
   const n = items.length;
   const selected = items[menu.selected];
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: Z_INDEX.DropdownMenu, pointerEvents: "none", background: "rgba(0,0,0,0.25)" }}>
+    <div className="mobile-radial-in" style={{ position: "fixed", inset: 0, zIndex: Z_INDEX.DropdownMenu, pointerEvents: "none", background: "rgba(0,0,0,0.25)" }}>
       <div style={{
         position: "fixed",
         left: menu.cx - menu.radius,

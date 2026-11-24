@@ -25,8 +25,9 @@ Without one the regular table is shown.
 - **Browse** shows its fan at the top of the table, cards half a card apart; a
   sideways swipe scrolls it, dragging a card down out of it moves the card. The
   same swipe-to-scroll works on any row or fan that overflows.
-- One player's board on screen at a time; *Look* on a player's panel switches
-  to theirs (`observingPlayerN`).
+- One player's board on screen at a time (`observingPlayerN`). Swiping the top
+  bar's player panel to another player slides their board in; *Look* on a
+  player's panel also switches to theirs.
 - The room's real layout is not touched; desktop players in the same room see
   no change.
 
@@ -109,9 +110,9 @@ desktop key.
     adds one as a button to the favourites bar, which sits just above the
     bottom bar and is shown / hidden with the bottom bar's *Favorites* button.
     Favourites are saved per device and per plugin, the bar's on/off per device.
-  - Press and hold on empty table: the favourites open in a ring around the
-    finger; drag toward one and release to run / arm it, release in the middle
-    to cancel.
+  - Press on empty table: the favourites open in a ring around the finger
+    straight away; drag toward one and release to run / arm it, come back to
+    the middle to cancel. A press released without moving is a normal tap.
 - **Piles:** tapping a card in a pile (deck, discard, drawer pile) opens the
   pile's menu; its first option, *Select top card*, opens that card's view.
 

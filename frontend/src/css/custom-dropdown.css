@@ -205,3 +205,13 @@
     width: 100% !important;
     max-width: 100%;
   }
+
+  /* Mobile radial menu (MobileRadialMenu): it opens on press, so fade it in
+     after a beat; a quick tap on the table barely shows it. */
+  .mobile-radial-in {
+    animation: mobile-radial-in 140ms ease-out 70ms both;
+  }
+  @keyframes mobile-radial-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
