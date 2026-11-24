@@ -42,7 +42,9 @@ const neighbours = (list, obs) => {
   return { next: list[(i + 1) % n], prev: list[(i - 1 + n) % n] };
 };
 
-export const useBoardSwipe = ({ tableRef, layoutRegions, tableWidth, enabled }) => {
+// blockedRef: while its .current is true (the radial menu is open), a press
+// in progress is not a swipe.
+export const useBoardSwipe = ({ tableRef, layoutRegions, tableWidth, enabled, blockedRef = null }) => {
   const dispatch = useDispatch();
   const playerIList = usePlayerIList();
   const numPlayers = playerIList.length;
@@ -98,6 +100,7 @@ export const useBoardSwipe = ({ tableRef, layoutRegions, tableWidth, enabled }) 
     };
     const onMove = (e) => {
       if (!g || e.pointerId !== g.id) return;
+      if (blockedRef?.current) { g = null; return; }
       const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
       if (!g.dragging) {
         if (Math.abs(dy) > START_PX && Math.abs(dy) > Math.abs(dx)) { g = null; return; }

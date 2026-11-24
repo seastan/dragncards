@@ -109,6 +109,9 @@ desktop key.
     adds one as a button to the favourites bar, which sits just above the
     bottom bar and is shown / hidden with the bottom bar's *Favorites* button.
     Favourites are saved per device and per plugin, the bar's on/off per device.
+  - Press and hold on empty table: the favourites open in a ring around the
+    finger; drag toward one and release to run / arm it, release in the middle
+    to cancel.
 - **Piles:** tapping a card in a pile (deck, discard, drawer pile) opens the
   pile's menu; its first option, *Select top card*, opens that card's view.
 

@@ -22,6 +22,7 @@ import { useTouchAction } from "./hooks/useTouchAction";
 import { useSetTouchAction } from "./hooks/useSetTouchAction";
 import { useDoDragnHotkey } from "./hooks/useDragnHotkeys";
 import { useBoardSwipe } from "./MobileBoardSwipe";
+import { useRadialMenu, RadialMenuOverlay } from "./MobileRadialMenu";
 import { MobileStepTracker } from "./MobileStepTracker";
 import { useTokenSlider, TokenSliderOverlay } from "./MobileTokenSlider";
 import { useHiddenPilesGeometry, hiddenPileRegions, HiddenPilesDrawer, SLIDE_MS, drawerParkedOffset } from "./MobileHiddenPiles";
@@ -704,7 +705,13 @@ export const MobileTable = React.memo(() => {
   // Swipe sideways on empty table to change whose board is on screen. Not
   // while something is open over the table.
   const dropdownMenu = useSelector(state => state?.playerUi?.dropdownMenu);
+  // Press and hold on empty table: the favourites in a ring (MobileRadialMenu).
+  const radial = useRadialMenu({
+    tableRef,
+    enabled: !pilesOpen && !chatOpen && !hotkeysOpen && !stepsOpen && !menuOpen && !dropdownMenu,
+  });
   const boardSwipe = useBoardSwipe({
+    blockedRef: radial.openRef,
     tableRef,
     layoutRegions: layout?.regions,
     tableWidth: tableSize?.w || window.innerWidth,
@@ -808,6 +815,7 @@ export const MobileTable = React.memo(() => {
         <HotkeysSheet open={hotkeysOpen} onClose={() => setHotkeysOpen(false)}/>
         <MobileStepTracker open={stepsOpen}/>
         <TokenSliderOverlay slide={tokenSlider.slide} tokenDef={tokenSlider.tokenDef}/>
+        <RadialMenuOverlay menu={radial.menu} items={radial.items}/>
       </div>
       {favBarOpen && <FavoritesBar/>}
       {touchAction ? <ActiveHotkeyBar touchAction={touchAction}/> :
