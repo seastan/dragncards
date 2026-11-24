@@ -1,5 +1,7 @@
 import React, {useContext, useEffect, useState} from "react";
 import ReactModal from "react-modal";
+import { useMobileUIActive } from "./hooks/useMobileUI";
+import { MOBILE_MODAL_CONTENT, MobileModalHeader, MobileModalTabs } from "./MobileModal";
 import { useForm } from "react-hook-form";
 import Button from "../../components/basic/Button";
 import Select from 'react-select'
@@ -42,11 +44,11 @@ const CardImage = ({url, top, height, leftSide}) => {
   } else {
     style.right = '0%';
   }
-  
+
   return (
-    <img 
+    <img
       className="fixed"
-      src={srcLanguage || srcDefault} 
+      src={srcLanguage || srcDefault}
       onError={(e)=>{e.target.onerror = null; e.target.src=srcDefault}}
       style={style}
     />
@@ -65,13 +67,17 @@ export const DeckbuilderModal = React.memo(({}) => {
   const [currentGroupId, setCurrentGroupId] = useState(spawnGroups?.[0]?.loadGroupId);
   const [currentDeck, setCurrentDeck] = useState({});
   const [numChanges, setNumChanges] = useState(0);
+  // Mobile UI: one pane at a time — My decks, the open deck, or the cards to
+  // add to it — instead of three side by side.
+  const mobileUIActive = useMobileUIActive();
+  const [mobilePane, setMobilePane] = useState("decks");
   dispatch(setTyping(true));
   const myDecksUrl = `/be/api/v1/decks/${user?.id}/${pluginId}`;
 
   const { data, isLoading, isError, doFetchUrl, doFetchHash, setData } = useDataApi(
     myDecksUrl,
     null
-  );  
+  );
   const myDecks = data?.my_decks;
   useEffect(() => {
     if (user?.id) doFetchUrl(myDecksUrl);
@@ -86,7 +92,7 @@ export const DeckbuilderModal = React.memo(({}) => {
     const deckCopy = {...currentDeck}
     console.log("modifyDeckList deckCopy", deckCopy)
     if (existingIndex !== null) {
-      deckCopy.load_list[existingIndex].quantity += loadListItem.quantity; 
+      deckCopy.load_list[existingIndex].quantity += loadListItem.quantity;
     }
     // See if item should be deleted
     if (existingIndex !== null && deckCopy?.load_list[existingIndex]?.quantity <= 0) {
@@ -101,30 +107,46 @@ export const DeckbuilderModal = React.memo(({}) => {
     setNumChanges(numChanges + 1);
   }
 
+  const closeModal = () => {
+    dispatch(setShowModal(null));
+    dispatch(setTyping(false));
+  };
+  // Opening (or creating) a deck in the mobile UI moves on to its pane.
+  const setCurrentDeckAndShow = (deck) => {
+    setCurrentDeck(deck);
+    if (mobileUIActive && deck?.id) setMobilePane("deck");
+  };
+  const pane = mobileUIActive && !currentDeck?.id ? "decks" : mobilePane;
   return(
     <ReactModal
       closeTimeoutMS={200}
       isOpen={true}
-      onRequestClose={() => {
-        dispatch(setShowModal(null));
-        dispatch(setTyping(false));
-      }}
+      onRequestClose={closeModal}
       contentLabel="Build a deck"
       overlayClassName="fixed inset-0 bg-black-50"
-      className="relative flex insert-auto overflow-auto p-5 bg-gray-800 border mx-auto my-12 rounded-lg outline-none"
+      className={mobileUIActive
+        ? "relative flex flex-col bg-gray-800 outline-none"
+        : "relative flex insert-auto overflow-auto p-5 bg-gray-800 border mx-auto my-12 rounded-lg outline-none"}
       style={{
         overlay: {
           zIndex: Z_INDEX.Modal
         },
-        content: {
+        content: mobileUIActive ? { ...MOBILE_MODAL_CONTENT, display: "flex", flexDirection: "column", overflowY: "hidden" } : {
           width: "92vw",
           height: "85dvh",
           maxHeight: "85dvh",
           overflowY: "scroll",
         }
       }}>
-      {hoverCardDetails?.A?.imageUrl && <CardImage url={hoverCardDetails.A.imageUrl} leftSide={hoverCardDetails?.leftSide} top={hoverCardDetails?.B?.imageUrl ? "0%" : "50%"} height={"50%"}/>}
-      {hoverCardDetails?.B?.imageUrl && <CardImage url={hoverCardDetails.B.imageUrl} leftSide={hoverCardDetails?.leftSide} top={"50%"} height={"50%"}/>}
+      {mobileUIActive && <>
+        <MobileModalHeader title={currentDeck?.name || "Custom decks"} onClose={closeModal}/>
+        <MobileModalTabs
+          tabs={[["decks", "MY DECKS"], ["deck", "DECK", !currentDeck?.id], ["cards", "CARDS", !currentDeck?.id]]}
+          current={pane}
+          onSelect={setMobilePane}/>
+      </>}
+      {!mobileUIActive && hoverCardDetails?.A?.imageUrl && <CardImage url={hoverCardDetails.A.imageUrl} leftSide={hoverCardDetails?.leftSide} top={hoverCardDetails?.B?.imageUrl ? "0%" : "50%"} height={"50%"}/>}
+      {!mobileUIActive && hoverCardDetails?.B?.imageUrl && <CardImage url={hoverCardDetails.B.imageUrl} leftSide={hoverCardDetails?.leftSide} top={"50%"} height={"50%"}/>}
       {/* <h1 className="mb-2">Spawn a custom card</h1> */}
       {isLoading &&
         <div className="absolute flex h-full w-full items-center justify-center opacity-80 bg-gray-800">
@@ -134,15 +156,19 @@ export const DeckbuilderModal = React.memo(({}) => {
             strokeColor="white"/>
         </div>
       }
-      <div className="w-full h-full flex">
-      
+      <div
+        className={mobileUIActive ? "w-full flex deckbuilder-mobile" : "w-full h-full flex"}
+        style={mobileUIActive ? { flex: 1, minHeight: 0, overflowY: "auto", padding: "8px 10px" } : undefined}>
+
+      {(!mobileUIActive || pane === "decks") &&
       <DeckbuilderMyDecks
         doFetchHash={doFetchHash}
         myDecks={myDecks}
         currentDeck={currentDeck}
-        setCurrentDeck={setCurrentDeck}/>
-      
-      {currentDeck?.id && 
+        setCurrentDeck={setCurrentDeckAndShow}/>
+      }
+
+      {currentDeck?.id && (!mobileUIActive || pane === "deck") && 
         <DeckbuilderCurrent
           currentGroupId={currentGroupId}
           setCurrentGroupId={setCurrentGroupId}
@@ -155,7 +181,7 @@ export const DeckbuilderModal = React.memo(({}) => {
           setCurrentDeck={setCurrentDeck}/>
       }
 
-      {currentDeck.id && 
+      {currentDeck.id && (!mobileUIActive || pane === "cards") &&
         <DeckbuilderTable
           currentGroupId={currentGroupId}
           modifyDeckList={modifyDeckList}

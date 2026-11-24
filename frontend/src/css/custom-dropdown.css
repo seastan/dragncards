@@ -198,3 +198,10 @@
   .mobile-sheet-button:active {
     background-color: #2d3748;
   }
+
+  /* Mobile deck builder (DeckbuilderModal): one pane at a time, full width,
+     instead of the desktop's 20% / 20% / 60% columns. */
+  .deckbuilder-mobile > div {
+    width: 100% !important;
+    max-width: 100%;
+  }

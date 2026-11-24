@@ -1,5 +1,7 @@
 import React, {useContext, useEffect, useRef, useState} from "react";
 import ReactModal from "react-modal";
+import { useMobileUIActive } from "./hooks/useMobileUI";
+import { MOBILE_MODAL_CONTENT, MobileModalHeader } from "./MobileModal";
 import Button from "../../components/basic/Button";
 import { setShowModal, setTyping } from "../store/playerUiSlice";
 import { useDispatch, useSelector } from "react-redux";
@@ -40,7 +42,7 @@ const stripAuthorPrefix = (databaseId) => databaseId.replace(/^author_id-\d+-/, 
 
 const CustomCardList = ({cardDb}) => {
   return(
-    <div className="overflow-y-scroll bg-gray-600" style={{width: "600px", maxHeight: "300px"}}>
+    <div className="overflow-y-scroll bg-gray-600" style={{width: "600px", maxWidth: "100%", maxHeight: "300px", overflowX: "auto"}}>
       <div key={"header"} className="flex bg-gray-900 p-2">
         <div style={{width:"200px"}}>databaseId</div>
         <div style={{width:"200px"}}>Side A Name</div>
@@ -128,6 +130,7 @@ const createTsv = (gameDef, cardDb) => {
 }
 
 export const CustomContentModal = React.memo(({}) => {
+  const mobileUIActive = useMobileUIActive();
   const dispatch = useDispatch();
   const user = useProfile();
   const authOptions = useAuthOptions();
@@ -238,29 +241,33 @@ export const CustomContentModal = React.memo(({}) => {
   };
 
 
+  const closeModal = () => {
+    dispatch(setShowModal(null));
+    dispatch(setTyping(false));
+  };
   return(
     <ReactModal
       closeTimeoutMS={200}
       isOpen={true}
-      onRequestClose={() => {
-        dispatch(setShowModal(null));
-        dispatch(setTyping(false));
-      }}
+      onRequestClose={closeModal}
       contentLabel="Build a deck"
       overlayClassName="fixed inset-0 bg-black-50"
-      className="relative insert-auto overflow-auto bg-gray-800 border border-gray-600 mx-auto mt-12 rounded-lg outline-none text-white"
+      className={mobileUIActive
+        ? "relative bg-gray-800 outline-none text-white"
+        : "relative insert-auto overflow-auto bg-gray-800 border border-gray-600 mx-auto mt-12 rounded-lg outline-none text-white"}
       style={{
         overlay: {
           zIndex: Z_INDEX.Modal
         },
-        content: {
+        content: mobileUIActive ? MOBILE_MODAL_CONTENT : {
           width: "700px",
           height: "85dvh",
           maxHeight: "85dvh",
           overflowY: "auto",
         }
       }}>
-      <div style={{padding: "20px 24px 8px 24px", borderBottom: "1px solid #374151"}}>
+      {mobileUIActive && <MobileModalHeader title="Custom Cards" onClose={closeModal}/>}
+      <div style={{padding: mobileUIActive ? "12px 16px 8px" : "20px 24px 8px 24px", borderBottom: "1px solid #374151", display: mobileUIActive ? "none" : undefined}}>
         <h1 style={{margin: 0, fontSize: "1.25rem", fontWeight: 600, color: "white", letterSpacing: "-0.01em"}}>
           Custom Cards
         </h1>
@@ -268,9 +275,9 @@ export const CustomContentModal = React.memo(({}) => {
           Upload and manage custom card content
         </p>
       </div>
-      <div style={{padding: "12px 24px 20px 24px"}}>
+      <div style={{padding: mobileUIActive ? "12px 16px 20px" : "12px 24px 20px 24px"}}>
 
-      <div style={{width:"300px"}}>
+      <div style={{width:"300px", maxWidth:"100%"}}>
         <Button isPrimary onClick={downloadTsv}>
           <FontAwesomeIcon icon={faDownload} className="mr-2"/>
           Download Example Template (.tsv)
@@ -288,7 +295,7 @@ export const CustomContentModal = React.memo(({}) => {
         :
         <>
           <CustomCardSection cardDb={customCardDbPublic}/>
-          <div className="text-black py-1"style={{width:"300px"}}>
+          <div className="text-black py-1"style={{width:"300px", maxWidth:"100%"}}>
             <Button onClick={() => loadFileCardDbPublic()}>
               <FontAwesomeIcon icon={faUpload} className="mr-2"/>
               {Object.keys(customCardDbPublic).length === 0 ? "Upload Public Cards (.tsv)" : "Replace Public Cards (.tsv)"}
@@ -303,7 +310,7 @@ export const CustomContentModal = React.memo(({}) => {
       <h2 className="my-2">Private</h2>
 
       {user?.supporter_level < 3 ? (
-        <div className="text-black" style={{width:"300px"}}>
+        <div className="text-black" style={{width:"300px", maxWidth:"100%"}}>
           <Button onClick={() => dispatch(setShowModal("patreon"))}>
             <div className="flex w-full justify-center">
               <div>Unlock</div>
@@ -322,7 +329,7 @@ export const CustomContentModal = React.memo(({}) => {
             :
           <>
             <CustomCardSection cardDb={customCardDbPrivate}/>
-            <div className="text-black py-1" style={{width:"300px"}}>
+            <div className="text-black py-1" style={{width:"300px", maxWidth:"100%"}}>
               <Button onClick={() => loadFileCardDbPrivate()}>
                 <FontAwesomeIcon icon={faUpload} className="mr-2"/>
                 {Object.keys(customCardDbPrivate).length === 0 ? "Upload Private Cards (.tsv)" : "Replace Private Cards (.tsv)"}
