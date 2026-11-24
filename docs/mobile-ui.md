@@ -26,8 +26,8 @@ Without one the regular table is shown.
   sideways swipe scrolls it, dragging a card down out of it moves the card. The
   same swipe-to-scroll works on any row or fan that overflows.
 - One player's board on screen at a time (`observingPlayerN`). Swiping the top
-  bar's player panel to another player slides their board in; *Look* on a
-  player's panel also switches to theirs.
+  bar's player panel shows each player's stats; *Look* on a player's panel puts
+  their board, and their hand, on the table, sliding over from the side.
 - The room's real layout is not touched; desktop players in the same room see
   no change.
 
@@ -43,7 +43,7 @@ Same shape as an entry of `gameDef.layouts`, with these differences:
 | `defaultFavorites` | The hotkeys a player starts with as favourites (favourites bar and radial menu) until they star or unstar one themselves. Entries are `"<tab>:<key>"`, the tab being the hotkeys sheet's: `token:<key>`, `card:<key>`, `game:<key>` or `dragn:<key>`. Entries matching no hotkey are skipped. LotR: `["game:W", "token:1", "token:2", "token:3"]` (advance the round, then the resource, progress and damage tokens). |
 | `hiddenPiles` | Groups kept off the table and shown as piles in the Piles drawer instead. Each entry is a groupId, or `{"groupId": ..., "showWhenEmpty": true}`: empty piles are left out unless marked, and a pile you drop the first card onto (a discard) needs the mark. `playerN` resolves to the player on screen. |
 | `textBoxes` | As in desktop layouts. A box whose key also exists in the room's current layout shows that box's `label` and `visible` (which game actions update, e.g. LotR's `roundAdvancement` hint) at this box's own position and style; `syncContent: false` opts out. A visible box spanning the top edge (top 0, left 0, full width) reserves its height: the regions are squeezed into the space below it. Like the 3D table generally, only boxes with `hover: true` are drawn. |
-| `region.perspective` | `"viewed"` (default) follows the on-screen player. `"self"` always means the viewer's own seat — use it for your hand so it stays yours while you look at a teammate's board. |
+| `region.perspective` | `"viewed"` (default) follows the on-screen player. `"self"` always means the viewer's own seat, for a region that should stay yours whoever you *Look* at. LotR leaves its hand as `"viewed"`, so Look shows the other player's hand (face down unless they've shown it). |
 | `region.syncVisibility` | If a mobile region's key also exists in the room's current layout, the mobile region copies that region's `visible` flag, so show/hide buttons (e.g. `TOGGLE_TABLE_BUTTON`) keep working. `false` opts out. |
 
 Positions are fractions of the table area between the top and bottom bars,
@@ -72,7 +72,7 @@ discard), and your hand. The other piles live in the drawer.
       "playerNPlay3":           {"groupId": "playerNPlay3",           "type": "row",  "direction": "horizontal", "left": 0,    "top": "5/7", "width": 0.6,  "height": "1/7"},
       "playerNDeck":            {"groupId": "playerNDeck",            "type": "pile", "direction": "horizontal", "left": 0.6,  "top": "5/7", "width": 0.2,  "height": "1/7"},
       "playerNDiscard":         {"groupId": "playerNDiscard",         "type": "pile", "direction": "horizontal", "left": 0.8,  "top": "5/7", "width": 0.2,  "height": "1/7"},
-      "playerNHand":            {"groupId": "playerNHand",            "type": "fan",  "direction": "horizontal", "left": 0,    "top": "6/7", "width": 1,    "height": "1/7", "perspective": "self", "style": {"background": "rgba(0, 0, 0, 0.3)"}}
+      "playerNHand":            {"groupId": "playerNHand",            "type": "fan",  "direction": "horizontal", "left": 0,    "top": "6/7", "width": 1,    "height": "1/7", "style": {"background": "rgba(0, 0, 0, 0.3)"}}
     },
     "hiddenPiles": [
       "sharedEncounterDeck2",

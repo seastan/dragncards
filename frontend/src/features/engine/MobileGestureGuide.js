@@ -19,7 +19,7 @@ import "../../css/mobile-guide.css";
 //
 // Bump GUIDE_VERSION when the gestures change, so returning players hear of it.
 
-export const GUIDE_VERSION = 1;
+export const GUIDE_VERSION = 2;  // 2: Look, not the panel swipe, switches boards (and hands)
 const SEEN_KEY = "dragncards_mobile_guide_seen";      // the GUIDE_VERSION last seen
 const LAST_USED_KEY = "dragncards_mobile_last_used";  // ms timestamp
 const AWAY_MS = 30 * 24 * 60 * 60 * 1000;
@@ -125,21 +125,32 @@ const RadialDemo = ({ tokenImage }) => (
   </Stage>
 );
 
-const PanelDemo = () => (
+const PanelDemo = ({ back }) => (
   <Stage>
     <div className="gg-strip">
       <div className="gg-strip-pages">
-        <div className="gg-strip-page">Player 1</div>
-        <div className="gg-strip-page">Player 2</div>
+        <div className="gg-strip-page">Player 1<span className="gg-look">Look</span></div>
+        <div className="gg-strip-page">Player 2<span className="gg-look">Look</span></div>
       </div>
     </div>
     <div className="gg-boards">
       <div className="gg-boards-inner">
-        <Card x={30} y={30}/>
-        <Card x={80} y={30}/>
-        <Card x={130} y={30}/>
-        <Card x={310} y={30}/>
-        <Card x={360} y={30}/>
+        {/* Player 1: board, and your own hand below it. */}
+        <Card x={30} y={6}/>
+        <Card x={80} y={6}/>
+        <Card x={130} y={6}/>
+        <div className="gg-handband" style={{ left: 0 }}/>
+        <Card x={60} y={66}/>
+        <Card x={106} y={66}/>
+        <Card x={152} y={66}/>
+        {/* Player 2: their board and their hand, face down unless they show it. */}
+        <Card x={310} y={6}/>
+        <Card x={360} y={6}/>
+        <div className="gg-handband" style={{ left: 280 }}/>
+        <Card x={340} y={66} back={back}/>
+        <Card x={386} y={66} back={back}/>
+        <Card x={432} y={66} back={back}/>
+        <Card x={478} y={66} back={back}/>
       </div>
     </div>
     <Finger anim="gg-panel-finger"/>
@@ -306,9 +317,10 @@ export const GestureGuide = ({ onClose }) => {
         </Section>
 
         <Section title="Players and undo">
-          <GestureCard title="Look at another player's board" demo={<PanelDemo/>}>
-            In games with more than one player, swipe the player panel at the top right to see another
-            player's board. Your hand stays yours.
+          <GestureCard title="Look at another player's board" demo={<PanelDemo back={back}/>}>
+            Swipe the player panel at the top right to see each player's stats. Tap <b>Look</b> on a player
+            to put their board and hand on the table (cards they haven't shown you stay face down). Tap
+            <b> Look</b> on your own panel to come back.
           </GestureCard>
           <GestureCard title="Undo and redo" demo={<UndoDemo/>}>
             Tap <b>Undo</b> at the bottom to take back the last action. Hold it to redo.

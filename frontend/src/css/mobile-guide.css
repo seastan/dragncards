@@ -257,17 +257,24 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 .gg-strip-pages { position: absolute; top: 0; left: 0; width: 560px; height: 30px; display: flex; animation-name: gg-strip; }
-@keyframes gg-strip { 0%, 10% { transform: translateX(0); } 35%, 100% { transform: translateX(-280px); } }
-.gg-strip-page { width: 280px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #e5e7eb; }
+@keyframes gg-strip { 0%, 8% { transform: translateX(0); } 28%, 100% { transform: translateX(-280px); } }
+.gg-strip-page { position: relative; width: 280px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #e5e7eb; }
+.gg-look { position: absolute; right: 18px; top: 6px; padding: 2px 8px; border-radius: 4px; background: #4b5563; font-size: 10px; }
+.gg-handband { position: absolute; top: 62px; width: 280px; height: 64px; background: rgba(0, 0, 0, 0.3); }
 .gg-boards { position: absolute; left: 0; right: 0; top: 31px; bottom: 0; overflow: hidden; }
 .gg-boards-inner { position: absolute; top: 0; left: 0; width: 560px; height: 100%; animation-name: gg-boards; }
-@keyframes gg-boards { 0%, 40% { transform: translateX(0); } 55%, 100% { transform: translateX(-280px); } }
+@keyframes gg-boards { 0%, 47% { transform: translateX(0); } 62%, 100% { transform: translateX(-280px); } }
 .gg-panel-finger { animation-name: gg-panel-finger; }
+/* Swipe the panel to Player 2, then tap their Look (right end of the strip). */
 @keyframes gg-panel-finger {
   0% { opacity: 0; transform: translate(207px, 2px); }
-  10% { opacity: 1; transform: translate(207px, 2px) scale(0.85); }
-  35% { opacity: 1; transform: translate(67px, 2px) scale(0.85); }
-  42%, 100% { opacity: 0; transform: translate(67px, 2px) scale(1); }
+  8% { opacity: 1; transform: translate(207px, 2px) scale(0.85); }
+  28% { transform: translate(67px, 2px) scale(0.85); }
+  32% { transform: translate(67px, 2px) scale(1); }
+  40% { transform: translate(229px, 2px) scale(1); }
+  44% { transform: translate(229px, 2px) scale(0.75); }
+  48% { opacity: 1; transform: translate(229px, 2px) scale(1); }
+  56%, 100% { opacity: 0; transform: translate(229px, 2px) scale(1); }
 }
 
 /* ── Token hotkey: tap, swipe down ──────────────────────────────────────── */

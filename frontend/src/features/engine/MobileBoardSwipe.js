@@ -21,8 +21,9 @@ import { formatGroupId } from "../engine-dnc3d/adapters/regions";
 // invisible. A player who isn't a neighbour (4+ players, jumping two seats)
 // switches without the slide.
 //
-// What triggers it: swiping the top bar's player panel (MobileTable's
-// PlayerCarousel). The table background is left to the radial menu.
+// What triggers it: a player's *Look* button in the top bar's player panel
+// (MobileTable's PlayerCarousel; swiping the panel only shows their stats).
+// The table background is left to the radial menu.
 //
 // The movement is Dnc3DTable's regionSlideX. Regions are keyed by groupId, so
 // a neighbour board's regions (e.g. player2Play1) are the very regions that

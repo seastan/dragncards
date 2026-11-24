@@ -36,7 +36,9 @@ export const TopBarUserButton: React.FC<TopBarUserButtonProps> = ({
   );
 };
 
-export const TopBarUser = React.memo(({ playerI }: { playerI: string }) => {
+// onLook: replaces the plain switch of observingPlayerN when Look is pressed
+// (the mobile table slides the boards over instead).
+export const TopBarUser = React.memo(({ playerI, onLook }: { playerI: string, onLook?: (playerI: string) => void }) => {
   const { gameBroadcast, chatBroadcast } = useContext(BroadcastContext) as any;
   const dispatch = useDispatch();
   const siteL10n = useSiteL10n();
@@ -80,7 +82,8 @@ export const TopBarUser = React.memo(({ playerI }: { playerI: string }) => {
   };
 
   const handleObserveClick = () => {
-    dispatch(setObservingPlayerN(playerI));
+    if (onLook) onLook(playerI);
+    else dispatch(setObservingPlayerN(playerI));
     chatBroadcast("game_update", { message: "started observing " + playerI + "." });
   };
 

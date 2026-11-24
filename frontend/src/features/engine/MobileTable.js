@@ -66,14 +66,14 @@ const barButton = {
 
 // One player per page, swiped sideways (native scroll-snap, so it's a real
 // finger drag). Opens on your own seat.
-const PlayerCarousel = ({ onSwitchPlayer }) => {
+const PlayerCarousel = ({ onLook }) => {
   const playerIList = usePlayerIList();
   const playerN = useSelector(state => state?.playerUi?.playerN);
   const ref = useRef(null);
   const [page, setPage] = useState(0);
 
   // Shows whoever's board is on screen (your own seat to begin with), so it
-  // follows a swipe between boards.
+  // follows a Look that switches boards.
   const observingPlayerN = useSelector(state => state?.playerUi?.observingPlayerN);
   const shown = observingPlayerN || playerN;
   const firstScroll = useRef(true);
@@ -86,23 +86,12 @@ const PlayerCarousel = ({ onSwitchPlayer }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shown, playerIList.length]);
 
-  // Swiping the panel to another player's page puts their board on the table
-  // (with the board slide), once the scroll settles on that page. The scroll
-  // this component makes itself, to follow the board, lands on the shown
-  // player, so it doesn't trigger a switch.
-  const settle = useRef(null);
+  // Swiping the panel only shows another player's stats; their *Look* button
+  // puts their board (and hand) on the table, with the board slide.
   const onScroll = () => {
     const el = ref.current;
-    if (!el || !el.clientWidth) return;
-    const p = Math.round(el.scrollLeft / el.clientWidth);
-    setPage(p);
-    clearTimeout(settle.current);
-    settle.current = setTimeout(() => {
-      const target = playerIList[Math.round(el.scrollLeft / el.clientWidth)];
-      if (target && target !== shown && onSwitchPlayer) onSwitchPlayer(target);
-    }, 120);
+    if (el && el.clientWidth) setPage(Math.round(el.scrollLeft / el.clientWidth));
   };
-  useEffect(() => () => clearTimeout(settle.current), []);
 
   return (
     <div style={{ position: "relative", height: "100%", minWidth: 0 }}>
@@ -120,7 +109,7 @@ const PlayerCarousel = ({ onSwitchPlayer }) => {
         }}>
         {playerIList.map((playerI) => (
           <div key={playerI} style={{ flex: "0 0 100%", height: "100%", scrollSnapAlign: "start", fontSize: 12 }}>
-            <TopBarUser playerI={playerI}/>
+            <TopBarUser playerI={playerI} onLook={onLook}/>
           </div>
         ))}
       </div>
@@ -135,7 +124,7 @@ const PlayerCarousel = ({ onSwitchPlayer }) => {
   );
 };
 
-const MobileTopBar = ({ menuOpen, setMenuOpen, onSwitchPlayer }) => (
+const MobileTopBar = ({ menuOpen, setMenuOpen, onLook }) => (
   <div
     onClick={(e) => e.stopPropagation()}
     style={{
@@ -157,7 +146,7 @@ const MobileTopBar = ({ menuOpen, setMenuOpen, onSwitchPlayer }) => (
       </div>
     </div>
     <div style={{ width: "50%", minWidth: 0, borderLeft: "1px solid rgba(255,255,255,0.08)" }}>
-      <PlayerCarousel onSwitchPlayer={onSwitchPlayer}/>
+      <PlayerCarousel onLook={onLook}/>
     </div>
   </div>
 );
@@ -777,7 +766,7 @@ export const MobileTable = React.memo(() => {
         paddingLeft: "env(safe-area-inset-left)",
         paddingRight: "env(safe-area-inset-right)",
       }}>
-      <MobileTopBar menuOpen={menuOpen} setMenuOpen={setMenuOpen} onSwitchPlayer={boardSwipe.goTo}/>
+      <MobileTopBar menuOpen={menuOpen} setMenuOpen={setMenuOpen} onLook={boardSwipe.goTo}/>
       {/* pan-y: horizontal drags here are ours (the board swipe), so the
           browser must not claim them and cancel the pointer partway, which it
           does on any part of the area not covered by the 3D surface's own
