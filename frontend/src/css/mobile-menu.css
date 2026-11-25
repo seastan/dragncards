@@ -42,14 +42,14 @@
 .menu-tile-page {
   list-style: none;
   margin: 0;
-  padding: 4px 12px 20px;
+  padding: 0 12px 12px;
 }
-.menu-tile-page { padding-top: 14px; }
+.menu-tile-page { padding-top: 12px; }
 
-.menu-tile-section { list-style: none; margin-top: 14px; }
+.menu-tile-section { list-style: none; margin-top: 10px; }
 .menu-tile-heading {
-  margin: 0 2px 8px;
-  font-size: 12px;
+  margin: 0 2px 6px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -62,8 +62,10 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
-  gap: 10px;
+  /* Four across on a phone (4 x 80px + gaps fits a 390px screen, 5 doesn't),
+     more on wider screens: the whole top level fits without scrolling. */
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 8px;
 }
 /* Anything in a grid that isn't a tile (hidden inputs and the like) gets out of
    the way of the tiles. */
@@ -78,10 +80,10 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 9px;
-  padding: 10px 8px;
+  gap: 6px;
+  padding: 6px 4px;
   border: 1px solid #374151;
-  border-radius: 14px;
+  border-radius: 12px;
   background: #1f2937;
   color: #e5e7eb;
   cursor: pointer;
@@ -91,7 +93,7 @@
 .menu-tile:active { background: #374151; }
 @media (hover: hover) { .menu-tile:hover { background: #2d3748; } }
 
-.menu-tile-icon { font-size: 26px; color: #cbd5e1; }
+.menu-tile-icon { font-size: 22px; color: #cbd5e1; }
 .menu-tile-dot { width: 10px; height: 10px; border-radius: 50%; background: #6b7280; }
 .menu-tile-label {
   display: flex;
@@ -99,13 +101,13 @@
   align-items: center;
   gap: 2px;
   max-width: 100%;
-  font-size: 13px;
+  font-size: 11.5px;
   font-weight: 500;
-  line-height: 1.2;
+  line-height: 1.15;
   text-align: center;
   overflow-wrap: anywhere;
 }
 /* A second part of a label (e.g. a group's card count) sits below it, muted. */
-.menu-tile-label > span + span { font-size: 11px; color: #9ca3af; }
+.menu-tile-label > span + span { font-size: 10.5px; color: #9ca3af; }
 .menu-tile .menu-shortcut { display: none; }
-.menu-tile-more { position: absolute; top: 8px; right: 8px; font-size: 10px; color: #6b7280; }
+.menu-tile-more { position: absolute; top: 6px; right: 6px; font-size: 9px; color: #6b7280; }
