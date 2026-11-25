@@ -66,10 +66,10 @@ export const MobileFullMenu = ({ open, onClose }) => {
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain" }}>
         <MenuTilesContext.Provider value={tiles}>
           <ul role="menubar" className="menu-tile-root" style={top ? { display: "none" } : undefined}>
+            <MobileSiteMenu/>
             <TopBarMenu/>
             <TopBarView/>
             <TopBarBuilder/>
-            <MobileSiteMenu/>
           </ul>
           <div ref={setPageEl} className="menu-tile-page"/>
         </MenuTilesContext.Provider>
