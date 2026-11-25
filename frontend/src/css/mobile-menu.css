@@ -1,0 +1,111 @@
+/* Mobile full-screen ☰ menu (features/engine/MobileFullMenu.js): sections of
+   square tiles, rendered by the Menu / SubMenu / MenuItem components in tile
+   mode (components/basic/Menu.tsx). */
+
+.mobile-full-menu-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 52px;
+  padding: 0 4px;
+  background: #1f2937;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.mobile-full-menu-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 17px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mobile-full-menu-btn {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #e5e7eb;
+  font-size: 19px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.mobile-full-menu-btn:active { background: #374151; }
+
+.menu-tile-root,
+.menu-tile-page {
+  list-style: none;
+  margin: 0;
+  padding: 4px 12px 20px;
+}
+.menu-tile-page { padding-top: 14px; }
+
+.menu-tile-section { list-style: none; margin-top: 14px; }
+.menu-tile-heading {
+  margin: 0 2px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+.menu-tile-note { margin: 0 2px; font-size: 14px; color: #9ca3af; }
+
+.menu-tile-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 10px;
+}
+/* Anything in a grid that isn't a tile (hidden inputs and the like) gets out of
+   the way of the tiles. */
+.menu-tile-grid > li:not(.menu-tile-cell) { grid-column: 1 / -1; }
+
+.menu-tile-cell { list-style: none; min-width: 0; }
+.menu-tile {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 10px 8px;
+  border: 1px solid #374151;
+  border-radius: 14px;
+  background: #1f2937;
+  color: #e5e7eb;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color 120ms ease-out;
+}
+.menu-tile:active { background: #374151; }
+@media (hover: hover) { .menu-tile:hover { background: #2d3748; } }
+
+.menu-tile-icon { font-size: 26px; color: #cbd5e1; }
+.menu-tile-dot { width: 10px; height: 10px; border-radius: 50%; background: #6b7280; }
+.menu-tile-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+/* A second part of a label (e.g. a group's card count) sits below it, muted. */
+.menu-tile-label > span + span { font-size: 11px; color: #9ca3af; }
+.menu-tile .menu-shortcut { display: none; }
+.menu-tile-more { position: absolute; top: 8px; right: 8px; font-size: 10px; color: #6b7280; }

@@ -1,6 +1,7 @@
 import React from "react";
 import { useDispatch } from "react-redux";
 import { Menu, MenuItem } from "../../components/basic/Menu";
+import { faClone, faPaintBrush } from "@fortawesome/free-solid-svg-icons";
 import { setShowModal } from "../store/playerUiSlice";
 import { useGameDefinition } from "./hooks/useGameDefinition";
 import { useSiteL10n } from "../../hooks/useSiteL10n";
@@ -15,6 +16,7 @@ export const TopBarBuilder = React.memo(() => {
   return (
     <Menu label={siteL10n("builder")} disabledReason={playerN ? null : siteL10n("pleaseSit")}>
       <MenuItem
+        icon={faClone}
         onClick={() =>
           deckbuilder
             ? dispatch(setShowModal("custom_decks"))
@@ -23,7 +25,7 @@ export const TopBarBuilder = React.memo(() => {
       >
         {siteL10n("customDecks")}
       </MenuItem>
-      <MenuItem onClick={() => dispatch(setShowModal("custom_content"))}>
+      <MenuItem icon={faPaintBrush} onClick={() => dispatch(setShowModal("custom_content"))}>
         {siteL10n("customContent")}
       </MenuItem>
     </Menu>

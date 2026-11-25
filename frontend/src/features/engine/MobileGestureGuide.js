@@ -13,7 +13,7 @@ import "../../css/mobile-guide.css";
 //
 // Where it shows up:
 //   - by itself, the first time the mobile UI is used on a device;
-//   - from "Gesture Guide" in the ☰ menu strip, and Settings → This device;
+//   - from the Gesture Guide tile in the ☰ menu, and Settings → This device;
 //   - as a banner offering it (not the guide itself) to a player back after a
 //     long break, or when GUIDE_VERSION has gone up since they last saw it.
 //
@@ -415,17 +415,3 @@ export const GestureGuideHost = ({ onOpen }) => {
     </>
   );
 };
-
-// "Gesture Guide" in the ☰ menu strip, on two lines so the strip still fits
-// Menu / View / Builder and the logo and profile icons on a phone.
-export const GestureGuideLink = () => (
-  <li role="none" className="h-full" style={{ flexShrink: 0 }}>
-    <button
-      type="button"
-      onClick={openGestureGuide}
-      className="h-full px-2 flex items-center bg-transparent border-0 cursor-pointer hover:bg-gray-700 text-gray-200"
-      style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.15, textAlign: "center" }}>
-      Gesture<br/>Guide
-    </button>
-  </li>
-);

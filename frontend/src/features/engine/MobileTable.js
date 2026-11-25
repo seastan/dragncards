@@ -1,14 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setAlert } from "../store/playerUiSlice";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars, faComment, faTimes, faEye, faLayerGroup, faKeyboard, faListOl, faStar, faUndo, faRedo } from "@fortawesome/free-solid-svg-icons";
 import Dnc3DTable from "../engine-dnc3d/Dnc3DTable";
-import { MenuBar } from "../../components/basic/Menu";
-import { TopBarMenu } from "./TopBarMenu";
-import { TopBarView } from "./TopBarView";
-import { TopBarBuilder } from "./TopBarBuilder";
-import { MobileSiteMenu } from "./MobileSiteMenu";
+import { MobileFullMenu } from "./MobileFullMenu";
 import { TopBarShared } from "./TopBarShared";
 import { TopBarUser } from "./TopBarUser";
 import MessageBox from "../messages/MessageBox";
@@ -43,7 +39,6 @@ import { useHiddenPilesGeometry, hiddenPileRegions, HiddenPilesDrawer, SLIDE_MS,
 // targets need a physical minimum (~44px).
 
 const TOP_H = 64;
-const MENU_ROW_H = 44;
 const BOTTOM_H = 52;
 
 const tapStyle = {
@@ -151,31 +146,6 @@ const MobileTopBar = ({ menuOpen, setMenuOpen, onLook }) => (
   </div>
 );
 
-// Menu / View / Builder, plus the site navbar's links (Site), dropped down
-// from ☰ over the top of the table.
-const MenuRow = () => (
-  <div
-    onClick={(e) => e.stopPropagation()}
-    className="bg-gray-800 text-gray-200"
-    style={{
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      height: MENU_ROW_H,
-      zIndex: Z_INDEX.TopBarHover,
-      borderBottom: "1px solid rgba(255,255,255,0.12)",
-      boxShadow: "0 6px 16px rgba(0,0,0,0.5)",
-      fontSize: 15,
-    }}>
-    <MenuBar className="w-full">
-      <TopBarMenu />
-      <TopBarView />
-      <TopBarBuilder />
-      <MobileSiteMenu />
-    </MenuBar>
-  </div>
-);
 
 // ── Hidden piles: see MobileHiddenPiles.js ─────────────────────────────────
 
@@ -643,6 +613,7 @@ export const MobileTable = React.memo(() => {
   const doActionList = useDoActionList();
   const dispatch = useDispatch();
   const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
   const touchAction = useTouchAction();
   // An armed token responds to vertical swipes on cards: up +1, down −1. Same
   // rules as touch mode's token taps (useHandleTouchAction): a non-modifier
@@ -798,7 +769,6 @@ export const MobileTable = React.memo(() => {
               onDone={() => setPilesOpen(false)}
             />}
         />
-        {menuOpen && <MenuRow/>}
         {/* Chat / log sheet. Always mounted — MessageBox only collects messages
             while it exists — and slid out of view when closed. */}
         <div
@@ -826,7 +796,8 @@ export const MobileTable = React.memo(() => {
         <MobileStepTracker open={stepsOpen}/>
         <TokenSliderOverlay slide={tokenSlider.slide} tokenDef={tokenSlider.tokenDef}/>
         <RadialMenuOverlay menu={radial.menu} items={radial.items}/>
-        <GestureGuideHost onOpen={() => setMenuOpen(false)}/>
+        <GestureGuideHost onOpen={closeMenu}/>
+        <MobileFullMenu open={menuOpen} onClose={closeMenu}/>
       </div>
       {favBarOpen && <FavoritesBar/>}
       {touchAction ? <ActiveHotkeyBar touchAction={touchAction}/> :

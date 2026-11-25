@@ -4,6 +4,10 @@ import { useHistory } from "react-router-dom";
 import store from "../../store";
 import { Menu, MenuItem, SubMenu } from "../../components/basic/Menu";
 import {
+  faFolderOpen, faBoxOpen, faGlobe, faLink, faFileImport, faFileUpload, faFolderMinus, faUser, faUsers,
+  faPlusSquare, faDice, faCoins, faCog, faCode, faPuzzlePiece, faDownload, faBroom, faRedo, faDoorClosed,
+} from "@fortawesome/free-solid-svg-icons";
+import {
   setRandomNumBetween,
   setShowModal,
   setAutoLoadedDecks,
@@ -309,35 +313,35 @@ export const TopBarMenu = React.memo(() => {
       </li>
 
       <Menu label={siteL10n("menu")} disabledReason={playerN ? null : siteL10n("pleaseSit")}>
-        <SubMenu label={siteL10n("load")}>
-          <MenuItem onClick={() => handleMenuClick({ action: "spawn_deck" })}>
+        <SubMenu label={siteL10n("load")} icon={faFolderOpen}>
+          <MenuItem icon={faBoxOpen} onClick={() => handleMenuClick({ action: "spawn_deck" })}>
             {siteL10n("loadPrebuiltDeck")}
           </MenuItem>
-          <MenuItem onClick={() => handleMenuClick({ action: "spawn_public_deck" })}>
+          <MenuItem icon={faGlobe} onClick={() => handleMenuClick({ action: "spawn_public_deck" })}>
             {siteL10n("loadPublicCustomDeck")}
           </MenuItem>
-          <MenuItem onClick={() => handleMenuClick({ action: "load_url" })}>
+          <MenuItem icon={faLink} onClick={() => handleMenuClick({ action: "load_url" })}>
             {siteL10n("Load via URL")}
           </MenuItem>
-          <MenuItem onClick={() => handleMenuClick({ action: "load_o8d" })}>
+          <MenuItem icon={faFileImport} onClick={() => handleMenuClick({ action: "load_o8d" })}>
             {siteL10n("loadO8D")}
           </MenuItem>
-          <MenuItem onClick={() => handleMenuClick({ action: "load_game" })}>
+          <MenuItem icon={faFileUpload} onClick={() => handleMenuClick({ action: "load_game" })}>
             {siteL10n("loadGameOrReplayJson")}
           </MenuItem>
         </SubMenu>
 
-        <SubMenu label={siteL10n("unload")}>
-          <MenuItem onClick={() => handleMenuClick({ action: "unload_my_deck" })}>
+        <SubMenu label={siteL10n("unload")} icon={faFolderMinus}>
+          <MenuItem icon={faUser} onClick={() => handleMenuClick({ action: "unload_my_deck" })}>
             {siteL10n("unloadMyCards")}
           </MenuItem>
-          <MenuItem onClick={() => handleMenuClick({ action: "unload_shared_cards" })}>
+          <MenuItem icon={faUsers} onClick={() => handleMenuClick({ action: "unload_shared_cards" })}>
             {siteL10n("unloadSharedCards")}
           </MenuItem>
         </SubMenu>
 
         {isHost && (
-          <SubMenu label={siteL10n("numberOfPlayers")}>
+          <SubMenu label={siteL10n("numberOfPlayers")} icon={faUsers}>
             {gameDef.playerCountMenu?.map((menuOption: any, i: number) => (
               <MenuItem key={i} onClick={() => handleMenuClick({ action: "set_num_players", value: menuOption })}>
                 {gameL10n(menuOption.label)}
@@ -346,22 +350,22 @@ export const TopBarMenu = React.memo(() => {
           </SubMenu>
         )}
 
-        <MenuItem onClick={() => handleMenuClick({ action: "spawn_existing" })}>
+        <MenuItem icon={faPlusSquare} onClick={() => handleMenuClick({ action: "spawn_existing" })}>
           {siteL10n("spawnCard")}
         </MenuItem>
 
-        <SubMenu label={siteL10n("random")}>
-          <MenuItem onClick={() => handleMenuClick({ action: "random_coin" })}>{siteL10n("coin")}</MenuItem>
+        <SubMenu label={siteL10n("random")} icon={faDice}>
+          <MenuItem icon={faCoins} onClick={() => handleMenuClick({ action: "random_coin" })}>{siteL10n("coin")}</MenuItem>
           <MenuItem onClick={() => handleMenuClick({ action: "random_number" })}>{siteL10n("number")}</MenuItem>
         </SubMenu>
 
-        <SubMenu label={siteL10n("dragnOptions")}>
-          <MenuItem onClick={() => handleMenuClick({ action: "developer_tools" })}>
+        <SubMenu label={siteL10n("dragnOptions")} icon={faCog}>
+          <MenuItem icon={faCode} onClick={() => handleMenuClick({ action: "developer_tools" })}>
             {siteL10n("developerTools")}
           </MenuItem>
         </SubMenu>
 
-        <SubMenu label={siteL10n("pluginOptions")}>
+        <SubMenu label={siteL10n("pluginOptions")} icon={faPuzzlePiece}>
           {gameDef.pluginMenu?.options?.map((menuFunction: any, index: number) => (
             <MenuItem
               key={index}
@@ -372,13 +376,13 @@ export const TopBarMenu = React.memo(() => {
           ))}
         </SubMenu>
 
-        <SubMenu label={siteL10n("download")}>
+        <SubMenu label={siteL10n("download")} icon={faDownload}>
           <MenuItem onClick={() => handleMenuClick({ action: "download" })}>{siteL10n("gameStateJson")}</MenuItem>
           <MenuItem onClick={() => handleMenuClick({ action: "downloadReplay" })}>{siteL10n("fullReplay")}</MenuItem>
         </SubMenu>
 
         {isHost && (
-          <SubMenu label={siteL10n("clearTable")}>
+          <SubMenu label={siteL10n("clearTable")} icon={faBroom}>
             {gameDef["clearTableOptions"]?.map((option: any, index: number) => (
               <MenuItem key={index} onClick={() => handleMenuClick({ action: "clear_table", actionList: option.actionList })}>
                 {gameL10n(option.label)}
@@ -388,7 +392,7 @@ export const TopBarMenu = React.memo(() => {
         )}
 
         {isHost && (
-          <SubMenu label={siteL10n("resetDecks")}>
+          <SubMenu label={siteL10n("resetDecks")} icon={faRedo}>
             {gameDef["clearTableOptions"]?.map((option: any, index: number) => (
               <MenuItem key={index} onClick={() => handleMenuClick({ action: "reset_and_reload", actionList: option.actionList })}>
                 {gameL10n(option.label)}
@@ -398,7 +402,7 @@ export const TopBarMenu = React.memo(() => {
         )}
 
         {isHost && (
-          <SubMenu label={siteL10n("closeRoom")}>
+          <SubMenu label={siteL10n("closeRoom")} icon={faDoorClosed}>
             {gameDef["clearTableOptions"]?.map((option: any, index: number) => (
               <MenuItem key={index} onClick={() => handleMenuClick({ action: "close_room", actionList: option.actionList })}>
                 {gameL10n(option.label)}

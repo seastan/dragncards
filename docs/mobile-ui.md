@@ -92,6 +92,17 @@ Region keys matter for visibility sync, which matches by key: regions that
 plugin buttons toggle (e.g. `sharedSetAside`, `sharedMap`) should reuse the
 desktop key.
 
+## The ☰ menu
+
+Full screen (`MobileFullMenu.js`): the Menu / View / Builder menus and a
+DragnCards section (Gesture Guide, home, account) as sections of square tiles
+with icons. A tile with more options opens them as a page of its own, with a
+back arrow, instead of a nested dropdown. These are the desktop menus
+(`TopBarMenu` etc.) rendered as tiles: `Menu` / `SubMenu` / `MenuItem` in
+`components/basic/Menu.tsx` switch to tiles inside `MenuTilesContext` and take
+an optional `icon`; a tile without one uses its page's icon, so plugin-defined
+options (Plugin Options, Clear table, ...) get a sensible one.
+
 ## Hotkeys without a keyboard
 
 - **Card view → Hotkeys** lists the plugin's card hotkeys (`hotkeys.card`)
@@ -131,7 +142,7 @@ token demos its first token hotkey's image. The flick card only appears when
 the plugin has `cardFling`.
 
 - Opens by itself the first time the mobile UI is used on a device.
-- Always reachable from *Gesture Guide* in the ☰ strip, and from View →
+- Always reachable from the *Gesture Guide* tile in the ☰ menu, and from View →
   Preferences → This device.
 - A dismissable banner at the bottom of the table offers it to a player who
   hasn't used the mobile UI for 30 days, or when `GUIDE_VERSION` has gone up

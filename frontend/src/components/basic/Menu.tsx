@@ -5,9 +5,11 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import cx from "classnames";
 import { useSelector } from "react-redux";
 import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
+import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 /*
@@ -163,6 +165,8 @@ export const MenuBar: React.FC<{ className?: string; children: ReactNode }> = ({
 interface MenuProps {
   label: ReactNode;
   children: ReactNode;
+  /** Icon for the item's tile in the mobile full-screen menu. */
+  icon?: IconDefinition;
   /** Min width of the dropdown panel in rem. */
   panelMinWidthRem?: number;
   /**
@@ -173,7 +177,7 @@ interface MenuProps {
   disabledReason?: string | null;
 }
 
-export const Menu: React.FC<MenuProps> = ({
+const MenuDropdown: React.FC<MenuProps> = ({
   label,
   children,
   panelMinWidthRem = 14,
@@ -344,12 +348,14 @@ export const Menu: React.FC<MenuProps> = ({
 interface MenuItemProps {
   onClick?: (e: React.MouseEvent) => void;
   children: ReactNode;
+  /** Icon for the item's tile in the mobile full-screen menu. */
+  icon?: IconDefinition;
   className?: string;
   /** Whether choosing this item closes the whole menu (default true). */
   closeOnClick?: boolean;
 }
 
-export const MenuItem: React.FC<MenuItemProps> = ({
+const MenuItemDropdown: React.FC<MenuItemProps> = ({
   onClick,
   children,
   className,
@@ -376,11 +382,13 @@ export const MenuItem: React.FC<MenuItemProps> = ({
 interface SubMenuProps {
   label: ReactNode;
   children: ReactNode;
+  /** Icon for the item's tile in the mobile full-screen menu. */
+  icon?: IconDefinition;
   /** Min width of the nested panel in rem. */
   panelMinWidthRem?: number;
 }
 
-export const SubMenu: React.FC<SubMenuProps> = ({
+const SubMenuDropdown: React.FC<SubMenuProps> = ({
   label,
   children,
   panelMinWidthRem = 16,
@@ -440,3 +448,114 @@ export const SubMenu: React.FC<SubMenuProps> = ({
     </li>
   );
 };
+
+// ── Tiles: the mobile full-screen menu ──────────────────────────────────────
+//
+// Inside a MenuTilesContext provider (features/engine/MobileFullMenu.js) the
+// same Menu / SubMenu / MenuItem trees render as square tiles instead of
+// dropdowns, so each menu is written once:
+//   - a top-level Menu is a section: its label as a heading over a grid of tiles;
+//   - a MenuItem is a tile that runs its onClick (and closes the menu);
+//   - a SubMenu is a tile that opens its items as a page of their own (the
+//     header's back arrow returns), instead of nesting them.
+// A SubMenu's page is portalled into the full-screen menu's page area while it
+// is on the page stack, so the whole tree stays mounted and live (counts update,
+// file inputs keep their handlers). A tile without an icon takes its page's.
+
+export interface MenuTilesPage {
+  id: string;
+  title: ReactNode;
+  icon?: IconDefinition | null;
+}
+export interface MenuTilesContextValue {
+  stack: MenuTilesPage[];
+  push: (page: MenuTilesPage) => void;
+  close: () => void;
+  pageEl: HTMLElement | null;
+}
+export const MenuTilesContext = React.createContext<MenuTilesContextValue | null>(null);
+const TileIconContext = React.createContext<IconDefinition | null>(null);
+
+const Tile: React.FC<{
+  icon?: IconDefinition | null;
+  onClick: (e: React.MouseEvent) => void;
+  more?: boolean;
+  children: ReactNode;
+}> = ({ icon, onClick, more = false, children }) => (
+  <li role="none" className="menu-tile-cell">
+    <button type="button" role="menuitem" className="menu-tile" onClick={onClick}>
+      {icon
+        ? <FontAwesomeIcon icon={icon} className="menu-tile-icon" />
+        : <span className="menu-tile-icon menu-tile-dot" />}
+      <span className="menu-tile-label">{children}</span>
+      {more && <FontAwesomeIcon icon={faChevronRight} className="menu-tile-more" />}
+    </button>
+  </li>
+);
+
+const MenuSection: React.FC<MenuProps> = ({ label, children, icon, disabledReason = null }) => {
+  const tiles = useContext(MenuTilesContext)!;
+  return (
+    <li role="none" className="menu-tile-section">
+      <div className="menu-tile-heading">{label}</div>
+      {disabledReason
+        ? <div className="menu-tile-note">{disabledReason}</div>
+        : (
+          <MenuContext.Provider value={{ close: tiles.close }}>
+            <TileIconContext.Provider value={icon || null}>
+              <ul role="menu" className="menu-tile-grid">{children}</ul>
+            </TileIconContext.Provider>
+          </MenuContext.Provider>
+        )}
+    </li>
+  );
+};
+
+const MenuItemTile: React.FC<MenuItemProps> = ({ onClick, children, icon, closeOnClick = true }) => {
+  const tiles = useContext(MenuTilesContext)!;
+  const inherited = useContext(TileIconContext);
+  return (
+    <Tile
+      icon={icon || inherited}
+      onClick={(e) => {
+        onClick?.(e);
+        if (closeOnClick) tiles.close();
+      }}
+    >
+      {children}
+    </Tile>
+  );
+};
+
+const SubMenuTile: React.FC<SubMenuProps> = ({ label, children, icon }) => {
+  const tiles = useContext(MenuTilesContext)!;
+  const inherited = useContext(TileIconContext);
+  const id = useMenuNodeId();
+  const pageIcon = icon || inherited;
+  const index = tiles.stack.findIndex((page) => page.id === id);
+  const isTop = index >= 0 && index === tiles.stack.length - 1;
+  return (
+    <>
+      <Tile icon={pageIcon} more onClick={() => tiles.push({ id, title: label, icon: pageIcon })}>
+        {label}
+      </Tile>
+      {index >= 0 && tiles.pageEl && createPortal(
+        <ul role="menu" className="menu-tile-grid" style={isTop ? undefined : { display: "none" }}>
+          <MenuContext.Provider value={{ close: tiles.close }}>
+            <TileIconContext.Provider value={pageIcon}>{children}</TileIconContext.Provider>
+          </MenuContext.Provider>
+        </ul>,
+        tiles.pageEl
+      )}
+    </>
+  );
+};
+
+export const Menu: React.FC<MenuProps> = (props) =>
+  useContext(MenuTilesContext) ? <MenuSection {...props} /> : <MenuDropdown {...props} />;
+
+export const MenuItem: React.FC<MenuItemProps> = (props) =>
+  useContext(MenuTilesContext) ? <MenuItemTile {...props} /> : <MenuItemDropdown {...props} />;
+
+export const SubMenu: React.FC<SubMenuProps> = (props) =>
+  useContext(MenuTilesContext) ? <SubMenuTile {...props} /> : <SubMenuDropdown {...props} />;
