@@ -191,7 +191,9 @@ const BottomButton = ({ active, onClick, children, label }) => (
 // Undo one action on a tap; redo one on a press and hold. While held long
 // enough the button shows REDO, so the release does what it says.
 const UNDO_HOLD_MS = 450;
-const UndoButton = () => {
+// showLabel: the UNDO / REDO caption under the icon (the bottom bar has one
+// under every button; the armed-hotkey bar's lone undo doesn't need it).
+const UndoButton = ({ showLabel = true }) => {
   const doDragnHotkey = useDoDragnHotkey();
   const [redo, setRedo] = useState(false);
   const timer = useRef(null);
@@ -236,7 +238,7 @@ const UndoButton = () => {
         WebkitTouchCallout: "none",
       }}>
       <FontAwesomeIcon icon={redo ? faRedo : faUndo}/>
-      <span style={{ fontSize: 9, letterSpacing: "0.04em", opacity: 0.7 }}>{redo ? "REDO" : "UNDO"}</span>
+      {showLabel && <span style={{ fontSize: 9, letterSpacing: "0.04em", opacity: 0.7 }}>{redo ? "REDO" : "UNDO"}</span>}
     </div>
   );
 };
@@ -592,7 +594,7 @@ const ActiveHotkeyBar = ({ touchAction }) => {
         </div>
       </div>
       {/* Undo stays reachable while armed, for a tap on the wrong card. */}
-      <div style={{ flexShrink: 0, width: 56, height: "100%", display: "flex" }}><UndoButton/></div>
+      <div style={{ flexShrink: 0, width: 56, height: "100%", display: "flex" }}><UndoButton showLabel={false}/></div>
       <div
         onClick={() => setTouchAction(null)}
         style={{ ...tapStyle, flexShrink: 0, width: 36, height: 36, borderRadius: 18, border: "1px solid rgba(255,255,255,0.5)",
