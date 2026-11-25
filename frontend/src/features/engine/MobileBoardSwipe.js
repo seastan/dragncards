@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { setObservingPlayerN } from "../store/playerUiSlice";
@@ -22,14 +22,17 @@ import { formatGroupId } from "../engine-dnc3d/adapters/regions";
 // switches without the slide.
 //
 // What triggers it: a player's *Look* button in the top bar's player panel
-// (MobileTable's PlayerCarousel; swiping the panel only shows their stats).
-// The table background is left to the radial menu.
+// (MobileTable's PlayerCarousel; swiping the panel shows their stats and hand),
+// or a two-finger swipe across the table: fingers moving left bring in the next
+// player's board, right the previous one's. A one-finger press on the table is
+// the radial menu's, which a second finger cancels (MobileRadialMenu).
 //
 // The movement is Dnc3DTable's regionSlideX. Regions are keyed by groupId, so
 // a neighbour board's regions (e.g. player2Play1) are the very regions that
 // player's board uses once it is the one on screen.
 
 const SLIDE_MS = 240;
+const TWO_FINGER_MIN_PX = 50;
 
 const neighbours = (list, obs) => {
   const i = Math.max(0, list.indexOf(obs));
@@ -37,7 +40,7 @@ const neighbours = (list, obs) => {
   return { next: list[(i + 1) % n], prev: list[(i - 1 + n) % n] };
 };
 
-export const useBoardSwipe = ({ layoutRegions, tableWidth }) => {
+export const useBoardSwipe = ({ tableRef, layoutRegions, tableWidth }) => {
   const dispatch = useDispatch();
   const playerIList = usePlayerIList();
   const numPlayers = playerIList.length;
@@ -99,6 +102,46 @@ export const useBoardSwipe = ({ layoutRegions, tableWidth }) => {
       setTimeout(() => { setSlide({ px: 0, ms: null }); busy.current = false; }, 50);
     }, SLIDE_MS + 20);
   };
+
+  // Two-finger swipe. Tracked from the moment two fingers are down to the
+  // first one lifting; the midpoint has to travel mostly sideways.
+  const live = useRef({});
+  live.current = { goTo, next, prev, numPlayers };
+  useEffect(() => {
+    const el = tableRef?.current;
+    if (!el) return;
+    let t = null;   // { x0, y0, x, y }
+    const mid = (ts) => ({ x: (ts[0].clientX + ts[1].clientX) / 2, y: (ts[0].clientY + ts[1].clientY) / 2 });
+    const onStart = (e) => {
+      if (e.touches.length === 2) { const m = mid(e.touches); t = { x0: m.x, y0: m.y, x: m.x, y: m.y }; }
+      else if (e.touches.length > 2) t = null;
+    };
+    const onMove = (e) => {
+      if (t && e.touches.length === 2) { const m = mid(e.touches); t.x = m.x; t.y = m.y; }
+    };
+    const onEnd = () => {
+      if (!t) return;
+      const dx = t.x - t.x0, dy = t.y - t.y0;
+      t = null;
+      const { goTo: go, next: n, prev: pr, numPlayers: count } = live.current;
+      if (count < 2 || Math.abs(dx) < TWO_FINGER_MIN_PX || Math.abs(dx) < 1.5 * Math.abs(dy)) return;
+      // The fingers' release isn't a tap on the table (which would, among
+      // other things, disarm a hotkey).
+      const block = (ce) => { ce.stopPropagation(); window.removeEventListener("click", block, true); };
+      window.addEventListener("click", block, true);
+      setTimeout(() => window.removeEventListener("click", block, true), 400);
+      go(dx < 0 ? n : pr);
+    };
+    el.addEventListener("touchstart", onStart, { passive: true });
+    el.addEventListener("touchmove", onMove, { passive: true });
+    el.addEventListener("touchend", onEnd);
+    el.addEventListener("touchcancel", () => { t = null; });
+    return () => {
+      el.removeEventListener("touchstart", onStart);
+      el.removeEventListener("touchmove", onMove);
+      el.removeEventListener("touchend", onEnd);
+    };
+  }, [tableRef]);
 
   const slideMap = useMemo(() => {
     const map = {};

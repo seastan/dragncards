@@ -34,6 +34,13 @@ describe('buildMobileLayout', () => {
     expect(built.regions.playerNHand.groupId).toBe('player1Hand');
   });
 
+  test('points perspective:panel regions at the player panel\'s player', () => {
+    const ml = { ...mobileLayout, regions: { hand: { ...mobileLayout.regions.playerNHand, perspective: 'panel' } } };
+    expect(buildMobileLayout(ml, liveLayout, 'player1', 'player2').regions.hand.groupId).toBe('player2Hand');
+    // Before the panel reports a page, it follows the on-screen player.
+    expect(buildMobileLayout(ml, liveLayout, 'player1', null).regions.hand.groupId).toBe('playerNHand');
+  });
+
   test('leaves viewed-player regions for observingPlayerN substitution', () => {
     expect(built.regions.playerNPlay1.groupId).toBe('playerNPlay1');
   });

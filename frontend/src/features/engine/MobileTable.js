@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { setAlert } from "../store/playerUiSlice";
+import { setAlert, setMobilePanelPlayerN } from "../store/playerUiSlice";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars, faComment, faTimes, faEye, faLayerGroup, faKeyboard, faListOl, faStar, faUndo, faRedo } from "@fortawesome/free-solid-svg-icons";
 import Dnc3DTable from "../engine-dnc3d/Dnc3DTable";
@@ -81,12 +81,25 @@ const PlayerCarousel = ({ onLook }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shown, playerIList.length]);
 
-  // Swiping the panel only shows another player's stats; their *Look* button
-  // puts their board (and hand) on the table, with the board slide.
+  // Swiping the panel shows another player's stats and, once the scroll
+  // settles on their page, puts their hand in the hand row (regions with
+  // perspective "panel"). Their board comes with *Look* (or a two-finger swipe
+  // on the table), with the board slide.
+  const dispatch = useDispatch();
+  const settle = useRef(null);
   const onScroll = () => {
     const el = ref.current;
-    if (el && el.clientWidth) setPage(Math.round(el.scrollLeft / el.clientWidth));
+    if (!el || !el.clientWidth) return;
+    setPage(Math.round(el.scrollLeft / el.clientWidth));
+    clearTimeout(settle.current);
+    settle.current = setTimeout(() => {
+      const player = playerIList[Math.round(el.scrollLeft / el.clientWidth)];
+      if (player) dispatch(setMobilePanelPlayerN(player));
+    }, 120);
   };
+  useEffect(() => () => clearTimeout(settle.current), []);
+  // Leaving the mobile table: the hand goes back to following the board.
+  useEffect(() => () => dispatch(setMobilePanelPlayerN(null)), [dispatch]);
 
   return (
     <div style={{ position: "relative", height: "100%", minWidth: 0 }}>
@@ -697,6 +710,7 @@ export const MobileTable = React.memo(() => {
     enabled: !pilesOpen && !chatOpen && !hotkeysOpen && !stepsOpen && !menuOpen && !dropdownMenu,
   });
   const boardSwipe = useBoardSwipe({
+    tableRef,
     layoutRegions: layout?.regions,
     tableWidth: tableSize?.w || window.innerWidth,
   });

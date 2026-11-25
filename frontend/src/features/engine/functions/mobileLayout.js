@@ -8,10 +8,10 @@
 // plugin writes a single portrait layout and the engine handles 1-, 2-, 3- or
 // 4-player games by letting the user flip between boards.
 //
-// A region can opt out of following the on-screen player with
-// `"perspective": "self"`: its playerN then always means the viewer's own seat.
-// That is what a docked hand wants — your hand stays yours while you look at a
-// teammate's board.
+// A region can opt out of following the on-screen player with `perspective`:
+// "self" makes its playerN always the viewer's own seat; "panel" makes it the
+// player whose page the top bar's player panel shows (playerUi.mobilePanelPlayerN),
+// so swiping the panel flips e.g. the hand without moving the board.
 //
 // The layout is chosen per device, not stored in game state: the room's real
 // layout (game.layout / playerData[n].layout) is untouched, so desktop players
@@ -60,7 +60,7 @@ const toFrac = (v) => {
   return isNaN(n) ? null : n;
 };
 
-export const buildMobileLayout = (mobileLayout, liveLayout, playerN) => {
+export const buildMobileLayout = (mobileLayout, liveLayout, playerN, panelPlayerN = null) => {
   if (!mobileLayout) return null;
   const liveRegions = liveLayout?.regions || {};
   const regions = {};
@@ -68,6 +68,10 @@ export const buildMobileLayout = (mobileLayout, liveLayout, playerN) => {
     let next = region;
     if (region.perspective === "self" && playerN) {
       next = { ...next, groupId: resolveSelf(region.groupId, playerN) };
+    } else if (region.perspective === "panel" && panelPlayerN) {
+      // Until the panel has reported a page, playerN keeps meaning the
+      // on-screen player, which is where the panel starts.
+      next = { ...next, groupId: resolveSelf(region.groupId, panelPlayerN) };
     }
     const live = liveRegions[key];
     if (live && live.visible !== undefined && region.syncVisibility !== false) {
@@ -136,10 +140,12 @@ export const selectLayout = (state, gameDef) => {
   const mobileLayout = gameDef?.mobileLayout;
   if (!state?.playerUi?.mobileUI || !mobileLayout) return liveLayout;
   const playerN = state?.playerUi?.playerN;
-  if (cache.mobileLayout === mobileLayout && cache.liveLayout === liveLayout && cache.playerN === playerN) {
+  const panelPlayerN = state?.playerUi?.mobilePanelPlayerN || null;
+  if (cache.mobileLayout === mobileLayout && cache.liveLayout === liveLayout && cache.playerN === playerN
+      && cache.panelPlayerN === panelPlayerN) {
     return cache.result;
   }
-  const result = buildMobileLayout(mobileLayout, liveLayout, playerN);
-  cache = { mobileLayout, liveLayout, playerN, result };
+  const result = buildMobileLayout(mobileLayout, liveLayout, playerN, panelPlayerN);
+  cache = { mobileLayout, liveLayout, playerN, panelPlayerN, result };
   return result;
 };

@@ -1421,6 +1421,11 @@ export function createDnc3DEngine(options = {}) {
     // filtered out) — those must not run endDrag's cleanup or fire a click off
     // the previous gesture's startX/startY.
     let activePointerId = null;
+    // A second finger landing mid-drag (a two-finger swipe across the table,
+    // a pinch): the drag is abandoned and the card goes home, as if dropped
+    // outside every region, rather than landing wherever the first finger was.
+    let multiTouchAbort = false;
+    const onSecondTouch = (te) => { if (te.touches && te.touches.length >= 2) multiTouchAbort = true; };
     let prevDragX = 0;
     let dragTiltAngle = 0;
     let dragZ = i + 1;
@@ -1453,6 +1458,8 @@ export function createDnc3DEngine(options = {}) {
       if (!isPrimaryButton(e)) return;
       e.preventDefault();
       activePointerId = e.pointerId;
+      multiTouchAbort = false;
+      if (e.pointerType === 'touch') window.addEventListener('touchstart', onSecondTouch, true);
       startX = e.clientX;
       startY = e.clientY;
       isDragging = false;
@@ -1912,6 +1919,8 @@ export function createDnc3DEngine(options = {}) {
       // Ignore releases from a pointer this card never armed (see activePointerId).
       if (activePointerId === null || (e && e.pointerId !== activePointerId)) return;
       activePointerId = null;
+      window.removeEventListener('touchstart', onSecondTouch, true);
+      if (multiTouchAbort) cancelled = true;
       // releasePointerCapture throws if the pointer isn't captured, which is the
       // normal case for pointercancel (the browser released it already).
       if (liftEl.hasPointerCapture(e.pointerId)) liftEl.releasePointerCapture(e.pointerId);
@@ -1968,6 +1977,10 @@ export function createDnc3DEngine(options = {}) {
         // the card takes the "missed every region" path below — it slides home,
         // and the server's result (e.g. a discard) then moves it where it goes.
         let flung = false, flingVx = 0, flingVy = 0;
+        // A drag abandoned for a second finger lands nowhere: it takes the
+        // "missed every region" path and slides home.
+        const missed = multiTouchAbort;
+        multiTouchAbort = false;
         if (onCardFling && !cancelled) {
           const now    = performance.now();
           const recent = flingSamples.filter(s => now - s.t <= FLING_WINDOW_MS);
@@ -1987,10 +2000,10 @@ export function createDnc3DEngine(options = {}) {
 
         const droppedStackCards  = [...dragStackCards];
         const droppedStack       = dragStack;
-        const droppedAttachSid   = flung ? null : hoverAttachStackId;
+        const droppedAttachSid   = (flung || missed) ? null : hoverAttachStackId;
         const droppedAttachSide  = hoverAttachSide;
         const droppedInsertIdx   = currentInsertIdx;
-        const droppedInsertRgn   = flung ? null : currentInsertRegion;
+        const droppedInsertRgn   = (flung || missed) ? null : currentInsertRegion;
 
         hideInsertionIndicator();
         _overlay.setInsertProbe(null);
@@ -2006,7 +2019,7 @@ export function createDnc3DEngine(options = {}) {
         // drawn on top rather than one an elevated panel merely covers.
         const _rawTargetRegion = hoverRegionAt(e.clientX, e.clientY).region;
         // Treat the browse home region as empty while it's being browsed.
-        const targetRegionId = (flung || _rawTargetRegion === _browseGroupId) ? null : _rawTargetRegion;
+        const targetRegionId = (flung || missed || _rawTargetRegion === _browseGroupId) ? null : _rawTargetRegion;
 
         function liftDown(dur, cb, targets = null, options = {}) {
           const { wiggleXPx = 0, wiggleYPx = 0, settleProgressAt = 1, deferZIndex = false } = options;

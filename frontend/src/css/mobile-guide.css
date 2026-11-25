@@ -263,6 +263,26 @@
 .gg-handband { position: absolute; top: 62px; width: 280px; height: 64px; background: rgba(0, 0, 0, 0.3); }
 .gg-boards { position: absolute; left: 0; right: 0; top: 31px; bottom: 0; overflow: hidden; }
 .gg-boards-inner { position: absolute; top: 0; left: 0; width: 560px; height: 100%; animation-name: gg-boards; }
+/* The hands move with the panel (gg-strip's timing), the boards with Look. */
+.gg-hands-inner { position: absolute; top: 0; left: 0; width: 560px; height: 100%; animation-name: gg-strip; }
+
+/* ── Two-finger swipe ───────────────────────────────────────────────────── */
+.gg-tf-boards { position: absolute; top: 0; left: 0; width: 560px; height: 100%; animation-name: gg-tf-boards; }
+@keyframes gg-tf-boards { 0%, 30% { transform: translateX(0); } 46%, 100% { transform: translateX(-280px); } }
+.gg-tf-finger1 { animation-name: gg-tf-finger1; }
+.gg-tf-finger2 { animation-name: gg-tf-finger2; }
+@keyframes gg-tf-finger1 {
+  0% { opacity: 0; transform: translate(207px, 42px); }
+  8% { opacity: 1; transform: translate(207px, 42px) scale(0.85); }
+  32% { opacity: 1; transform: translate(67px, 42px) scale(0.85); }
+  38%, 100% { opacity: 0; transform: translate(67px, 42px) scale(1); }
+}
+@keyframes gg-tf-finger2 {
+  0% { opacity: 0; transform: translate(215px, 86px); }
+  8% { opacity: 1; transform: translate(215px, 86px) scale(0.85); }
+  32% { opacity: 1; transform: translate(75px, 86px) scale(0.85); }
+  38%, 100% { opacity: 0; transform: translate(75px, 86px) scale(1); }
+}
 @keyframes gg-boards { 0%, 47% { transform: translateX(0); } 62%, 100% { transform: translateX(-280px); } }
 .gg-panel-finger { animation-name: gg-panel-finger; }
 /* Swipe the panel to Player 2, then tap their Look (right end of the strip). */

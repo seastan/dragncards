@@ -51,6 +51,9 @@ const initialState = {
   // (playerData[n].touchAction, which touch mode uses) so arming isn't a game
   // action: it doesn't log, and undo doesn't re-arm it.
   mobileTouchAction: null,
+  // Mobile UI: the player whose page the top bar's player panel shows;
+  // regions with perspective "panel" (the hand) follow it.
+  mobilePanelPlayerN: null,
   typing: false,
   activeCardId: null,
   preHotkeyActiveCardGroupId: null,
@@ -155,6 +158,9 @@ const playerUiSlice = createSlice({
     },
     setMobileUI: (state, { payload }) => {
       state.mobileUI = !!payload;
+    },
+    setMobilePanelPlayerN: (state, { payload }) => {
+      state.mobilePanelPlayerN = payload;
     },
     setMobileTouchAction: (state, { payload }) => {
       state.mobileTouchAction = payload;
@@ -327,6 +333,7 @@ export const {
   setObservingPlayerN,
   setMobileUI,
   setMobileTouchAction,
+  setMobilePanelPlayerN,
   setDropdownMenu,
   setShowModal,
   setShowDeveloper,

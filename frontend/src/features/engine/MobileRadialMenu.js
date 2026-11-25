@@ -78,6 +78,9 @@ export const useRadialMenu = ({ tableRef, enabled }) => {
     };
 
     const onDown = (e) => {
+      // A second finger: that's a two-finger swipe (MobileBoardSwipe), not a
+      // pick from the ring.
+      if (g && e.pointerId !== g.id) { close(); return; }
       if (!live.current.enabled || g || (e.button !== undefined && e.button !== 0)) return;
       if (e.target.closest?.(IGNORE)) return;
       const x = e.clientX, y = e.clientY;

@@ -1921,10 +1921,10 @@ const getMobileLayoutSchema = (layoutSchema) => {
       "_itemSchema_": {
         ...regionSchema,
         "perspective": {
-          "_description_": "Which player `playerN` in this region's groupId refers to. 'viewed' (default) follows the player whose board is on screen; 'self' always means the viewer's own seat, e.g. for a hand that should stay yours while you look at a teammate's board.",
+          "_description_": "Which player `playerN` in this region's groupId refers to. 'viewed' (default) follows the player whose board is on screen (switched with Look or a two-finger swipe); 'self' always means the viewer's own seat; 'panel' follows the player whose page the top bar's player panel shows, so swiping the panel changes it without moving the board (e.g. a hand).",
           "_type_": "string",
-          "_memberOf_": ["viewed", "self"],
-          "_memberOfPath_": `["viewed", "self"]`,
+          "_memberOf_": ["viewed", "self", "panel"],
+          "_memberOfPath_": `["viewed", "self", "panel"]`,
         },
         "syncVisibility": {
           "_description_": "When this region's key also exists in the room's current layout, the Mobile UI copies that region's `visible` flag, so actions that show/hide a region (e.g. a table button) affect both layouts. Set to false to opt out.",
