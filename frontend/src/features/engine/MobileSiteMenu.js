@@ -24,8 +24,8 @@ export const MobileSiteMenu = () => {
   return (
     <>
       <Menu label="DragnCards">
-        <MenuItem icon={faHandPointer} onClick={openGestureGuide}>Gesture Guide</MenuItem>
         <MenuItem icon={faHome} onClick={() => go("/")}>Home</MenuItem>
+        <MenuItem icon={faHandPointer} onClick={openGestureGuide}>Gesture Guide</MenuItem>
         {signedIn ? (
           <SubMenu icon={faUserCircle} label={user.alias || "Account"}>
             <MenuItem icon={faCog} onClick={() => go("/profile")}>Settings</MenuItem>
