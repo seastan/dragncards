@@ -8,6 +8,10 @@ import { useSiteL10n } from "../../hooks/useSiteL10n";
 import { dragnHotkeys } from "./hooks/useDragnHotkeys";
 import { FavoritesPanel } from "./DesktopFavorites";
 import { useMobileUIActive } from "./hooks/useMobileUI";
+import { useFavoriteHotkeys, useFavoriteIdFor } from "./MobileHotkeys";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faStar as faStarSolid } from "@fortawesome/free-solid-svg-icons";
+import { faStar as faStarOutline } from "@fortawesome/free-regular-svg-icons";
 
 // Auto table layout: the key column shrinks to fit the widest combo (it never
 // wraps) and the description column absorbs whatever is left.
@@ -81,14 +85,19 @@ export const processLabel = (label) => {
   return tokList;
 }
 
-export const HotkeyTable = React.memo(({hotkeyList, l10n}) => {
+// table: "token" / "card" / "game" / "dragn" adds a star column for
+// favouriting each hotkey (the favourites panel, ring and mobile bar).
+export const HotkeyTable = React.memo(({hotkeyList, l10n, table = null}) => {
   const siteL10n = useSiteL10n();
+  const favorites = useFavoriteHotkeys();
+  const favoriteIdFor = useFavoriteIdFor();
   if (!hotkeyList) return null;
   return (
-    <div className="my-2 overflow-hidden rounded-lg border border-gray-700">
+    <div className="my-2 overflow-x-auto rounded-lg border border-gray-700">
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="bg-gray-900 bg-opacity-50 text-gray-400">
+            {table && <th className="w-px px-2 py-2" title="Favorite"/>}
             <th className={col1Class + " px-2 py-2 text-left text-xs font-semibold uppercase tracking-wide"}>{siteL10n("hotkeyTableKey")}</th>
             <th className={col2Class + " px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide"}>{siteL10n("hotkeyTableDescription")}</th>
           </tr>
@@ -100,6 +109,24 @@ export const HotkeyTable = React.memo(({hotkeyList, l10n}) => {
             const labelList = processLabel(l10n(el.label));
             return (
               <tr key={elIndex} className="border-t border-gray-700 transition-colors hover:bg-gray-700 hover:bg-opacity-40">
+                {table && (() => {
+                  const favId = favoriteIdFor(table, el);
+                  if (!favId) return <td/>;
+                  const fav = favorites.favs.includes(favId);
+                  return (
+                    <td className="w-px py-1 pl-1 align-middle">
+                      <button
+                        type="button"
+                        title={fav ? "Remove from favorites" : "Add to favorites"}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={(e) => { e.stopPropagation(); favorites.toggle(favId); }}
+                        className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-gray-600"
+                        style={{ color: fav ? "#facc15" : "#6b7280", fontSize: 17 }}>
+                        <FontAwesomeIcon icon={fav ? faStarSolid : faStarOutline}/>
+                      </button>
+                    </td>
+                  );
+                })()}
                 <td className="w-px whitespace-nowrap px-2 py-1 align-middle">
                   <Keys keysString={keysString} />
                 </td>
@@ -137,6 +164,7 @@ export const Hotkeys = React.memo(({}) => {
         <div className="flex h-full w-full max-w-[1600px] flex-col overflow-hidden rounded-xl border border-gray-700 bg-gray-800 text-white shadow-2xl">
           <div className="flex items-center justify-between border-b border-gray-700 bg-gray-900 bg-opacity-50 px-4 py-2.5">
             <h1 className="text-sm font-semibold tracking-wide">{siteL10n("hotkeys")}</h1>
+            <span className="text-xs text-gray-400">Star a hotkey to add it to your favorites (View &gt; Favorite hotkeys, or drag on the table).</span>
           </div>
           <div
             className="flex-1 overflow-y-auto p-4"
@@ -149,21 +177,21 @@ export const Hotkeys = React.memo(({}) => {
                   style={{ width: "30dvh" }}
                   src="https://dragncards-shared.s3.amazonaws.com/graphics/hover_mouse_tokens.png"/>
               </div>
-              <HotkeyTable hotkeyList={gameDef?.hotkeys?.token} l10n={gameL10n}/>
+              <HotkeyTable hotkeyList={gameDef?.hotkeys?.token} l10n={gameL10n} table="token"/>
               <HelpText>{siteL10n("holdCtrl")}</HelpText>
             </section>
             <section>
               <SectionTitle>{siteL10n("cardHotkeys")}</SectionTitle>
               <HelpText>{siteL10n("hoverOverACard")}</HelpText>
-              <HotkeyTable hotkeyList={gameDef?.hotkeys?.card} l10n={gameL10n}/>
+              <HotkeyTable hotkeyList={gameDef?.hotkeys?.card} l10n={gameL10n} table="card"/>
             </section>
             <section>
               <SectionTitle>{siteL10n("gameHotkeys")}</SectionTitle>
-              <HotkeyTable hotkeyList={gameDef?.hotkeys?.game} l10n={gameL10n}/>
+              <HotkeyTable hotkeyList={gameDef?.hotkeys?.game} l10n={gameL10n} table="game"/>
             </section>
             <section>
               <SectionTitle>{siteL10n("dragnHotkeys")}</SectionTitle>
-              <HotkeyTable hotkeyList={dragnHotkeys} l10n={siteL10n}/>
+              <HotkeyTable hotkeyList={dragnHotkeys} l10n={siteL10n} table="dragn"/>
             </section>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Draggable from "react-draggable";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTimes } from "@fortawesome/free-solid-svg-icons";
+import { faTimes, faGripVertical } from "@fortawesome/free-solid-svg-icons";
 import {
   hotkeyId, useHotkeyTabs, useFavoriteHotkeys, useRunHotkey, useHotkeyLabel, useHotkeyToTouchAction,
   HotkeyLabel, MobileHotkeyList,
@@ -16,7 +16,8 @@ import { Z_INDEX } from "./functions/common";
 //   - FavoritesPanel: a draggable window (View > Favorite hotkeys). Click a
 //     game or engine hotkey to run it; click a token or card hotkey to switch
 //     it on — it then applies to every card clicked until the table is clicked.
-//     Edit lists every hotkey with a star.
+//     Drag a favourite by its grip to reorder. Edit lists every hotkey with a
+//     star.
 //   - ArmedHotkeyPill: says what's switched on, wherever it was switched on
 //     from (the panel or the radial menu opened by dragging on the table).
 
@@ -51,9 +52,28 @@ export const FavoritesPanel = ({ onClose }) => {
   const { act, isOn } = useFavoriteAction();
   const [editing, setEditing] = useState(false);
   const [tab, setTab] = useState("token");
+  // Reordering by the grip: the order shown while dragging, saved on drop.
+  const [dragOrder, setDragOrder] = useState(null);   // { ids, from }
 
   const byId = Object.fromEntries([...tabs.token, ...tabs.card, ...tabs.game, ...tabs.dragn].map(item => [hotkeyId(item), item]));
-  const items = favorites.favs.map(id => byId[id]).filter(Boolean);
+  const shownIds = favorites.favs.filter(id => byId[id]);
+  const orderIds = dragOrder ? dragOrder.ids : shownIds;
+  const items = orderIds.map(id => byId[id]).filter(Boolean);
+
+  const dragOver = (index) => {
+    if (!dragOrder || dragOrder.from === index) return;
+    const ids = [...dragOrder.ids];
+    const [moved] = ids.splice(dragOrder.from, 1);
+    ids.splice(index, 0, moved);
+    setDragOrder({ ids, from: index });
+  };
+  const dragEnd = () => {
+    if (!dragOrder) return;
+    // Favourites this game doesn't list (e.g. from another plugin version) keep their place at the end.
+    const hidden = favorites.favs.filter(id => !byId[id]);
+    favorites.reorder([...dragOrder.ids, ...hidden]);
+    setDragOrder(null);
+  };
 
   return (
     <Draggable handle=".drag-handle">
@@ -101,15 +121,32 @@ export const FavoritesPanel = ({ onClose }) => {
             {items.length === 0 &&
               <div className="px-3 py-4 text-sm text-gray-400">No favourites yet. Click <b>Edit</b> to star some hotkeys.</div>}
             {items.map((item, i) => (
-              <button
-                key={`${hotkeyId(item)}:${i}`}
-                type="button"
-                onClick={() => act(item)}
-                className={"flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm " +
-                  (isOn(item) ? "bg-blue-700 text-white" : "text-gray-200 hover:bg-gray-700")}>
-                <span className="min-w-0 flex-1"><HotkeyLabel text={labelOf(item)} iconSize={20}/></span>
-                <KeyHint keys={item.key}/>
-              </button>
+              <div
+                key={hotkeyId(item)}
+                onDragOver={(e) => { e.preventDefault(); dragOver(i); }}
+                onDrop={(e) => e.preventDefault()}
+                className={"flex items-center rounded-md " + (dragOrder?.from === i ? "opacity-50" : "")}>
+                <span
+                  draggable
+                  title="Drag to reorder"
+                  onDragStart={(e) => {
+                    e.dataTransfer.effectAllowed = "move";
+                    e.dataTransfer.setData("text/plain", hotkeyId(item));
+                    setDragOrder({ ids: shownIds, from: i });
+                  }}
+                  onDragEnd={dragEnd}
+                  className="flex h-9 w-6 flex-shrink-0 cursor-grab items-center justify-center text-gray-500 hover:text-gray-300">
+                  <FontAwesomeIcon icon={faGripVertical}/>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => act(item)}
+                  className={"flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-2 text-left text-sm " +
+                    (isOn(item) ? "bg-blue-700 text-white" : "text-gray-200 hover:bg-gray-700")}>
+                  <span className="min-w-0 flex-1"><HotkeyLabel text={labelOf(item)} iconSize={20}/></span>
+                  <KeyHint keys={item.key}/>
+                </button>
+              </div>
             ))}
           </div>
         )}

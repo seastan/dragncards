@@ -231,6 +231,27 @@ export const useFavoriteHotkeys = () => {
   return { favs, toggle, reorder };
 };
 
+// For the Tab overlay's star column: the favourite id of an entry in one of
+// its tables ("token" / "card" / "game" / "dragn", each listing the gameDef
+// or engine hotkeys as is), or null when it can't be a favourite. Engine
+// hotkeys are matched by action, since the favourites lists keep one key per
+// action (Ctrl+Z and ← are both undo).
+export const useFavoriteIdFor = () => {
+  const tabs = useHotkeyTabs();
+  const sameAction = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  return (table, h) => {
+    if (!h || h.hideFromTable) return null;
+    if (table === "dragn") {
+      const item = [...tabs.dragn, ...tabs.card.filter(c => c.kind === "dragn")]
+        .find(c => sameAction(c.actionList, h.actionList));
+      return item ? hotkeyId(item) : null;
+    }
+    const pool = table === "token" ? [...tabs.token, ...tabs.card] : tabs[table] || [];
+    const item = pool.find(c => c.key === h.key && sameAction(c.actionList, h.actionList) && c.tokenType === h.tokenType);
+    return item ? hotkeyId(item) : null;
+  };
+};
+
 // ── List ────────────────────────────────────────────────────────────────────
 
 const KEY_GLYPHS = { ArrowLeft: "←", ArrowUp: "↑", ArrowRight: "→", ArrowDown: "↓", Escape: "Esc" };
