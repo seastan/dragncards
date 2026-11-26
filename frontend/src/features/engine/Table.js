@@ -14,6 +14,8 @@ import { Hotkeys } from "./Hotkeys";
 import { DropdownMenu } from "./DropdownMenu";
 import { TouchBarBottom } from "./TouchBarBottom";
 import { TouchModePrompt } from "./TouchModePrompt";
+import { detectTouchDevice } from "../../hooks/useIsTouchDevice";
+import { detectStandalone, isIOS } from "../../hooks/useIsStandalone";
 
 import "../../css/custom-dropdown.css";
 import { TooltipModal } from "./TooltipModal";
@@ -65,6 +67,22 @@ export const Table = React.memo(({onDragEnd}) => {
   // the TopBar, raise it above the table so those piles don't cover its buttons.
   const [topBarHovered, setTopBarHovered] = useState(false);
   usePreloadCardImages();
+
+  // A phone or tablet in the browser rather than the installed app: the first
+  // tap in the room takes the page full screen, hiding the browser's bars
+  // (Android; iOS doesn't let pages do this). Once per visit, so leaving full
+  // screen sticks.
+  useEffect(() => {
+    if (!detectTouchDevice() || detectStandalone() || isIOS()) return;
+    const el = document.documentElement;
+    if (!document.fullscreenEnabled || !el.requestFullscreen) return;
+    const goFullscreen = () => {
+      window.removeEventListener("pointerup", goFullscreen, true);
+      if (!document.fullscreenElement) el.requestFullscreen({ navigationUI: "hide" }).catch(() => {});
+    };
+    window.addEventListener("pointerup", goFullscreen, true);
+    return () => window.removeEventListener("pointerup", goFullscreen, true);
+  }, []);
   console.log('Rendering Table', playerN);
 
   useEffect(() => {

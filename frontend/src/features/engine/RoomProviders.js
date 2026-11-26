@@ -6,6 +6,7 @@ import { setObservingPlayerN, setPlayerN, setUserSettings } from "../store/playe
 import BroadcastContext from "../../contexts/BroadcastContext";
 import { usePlugin } from "./hooks/usePlugin";
 import { useGameDefinition } from "./hooks/useGameDefinition";
+import { useMobileUISync } from "./hooks/useMobileUI";
 
 
 
@@ -46,6 +47,9 @@ export const RoomProviders = ({ gameBroadcast, chatBroadcast }) => {
     if (playerN) dispatch(setObservingPlayerN(playerN)); // For a spectator (where playerN is null), leave as the default value
 
   }, [dispatch, playerN])
+
+  // Mobile UI v1 / v2 from this device's choices (hooks/useMobileUI).
+  useMobileUISync();
 
   useEffect(() => {
     const databaseUiSettings = myUser?.plugin_settings?.[pluginId]?.ui;

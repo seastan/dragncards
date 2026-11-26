@@ -1,16 +1,16 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 import Axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import { setUserSettings } from "../store/playerUiSlice";
 import { useSiteL10n } from "../../hooks/useSiteL10n";
 import { useIsTouchDevice } from "../../hooks/useIsTouchDevice";
 import { useIsStandalone, isIOS } from "../../hooks/useIsStandalone";
+import { useInstallPrompt } from "../../hooks/useInstallPrompt";
 import { useAuthOptions } from "../../hooks/useAuthOptions";
 import useProfile from "../../hooks/useProfile";
 import { usePlugin } from "./hooks/usePlugin";
 import { Z_INDEX } from "./functions/common";
-import { useGameDefinition } from "./hooks/useGameDefinition";
-import { useMobileUIEnabled, useSetMobileUI } from "./hooks/useMobileUI";
+import { useMobileUIActive, useMobileUISettings, useSetMobileUI } from "./hooks/useMobileUI";
 
 // Remembering dismissals locally (rather than on the profile) is deliberate: the
 // same account gets used from a phone and a desktop, and "no thanks" only ever
@@ -19,8 +19,9 @@ import { useMobileUIEnabled, useSetMobileUI } from "./hooks/useMobileUI";
 const DISMISS_TOUCH_KEY   = "dragncards_touch_mode_prompt_dismissed";
 const DISMISS_MOBILE_KEY  = "dragncards_mobile_ui_prompt_dismissed";
 
-// Touch mode is parked for now (its Preferences row is hidden too): a phone is
-// offered the mobile UI instead. Set to true to bring the touch mode offer back.
+// Touch mode is now mobile UI v1, which step 1's offer covers (it picks v2 when
+// the game has a mobile layout, v1 when not). The old touch mode offer stays
+// below, off; set this to bring it back.
 const OFFER_TOUCH_MODE = false;
 const DISMISS_INSTALL_KEY = "dragncards_install_prompt_dismissed";
 
@@ -90,8 +91,8 @@ const secondaryBtn = { ...btnBase, background: "rgba(255,255,255,0.08)", color: 
 const primaryBtn   = { ...btnBase, background: "#1d4ed8", border: "1px solid #3b82f6" };
 
 // Two pieces of touch onboarding, shown at most once per device each:
-//   1. On a touchscreen, for a game with a mobile layout, offer the mobile UI
-//      (touch mode used to be offered here; see OFFER_TOUCH_MODE).
+//   1. On a touchscreen, offer the mobile UI (v2 when the game has a mobile
+//      layout, else v1 = touch mode; see hooks/useMobileUI).
 //   2. Running in browser chrome rather than from the home screen → point out
 //      that installing reclaims the space the URL bar and toolbar take up.
 // Step 2 is gated on the display-mode check, NOT on "touch mode was just turned
@@ -102,49 +103,28 @@ export const TouchModePrompt = React.memo(() => {
   const siteL10n      = useSiteL10n();
   const isTouchDevice = useIsTouchDevice();
   const isStandalone  = useIsStandalone();
-  const touchMode     = useSelector(state => state?.playerUi?.userSettings?.touchMode);
+  const userSettings  = useSelector(state => state?.playerUi?.userSettings);
+  const touchMode     = userSettings?.touchMode;
   const authOptions   = useAuthOptions();
   const user          = useProfile();
   const plugin        = usePlugin();
-  const gameDef       = useGameDefinition();
-  const mobileUI      = useMobileUIEnabled();
+  const { on: mobileUI, hasLayout } = useMobileUISettings();
+  const mobileUIv2    = useMobileUIActive();
   const setMobileUI   = useSetMobileUI();
   const [mobileClosed, setMobileClosed] = useState(() => readFlag(DISMISS_MOBILE_KEY));
 
   const [touchClosed, setTouchClosed]     = useState(() => readFlag(DISMISS_TOUCH_KEY));
   const [installClosed, setInstallClosed] = useState(() => readFlag(DISMISS_INSTALL_KEY));
-  // Android/Chrome fires beforeinstallprompt when the app meets its install
-  // criteria, which lets us offer a real one-tap install instead of describing
-  // where the menu item lives. It never fires on iOS Safari (and won't fire here
-  // at all unless a service worker is registered — see index.tsx), so the
-  // written instructions remain the path that always works.
-  const deferredInstall = useRef(null);
-  const [canInstall, setCanInstall] = useState(false);
-
-  useEffect(() => {
-    const onBeforeInstall = (e) => {
-      e.preventDefault();
-      deferredInstall.current = e;
-      setCanInstall(true);
-    };
-    const onInstalled = () => {
-      deferredInstall.current = null;
-      setCanInstall(false);
-      setInstallClosed(true);
-      writeFlag(DISMISS_INSTALL_KEY);
-    };
-    window.addEventListener("beforeinstallprompt", onBeforeInstall);
-    window.addEventListener("appinstalled", onInstalled);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
-      window.removeEventListener("appinstalled", onInstalled);
-    };
-  }, []);
+  // The browser's one-tap install offer (Android Chrome and the like; never iOS
+  // Safari), caught at startup — it arrives once per page load, usually before
+  // a room is open (hooks/useInstallPrompt). The written instructions remain
+  // the path that always works.
+  const { canInstall, installed, install } = useInstallPrompt();
 
   if (!isTouchDevice) return null;
 
   // ── Step 1: switch to the mobile UI ─────────────────────────────────────────
-  if (!mobileUI && !mobileClosed && gameDef?.mobileLayout) {
+  if (!mobileUI && !mobileClosed) {
     const handleDismiss = () => {
       setMobileClosed(true);
       writeFlag(DISMISS_MOBILE_KEY);
@@ -156,8 +136,10 @@ export const TouchModePrompt = React.memo(() => {
     return (
       <PromptBanner
         icon="📱"
-        title="Use the mobile layout?"
-        body="A phone-friendly table built for touch. You can switch back in Preferences."
+        title="Turn on Mobile UI?"
+        body={hasLayout
+          ? "A phone-friendly table built for touch. You can switch back in Preferences."
+          : "Touch controls for this table. You can switch back in Preferences."}
         actions={<>
           <div onClick={handleDismiss} style={secondaryBtn}>{siteL10n("touchModePromptDismiss")}</div>
           <div onClick={handleEnable} style={primaryBtn}>Switch</div>
@@ -171,7 +153,7 @@ export const TouchModePrompt = React.memo(() => {
     const handleEnable = () => {
       setTouchClosed(true);
       writeFlag(DISMISS_TOUCH_KEY);
-      dispatch(setUserSettings({ touchMode: true }));
+      dispatch(setUserSettings({ ...(userSettings || {}), touchMode: true }));
       // Persist as the user's default for this plugin so it survives a reload.
       // The backend deep-merges, so a partial `ui` object leaves other settings
       // alone. Best-effort: a logged-out user still gets touch mode this session.
@@ -202,27 +184,22 @@ export const TouchModePrompt = React.memo(() => {
   }
 
   // ── Step 2: add to home screen ──────────────────────────────────────────────
-  if (!isStandalone && !installClosed) {
+  if (!isStandalone && !installClosed && !installed) {
     const handleDismiss = () => {
       setInstallClosed(true);
       writeFlag(DISMISS_INSTALL_KEY);
     };
     const handleInstall = async () => {
-      const evt = deferredInstall.current;
-      if (!evt) return;
-      deferredInstall.current = null;
-      setCanInstall(false);
-      evt.prompt();
       // Either outcome closes the banner: accepted installs, dismissed means
       // they've now seen the OS dialog and don't need the hint repeated.
-      await evt.userChoice.catch(() => {});
+      await install();
       handleDismiss();
     };
 
     return (
       <PromptBanner
         // In the mobile UI, above its favourites and bottom bars.
-        bottom={mobileUI && gameDef?.mobileLayout ? "150px" : "3dvh"}
+        bottom={mobileUIv2 ? "150px" : "3dvh"}
         icon="📲"
         title={siteL10n("addToHomeScreenTitle")}
         body={siteL10n(isIOS() ? "addToHomeScreenBodyIos" : "addToHomeScreenBodyAndroid")}

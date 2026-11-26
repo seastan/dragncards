@@ -11,6 +11,9 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import axios from "axios";
 import LfgSection from "./LfgSection";
+import { InstallGate, shouldShowInstallGate } from "./InstallGate";
+import { detectTouchDevice } from "../../hooks/useIsTouchDevice";
+import { detectStandalone } from "../../hooks/useIsStandalone";
 
 
 export const PluginLobby = () => {
@@ -70,8 +73,10 @@ export const PluginLobby = () => {
 
   const handleCreateRoomClick = () => {
     if (isLoggedIn) {
-      if (user?.email_confirmed_at) setShowModal("createRoom");
-      else alert("You must confirm your email before you can start a game.")
+      if (!user?.email_confirmed_at) alert("You must confirm your email before you can start a game.")
+      // On a phone or tablet in the browser, ask to install first (InstallGate).
+      else if (shouldShowInstallGate(detectTouchDevice(), detectStandalone())) setShowModal("install");
+      else setShowModal("createRoom");
     } else {
       history.push("/login")
     }
@@ -141,6 +146,10 @@ export const PluginLobby = () => {
         }
       `}</style>
 
+      <InstallGate
+        isOpen={showModal === "install"}
+        onContinue={() => setShowModal("createRoom")}
+        onClose={() => setShowModal(null)}/>
       <CreateRoomModal
         isOpen={showModal === "createRoom"}
         isLoggedIn={isLoggedIn}

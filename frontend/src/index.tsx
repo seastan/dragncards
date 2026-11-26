@@ -7,6 +7,11 @@ import "./index.css";
 
 //import App from "./app/App";
 import * as serviceWorker from "./serviceWorker";
+import { captureInstallPrompt } from "./hooks/useInstallPrompt";
+
+// Catch the browser's one-time "install this app" offer before any screen that
+// wants to show it has mounted (hooks/useInstallPrompt).
+captureInstallPrompt();
 
 // From https://redux-toolkit.js.org/tutorials/advanced-tutorial
 const render = () => {

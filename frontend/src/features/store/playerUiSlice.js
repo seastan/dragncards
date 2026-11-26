@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import { updateValues } from "./updateValues";
 import { uiSettings } from "../engine/SettingsModal";
 import { deepMerge } from "../myplugins/uploadPluginFunctions";
-import { readMobileUIPref } from "../engine/functions/mobileLayout";
+import { readMobileUIPref, readMobileUIChoice, readMobileUIVersion } from "../engine/functions/mobileLayout";
 
 const draggingDefault = {
   stackId: null,
@@ -46,7 +46,12 @@ const initialState = {
   touchMode: false, // Unused? Use userSettings.touchMode instead
   // Phone-first table (see functions/mobileLayout.js). Kept out of userSettings
   // because those sync to the profile, and this is a per-device choice.
+  // mobileUI: the mobile UI v2 (mobileLayout) table is on. Derived by
+  // useMobileUISync from the two device choices below (and, for a device that
+  // hasn't chosen, a profile that had touch mode on).
   mobileUI: readMobileUIPref(),
+  mobileUIChoice: readMobileUIChoice(),    // true / false / null (not chosen here)
+  mobileUIVersion: readMobileUIVersion(),  // "v1" / "v2" / null (automatic)
   // Mobile UI's armed token / card hotkey. Kept here rather than in the game
   // (playerData[n].touchAction, which touch mode uses) so arming isn't a game
   // action: it doesn't log, and undo doesn't re-arm it.
@@ -98,7 +103,8 @@ const playerUiSlice = createSlice({
   initialState,
   reducers: {
     // mobileUI survives a reset: it is a device preference, not room state.
-    resetPlayerUi: (state) => ({...initialState, mobileUI: state.mobileUI}),
+    resetPlayerUi: (state) => ({...initialState, mobileUI: state.mobileUI,
+      mobileUIChoice: state.mobileUIChoice, mobileUIVersion: state.mobileUIVersion}),
     mergePlayerUiValues: (state, { payload }) => {
       deepMerge(state, payload);
     },
@@ -155,6 +161,12 @@ const playerUiSlice = createSlice({
     },
     setObservingPlayerN: (state, { payload }) => {
       state.observingPlayerN = payload;
+    },
+    setMobileUIChoice: (state, { payload }) => {
+      state.mobileUIChoice = payload;
+    },
+    setMobileUIVersion: (state, { payload }) => {
+      state.mobileUIVersion = payload;
     },
     setMobileUI: (state, { payload }) => {
       state.mobileUI = !!payload;
@@ -332,6 +344,8 @@ export const {
   setScreenLeftRight,
   setObservingPlayerN,
   setMobileUI,
+  setMobileUIChoice,
+  setMobileUIVersion,
   setMobileTouchAction,
   setMobilePanelPlayerN,
   setDropdownMenu,
