@@ -111,9 +111,13 @@ desktop key.
 
 ## Favourite hotkeys (every table)
 
-Favourites are not mobile-only. The plugin's starting set is the top-level
+Favourites are not mobile-only, and are saved on the account (per game, as
+`plugin_settings[pluginId].favoriteHotkeys`, a JSON string since the server
+appends lists when merging settings), so they follow a player between devices;
+signed out, or before the account has a list, the device's copy is used. The
+plugin's starting set is the top-level
 `gameDef.defaultFavorites` (`["<tab>:<key>", ...]`; `mobileLayout.defaultFavorites`
-is still read when that's absent). Players change them per device by starring
+is still read when that's absent). Players change them by starring
 hotkeys.
 
 - Regular table: View → *Favorite hotkeys* opens a draggable panel

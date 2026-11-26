@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import Axios from "axios";
 import { useDispatch } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar as faStarSolid } from "@fortawesome/free-solid-svg-icons";
@@ -11,6 +12,8 @@ import { useGameL10n } from "./hooks/useGameL10n";
 import { useDoActionList } from "./hooks/useDoActionList";
 import { usePlugin } from "./hooks/usePlugin";
 import { useSiteL10n } from "../../hooks/useSiteL10n";
+import useProfile from "../../hooks/useProfile";
+import { useAuthOptions } from "../../hooks/useAuthOptions";
 import { setPreHotkeyActiveCardGroupId } from "../store/playerUiSlice";
 
 // Hotkeys for the mobile UI, which has no keyboard: lists of the hotkeys a
@@ -137,8 +140,18 @@ export const HotkeyLabel = ({ text, iconSize = 22 }) => (
 // ── Favourites (per device, per plugin) ─────────────────────────────────────
 
 const FAV_EVENT = "dragncards-mobile-fav-hotkeys";
+// Where favourites are kept: on the account when signed in, in
+// user.plugin_settings[pluginId].favoriteHotkeys, so they follow the player
+// between devices. It's a JSON string, not a list, because the server merges
+// settings by appending lists. localStorage keeps a copy on the device, used
+// when signed out; a device's list from before favourites were on the account
+// is copied up the first time that account loads it.
 const favKey = (pluginId) => `dragncards_mobile_fav_hotkeys_${pluginId}`;
-// The saved list, or null when this device has none for the plugin yet (the
+const parseAccountFavs = (raw) => {
+  if (typeof raw !== "string") return null;
+  try { const v = JSON.parse(raw); return Array.isArray(v) ? v : null; } catch (e) { return null; }
+};
+// The device's saved list, or null when it has none for the plugin yet (the
 // plugin's defaults apply until the player changes them).
 const readFavs = (pluginId) => {
   try {
@@ -169,8 +182,34 @@ export const useFavoriteHotkeys = () => {
   const pluginId = usePlugin()?.id;
   const gameDef = useGameDefinition();
   const tabs = useHotkeyTabs();
+  const user = useProfile();
+  const authOptions = useAuthOptions();
   const [stored, setFavs] = useState(() => readFavs(pluginId));
-  const favs = stored ?? resolveDefaultFavorites(gameDef?.defaultFavorites ?? gameDef?.mobileLayout?.defaultFavorites, tabs);
+  const accountFavs = user?.id ? parseAccountFavs(user?.plugin_settings?.[pluginId]?.favoriteHotkeys) : null;
+  const favs = accountFavs ?? stored ?? resolveDefaultFavorites(gameDef?.defaultFavorites ?? gameDef?.mobileLayout?.defaultFavorites, tabs);
+
+  const saveToAccount = (next) => {
+    if (!user?.id || !pluginId) return;
+    const value = JSON.stringify(next);
+    Axios.post("/be/api/v1/profile/update_plugin_user_settings",
+      { [pluginId]: { favoriteHotkeys: value } }, authOptions).catch(() => { /* the device copy stands */ });
+    // Update the loaded profile too, so every component sees it at once.
+    if (user.setData) {
+      const pluginSettings = { ...(user.plugin_settings || {}) };
+      pluginSettings[pluginId] = { ...(pluginSettings[pluginId] || {}), favoriteHotkeys: value };
+      user.setData({ user_profile: { ...user, plugin_settings: pluginSettings } });
+    }
+  };
+
+  // A device list from before favourites were on the account: copy it up once.
+  const migrated = useRef(null);
+  useEffect(() => {
+    if (!user?.id || !pluginId || migrated.current === `${user.id}:${pluginId}`) return;
+    migrated.current = `${user.id}:${pluginId}`;
+    const local = readFavs(pluginId);
+    if (local && !parseAccountFavs(user?.plugin_settings?.[pluginId]?.favoriteHotkeys)) saveToAccount(local);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, pluginId]);
   useEffect(() => {
     setFavs(readFavs(pluginId));
     const onChange = () => setFavs(readFavs(pluginId));
@@ -181,6 +220,7 @@ export const useFavoriteHotkeys = () => {
     try { window.localStorage.setItem(favKey(pluginId), JSON.stringify(next)); } catch (e) { /* session only */ }
     setFavs(next);
     window.dispatchEvent(new Event(FAV_EVENT));
+    saveToAccount(next);
   };
   const toggle = (id) => save(favs.includes(id) ? favs.filter(f => f !== id) : [...favs, id]);
   // A new order for the same favourites (the favourites bar's drag to reorder).
