@@ -20,6 +20,15 @@ const ITEM = 58;             // item bubble size
 // Presses that belong to something else: cards, the drawer, buttons.
 const IGNORE = ".dnc3d-card-lift, .dnc3d-tilt-overlay, .dnc3d-scroll-arrow, button, [role=menuitem]";
 
+// Whether a press at (x, y) on `target` is on empty table: on the 3D table's
+// surface (not the HUD, text boxes or prompts laid over it), and with no card
+// under it. A card in a row or fan can sit behind the row's scroll container,
+// which then receives the press itself, so the target alone doesn't tell.
+const onEmptyTable = (target, x, y) => {
+  if (!target?.closest?.(".dnc3d-tilt") || target.closest(IGNORE)) return false;
+  return !document.elementsFromPoint(x, y).some(el => el.closest?.(".dnc3d-card-lift"));
+};
+
 const useFavoriteItems = () => {
   const { token, card, game, dragn } = useHotkeyTabs();
   const { favs } = useFavoriteHotkeys();
@@ -27,7 +36,10 @@ const useFavoriteItems = () => {
   return favs.map(id => byId[id]).filter(Boolean);
 };
 
-export const useRadialMenu = ({ tableRef, enabled }) => {
+// openOnDrag (desktop): the ring opens once the pressed mouse has moved, so a
+// plain click on the table stays a click. Without it (mobile) it opens on the
+// press itself.
+export const useRadialMenu = ({ tableRef, enabled, openOnDrag = false }) => {
   const items = useFavoriteItems();
   const runHotkey = useRunHotkey();
   const toTouchAction = useHotkeyToTouchAction();
@@ -35,7 +47,7 @@ export const useRadialMenu = ({ tableRef, enabled }) => {
   const [menu, setMenu] = useState(null);     // { cx, cy, radius, selected }
   const openRef = useRef(false);              // true while the ring is up
   const live = useRef({});
-  live.current = { enabled, items, run: (item) => (item.armable ? setTouchAction(toTouchAction(item)) : runHotkey(item)) };
+  live.current = { enabled, openOnDrag, items, run: (item) => (item.armable ? setTouchAction(toTouchAction(item)) : runHotkey(item)) };
 
   useEffect(() => {
     const el = tableRef.current;
@@ -82,9 +94,15 @@ export const useRadialMenu = ({ tableRef, enabled }) => {
       // pick from the ring.
       if (g && e.pointerId !== g.id) { close(); return; }
       if (!live.current.enabled || g || (e.button !== undefined && e.button !== 0)) return;
-      if (e.target.closest?.(IGNORE)) return;
       const x = e.clientX, y = e.clientY;
+      if (!onEmptyTable(e.target, x, y)) return;
       const m = { ...layout(x, y, live.current.items.length), x0: x, y0: y, selected: -1 };
+      if (live.current.openOnDrag) {
+        // Not yet: a drag opens it (onMove). No text selection meanwhile.
+        e.preventDefault();
+        g = { id: e.pointerId, x0: x, y0: y, menu: null, pending: m, moved: false };
+        return;
+      }
       g = { id: e.pointerId, x0: x, y0: y, menu: m, moved: false };
       openRef.current = true;
       setMenu(m);
@@ -92,6 +110,12 @@ export const useRadialMenu = ({ tableRef, enabled }) => {
     const onMove = (e) => {
       if (!g || e.pointerId !== g.id) return;
       if (!g.moved && Math.hypot(e.clientX - g.x0, e.clientY - g.y0) > SLOP_PX) g.moved = true;
+      if (!g.menu) {
+        if (!g.moved) return;
+        g.menu = g.pending;
+        openRef.current = true;
+        setMenu(g.menu);
+      }
       const selected = pick(g.menu, e.clientX, e.clientY, live.current.items.length);
       if (selected !== g.menu.selected) {
         g.menu = { ...g.menu, selected };
@@ -192,11 +216,13 @@ const showReorderHint = () => {
   } catch (e) { return false; }
 };
 
-export const RadialMenuOverlay = ({ menu, items }) => {
+// showHint: the "rearrange in the favourites bar" hint, which is about the
+// mobile UI's bar.
+export const RadialMenuOverlay = ({ menu, items, showHint = true }) => {
   const labelOf = useHotkeyLabel();
   const [hint, setHint] = useState(false);
   const isOpen = !!menu;
-  useEffect(() => { if (isOpen) setHint(showReorderHint()); }, [isOpen]);
+  useEffect(() => { if (isOpen) setHint(showHint && showReorderHint()); }, [isOpen, showHint]);
   if (!menu) return null;
   const n = items.length;
   const selected = items[menu.selected];

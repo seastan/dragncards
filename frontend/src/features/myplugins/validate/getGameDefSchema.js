@@ -1789,6 +1789,13 @@ export const getGameDefSchema = (gameDef) => {
           }
         }
       },
+      "defaultFavorites": {
+        "_description_": "The hotkeys a player starts with as favourites, until they star or unstar one themselves: shown in the favourites panel (View > Favorite hotkeys) and the mobile favourites bar, and in the radial menu opened by dragging on the table (pressing it, in the mobile UI). Each entry is \"<tab>:<key>\", naming a hotkey by its kind and its key: token:<key> (gameDef.hotkeys.token entries with a tokenType), card:<key> (gameDef.hotkeys.card, plus token-list entries without a tokenType), game:<key> (gameDef.hotkeys.game) or dragn:<key> (the engine's own hotkeys). Entries that match no hotkey are skipped. Example: [\"game:D\", \"token:1\", \"card:A\"]",
+        "_type_": "array",
+        "_itemSchema_": {
+          "_type_": "string",
+        },
+      },
       "cardFling": {
         "_description_": "Fling gesture (3D renderer): a card released while still moving fast runs an action list instead of being dropped. $ACTIVE_CARD is the flung card. The card glides on in the fling's direction and settles; wherever the action puts it, it moves on from there. Example: {\"actionList\": [[\"DISCARD_CARD\", \"$ACTIVE_CARD\"]]}",
         "_type_": "object",
@@ -1902,7 +1909,7 @@ const getMobileLayoutSchema = (layoutSchema) => {
       },
     },
     "defaultFavorites": {
-      "_description_": "The hotkeys a player starts with as favourites (the favourites bar and the radial menu opened by pressing the table), until they star or unstar one themselves. Each entry is \"<tab>:<key>\", naming a hotkey by its tab in the mobile hotkeys sheet and its key: token:<key> (gameDef.hotkeys.token entries with a tokenType), card:<key> (gameDef.hotkeys.card, plus token-list entries without a tokenType), game:<key> (gameDef.hotkeys.game) or dragn:<key> (the engine's own hotkeys). Entries that match no hotkey are skipped. Example: [\"game:D\", \"token:1\", \"card:A\"]",
+      "_description_": "Deprecated: use the top-level defaultFavorites, which this is read in place of when that is absent.",
       "_type_": "array",
       "_itemSchema_": {
         "_type_": "string",

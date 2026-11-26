@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { setAlert, setMobilePanelPlayerN } from "../store/playerUiSlice";
+import { setAlert, setMobilePanelPlayerN, setShowHotkeys } from "../store/playerUiSlice";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars, faScroll, faTimes, faEye, faLayerGroup, faKeyboard, faListOl, faStar, faUndo, faRedo } from "@fortawesome/free-solid-svg-icons";
 import Dnc3DTable from "../engine-dnc3d/Dnc3DTable";
@@ -650,6 +650,14 @@ export const MobileTable = React.memo(() => {
   };
   const [chatOpen, setChatOpen] = useState(false);
   const [hotkeysOpen, setHotkeysOpen] = useState(false);
+  // View > Hotkeys (the ☰ menu) opens the hotkeys sheet; on the regular table
+  // it opens the favourites panel (Hotkeys.js).
+  const showHotkeysWindow = useSelector(state => state?.playerUi?.showHotkeys);
+  useEffect(() => {
+    if (!showHotkeysWindow) return;
+    setHotkeysOpen(true);
+    dispatch(setShowHotkeys(false));
+  }, [showHotkeysWindow, dispatch]);
   const [stepsOpen, setStepsOpen] = useState(false);
   // Favourites bar: shown by default; the choice is remembered on this device.
   const [favBarOpen, setFavBarOpenState] = useState(readFavBarOpen);

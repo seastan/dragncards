@@ -5,6 +5,7 @@ import { useSelector } from 'react-redux';
 import { setMouseXY, setDropdownMenu } from "../../store/playerUiSlice";
 import { useDoActionList } from "./useDoActionList";
 import { useGameDefinition } from "./useGameDefinition";
+import { useGameL10n } from "./useGameL10n";
 import { useSetTouchAction } from "./useSetTouchAction";
 import { useTouchAction } from "./useTouchAction";
 import { useDoDragnHotkey } from './useDragnHotkeys';
@@ -13,6 +14,7 @@ import { dragnActionLists } from '../functions/dragnActionLists';
 export const useHandleTouchAction = () => {
     const dispatch = useDispatch();
     const gameDef = useGameDefinition();
+    const gameL10n = useGameL10n();
     const playerN = useSelector(state => state?.playerUi?.playerN);
     const touchAction = useTouchAction();
     const setTouchAction = useSetTouchAction();
@@ -31,7 +33,7 @@ export const useHandleTouchAction = () => {
                 if (!hasToken && increment < 0 && gameDef["tokens"]?.[tokenType]?.modifier !== true) return; // Can't have negative non-modifier tokens
                 const actionList = [
                     ["DEFINE", "$ACTIVE_CARD_ID", touchedCard.id],
-                    ["LOG", "$ALIAS_N", increment > 0 ? " added " : " removed ", Math.abs(increment), " ", gameDef["tokens"]?.[tokenType]?.name," token to ", "$ACTIVE_FACE.name", "."],
+                    ["LOG", "$ALIAS_N", increment > 0 ? " added " : " removed ", Math.abs(increment), " ", (gameDef["tokens"]?.[tokenType]?.name ?? (gameL10n(gameDef["tokens"]?.[tokenType]?.label) || tokenType))," token to ", "$ACTIVE_FACE.name", "."],
                     ["INCREASE_VAL", "/cardById/$ACTIVE_CARD_ID/tokens/" + tokenType, increment]
                 ]
                 doActionList(actionList, `Touch action ${touchAction.id} on card ${touchedCard?.sides?.A?.name}`);

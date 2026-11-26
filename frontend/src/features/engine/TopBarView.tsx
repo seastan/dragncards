@@ -26,8 +26,8 @@ export const TopBarView = React.memo(() => {
   return (
     <Menu label={siteL10n("view")} disabledReason={playerN ? null : siteL10n("pleaseSit")}>
       <MenuItem icon={faKeyboard} onClick={() => dispatch(setShowHotkeys(true))}>
-        <span>{siteL10n("hotkeys")}</span>
-        <Shortcut>Tab</Shortcut>
+        <span>Favorite hotkeys</span>
+        <Shortcut>Hold Tab: all</Shortcut>
       </MenuItem>
       <MenuItem icon={faSlidersH} onClick={() => dispatch(setShowModal("settings"))}>
         <span>{siteL10n("preferences")}</span>

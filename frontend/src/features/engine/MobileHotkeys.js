@@ -147,7 +147,8 @@ const readFavs = (pluginId) => {
   } catch (e) { return null; }
 };
 
-// gameDef.mobileLayout.defaultFavorites: ["<tab>:<key>", ...] → hotkey ids.
+// gameDef.defaultFavorites (or, from before favourites were for every table,
+// gameDef.mobileLayout.defaultFavorites): ["<tab>:<key>", ...] → hotkey ids.
 // The tab is the hotkeys sheet's (token / card / game / dragn).
 export const resolveDefaultFavorites = (entries, tabs) => (Array.isArray(entries) ? entries : [])
   .map(entry => {
@@ -169,7 +170,7 @@ export const useFavoriteHotkeys = () => {
   const gameDef = useGameDefinition();
   const tabs = useHotkeyTabs();
   const [stored, setFavs] = useState(() => readFavs(pluginId));
-  const favs = stored ?? resolveDefaultFavorites(gameDef?.mobileLayout?.defaultFavorites, tabs);
+  const favs = stored ?? resolveDefaultFavorites(gameDef?.defaultFavorites ?? gameDef?.mobileLayout?.defaultFavorites, tabs);
   useEffect(() => {
     setFavs(readFavs(pluginId));
     const onChange = () => setFavs(readFavs(pluginId));

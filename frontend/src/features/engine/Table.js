@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Z_INDEX } from "./functions/common";
 import { TableLayout } from "./TableLayout";
 import Dnc3DTable from "../engine-dnc3d/Dnc3DTable";
@@ -14,6 +14,8 @@ import { Hotkeys } from "./Hotkeys";
 import { DropdownMenu } from "./DropdownMenu";
 import { TouchBarBottom } from "./TouchBarBottom";
 import { TouchModePrompt } from "./TouchModePrompt";
+import { useRadialMenu, RadialMenuOverlay } from "./MobileRadialMenu";
+import { ArmedHotkeyPill } from "./DesktopFavorites";
 import { detectTouchDevice } from "../../hooks/useIsTouchDevice";
 import { detectStandalone, isIOS } from "../../hooks/useIsStandalone";
 
@@ -67,6 +69,12 @@ export const Table = React.memo(({onDragEnd}) => {
   // the TopBar, raise it above the table so those piles don't cover its buttons.
   const [topBarHovered, setTopBarHovered] = useState(false);
   usePreloadCardImages();
+
+  // Regular table: dragging on empty table opens the favourites ring (as
+  // pressing does in the mobile UI); a plain click stays a click.
+  const desktopTableRef = useRef(null);
+  const dropdownMenuOpen = useSelector(state => !!state?.playerUi?.dropdownMenu);
+  const radial = useRadialMenu({ tableRef: desktopTableRef, enabled: !mobileUIActive && !dropdownMenuOpen, openOnDrag: true });
 
   // A phone or tablet in the browser rather than the installed app: the first
   // tap in the room takes the page full screen, hiding the browser's bars
@@ -143,7 +151,11 @@ export const Table = React.memo(({onDragEnd}) => {
             <TopBar/>
           </div>
           {/* Table */}
-          <div className="relative w-full" style={{height: touchMode ? "82%" : "94%"}}>
+          <div ref={desktopTableRef} className="relative w-full" style={{height: touchMode ? "82%" : "94%"}}>
+            {/* What a favourite (panel or ring) switched on; touch mode's bar shows its own. */}
+            {touchAction && !touchMode &&
+              <ArmedHotkeyPill touchAction={touchAction} onClear={() => setTouchAction(null)}/>}
+            <RadialMenuOverlay menu={radial.menu} items={radial.items} showHint={false}/>
             {rendererEngine === 'dnc3d'
               ? <Dnc3DTable
                   tiltDeg={tableAngle}

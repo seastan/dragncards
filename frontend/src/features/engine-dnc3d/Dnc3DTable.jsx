@@ -394,11 +394,13 @@ export default function Dnc3DTable({
           // The 2D engine's step 2 relies on hover having made the card active;
           // with no hover on a touchscreen, step 3's own dispatch is what arms it,
           // so the first tap selects and the second acts.
+          // An armed token / card action (touch bar, favourites panel, radial
+          // menu) applies to the clicked card in any mode.
+          if (card && touchActionRef.current) {
+            handleTouchActionRef.current(card);
+            return;
+          }
           if (touchModeRef.current && card) {
-            if (touchActionRef.current) {
-              handleTouchActionRef.current(card);
-              return;
-            }
             if (store.getState().playerUi?.activeCardId === dcId) {
               const defaultAction = getDefaultActionRef.current(card);
               if (defaultAction?.actionList) {

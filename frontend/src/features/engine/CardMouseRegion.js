@@ -58,10 +58,14 @@ export const CardMouseRegion = React.memo(({
             dispatch(toggleMultiSelectCardId(cardId));
             return;
         }
+        // An armed token / card action (touch bar, favourites panel, radial
+        // menu) applies to the clicked card in any mode.
+        if (touchAction) {
+            handleTouchAction(card);
+            return;
+        }
         if (touchMode) {
-            if (touchAction !== null) {
-                handleTouchAction(card);
-            } else if (isActive) {
+            if (isActive) {
                 doActionList(getDefaultAction()?.actionList, "Default action for " + visibleFace?.name);
             } else {
                 makeActive(event); 

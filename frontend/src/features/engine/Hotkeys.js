@@ -1,7 +1,4 @@
 import React from "react";
-import { faTimes } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import Draggable from 'react-draggable';
 import { useDispatch, useSelector } from "react-redux";
 import { setShowHotkeys } from "../store/playerUiSlice";
 import { useGameL10n } from "./hooks/useGameL10n";
@@ -9,16 +6,9 @@ import { useGameDefinition } from "./hooks/useGameDefinition";
 import { Z_INDEX } from "./functions/common";
 import { useSiteL10n } from "../../hooks/useSiteL10n";
 import { dragnHotkeys } from "./hooks/useDragnHotkeys";
+import { FavoritesPanel } from "./DesktopFavorites";
+import { useMobileUIActive } from "./hooks/useMobileUI";
 
-const windowStyle = {
-  position: "absolute",
-  zIndex: Z_INDEX.Hotkeys,
-  right: "30px",
-  top: "120px",
-  width: "520px",
-  height: "640px",
-  maxHeight: "90dvh",
-};
 // Auto table layout: the key column shrinks to fit the widest combo (it never
 // wraps) and the description column absorbs whatever is left.
 const col1Class = "w-px whitespace-nowrap";
@@ -135,6 +125,7 @@ export const Hotkeys = React.memo(({}) => {
   const siteL10n = useSiteL10n();
   const showWindow = useSelector(state => state?.playerUi?.showHotkeys);
   const tabPressed = useSelector(state => state?.playerUi?.keypress?.Tab);
+  const mobileUIActive = useMobileUIActive();
   if (!showWindow && !tabPressed) return;
 
   if (tabPressed) {
@@ -180,46 +171,10 @@ export const Hotkeys = React.memo(({}) => {
     )
   }
   else {
-    return(
-      <Draggable handle=".drag-handle">
-        <div
-          className="flex flex-col overflow-hidden rounded-xl border border-gray-700 bg-gray-800 text-white shadow-2xl outline-none"
-          style={windowStyle}
-        >
-          <div className="drag-handle flex cursor-move items-center justify-between border-b border-gray-700 bg-gray-900 bg-opacity-50 px-4 py-2.5">
-            <h1 className="select-none text-sm font-semibold tracking-wide">{siteL10n("hotkeys")}</h1>
-            <button
-              type="button"
-              aria-label="Close"
-              className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-700 hover:text-white"
-              onMouseUp={() => dispatch(setShowHotkeys(false))}
-              onTouchStart={() => dispatch(setShowHotkeys(false))}>
-              <FontAwesomeIcon icon={faTimes} />
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto px-4 py-3" style={{ touchAction: "pan-y" }}>
-            <section className="mb-5">
-              <SectionTitle>{siteL10n("tokenHotkeys")}</SectionTitle>
-              <HelpText>{siteL10n("hoverOverTopBottom")}</HelpText>
-              <HotkeyTable hotkeyList={gameDef?.hotkeys?.token} l10n={gameL10n}/>
-              <HelpText>{siteL10n("holdCtrl")}</HelpText>
-            </section>
-            <section className="mb-5">
-              <SectionTitle>{siteL10n("cardHotkeys")}</SectionTitle>
-              <HelpText>{siteL10n("hoverOverACard")}</HelpText>
-              <HotkeyTable hotkeyList={gameDef?.hotkeys?.card} l10n={gameL10n}/>
-            </section>
-            <section className="mb-5">
-              <SectionTitle>{siteL10n("gameHotkeys")}</SectionTitle>
-              <HotkeyTable hotkeyList={gameDef?.hotkeys?.game} l10n={gameL10n}/>
-            </section>
-            <section>
-              <SectionTitle>{siteL10n("dragnHotkeys")}</SectionTitle>
-              <HotkeyTable hotkeyList={dragnHotkeys} l10n={siteL10n}/>
-            </section>
-          </div>
-        </div>
-      </Draggable>
-    )
+    // View > Favorite hotkeys: the favourites panel (the full list is the
+    // Tab overlay above). The mobile UI opens its own hotkeys sheet instead
+    // (MobileTable).
+    if (mobileUIActive) return null;
+    return <FavoritesPanel onClose={() => dispatch(setShowHotkeys(false))}/>;
   }
 })
