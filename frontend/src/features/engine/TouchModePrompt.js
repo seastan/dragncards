@@ -9,12 +9,19 @@ import { useAuthOptions } from "../../hooks/useAuthOptions";
 import useProfile from "../../hooks/useProfile";
 import { usePlugin } from "./hooks/usePlugin";
 import { Z_INDEX } from "./functions/common";
+import { useGameDefinition } from "./hooks/useGameDefinition";
+import { useMobileUIEnabled, useSetMobileUI } from "./hooks/useMobileUI";
 
 // Remembering dismissals locally (rather than on the profile) is deliberate: the
 // same account gets used from a phone and a desktop, and "no thanks" only ever
 // means "not on this device". The two steps are remembered separately — someone
 // who wants touch mode but not a home-screen icon shouldn't be asked twice.
 const DISMISS_TOUCH_KEY   = "dragncards_touch_mode_prompt_dismissed";
+const DISMISS_MOBILE_KEY  = "dragncards_mobile_ui_prompt_dismissed";
+
+// Touch mode is parked for now (its Preferences row is hidden too): a phone is
+// offered the mobile UI instead. Set to true to bring the touch mode offer back.
+const OFFER_TOUCH_MODE = false;
 const DISMISS_INSTALL_KEY = "dragncards_install_prompt_dismissed";
 
 const readFlag = (key) => {
@@ -32,7 +39,7 @@ const writeFlag = (key) => {
 };
 
 // Shared chrome for both steps.
-const PromptBanner = ({ icon, title, body, actions }) => (
+const PromptBanner = ({ icon, title, body, actions, bottom = "3dvh" }) => (
   <div
     // Clicks inside must not reach Table's handleTableClick (which clears the
     // active card / dropdown) — harmless here, but it also lets a stray tap near
@@ -41,12 +48,15 @@ const PromptBanner = ({ icon, title, body, actions }) => (
     style={{
       position: "fixed",
       left: "50%",
-      bottom: "3dvh",
+      bottom,
       transform: "translateX(-50%)",
       display: "flex",
       alignItems: "center",
       gap: "1.6dvh",
-      maxWidth: "92vw",
+      // An explicit width: centred with left:50%, a shrink-to-fit box only gets
+      // half the screen, which wrapped the text a word or two per line on a phone.
+      width: "min(92vw, 640px)",
+      boxSizing: "border-box",
       padding: "1.4dvh 1.8dvh",
       borderRadius: "1dvh",
       background: "rgba(22, 22, 28, 0.97)",
@@ -57,7 +67,7 @@ const PromptBanner = ({ icon, title, body, actions }) => (
       userSelect: "none",
     }}>
     <div style={{ fontSize: "2.6dvh", lineHeight: 1, flexShrink: 0 }}>{icon}</div>
-    <div style={{ minWidth: 0 }}>
+    <div style={{ flex: 1, minWidth: 0 }}>
       <div style={{ fontSize: "1.7dvh", fontWeight: 600, marginBottom: "0.2dvh" }}>{title}</div>
       <div style={{ fontSize: "1.4dvh", color: "rgba(255,255,255,0.65)" }}>{body}</div>
     </div>
@@ -80,7 +90,8 @@ const secondaryBtn = { ...btnBase, background: "rgba(255,255,255,0.08)", color: 
 const primaryBtn   = { ...btnBase, background: "#1d4ed8", border: "1px solid #3b82f6" };
 
 // Two pieces of touch onboarding, shown at most once per device each:
-//   1. Touch mode is off on a touchscreen → offer to turn it on.
+//   1. On a touchscreen, for a game with a mobile layout, offer the mobile UI
+//      (touch mode used to be offered here; see OFFER_TOUCH_MODE).
 //   2. Running in browser chrome rather than from the home screen → point out
 //      that installing reclaims the space the URL bar and toolbar take up.
 // Step 2 is gated on the display-mode check, NOT on "touch mode was just turned
@@ -95,6 +106,10 @@ export const TouchModePrompt = React.memo(() => {
   const authOptions   = useAuthOptions();
   const user          = useProfile();
   const plugin        = usePlugin();
+  const gameDef       = useGameDefinition();
+  const mobileUI      = useMobileUIEnabled();
+  const setMobileUI   = useSetMobileUI();
+  const [mobileClosed, setMobileClosed] = useState(() => readFlag(DISMISS_MOBILE_KEY));
 
   const [touchClosed, setTouchClosed]     = useState(() => readFlag(DISMISS_TOUCH_KEY));
   const [installClosed, setInstallClosed] = useState(() => readFlag(DISMISS_INSTALL_KEY));
@@ -128,8 +143,31 @@ export const TouchModePrompt = React.memo(() => {
 
   if (!isTouchDevice) return null;
 
-  // ── Step 1: turn on touch mode ──────────────────────────────────────────────
-  if (!touchMode && !touchClosed) {
+  // ── Step 1: switch to the mobile UI ─────────────────────────────────────────
+  if (!mobileUI && !mobileClosed && gameDef?.mobileLayout) {
+    const handleDismiss = () => {
+      setMobileClosed(true);
+      writeFlag(DISMISS_MOBILE_KEY);
+    };
+    const handleEnable = () => {
+      handleDismiss();
+      setMobileUI(true);
+    };
+    return (
+      <PromptBanner
+        icon="📱"
+        title="Use the mobile layout?"
+        body="A phone-friendly table built for touch. You can switch back in Preferences."
+        actions={<>
+          <div onClick={handleDismiss} style={secondaryBtn}>{siteL10n("touchModePromptDismiss")}</div>
+          <div onClick={handleEnable} style={primaryBtn}>Switch</div>
+        </>}
+      />
+    );
+  }
+
+  // ── Step 1 (parked): turn on touch mode ─────────────────────────────────────
+  if (OFFER_TOUCH_MODE && !touchMode && !touchClosed) {
     const handleEnable = () => {
       setTouchClosed(true);
       writeFlag(DISMISS_TOUCH_KEY);
@@ -183,6 +221,8 @@ export const TouchModePrompt = React.memo(() => {
 
     return (
       <PromptBanner
+        // In the mobile UI, above its favourites and bottom bars.
+        bottom={mobileUI && gameDef?.mobileLayout ? "150px" : "3dvh"}
         icon="📲"
         title={siteL10n("addToHomeScreenTitle")}
         body={siteL10n(isIOS() ? "addToHomeScreenBodyIos" : "addToHomeScreenBodyAndroid")}

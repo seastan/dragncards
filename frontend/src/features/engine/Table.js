@@ -153,7 +153,10 @@ export const Table = React.memo(({onDragEnd}) => {
           a tap would otherwise blow a card up over the whole table. */}
       {!mobileUIActive && <GiantCard/>}
       {/* One-time offer to switch on touch mode, shown only on touch devices */}
-      {!mobileUIActive && <TouchModePrompt/>}
+      {/* Touch onboarding: offers the mobile UI, then installing the app (that
+          step shows in the mobile UI too, where reclaiming the browser's bars
+          matters most). */}
+      <TouchModePrompt/>
       {showModal === "card" ? <SpawnExistingCardModal/> : null}
       {showModal === "prebuilt_deck" ? <SpawnPrebuiltModal/> : null}
       {showModal === "public_deck" ? <SpawnPublicDeckModal/> : null}

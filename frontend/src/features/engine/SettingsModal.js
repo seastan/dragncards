@@ -39,7 +39,11 @@ export const uiSettings = {
     "id": "touchMode",
     "label": "touchMode",
     "type": "boolean",
-    "default": false
+    "default": false,
+    // Parked for now in favour of the mobile UI (This device, above). Still
+    // shown to anyone who has it on, so they can turn it off.
+    "hidden": true,
+    "showWhenOn": true
   },
   "rendererEngine": {
     "id": "rendererEngine",
@@ -377,6 +381,7 @@ const SettingModalTable = React.memo(({settings, currentKeyVals, defaultKeyVals,
         </tr>
         {Object.keys(settings).reduce((rows, propertyId, index) => {
           const settingObj = settings[propertyId];
+          if (settingObj.hidden && !(settingObj.showWhenOn && (currentKeyVals[propertyId] || defaultKeyVals?.[propertyId]))) return rows;
           if (settingObj.visibleWhen) {
             const visible = Object.entries(settingObj.visibleWhen).every(([k, v]) => currentKeyVals[k] === v);
             if (!visible) return rows;
