@@ -21,14 +21,16 @@ export const useHandleTouchAction = () => {
     const doActionList = useDoActionList();
     const doDragnHotkey = useDoDragnHotkey();
     console.log("Rendering HandleTouchActions")
-    return ((touchedCard) => {
+    // options.increment: +1 / -1 for a token action, overriding the default
+    // (the regular table passes the half of the card that was clicked).
+    return ((touchedCard, options = {}) => {
         console.log("handleTouchAction", touchedCard)
         // Must be a player
         if (!playerN) return null;
         if (touchAction) {
             if (touchAction?.actionType === "token" && touchedCard) {
                 const tokenType = touchAction?.tokenType;
-                const increment = touchAction?.doubleClicked ? -1 : 1;
+                const increment = options.increment ?? (touchAction?.doubleClicked ? -1 : 1);
                 const hasToken = touchedCard.tokens[tokenType] > 0;
                 if (!hasToken && increment < 0 && gameDef["tokens"]?.[tokenType]?.modifier !== true) return; // Can't have negative non-modifier tokens
                 const actionList = [

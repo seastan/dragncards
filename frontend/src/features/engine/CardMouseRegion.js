@@ -1,4 +1,5 @@
 
+import store from "../../store";
 import React, { useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setMouseTopBottom, setDropdownMenu, setActiveCardId, setScreenLeftRight, setCardClicked, toggleMultiSelectCardId } from "../store/playerUiSlice";
@@ -61,7 +62,12 @@ export const CardMouseRegion = React.memo(({
         // An armed token / card action (touch bar, favourites panel, radial
         // menu) applies to the clicked card in any mode.
         if (touchAction) {
-            handleTouchAction(card);
+            // Without touch mode a token goes on with a click on the card's top
+            // half and comes off with its bottom half, like the token hotkeys.
+            const token = touchAction.actionType === "token";
+            handleTouchAction(card, token && !touchMode
+                ? { increment: store.getState().playerUi?.mouseTopBottom === "bottom" ? -1 : 1 }
+                : {});
             return;
         }
         if (touchMode) {

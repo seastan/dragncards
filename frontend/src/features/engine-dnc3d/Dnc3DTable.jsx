@@ -397,7 +397,13 @@ export default function Dnc3DTable({
           // An armed token / card action (touch bar, favourites panel, radial
           // menu) applies to the clicked card in any mode.
           if (card && touchActionRef.current) {
-            handleTouchActionRef.current(card);
+            // Regular (mouse) table: a token goes on with a click on the card's
+            // top half and comes off with its bottom half, like the token
+            // hotkeys. Touch tables keep tap-to-add.
+            const token = touchActionRef.current.actionType === 'token';
+            handleTouchActionRef.current(card, token && !touchModeRef.current
+              ? { increment: store.getState().playerUi?.mouseTopBottom === 'bottom' ? -1 : 1 }
+              : {});
             return;
           }
           if (touchModeRef.current && card) {

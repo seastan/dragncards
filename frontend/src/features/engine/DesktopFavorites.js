@@ -116,7 +116,9 @@ export const FavoritesPanel = ({ onClose }) => {
 
         <div className="border-t border-gray-700 px-3 py-2 text-xs text-gray-400">
           {touchAction
-            ? "Click cards to apply it. Click the table to stop."
+            ? (touchAction.actionType === "token"
+                ? "Click a card's top half to add a token, its bottom half to remove one. Click the table to stop."
+                : "Click cards to apply it. Click the table to stop.")
             : "Tip: drag on the table to pick a favourite from a ring."}
         </div>
       </div>
@@ -145,7 +147,11 @@ export const ArmedHotkeyPill = ({ touchAction, onClear }) => (
       whiteSpace: "nowrap",
     }}>
     <b><HotkeyLabel text={touchAction.label || touchAction.id} iconSize={20}/></b>
-    <span style={{ opacity: 0.85 }}>Click cards to apply · click the table to stop</span>
+    <span style={{ opacity: 0.85 }}>
+      {touchAction.actionType === "token"
+        ? "Top half of a card adds · bottom half removes · click the table to stop"
+        : "Click cards to apply · click the table to stop"}
+    </span>
     <button
       type="button"
       aria-label="Stop"
