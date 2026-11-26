@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useDispatch, useSelector } from "react-redux";
 import { setAlert, setMobilePanelPlayerN } from "../store/playerUiSlice";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars, faComment, faTimes, faEye, faLayerGroup, faKeyboard, faListOl, faStar, faUndo, faRedo } from "@fortawesome/free-solid-svg-icons";
+import { faBars, faScroll, faTimes, faEye, faLayerGroup, faKeyboard, faListOl, faStar, faUndo, faRedo } from "@fortawesome/free-solid-svg-icons";
 import Dnc3DTable from "../engine-dnc3d/Dnc3DTable";
 import { MobileFullMenu } from "./MobileFullMenu";
 import { TopBarShared } from "./TopBarShared";
@@ -349,8 +349,8 @@ const MobileBottomBar = ({ pilesOpen, setPilesOpen, chatOpen, setChatOpen, hotke
       <BottomButton active={hotkeysOpen} label="HOTKEYS" onClick={() => only("hotkeys")}>
         <FontAwesomeIcon icon={hotkeysOpen ? faTimes : faKeyboard}/>
       </BottomButton>
-      <BottomButton active={chatOpen} label="CHAT" onClick={() => only("chat")}>
-        <FontAwesomeIcon icon={chatOpen ? faTimes : faComment}/>
+      <BottomButton active={chatOpen} label="LOG" onClick={() => only("chat")}>
+        <FontAwesomeIcon icon={chatOpen ? faTimes : faScroll}/>
       </BottomButton>
     </div>
   );
