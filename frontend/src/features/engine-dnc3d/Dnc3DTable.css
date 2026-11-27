@@ -786,3 +786,10 @@
 .dnc3d-mobile .dnc3d-region-label {
   opacity: 1 !important;
 }
+
+/* hideLabel regions (desktop hidden piles drawer): the host draws the name and
+   buttons beside the pile. */
+.dnc3d-region-bare .dnc3d-region-strip,
+.dnc3d-region-count.dnc3d-region-bare {
+  display: none !important;
+}

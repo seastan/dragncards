@@ -54,7 +54,7 @@ export const Dnc3DHudChat = React.memo(() => {
 
   return (
     <div
-      className="absolute"
+      className="absolute dnc3d-hud-chat"
       style={{
         left: convertToPercentage(region.left),
         top: convertToPercentage(region.top),

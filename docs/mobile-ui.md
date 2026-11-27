@@ -131,6 +131,22 @@ hotkeys.
 - A switched-on token / card action now applies to clicked cards in any mode,
   not just touch mode.
 
+## Hidden piles drawer on the regular table
+
+`DesktopHiddenPiles.js`, 3D renderer, Mobile UI off. Every group the layout
+doesn't put on the table is a pile in a drawer on the right edge: piles with
+cards by default, all of them with *Show all*. It slides out when the mouse, or
+a card being dragged, reaches the table's right edge, and back when the pointer
+leaves it (it stays while a menu it opened is up). Each pile's name, count, and
+look / menu buttons are to its right. Resting on a pile for a second fans its
+cards out to the left; leaving the pile and the fan folds it.
+
+As in the mobile drawer, the piles are real (raised) table regions, so cards
+drag onto and off them; the engine's `hideLabel` region option leaves out their
+own label strip. The drawer is laid out on the 3D table's tilted surface: it
+runs its full height, ends above the game log when that sits bottom-right, and
+its right edge is pulled in so the magnified bottom stays on screen.
+
 ## The ☰ menu
 
 Full screen (`MobileFullMenu.js`): the Menu / View / Builder menus and a

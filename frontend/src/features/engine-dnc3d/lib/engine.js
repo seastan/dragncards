@@ -2736,6 +2736,9 @@ export function createDnc3DEngine(options = {}) {
       outline.style.top    = r.top    + '%';
       outline.style.width  = r.width  + '%';
       outline.style.height = r.height + '%';
+      // hideLabel: a region whose host draws its own name and buttons (the
+      // desktop hidden piles drawer) — no label strip, icons or count badge.
+      if (r.hideLabel) outline.classList.add('dnc3d-region-bare');
       // Wrapper for the label + icon strip, so the two can be laid out as one
       // vertical stack when the icons are pinned open (see applyAlwaysIcons).
       const strip = document.createElement('div');
@@ -2775,7 +2778,7 @@ export function createDnc3DEngine(options = {}) {
         // Appended to tiltEl (not the outline) so it shares the cards' 3D space
         // and isn't clipped by the outline; positioned + raised in Z on hover.
         const count = document.createElement('span');
-        count.className = 'dnc3d-region-count';
+        count.className = 'dnc3d-region-count' + (r.hideLabel ? ' dnc3d-region-bare' : '');
         count.textContent = '0';
         tiltEl.appendChild(count);
         regionCountEls[id] = count;

@@ -85,6 +85,7 @@ export function adaptRegions(layoutRegions, observingPlayerN, numPlayers, groupB
       type,
       ...(tableLabel                    ? { label:             tableLabel }             : {}),
       ...(region.showMenu != null       ? { showMenu:          region.showMenu }         : {}),
+      ...(region.hideLabel              ? { hideLabel:         true }                    : {}),
       ...(region.direction              ? { direction:         region.direction }        : {}),
       ...(region.rotation               ? { rotation:          region.rotation }         : {}),
       ...(region.layerIndex             ? { layerIndex:        region.layerIndex }       : {}),

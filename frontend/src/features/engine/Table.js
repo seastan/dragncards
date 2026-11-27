@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import store from "../../store";
 import { Z_INDEX } from "./functions/common";
 import { TableLayout } from "./TableLayout";
 import Dnc3DTable from "../engine-dnc3d/Dnc3DTable";
@@ -16,6 +17,8 @@ import { TouchBarBottom } from "./TouchBarBottom";
 import { TouchModePrompt } from "./TouchModePrompt";
 import { useRadialMenu, RadialMenuOverlay } from "./MobileRadialMenu";
 import { ArmedHotkeyPill } from "./DesktopFavorites";
+import { useDesktopDrawerGeometry, useDesktopDrawerState, desktopDrawerRegions, desktopDrawerParked,
+  desktopDrawerSlideMs, DesktopPilesDrawer } from "./DesktopHiddenPiles";
 import { detectTouchDevice } from "../../hooks/useIsTouchDevice";
 import { detectStandalone, isIOS } from "../../hooks/useIsStandalone";
 
@@ -75,6 +78,62 @@ export const Table = React.memo(({onDragEnd}) => {
   const desktopTableRef = useRef(null);
   const dropdownMenuOpen = useSelector(state => !!state?.playerUi?.dropdownMenu);
   const radial = useRadialMenu({ tableRef: desktopTableRef, enabled: !mobileUIActive && !dropdownMenuOpen, openOnDrag: true });
+
+  // Regular 3D table: the hidden piles drawer on the right edge
+  // (DesktopHiddenPiles). Its piles are extra table regions, slid off past
+  // the right edge while it's closed.
+  const drawerEnabled = !mobileUIActive && rendererEngine === 'dnc3d' && !!playerN;
+  const [tableSize, setTableSize] = useState(null);
+  useEffect(() => {
+    const el = desktopTableRef.current;
+    if (!el) return;
+    // The drawer is laid out on the 3D table's surface (.dnc3d-tilt), which a
+    // tilted table makes a different size from the box on screen.
+    const measure = () => {
+      const tilt = el.querySelector(".dnc3d-tilt");
+      if (!tilt) return;
+      const w = tilt.offsetWidth, h = tilt.offsetHeight;
+      // The surface x whose (magnified) bottom edge meets the table box's
+      // right edge on screen: perspective scales x about the box's centre.
+      const box = el.getBoundingClientRect();
+      const proj = tilt.getBoundingClientRect();
+      const cx = box.left + box.width / 2;
+      const planeRight = box.left + tilt.offsetLeft + w;   // unscaled
+      const k = (proj.right - cx) / Math.max(1, planeRight - cx);
+      const right = Math.round(cx + (box.right - 8 - cx) / Math.max(1, k) - (box.left + tilt.offsetLeft));
+      const tiltDeg = store.getState()?.playerUi?.userSettings?.tableAngle ?? 25;
+      // The game log's box, when it reaches the right edge: the drawer ends
+      // above it (roughly mapped onto the surface, which spans the box's height).
+      const chat = el.querySelector(".dnc3d-hud-chat")?.getBoundingClientRect();
+      const bottom = chat && chat.height > 0 && chat.right > box.right - 40
+        ? Math.round((chat.top - box.top) / box.height * h - 12) : h;
+      setTableSize(s => (s && s.w === w && s.h === h && s.right === right && s.tiltDeg === tiltDeg && s.bottom === bottom)
+        ? s : { w, h, right, tiltDeg, bottom });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    const t = setInterval(measure, 1000);   // the surface resizes with the tilt setting
+    return () => { ro.disconnect(); clearInterval(t); };
+  }, [mobileUIActive]);
+  const [drawerShowAll, setDrawerShowAll] = useState(false);
+  const [drawerPage, setDrawerPage] = useState(0);
+  const drawer = useDesktopDrawerState({ tableRef: desktopTableRef, enabled: drawerEnabled });
+  const drawerGeometry = useDesktopDrawerGeometry({
+    enabled: drawerEnabled, tableSize, showAll: drawerShowAll, page: drawerPage, expanded: drawer.expanded,
+  });
+  const drawerRegionsKey = JSON.stringify(desktopDrawerRegions(drawerGeometry));
+  const tableRegions = useMemo(
+    () => (drawerGeometry ? { ...(layout?.regions || {}), ...desktopDrawerRegions(drawerGeometry) } : layout?.regions),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [layout?.regions, drawerRegionsKey]
+  );
+  const drawerSlideX = useMemo(() => {
+    if (!drawerGeometry || drawer.open) return drawerGeometry ? Object.fromEntries(drawerGeometry.rows.map(r => [r.groupId, 0])) : null;
+    const off = desktopDrawerParked(drawerGeometry);
+    return Object.fromEntries(drawerGeometry.rows.map(r => [r.groupId, off]));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawerRegionsKey, drawer.open]);
 
   // A phone or tablet in the browser rather than the installed app: the first
   // tap in the room takes the page full screen, hiding the browser's bars
@@ -151,7 +210,10 @@ export const Table = React.memo(({onDragEnd}) => {
             <TopBar/>
           </div>
           {/* Table */}
-          <div ref={desktopTableRef} className="relative w-full" style={{height: touchMode ? "82%" : "94%"}}>
+          <div ref={desktopTableRef} className="relative w-full" style={{height: touchMode ? "82%" : "94%",
+            // The closed drawer's piles wait past the right edge: clip them
+            // there (only there; cards may still rise above the table).
+            ...(drawerEnabled ? { clipPath: "inset(-100vh 0 -100vh -100vw)" } : {})}}>
             {/* What a favourite (panel or ring) switched on; touch mode's bar shows its own. */}
             {touchAction && !touchMode &&
               <ArmedHotkeyPill touchAction={touchAction} onClear={() => setTouchAction(null)}/>}
@@ -160,7 +222,17 @@ export const Table = React.memo(({onDragEnd}) => {
               ? <Dnc3DTable
                   tiltDeg={tableAngle}
                   game={game}
-                  layoutRegions={layout?.regions}
+                  layoutRegions={tableRegions}
+                  regionSlideX={drawerSlideX}
+                  regionSlideMs={desktopDrawerSlideMs}
+                  tiltOverlay={drawerGeometry &&
+                    <DesktopPilesDrawer
+                      g={drawerGeometry}
+                      open={drawer.open}
+                      panelRef={drawer.panelRef}
+                      showAll={drawerShowAll}
+                      setShowAll={setDrawerShowAll}
+                      setPage={setDrawerPage}/>}
                   layoutTextBoxes={layout?.textBoxes}
                   layoutTableButtons={layout?.tableButtons}
                   gameDef={gameDef}
