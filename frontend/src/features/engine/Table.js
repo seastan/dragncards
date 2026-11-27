@@ -119,6 +119,12 @@ export const Table = React.memo(({onDragEnd}) => {
   const [drawerShowAll, setDrawerShowAll] = useState(false);
   const [drawerScroll, setDrawerScroll] = useState(0);
   const drawer = useDesktopDrawerState({ tableRef: desktopTableRef, enabled: drawerEnabled });
+  // A pile spreading out clears the active card: the card hovered on the way
+  // in (its preview, and what card hotkeys act on) is no longer under the
+  // pointer once the spread is up.
+  useEffect(() => {
+    if (drawer.expanded) dispatch(setActiveCardId(null));
+  }, [drawer.expanded, dispatch]);
   const drawerGeometry = useDesktopDrawerGeometry({
     enabled: drawerEnabled, tableSize, showAll: drawerShowAll, scroll: drawerScroll, expanded: drawer.expanded,
   });

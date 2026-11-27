@@ -384,8 +384,11 @@ export function createLayout(state, projection, REGIONS) {
     const startY = g.rp.y + g.pad - rs.scrollOffset;
     const lz = regionLayerZ(regionId);
     const positions = [];
+    // Reading order starts with the pile's top card (its last stack, the one
+    // a pile draws on top), so a spread pile reads top-left from its top.
     regionState[regionId].stackIds.forEach((sid, i) => {
-      const col = i % g.cols, row = Math.floor(i / g.cols);
+      const d = g.n - 1 - i;   // display cell
+      const col = d % g.cols, row = Math.floor(d / g.cols);
       positions.push(...stackPositionsAtAnchor(stacks[sid],
         g.startX + col * (g.cw + g.gapX), startY + row * (g.ch + g.gapY), i * 100, lz));
     });
@@ -784,13 +787,18 @@ export function createLayout(state, projection, REGIONS) {
       const col = Math.min(g.cols - 1, Math.max(0, Math.floor((dragCenterXTilt - g.startX) / (g.cw + g.gapX))));
       const row = Math.max(0, Math.floor((dragCenterYTilt - startY) / (g.ch + g.gapY)));
       const cellX = g.startX + col * (g.cw + g.gapX);
-      let raw = row * g.cols + col + (dragCenterXTilt > cellX + g.cw / 2 ? 1 : 0);
-      raw = Math.min(Math.max(raw, 0), n);
+      // p: the gap in display (reading) order the pointer is at, 0..n. The
+      // display runs opposite to stackIds (top card first), so the gap before
+      // display cell p is stack index n - p.
+      let p = row * g.cols + col + (dragCenterXTilt > cellX + g.cw / 2 ? 1 : 0);
+      p = Math.min(Math.max(p, 0), n);
+      const raw = n - p;
       const insertIdx = (ownIdx !== -1 && ownIdx < raw) ? raw - 1 : raw;
-      const slot = Math.min(insertIdx, Math.max(m - 1, 0));
-      const after = insertIdx >= m && m > 0;
-      const sc = slot % g.cols, sr = Math.floor(slot / g.cols);
-      const lineX = g.startX + sc * (g.cw + g.gapX) + (after ? g.cw + g.gapX / 2 : -g.gapX / 2);
+      // The bar: before display cell p, or after the last cell.
+      const atEnd = p >= n && n > 0;
+      const cell = atEnd ? n - 1 : p;
+      const sc = cell % g.cols, sr = Math.floor(cell / g.cols);
+      const lineX = g.startX + sc * (g.cw + g.gapX) + (atEnd ? g.cw + g.gapX / 2 : -g.gapX / 2);
       return { insertIdx, lineX, gridTop: startY + sr * (g.ch + g.gapY) };
     }
 
