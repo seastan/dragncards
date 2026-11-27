@@ -4704,6 +4704,16 @@ export function createDnc3DEngine(options = {}) {
     updateScrollOuters();
     if (sentinelEls[id]) { updateSentinel(id); updateScrollArrows(id); }
     layoutRegion(id, null, true);
+    // Cards that just moved between the region's scroll outer and the table
+    // plane (a pile spreading into a fan or folding back) take the region's
+    // slide the way setRegionSlideX gives it: on the outer for cards inside
+    // it, on each card for cards on the plane. Without this a pile folding
+    // while its drawer slides away stays behind where the drawer was.
+    const px = _regionSlideX[id] || 0;
+    Object.values(cards).forEach(c => {
+      if (c.regionId !== id || !c.liftEl || c.cardEl?.classList.contains('dnc3d-dragging')) return;
+      slideEl(c.liftEl, c.liftEl.parentElement === _tiltEl ? px : 0, 0);
+    });
   }
 
   function setCardSwipe(on) { _cardSwipeOn = !!on; }
