@@ -48,8 +48,17 @@ export function createLayout(state, projection, REGIONS) {
   function setScrollOuter(regionId, el) { scrollOuters[regionId] = el; }
   function clearScrollOuters() { Object.keys(scrollOuters).forEach(k => delete scrollOuters[k]); }
 
+  // The scroll outer a region's cards live in: rows and fans only. A pile
+  // that has one (a liveGeometry region, which can turn into a fan in place)
+  // keeps its cards on the table plane like any pile — inside a clipping
+  // outer the stack would flatten.
+  function outerFor(regionId) {
+    const t = REGIONS[regionId]?.type;
+    return (t === 'row' || t === 'fan') ? scrollOuters[regionId] : null;
+  }
+
   function originOf(regionId) {
-    return scrollOuters[regionId] ? regionPx(regionId) : { x: 0, y: 0 };
+    return outerFor(regionId) ? regionPx(regionId) : { x: 0, y: 0 };
   }
 
   function tiltSpacePosOf(card) {
@@ -61,8 +70,8 @@ export function createLayout(state, projection, REGIONS) {
   }
 
   function ensureCardParent(card) {
-    const target = (card.regionId && scrollOuters[card.regionId])
-      ? scrollOuters[card.regionId]
+    const target = (card.regionId && outerFor(card.regionId))
+      ? outerFor(card.regionId)
       : _tiltEl;
     if (card.liftEl.parentElement !== target) target.appendChild(card.liftEl);
   }
@@ -84,8 +93,8 @@ export function createLayout(state, projection, REGIONS) {
   // Inverse of moveCardToTilt — returns card from tiltEl back to its scroll-outer.
   function moveCardFromTilt(card) {
     if (card.liftEl.parentElement !== _tiltEl) return;
-    const target = (card.regionId && scrollOuters[card.regionId])
-      ? scrollOuters[card.regionId]
+    const target = (card.regionId && outerFor(card.regionId))
+      ? outerFor(card.regionId)
       : _tiltEl;
     if (target === _tiltEl) return;
     const o = originOf(card.regionId);
@@ -958,6 +967,9 @@ export function createLayout(state, projection, REGIONS) {
     positions.forEach(pos => {
       const card = cards[pos.cardId];
       if (excludeStackId !== null && card.stackId === excludeStackId) return;
+      // A card in hand stays under the pointer, whatever its region does
+      // meanwhile (e.g. a drawer pile folding as another one spreads).
+      if (card.cardEl?.classList.contains('dnc3d-dragging')) return;
       if (instant) {
         if (card.layoutAnimId) { cancelAnimationFrame(card.layoutAnimId); card.layoutAnimId = null; }
         placeCardAt(card, pos.left, pos.top, pos.rot, pos.zIndex, pos.stackZ || 0);

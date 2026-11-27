@@ -293,6 +293,11 @@ export function createDnc3DEngine(options = {}) {
     const th = parseFloat(_tiltEl.style.height);
     const tp0 = screenToTableAtZ(clientX, clientY, 0, _tiltEl, _currentDeg);
     let region = findRegionAtPoint(tp0.x / tw * 100, tp0.y / th * 100);
+    // The Z=0 projection only identifies regions ON the table plane. A raised
+    // region appears shifted on screen, so this point's Z=0 projection can
+    // fall in a raised neighbour (two drawer piles stacked one above the
+    // other) — let raised regions be found by their on-screen box below.
+    if (region && (REGIONS[region].layerIndex || 0) > 0) region = null;
     let layer  = region ? (REGIONS[region].layerIndex || 0) : 0;
     let cx = tp0.x, cy = tp0.y;
     for (const [rid, r] of Object.entries(REGIONS)) {
