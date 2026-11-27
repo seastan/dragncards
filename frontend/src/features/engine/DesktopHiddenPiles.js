@@ -196,6 +196,19 @@ export const useDesktopDrawerState = ({ tableRef, enabled }) => {
       const x = e.clientX, y = e.clientY;
       const t = table.getBoundingClientRect();
       const atEdge = x >= t.right - EDGE_PX && x <= t.right + 2 && y >= t.top && y <= t.bottom;
+
+      // While a card is being dragged, nothing folds or closes: folding a
+      // spread changes its region (the table rebuilds, losing the card in
+      // hand), and closing slides the drawer's regions aside, the dragged
+      // card's own region with it. A drag can still open the drawer. Once
+      // the card is dropped, the next move tidies up as usual.
+      if (table.querySelector(".dnc3d-dragging")) {
+        clear(closeTimer); closeTimer = null;
+        clear(foldTimer); foldTimer = null;
+        clear(expandTimer); expandTimer = null; expandFor = null;
+        if (!isOpen && atEdge) setOpen(true);
+        return;
+      }
       const within = (el) => {
         if (!el) return false;
         const r = el.getBoundingClientRect();
