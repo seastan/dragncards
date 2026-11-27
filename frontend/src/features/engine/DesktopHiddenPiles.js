@@ -124,14 +124,14 @@ export const useDesktopDrawerGeometry = ({ enabled, tableSize, showAll, scroll, 
       visible,
       isOpen,
       yInDrawer: HEADER_H + slot * rowH,
-      // Always a grid fan, so spreading out is just a bigger box — moved in
-      // place (liveGeometry), with no rebuild that would drop a card in hand.
-      // Collapsed, its cell shows the first (top) card.
+      // A pile while collapsed, a grid fan while spread out: the switch (and
+      // the move) happens in place (liveGeometry), with no table rebuild that
+      // would drop a card in hand.
       region: {
         groupId: pile.groupId,
-        type: "fan",
-        grid: true,
-        direction: "vertical",
+        type: isOpen ? "fan" : "pile",
+        grid: isOpen,
+        direction: isOpen ? "vertical" : "horizontal",
         liveGeometry: true,
         layerIndex: LAYER,
         hideLabel: true,
@@ -198,9 +198,9 @@ export const useDesktopDrawerState = ({ tableRef, enabled }) => {
       const t = table.getBoundingClientRect();
       const atEdge = x >= t.right - EDGE_PX && x <= t.right + 2 && y >= t.top && y <= t.bottom;
 
-      // While a card is being dragged the drawer doesn't close (it would
-      // slide aside the pile being dropped on); piles still spread out on a
-      // second's rest, so a card can be placed among a pile's cards.
+      // While a card is being dragged the drawer doesn't close and a spread
+      // doesn't fold (a card dragged out of one keeps it there to come back
+      // to); resting on another pile still spreads that one instead.
       const dragging = !!table.querySelector(".dnc3d-dragging");
       if (dragging) {
         clear(closeTimer); closeTimer = null;
@@ -241,7 +241,7 @@ export const useDesktopDrawerState = ({ tableRef, enabled }) => {
       } else if (!rowId) {
         clear(expandTimer); expandTimer = null; expandFor = null;
       }
-      if (exp) {
+      if (exp && !dragging) {
         const onIt = rowId === exp || inFan;
         if (onIt) { clear(foldTimer); foldTimer = null; }
         else if (!foldTimer) foldTimer = setTimeout(() => { foldTimer = null; setExpanded(null); }, 250);
@@ -382,6 +382,7 @@ export const DesktopPilesDrawer = ({ g, open, panelRef, showAll, setShowAll, set
             borderRadius: 12,
             boxShadow: "0 8px 28px rgba(0,0,0,0.65)",
             pointerEvents: "none",
+            animation: "dnc3d-drawer-fade 200ms ease-out",
           }}/>}
       <div
         ref={setRefs}
@@ -430,4 +431,16 @@ export const DesktopPilesDrawer = ({ g, open, panelRef, showAll, setShowAll, set
       </div>
     </>
   );
+};
+
+// Whether a screen point is over the drawer (panel or a pile's spread): drops
+// there must land on the drawer's own piles or nowhere (Dnc3DTable dropBlocked).
+export const pointOverDrawer = (panelEl, x, y) => {
+  if (!panelEl) return false;
+  const inside = (el) => {
+    if (!el) return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+  };
+  return inside(panelEl) || inside(panelEl.parentElement?.querySelector("[data-drawer-fan]"));
 };

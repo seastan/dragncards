@@ -96,6 +96,9 @@ export default function Dnc3DTable({
   // ordering — e.g. the mobile hidden-piles drawer, which has to line up with
   // its elevated pile regions and sit under a card being dragged over it.
   tiltOverlay = null,
+  // dropBlocked(clientX, clientY): screen areas (a panel drawn over the table)
+  // where a dropped card lands nowhere rather than in a region behind.
+  dropBlocked = null,
   // { groupId: px } — regions slid sideways with their cards (no re-init);
   // changes animate over regionSlideMs. Used by the mobile hidden-piles
   // drawer, whose piles slide in and out with the drawer panel.
@@ -193,6 +196,8 @@ export default function Dnc3DTable({
   const cardSizeRef           = useRef(cardSize);
   const isMobileLayoutRef     = useRef(isMobileLayout);
   const regionSlideXRef       = useRef(regionSlideX);
+  const dropBlockedRef        = useRef(dropBlocked);
+  dropBlockedRef.current      = dropBlocked;
   regionSlideXRef.current     = regionSlideX;
   const cardSwipeRef          = useRef(cardSwipe);
   cardSwipeRef.current        = cardSwipe;
@@ -268,7 +273,7 @@ export default function Dnc3DTable({
         if (r?.visible === false || !r?.groupId) return null;
         // liveGeometry regions move / resize in place (effect below), so their
         // geometry isn't part of what forces a rebuild.
-        if (r.liveGeometry) return `${r.groupId}|${r.type}|${r.layerIndex || 0}|${r.direction || ''}|live`;
+        if (r.liveGeometry) return `${r.groupId}|${r.layerIndex || 0}|live`;
         return `${r.groupId}|${r.type}|${r.layerIndex || 0}|${r.direction || ''}|${r.rotation || 0}|${r.left}|${r.top}|${r.width}|${r.height}`;
       })
       .filter(Boolean)
@@ -320,6 +325,7 @@ export default function Dnc3DTable({
         zoomFactor:         zoomFactorRef.current,
         ...(isMobileLayoutRef.current ? { cardUnitPx: mobileCardUnitPx(tiltEl.parentElement), browseAtTop: true } : {}),
         regionSlideX: regionSlideXRef.current || {},
+        dropBlocked: (x, y) => !!dropBlockedRef.current?.(x, y),
         cardSwipe: cardSwipeRef.current,
         onCardSwipe: (engineId, direction) => {
           const dcId = reverseIdMap.get(engineId);
@@ -676,13 +682,13 @@ export default function Dnc3DTable({
   // ── liveGeometry regions: move / resize without a rebuild ──────────────────
   const liveGeometryKey = useMemo(() => JSON.stringify(Object.values(layoutRegions || {})
     .filter(r => r?.liveGeometry && r.visible !== false)
-    .map(r => [r.groupId, r.left, r.top, r.width, r.height])), [layoutRegions]);
+    .map(r => [r.groupId, r.type, !!r.grid, r.left, r.top, r.width, r.height])), [layoutRegions]);
   useEffect(() => {
     const engine = engineRef.current;
     if (!engine?.setRegionGeometry) return;
     const live = Object.fromEntries(Object.entries(layoutRegions || {}).filter(([, r]) => r?.liveGeometry));
     const adapted = adaptRegions(live, observingPlayerN, numPlayers, game?.groupById || {}, gameDef, language);
-    Object.entries(adapted).forEach(([id, r]) => engine.setRegionGeometry(id, r, 250));
+    Object.entries(adapted).forEach(([id, r]) => engine.setRegionGeometry(id, r, 260));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveGeometryKey]);
 

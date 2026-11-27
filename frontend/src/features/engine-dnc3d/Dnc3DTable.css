@@ -793,3 +793,9 @@
 .dnc3d-region-count.dnc3d-region-bare {
   display: none !important;
 }
+
+/* Desktop piles drawer: a pile's spread backdrop fades in with its cards. */
+@keyframes dnc3d-drawer-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

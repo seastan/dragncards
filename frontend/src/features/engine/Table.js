@@ -18,7 +18,7 @@ import { TouchModePrompt } from "./TouchModePrompt";
 import { useRadialMenu, RadialMenuOverlay } from "./MobileRadialMenu";
 import { ArmedHotkeyPill } from "./DesktopFavorites";
 import { useDesktopDrawerGeometry, useDesktopDrawerState, desktopDrawerRegions, desktopDrawerSlide,
-  desktopDrawerSlideMs, DesktopPilesDrawer } from "./DesktopHiddenPiles";
+  desktopDrawerSlideMs, DesktopPilesDrawer, pointOverDrawer } from "./DesktopHiddenPiles";
 import { detectTouchDevice } from "../../hooks/useIsTouchDevice";
 import { detectStandalone, isIOS } from "../../hooks/useIsStandalone";
 
@@ -226,6 +226,7 @@ export const Table = React.memo(({onDragEnd}) => {
                   layoutRegions={tableRegions}
                   regionSlideX={drawerSlideX}
                   regionSlideMs={drawerSlideMs}
+                  dropBlocked={drawerEnabled && drawer.open ? (x, y) => pointOverDrawer(drawer.panelRef.current, x, y) : null}
                   tiltOverlay={drawerGeometry &&
                     <DesktopPilesDrawer
                       g={drawerGeometry}

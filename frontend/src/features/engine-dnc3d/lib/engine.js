@@ -118,6 +118,11 @@ export function createDnc3DEngine(options = {}) {
   // identically on any device, whatever its width.
   const _cardUnitPx         = options.cardUnitPx         || (() => window.innerHeight / 100);
   const _browseAtTop        = !!options.browseAtTop;
+  // options.dropBlocked(clientX, clientY) → true over screen areas a host draws
+  // over the table (the desktop piles drawer): a drop there lands nowhere,
+  // except on the host's own regions (liveGeometry) — not on whatever region
+  // lies behind.
+  const _dropBlocked        = options.dropBlocked || null;
   // { regionId: px } — regions shifted sideways (see setRegionSlideX).
   const _regionSlideX       = { ...(options.regionSlideX || {}) };
   // Fling: callback(cardId, direction, speedPxPerSec, pointerType) → true if it
@@ -302,6 +307,9 @@ export function createDnc3DEngine(options = {}) {
         const tp = screenToTableAtZ(clientX, clientY, layerZPx(cardHeightPx()) * li, _tiltEl, _currentDeg);
         cx = tp.x; cy = tp.y;
       }
+    }
+    if (region && !REGIONS[region]?.liveGeometry && _dropBlocked && _dropBlocked(clientX, clientY)) {
+      return { region: null, cx, cy };
     }
     return { region, cx, cy };
   }
@@ -2666,7 +2674,7 @@ export function createDnc3DEngine(options = {}) {
 
 
     Object.entries(REGIONS).forEach(([id, r]) => {
-      if (r.type !== 'row' && r.type !== 'fan') return;
+      if (r.type !== 'row' && r.type !== 'fan' && !r.liveGeometry) return;
       const el = document.createElement('div');
       el.className = 'dnc3d-region-scroll-outer';
       if (r.layerIndex > 0) el.style.transform = `translateZ(${layerZPx(cardHeightPx()) * r.layerIndex}px)`;
@@ -2787,7 +2795,7 @@ export function createDnc3DEngine(options = {}) {
       tiltEl.appendChild(outline);
       regionOutlineEls[id] = outline;
 
-      if (r.type !== 'row' && r.type !== 'fan') return;
+      if (r.type !== 'row' && r.type !== 'fan' && !r.liveGeometry) return;
       const el = document.createElement('div');
       el.className = 'dnc3d-region-scroll-sentinel';
       if (r.direction === 'vertical') el.classList.add('dnc3d-region-scroll-sentinel--vertical');
@@ -4651,12 +4659,35 @@ export function createDnc3DEngine(options = {}) {
   // table, as REGIONS holds them) and lay its cards out again, without the
   // rebuild a new region set needs — so a card being dragged survives it.
   // `ms` animates the cards there (0: jump).
+  // geo may also switch `type` ('pile' / 'fan') and `grid` in place (the
+  // region must have been built liveGeometry, which gives it a scroll outer
+  // either way). `ms` is the cards' cross-fade: they fade out, jump to the
+  // new layout and fade back in (0: just jump).
   function setRegionGeometry(id, geo, ms = 300) {
     const r = REGIONS[id];
     if (!r || !geo) return;
-    const same = ['left', 'top', 'width', 'height'].every(k => geo[k] == null || Math.abs(r[k] - geo[k]) < 0.01);
+    const same = ['left', 'top', 'width', 'height'].every(k => geo[k] == null || Math.abs(r[k] - geo[k]) < 0.01)
+      && (geo.type == null || geo.type === r.type) && (geo.grid == null || !!geo.grid === !!r.grid);
     if (same) return;
-    ['left', 'top', 'width', 'height'].forEach(k => { if (geo[k] != null) r[k] = geo[k]; });
+    const apply = () => {
+      ['left', 'top', 'width', 'height'].forEach(k => { if (geo[k] != null) r[k] = geo[k]; });
+      if (geo.type) r.type = geo.type;
+      if (geo.grid != null) r.grid = !!geo.grid;
+      _relayoutRegionAfterGeometry(id);
+    };
+    const regionCards = Object.values(cards).filter(c => c.regionId === id && !c.cardEl.classList.contains('dnc3d-dragging'));
+    if (!ms || !regionCards.length) { apply(); return; }
+    const half = Math.max(60, Math.round(ms / 2));
+    regionCards.forEach(c => { c.liftEl.style.transition = `opacity ${half}ms ease`; c.liftEl.style.opacity = '0'; });
+    clearTimeout(r._fadeTimer);
+    r._fadeTimer = setTimeout(() => {
+      apply();
+      requestAnimationFrame(() => regionCards.forEach(c => { c.liftEl.style.opacity = ''; }));
+      setTimeout(() => regionCards.forEach(c => { if (!c.liftEl.style.opacity) c.liftEl.style.transition = ''; }), half + 50);
+    }, half);
+  }
+  function _relayoutRegionAfterGeometry(id) {
+    const r = REGIONS[id];
     [regionFillEls[id], regionOutlineEls[id]].forEach(el => {
       if (!el) return;
       el.style.left = r.left + '%'; el.style.top = r.top + '%';
@@ -4667,7 +4698,7 @@ export function createDnc3DEngine(options = {}) {
     if (s) { s._syncing = true; s.el.scrollTop = 0; s.el.scrollLeft = 0; }
     updateScrollOuters();
     if (sentinelEls[id]) { updateSentinel(id); updateScrollArrows(id); }
-    layoutRegion(id, null, !ms);
+    layoutRegion(id, null, true);
   }
 
   function setCardSwipe(on) { _cardSwipeOn = !!on; }
