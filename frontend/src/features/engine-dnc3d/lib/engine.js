@@ -4672,7 +4672,7 @@ export function createDnc3DEngine(options = {}) {
     const r = REGIONS[id];
     if (!r || !geo) return;
     const same = ['left', 'top', 'width', 'height'].every(k => geo[k] == null || Math.abs(r[k] - geo[k]) < 0.01)
-      && (geo.type == null || geo.type === r.type) && (geo.grid == null || !!geo.grid === !!r.grid);
+      && (geo.type == null || geo.type === r.type) && (geo.grid == null || !!geo.grid === !!r.grid) && (geo.direction == null || geo.direction === r.direction);
     if (same) return;
     const apply = () => {
       ['left', 'top', 'width', 'height'].forEach(k => { if (geo[k] != null) r[k] = geo[k]; });
@@ -4686,6 +4686,12 @@ export function createDnc3DEngine(options = {}) {
       }
       if (geo.type) r.type = geo.type;
       if (geo.grid != null) r.grid = !!geo.grid;
+      // Scroll direction too (a spread scrolls vertically, its pile didn't),
+      // with the region's scroll sentinel to match.
+      if (geo.direction && geo.direction !== r.direction) {
+        r.direction = geo.direction;
+        sentinelEls[id]?.el.classList.toggle('dnc3d-region-scroll-sentinel--vertical', r.direction === 'vertical');
+      }
       _relayoutRegionAfterGeometry(id);
     };
     const regionCards = Object.values(cards).filter(c => c.regionId === id && !c.cardEl.classList.contains('dnc3d-dragging'));

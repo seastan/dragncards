@@ -291,7 +291,7 @@ const PileInfo = ({ row, g }) => {
       <div style={{
         position: "absolute", left: g.cellW, top: 0, width: INFO_W, height: "100%",
         boxSizing: "border-box", padding: "6px 8px 6px 4px",
-        display: "flex", flexDirection: "column", justifyContent: "space-between",
+        display: "flex", flexDirection: "column", justifyContent: "flex-start", gap: 6,
       }}>
         <div>
           <div style={{ fontSize: 12, lineHeight: 1.2, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
