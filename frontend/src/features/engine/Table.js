@@ -17,7 +17,7 @@ import { TouchBarBottom } from "./TouchBarBottom";
 import { TouchModePrompt } from "./TouchModePrompt";
 import { useRadialMenu, RadialMenuOverlay } from "./MobileRadialMenu";
 import { ArmedHotkeyPill } from "./DesktopFavorites";
-import { useDesktopDrawerGeometry, useDesktopDrawerState, desktopDrawerRegions, desktopDrawerParked,
+import { useDesktopDrawerGeometry, useDesktopDrawerState, desktopDrawerRegions, desktopDrawerSlide,
   desktopDrawerSlideMs, DesktopPilesDrawer } from "./DesktopHiddenPiles";
 import { detectTouchDevice } from "../../hooks/useIsTouchDevice";
 import { detectStandalone, isIOS } from "../../hooks/useIsStandalone";
@@ -117,10 +117,10 @@ export const Table = React.memo(({onDragEnd}) => {
     return () => { ro.disconnect(); clearInterval(t); };
   }, [mobileUIActive]);
   const [drawerShowAll, setDrawerShowAll] = useState(false);
-  const [drawerPage, setDrawerPage] = useState(0);
+  const [drawerScroll, setDrawerScroll] = useState(0);
   const drawer = useDesktopDrawerState({ tableRef: desktopTableRef, enabled: drawerEnabled });
   const drawerGeometry = useDesktopDrawerGeometry({
-    enabled: drawerEnabled, tableSize, showAll: drawerShowAll, page: drawerPage, expanded: drawer.expanded,
+    enabled: drawerEnabled, tableSize, showAll: drawerShowAll, scroll: drawerScroll, expanded: drawer.expanded,
   });
   const drawerRegionsKey = JSON.stringify(desktopDrawerRegions(drawerGeometry));
   const tableRegions = useMemo(
@@ -128,12 +128,13 @@ export const Table = React.memo(({onDragEnd}) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [layout?.regions, drawerRegionsKey]
   );
-  const drawerSlideX = useMemo(() => {
-    if (!drawerGeometry || drawer.open) return drawerGeometry ? Object.fromEntries(drawerGeometry.rows.map(r => [r.groupId, 0])) : null;
-    const off = desktopDrawerParked(drawerGeometry);
-    return Object.fromEntries(drawerGeometry.rows.map(r => [r.groupId, off]));
+  const drawerSlideX = useMemo(() => desktopDrawerSlide(drawerGeometry, drawer.open),
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drawerRegionsKey, drawer.open]);
+  [drawerRegionsKey, drawer.open, drawerGeometry?.first]);
+  // Opening and closing slide; scrolling jumps a row at a time.
+  const prevDrawerOpen = useRef(drawer.open);
+  const drawerSlideMs = prevDrawerOpen.current !== drawer.open ? desktopDrawerSlideMs : 0;
+  useEffect(() => { prevDrawerOpen.current = drawer.open; });
 
   // A phone or tablet in the browser rather than the installed app: the first
   // tap in the room takes the page full screen, hiding the browser's bars
@@ -224,7 +225,7 @@ export const Table = React.memo(({onDragEnd}) => {
                   game={game}
                   layoutRegions={tableRegions}
                   regionSlideX={drawerSlideX}
-                  regionSlideMs={desktopDrawerSlideMs}
+                  regionSlideMs={drawerSlideMs}
                   tiltOverlay={drawerGeometry &&
                     <DesktopPilesDrawer
                       g={drawerGeometry}
@@ -232,7 +233,7 @@ export const Table = React.memo(({onDragEnd}) => {
                       panelRef={drawer.panelRef}
                       showAll={drawerShowAll}
                       setShowAll={setDrawerShowAll}
-                      setPage={setDrawerPage}/>}
+                      setScroll={setDrawerScroll}/>}
                   layoutTextBoxes={layout?.textBoxes}
                   layoutTableButtons={layout?.tableButtons}
                   gameDef={gameDef}

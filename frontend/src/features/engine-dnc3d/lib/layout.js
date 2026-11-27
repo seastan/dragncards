@@ -347,7 +347,42 @@ export function createLayout(state, projection, REGIONS) {
     return positions;
   }
 
+  // ── Grid fans ───────────────────────────────────────────────────────────
+  // A fan region with `grid: true` lays its stacks out like a contact sheet:
+  // full cards, side by side, wrapping onto as many rows as needed, centred,
+  // scrolling vertically (give it direction "vertical") when they don't fit.
+  function gridMetrics(regionId) {
+    const rp   = regionPx(regionId);
+    const cw   = cardWidthPx(), ch = cardHeightPx();
+    const n    = regionState[regionId].stackIds.length;
+    const gapX = cw * 0.12, gapY = ch * 0.1;
+    const pad  = Math.min(cw, ch) * 0.2;
+    const cols = Math.max(1, Math.floor((rp.w - 2 * pad + gapX) / (cw + gapX)));
+    const rows = Math.max(1, Math.ceil(n / cols));
+    const usedW = Math.min(n, cols) * cw + (Math.min(n, cols) - 1) * gapX;
+    const startX = rp.x + Math.max(pad, (rp.w - usedW) / 2);
+    const total  = 2 * pad + rows * ch + (rows - 1) * gapY;
+    return { rp, cw, ch, n, gapX, gapY, pad, cols, rows, startX, total };
+  }
+  function gridTotalExtent(regionId) { return gridMetrics(regionId).total; }
+  function layoutGrid(regionId) {
+    const g = gridMetrics(regionId);
+    if (!g.n) return [];
+    const rs = regionState[regionId];
+    rs.scrollOffset = Math.min(Math.max(rs.scrollOffset || 0, 0), Math.max(0, g.total - g.rp.h));
+    const startY = g.rp.y + g.pad - rs.scrollOffset;
+    const lz = regionLayerZ(regionId);
+    const positions = [];
+    regionState[regionId].stackIds.forEach((sid, i) => {
+      const col = i % g.cols, row = Math.floor(i / g.cols);
+      positions.push(...stackPositionsAtAnchor(stacks[sid],
+        g.startX + col * (g.cw + g.gapX), startY + row * (g.ch + g.gapY), i * 100, lz));
+    });
+    return positions;
+  }
+
   function layoutFan(regionId) {
+    if (REGIONS[regionId]?.grid) return layoutGrid(regionId);
     const rp       = regionPx(regionId);
     const stackIds = regionState[regionId].stackIds;
     const n        = stackIds.length;
@@ -730,6 +765,24 @@ export function createLayout(state, projection, REGIONS) {
       return vert ? { insertIdx, lineY: line } : { insertIdx, lineX: line };
     }
 
+    // ── Grid fans: the cell under the pointer; before or after its card by
+    // which half the pointer is in. The bar stands at that card's row.
+    if (REGIONS[regionId].grid) {
+      const g = gridMetrics(regionId);
+      const startY = g.rp.y + g.pad - (regionState[regionId].scrollOffset || 0);
+      const col = Math.min(g.cols - 1, Math.max(0, Math.floor((dragCenterXTilt - g.startX) / (g.cw + g.gapX))));
+      const row = Math.max(0, Math.floor((dragCenterYTilt - startY) / (g.ch + g.gapY)));
+      const cellX = g.startX + col * (g.cw + g.gapX);
+      let raw = row * g.cols + col + (dragCenterXTilt > cellX + g.cw / 2 ? 1 : 0);
+      raw = Math.min(Math.max(raw, 0), n);
+      const insertIdx = (ownIdx !== -1 && ownIdx < raw) ? raw - 1 : raw;
+      const slot = Math.min(insertIdx, Math.max(m - 1, 0));
+      const after = insertIdx >= m && m > 0;
+      const sc = slot % g.cols, sr = Math.floor(slot / g.cols);
+      const lineX = g.startX + sc * (g.cw + g.gapX) + (after ? g.cw + g.gapX / 2 : -g.gapX / 2);
+      return { insertIdx, lineX, gridTop: startY + sr * (g.ch + g.gapY) };
+    }
+
     // ── Uniform-spacing path (horizontal fan, vertical fan) ─────────────────────
     let start, spacing, cardDim, regionExtent, regionOrigin;
     if (vert) { // vertical fan
@@ -820,6 +873,17 @@ export function createLayout(state, projection, REGIONS) {
     const info = computeInsertInfo(regionId, dragCenterXTilt, dragCenterYTilt, excludeStackId);
     if (_indicatorEl.parentElement !== scrollOuter) scrollOuter.appendChild(_indicatorEl);
     _indicatorEl.style.display = 'block';
+    if (info.gridTop !== undefined) {
+      // Grid fan: a card-height bar between two cards of one row.
+      _indicatorEl.style.setProperty('--dnc3d-indicator-fade', 'to bottom');
+      _indicatorEl.style.left      = (info.lineX - rp.x) + 'px';
+      _indicatorEl.style.top       = (info.gridTop - rp.y) + 'px';
+      _indicatorEl.style.width     = (0.3 * dvhPx()) + 'px';
+      _indicatorEl.style.height    = ch + 'px';
+      _indicatorEl.style.transform = 'translateX(-50%)';
+      positionEndMarkers(false);
+      return info.insertIdx;
+    }
     // Keep the line shorter than the region so its rounded caps and the
     // end-fade gradient stay visible instead of being clipped by neighbors.
     // dvh-based so it scales with the table like the other table chrome.
@@ -908,7 +972,7 @@ export function createLayout(state, projection, REGIONS) {
     setScrollOuter, clearScrollOuters,
     tiltSpacePosOf, ensureCardParent, moveCardToTilt, moveCardFromTilt, moveStackToTilt,
     stackCardOffsets, stackBaseCardIds, stackPositionsAtAnchor,
-    rowTotalExtent,
+    rowTotalExtent, gridTotalExtent,
     layoutRow, layoutFan, layoutPile, pileSlot, fanMinSpacingFrac,
     placeCardAt, animateCardTo, animateCardArc, applyTokenHostRotation,
     insertStackAtIndex,

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars, faEye, faChevronUp, faChevronDown } from "@fortawesome/free-solid-svg-icons";
+import { faBars, faEye } from "@fortawesome/free-solid-svg-icons";
 import store from "../../store";
 import { useLayout } from "./hooks/useLayout";
 import { useGameDefinition } from "./hooks/useGameDefinition";
@@ -16,21 +16,24 @@ import { LAYER_Z_FRAC } from "../engine-dnc3d/lib/config";
 // Every group the current layout doesn't put on the table is a pile here:
 // those with cards by default, all of them with "Show all". It slides out when
 // the mouse — or a card being dragged — reaches the table's right edge, and
-// back when the pointer leaves it. Each pile's name, count and browse / menu
-// buttons sit to its right. Resting on a pile for a second fans its cards out
-// to the left; moving off the pile and its fan folds it back.
+// back when the pointer leaves it. It runs the table's full height and
+// scrolls (the wheel, a row at a time). Each pile's name, count and browse /
+// menu buttons sit to its right. Resting on a pile for a second spreads its
+// cards out over the top half of the table, every card whole, in as many rows
+// as it takes (scrolling when they don't fit); moving off the pile and the
+// spread folds it back.
 //
 // As in the mobile drawer (MobileHiddenPiles.js) the piles are real table
 // regions — cards drag onto and off them, and a fan's cards can be picked out —
 // drawn in the table's 3D space, raised above the table's own regions, with
 // the panel behind them in Dnc3DTable's tiltOverlay. They stay on the table
 // while the drawer is closed, slid off past the right edge (regionSlideX), so
-// opening it only slides things that already exist.
+// opening it only slides things that already exist. Scrolling slides them
+// vertically the same way, and piles scrolled out of view are parked aside.
 
 const LAYER = 2;
 const EDGE_PX = 10;          // the pointer this close to the right edge opens it
 const HEADER_H = 40;
-const PAGER_H = 34;
 const INFO_W = 128;          // name, count and buttons to the right of each pile
 const EXPAND_MS = 1000;      // rest on a pile this long to fan it out
 const CLOSE_MS = 350;
@@ -64,7 +67,7 @@ const useDrawerPiles = (showAll) => {
 
 // Geometry of the drawer and its pile regions, in the table's own px
 // (tableSize: the 3D table's surface, .dnc3d-tilt). Region positions are fractions of it.
-export const useDesktopDrawerGeometry = ({ enabled, tableSize, showAll, page, expanded }) => {
+export const useDesktopDrawerGeometry = ({ enabled, tableSize, showAll, scroll, expanded }) => {
   const layout = useLayout();
   const gameDef = useGameDefinition();
   const zoom = useSelector(state => (state?.playerUi?.userSettings?.zoomPercent ?? 100) / 100);
@@ -92,35 +95,53 @@ export const useDesktopDrawerGeometry = ({ enabled, tableSize, showAll, page, ex
   // Z·sin(tilt), so the drawer starts that far down the surface.
   const layerZ = LAYER_Z_FRAC * cardH * LAYER;
   const top = Math.round(layerZ * Math.sin((tableSize.tiltDeg || 0) * Math.PI / 180) + 24);
-  // ...and ends above the game log, when that sits in the bottom-right.
-  const height = Math.min(tableSize.h, tableSize.bottom ?? tableSize.h) - top;
+  const height = tableSize.h - top;
   const right = Math.min(tableSize.w, tableSize.right ?? tableSize.w);
   const left = right - width;
 
-  const fit = Math.max(1, Math.floor((height - HEADER_H - PAGER_H) / rowH));
-  const pageCount = Math.max(1, Math.ceil(piles.length / fit));
-  const p = Math.min(page, pageCount - 1);
-  const shown = piles.slice(p * fit, (p + 1) * fit);
+  // Scrolling, a whole row at a time: `scroll` is the first row shown.
+  const visibleCount = Math.max(1, Math.floor((height - HEADER_H) / rowH));
+  const maxScroll = Math.max(0, piles.length - visibleCount);
+  const first = Math.min(Math.max(scroll, 0), maxScroll);
 
-  // A fanned-out pile spreads left from the drawer, wide enough to show each
-  // card (most of it), up to most of the table.
-  const fanWidthFor = (count) => Math.min(Math.max(count, 1) * cardW * 0.8 + cardW, tableSize.w * 0.7);
+  // The spread-out pile: a grid over the top half of the table, left of the
+  // drawer.
+  const spread = {
+    left: Math.round(tableSize.w * 0.03),
+    top,
+    width: Math.round(left - 16 - tableSize.w * 0.03),
+    height: Math.round(tableSize.h * 0.5 - top),
+  };
 
-  const rows = shown.map((pile, i) => {
-    const y = top + HEADER_H + i * rowH;
+  const rows = piles.map((pile, i) => {
+    const slot = i - first;
+    const visible = slot >= 0 && slot < visibleCount;
     const isOpen = pile.groupId === expanded && pile.count > 0;
-    const fanW = isOpen ? fanWidthFor(pile.count) : 0;
+    const y = top + HEADER_H + i * rowH;   // unscrolled; the slide moves it
     return {
       ...pile,
-      yInDrawer: HEADER_H + i * rowH,
-      fanW,
-      region: {
+      slot,
+      visible,
+      isOpen,
+      yInDrawer: HEADER_H + slot * rowH,
+      region: isOpen ? {
         groupId: pile.groupId,
-        type: isOpen ? "fan" : "pile",
+        type: "fan",
+        grid: true,
+        direction: "vertical",
+        left: spread.left / tableSize.w,
+        top: spread.top / tableSize.h,
+        width: spread.width / tableSize.w,
+        height: spread.height / tableSize.h,
+        layerIndex: LAYER,
+        hideLabel: true,
+      } : {
+        groupId: pile.groupId,
+        type: "pile",
         direction: "horizontal",
-        left: (left - fanW + 6) / tableSize.w,
+        left: (left + 6) / tableSize.w,
         top: (y + 4) / tableSize.h,
-        width: (cellW - 6 + fanW) / tableSize.w,
+        width: (cellW - 6) / tableSize.w,
         height: (rowH - 8) / tableSize.h,
         layerIndex: LAYER,
         hideLabel: true,
@@ -129,11 +150,25 @@ export const useDesktopDrawerGeometry = ({ enabled, tableSize, showAll, page, ex
     };
   });
 
-  return { rows, top, left, width, height, cellW, rowH, layerZ, page: p, pageCount, totalAll, totalShown: piles.length };
+  return {
+    rows, top, left, width, height, cellW, rowH, layerZ, spread,
+    first, visibleCount, maxScroll, totalAll, totalShown: piles.length,
+  };
 };
 
 // How far the closed drawer is slid off the right edge.
 export const desktopDrawerParked = (g) => g.width + 40;
+
+// Region slides: piles scrolled into view move up by the scroll; the rest
+// (and all of them while the drawer is closed) wait off to the right. A
+// spread-out pile stays where its region is.
+export const desktopDrawerSlide = (g, open) => {
+  if (!g) return null;
+  const park = desktopDrawerParked(g);
+  return Object.fromEntries(g.rows.map(r => [r.groupId,
+    r.isOpen ? (open ? 0 : { x: park, y: 0 })
+      : { x: open && r.visible ? 0 : park, y: -g.first * g.rowH }]));
+};
 
 export const desktopDrawerRegions = (g) => {
   const regions = {};
@@ -269,7 +304,7 @@ const PileInfo = ({ row, g }) => {
 
 // The drawer panel (and the backdrop of a fanned-out pile), drawn in the
 // table's 3D space via Dnc3DTable's tiltOverlay.
-export const DesktopPilesDrawer = ({ g, open, panelRef, showAll, setShowAll, setPage }) => {
+export const DesktopPilesDrawer = ({ g, open, panelRef, showAll, setShowAll, setScroll }) => {
   const ref = useRef(null);
   const setRefs = (el) => { ref.current = el; if (panelRef) panelRef.current = el; };
   const mounted = !!g;
@@ -285,6 +320,29 @@ export const DesktopPilesDrawer = ({ g, open, panelRef, showAll, setShowAll, set
     return () => { el.removeEventListener("pointerdown", stop); el.removeEventListener("contextmenu", stop); };
   }, [mounted]);
 
+  // The wheel scrolls the list a row per notch (a native, non-passive
+  // listener, so the page itself doesn't scroll).
+  const live = useRef({});
+  live.current = { g, setScroll };
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let acc = 0;
+    const onWheel = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const { g: geo, setScroll: set } = live.current;
+      if (!geo) return;
+      acc += e.deltaMode === 1 ? e.deltaY * 30 : e.deltaY;
+      const steps = Math.trunc(acc / 60);
+      if (!steps) return;
+      acc -= steps * 60;
+      set(Math.min(Math.max(geo.first + steps, 0), geo.maxScroll));
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [mounted]);
+
   // As in the mobile drawer: the slide is applied from an effect so it starts
   // with the piles' (regionSlideX, also from an effect), and the first frame
   // is already parked.
@@ -294,23 +352,23 @@ export const DesktopPilesDrawer = ({ g, open, panelRef, showAll, setShowAll, set
   if (mountTransform.current === null && g) mountTransform.current = slide;
 
   if (!g) return null;
-  const fanRow = g.rows.find(r => r.fanW > 0);
+  const spreadRow = g.rows.find(r => r.isOpen);
   const hiddenCount = g.totalAll - g.totalShown;
   return (
     <>
-      {open && fanRow &&
+      {open && spreadRow &&
         <div
           data-drawer-fan=""
           style={{
             position: "absolute",
-            left: g.left - fanRow.fanW - 6,
-            top: g.top + fanRow.yInDrawer - 4,
-            width: fanRow.fanW + 12,
-            height: g.rowH + 8,
+            left: g.spread.left - 8,
+            top: g.spread.top - 8,
+            width: g.spread.width + 16,
+            height: g.spread.height + 16,
             transform: `translateZ(${g.layerZ - 0.5}px)`,
             background: BG,
-            borderRadius: "10px 0 0 10px",
-            boxShadow: "-6px 0 20px rgba(0,0,0,0.6)",
+            borderRadius: 12,
+            boxShadow: "0 8px 28px rgba(0,0,0,0.65)",
             pointerEvents: "none",
           }}/>}
       <div
@@ -337,7 +395,7 @@ export const DesktopPilesDrawer = ({ g, open, panelRef, showAll, setShowAll, set
           {(hiddenCount > 0 || showAll) &&
             <button
               type="button"
-              onClick={(e) => { e.stopPropagation(); setShowAll(!showAll); setPage(0); }}
+              onClick={(e) => { e.stopPropagation(); setShowAll(!showAll); setScroll(0); }}
               style={{ border: "none", borderRadius: 6, padding: "3px 8px", fontSize: 11, cursor: "pointer",
                 background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.85)" }}>
               {showAll ? "Hide empty" : `Show all (${g.totalAll})`}
@@ -347,17 +405,16 @@ export const DesktopPilesDrawer = ({ g, open, panelRef, showAll, setShowAll, set
           ? <div style={{ position: "absolute", top: HEADER_H, padding: 12, fontSize: 12, opacity: 0.6 }}>
               Every pile with cards is on the table.
             </div>
-          : g.rows.map(row => <PileInfo key={row.groupId} row={row} g={g}/>)}
-        {g.pageCount > 1 &&
-          <div style={{
-            position: "absolute", left: 0, bottom: 0, width: "100%", height: PAGER_H,
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "0 8px", boxSizing: "border-box", borderTop: "1px solid rgba(255,255,255,0.08)", fontSize: 11,
-          }}>
-            <IconButton icon={faChevronUp} title="Previous" onClick={() => setPage(Math.max(0, g.page - 1))}/>
-            <span style={{ opacity: 0.7 }}>{g.page + 1} / {g.pageCount}</span>
-            <IconButton icon={faChevronDown} title="Next" onClick={() => setPage(Math.min(g.pageCount - 1, g.page + 1))}/>
-          </div>}
+          : g.rows.filter(r => r.visible).map(row => <PileInfo key={row.groupId} row={row} g={g}/>)}
+        {g.maxScroll > 0 && (() => {
+          // Scroll bar: where the shown rows sit in the whole list.
+          const trackH = g.height - HEADER_H - 12;
+          const n = g.rows.length;
+          const thumbH = Math.max(24, trackH * g.visibleCount / n);
+          const thumbTop = HEADER_H + 6 + (trackH - thumbH) * (g.first / g.maxScroll);
+          return <div style={{ position: "absolute", right: 3, top: thumbTop, width: 4, height: thumbH,
+            borderRadius: 2, background: "rgba(255,255,255,0.3)" }}/>;
+        })()}
       </div>
     </>
   );

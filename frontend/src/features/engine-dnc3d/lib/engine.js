@@ -148,7 +148,7 @@ export function createDnc3DEngine(options = {}) {
     findRegionAtPoint, insertStackAtIndex, moveCardToTilt, moveCardFromTilt, moveStackToTilt,
     animateCardTo, animateCardArc, tiltSpacePosOf, stackCardOffsets, stackBaseCardIds, stackPositionsAtAnchor,
     showInsertionIndicator, hideInsertionIndicator, clearScrollOuters,
-    rowTotalExtent,
+    rowTotalExtent, gridTotalExtent,
   } = layout;
 
   // ── Engine-level state ─────────────────────────────────────────────────────
@@ -462,6 +462,7 @@ export function createDnc3DEngine(options = {}) {
     const rp   = regionPx(regionId);
     const vert = r.direction === 'vertical';
     if (r.type === 'row') return rowTotalExtent(regionId);
+    if (r.type === 'fan' && r.grid) return Math.max(rp.h, gridTotalExtent(regionId));
     if (r.type === 'fan') {
       const dim        = vert ? ch : cw;
       const size       = vert ? rp.h : rp.w;
@@ -4601,8 +4602,12 @@ export function createDnc3DEngine(options = {}) {
     // repeat of the current offset from (re)starting a transition: a region
     // built already slid aside (init) and then handed the same offset again
     // with a duration would animate in from 0, popping into place first.
-    if ((el._slidePx || 0) === (px || 0)) return;
-    el._slidePx = px || 0;
+    // px: a number (sideways) or { x, y }.
+    const x = typeof px === 'object' && px ? (px.x || 0) : (px || 0);
+    const y = typeof px === 'object' && px ? (px.y || 0) : 0;
+    const key = `${x},${y}`;
+    if ((el._slideKey || '0,0') === key) return;
+    el._slideKey = key;
     if (ms) {
       if (el._slideTimer) { clearTimeout(el._slideTimer); el.style.transition = el._slideBaseTransition || ''; }
       el._slideBaseTransition = el.style.transition;
@@ -4612,13 +4617,17 @@ export function createDnc3DEngine(options = {}) {
         el._slideTimer = null;
       }, ms + 50);
     }
-    el.style.translate = px ? `${px}px 0` : '';
+    el.style.translate = (x || y) ? `${x}px ${y}px` : '';
   }
   function setRegionSlideX(map = {}, ms = 0) {
     const next = { ...map };   // map may be _regionSlideX itself (init)
     const ids = new Set([...Object.keys(_regionSlideX), ...Object.keys(next)]);
     Object.keys(_regionSlideX).forEach(k => delete _regionSlideX[k]);
-    Object.entries(next).forEach(([k, v]) => { if (v) _regionSlideX[k] = v; });
+    // A value is px sideways, or { x, y } (the desktop piles drawer scrolls
+    // its piles vertically this way, without a rebuild).
+    Object.entries(next).forEach(([k, v]) => {
+      if (typeof v === 'object' ? (v && (v.x || v.y)) : v) _regionSlideX[k] = v;
+    });
     ids.forEach(id => {
       const px = _regionSlideX[id] || 0;
       [regionFillEls[id], regionOutlineEls[id], scrollOuterEls[id]].forEach(el => slideEl(el, px, ms));

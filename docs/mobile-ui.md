@@ -137,15 +137,24 @@ hotkeys.
 doesn't put on the table is a pile in a drawer on the right edge: piles with
 cards by default, all of them with *Show all*. It slides out when the mouse, or
 a card being dragged, reaches the table's right edge, and back when the pointer
-leaves it (it stays while a menu it opened is up). Each pile's name, count, and
-look / menu buttons are to its right. Resting on a pile for a second fans its
-cards out to the left; leaving the pile and the fan folds it.
+leaves it (it stays while a menu it opened is up). It runs the table's full
+height and scrolls with the wheel, a row at a time. Each pile's name, count,
+and look / menu buttons are to its right. Resting on a pile for a second
+spreads its cards over the top half of the table: every card whole, side by
+side, wrapping onto as many rows as needed, scrolling when they don't fit.
+Leaving the pile and the spread folds it back.
 
 As in the mobile drawer, the piles are real (raised) table regions, so cards
-drag onto and off them; the engine's `hideLabel` region option leaves out their
-own label strip. The drawer is laid out on the 3D table's tilted surface: it
-runs its full height, ends above the game log when that sits bottom-right, and
-its right edge is pulled in so the magnified bottom stays on screen.
+drag onto and off them, including to and from the spread. Engine support:
+
+- region option `hideLabel`: no label strip or count badge of its own;
+- region option `grid` on a `fan` (with `direction: "vertical"`): the
+  wrapping, non-overlapping layout, with drops landing between cards;
+- `regionSlideX` values may be `{x, y}`: the drawer scrolls its piles by
+  sliding them, without rebuilding the table.
+
+The drawer is laid out on the 3D table's tilted surface, its right edge pulled
+in so the magnified bottom stays on screen.
 
 ## The ☰ menu
 
