@@ -4676,6 +4676,14 @@ export function createDnc3DEngine(options = {}) {
     if (same) return;
     const apply = () => {
       ['left', 'top', 'width', 'height'].forEach(k => { if (geo[k] != null) r[k] = geo[k]; });
+      // A pile keeps its stacks in reverse (top card last, so it draws on
+      // top; see adapters/cards and reconcile), every other type in game
+      // order. Switching between the two converts the order — otherwise it
+      // stays reversed until the next game update re-sorts it, and the cards
+      // shuffle round then.
+      if (geo.type && (geo.type === 'pile') !== (r.type === 'pile') && regionState[id]) {
+        regionState[id].stackIds.reverse();
+      }
       if (geo.type) r.type = geo.type;
       if (geo.grid != null) r.grid = !!geo.grid;
       _relayoutRegionAfterGeometry(id);

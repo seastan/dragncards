@@ -370,8 +370,9 @@ export function createLayout(state, projection, REGIONS) {
     const pad  = Math.max(0, Math.min(Math.min(cw, ch) * 0.2, (rp.w - cw) / 2, (rp.h - ch) / 2));
     const cols = Math.max(1, Math.floor((rp.w - 2 * pad + gapX) / (cw + gapX)));
     const rows = Math.max(1, Math.ceil(n / cols));
-    const usedW = Math.min(n, cols) * cw + (Math.min(n, cols) - 1) * gapX;
-    const startX = rp.x + Math.max(pad, (rp.w - usedW) / 2);
+    // Left-aligned, not centred: centring would shift every card each time
+    // one leaves or arrives (the row's width changes), not just those after it.
+    const startX = rp.x + pad;
     const total  = 2 * pad + rows * ch + (rows - 1) * gapY;
     return { rp, cw, ch, n, gapX, gapY, pad, cols, rows, startX, total };
   }
@@ -384,11 +385,9 @@ export function createLayout(state, projection, REGIONS) {
     const startY = g.rp.y + g.pad - rs.scrollOffset;
     const lz = regionLayerZ(regionId);
     const positions = [];
-    // Reading order starts with the pile's top card (its last stack, the one
-    // a pile draws on top), so a spread pile reads top-left from its top.
+    // Game order: a spread pile's top card first, in the top-left.
     regionState[regionId].stackIds.forEach((sid, i) => {
-      const d = g.n - 1 - i;   // display cell
-      const col = d % g.cols, row = Math.floor(d / g.cols);
+      const col = i % g.cols, row = Math.floor(i / g.cols);
       positions.push(...stackPositionsAtAnchor(stacks[sid],
         g.startX + col * (g.cw + g.gapX), startY + row * (g.ch + g.gapY), i * 100, lz));
     });
@@ -787,12 +786,10 @@ export function createLayout(state, projection, REGIONS) {
       const col = Math.min(g.cols - 1, Math.max(0, Math.floor((dragCenterXTilt - g.startX) / (g.cw + g.gapX))));
       const row = Math.max(0, Math.floor((dragCenterYTilt - startY) / (g.ch + g.gapY)));
       const cellX = g.startX + col * (g.cw + g.gapX);
-      // p: the gap in display (reading) order the pointer is at, 0..n. The
-      // display runs opposite to stackIds (top card first), so the gap before
-      // display cell p is stack index n - p.
+      // p: the gap the pointer is at, in reading order (= stack order), 0..n.
       let p = row * g.cols + col + (dragCenterXTilt > cellX + g.cw / 2 ? 1 : 0);
       p = Math.min(Math.max(p, 0), n);
-      const raw = n - p;
+      const raw = p;
       const insertIdx = (ownIdx !== -1 && ownIdx < raw) ? raw - 1 : raw;
       // The bar: before display cell p, or after the last cell.
       const atEnd = p >= n && n > 0;
