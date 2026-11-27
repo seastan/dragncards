@@ -4647,6 +4647,29 @@ export function createDnc3DEngine(options = {}) {
     });
   }
 
+  // Move / resize a region in place ({left, top, width, height} in % of the
+  // table, as REGIONS holds them) and lay its cards out again, without the
+  // rebuild a new region set needs — so a card being dragged survives it.
+  // `ms` animates the cards there (0: jump).
+  function setRegionGeometry(id, geo, ms = 300) {
+    const r = REGIONS[id];
+    if (!r || !geo) return;
+    const same = ['left', 'top', 'width', 'height'].every(k => geo[k] == null || Math.abs(r[k] - geo[k]) < 0.01);
+    if (same) return;
+    ['left', 'top', 'width', 'height'].forEach(k => { if (geo[k] != null) r[k] = geo[k]; });
+    [regionFillEls[id], regionOutlineEls[id]].forEach(el => {
+      if (!el) return;
+      el.style.left = r.left + '%'; el.style.top = r.top + '%';
+      el.style.width = r.width + '%'; el.style.height = r.height + '%';
+    });
+    if (regionState[id]) regionState[id].scrollOffset = 0;
+    const s = sentinelEls[id];
+    if (s) { s._syncing = true; s.el.scrollTop = 0; s.el.scrollLeft = 0; }
+    updateScrollOuters();
+    if (sentinelEls[id]) { updateSentinel(id); updateScrollArrows(id); }
+    layoutRegion(id, null, !ms);
+  }
+
   function setCardSwipe(on) { _cardSwipeOn = !!on; }
 
   function setTouchMode(touchMode) {
@@ -4811,5 +4834,5 @@ export function createDnc3DEngine(options = {}) {
     });
   }
 
-  return { init, applyTilt, applyTableOpacity, setCurrentDeg, onTiltUpdated, reconcile, openBrowse, closeBrowse, updateBrowseFilter, getCardElements, syncOverlay, animatePileShuffle, setHoverSuppressed, setTouchMode, setAlwaysShowPileCounts, setAlwaysShowGroupIcons, spawnCards, despawnCards, repaintCardFaces, setRegionSlideX, setCardSwipe };
+  return { init, applyTilt, applyTableOpacity, setCurrentDeg, onTiltUpdated, reconcile, openBrowse, closeBrowse, updateBrowseFilter, getCardElements, syncOverlay, animatePileShuffle, setHoverSuppressed, setTouchMode, setAlwaysShowPileCounts, setAlwaysShowGroupIcons, spawnCards, despawnCards, repaintCardFaces, setRegionSlideX, setRegionGeometry, setCardSwipe };
 }

@@ -266,6 +266,9 @@ export default function Dnc3DTable({
       .map(k => {
         const r = regions[k];
         if (r?.visible === false || !r?.groupId) return null;
+        // liveGeometry regions move / resize in place (effect below), so their
+        // geometry isn't part of what forces a rebuild.
+        if (r.liveGeometry) return `${r.groupId}|${r.type}|${r.layerIndex || 0}|${r.direction || ''}|live`;
         return `${r.groupId}|${r.type}|${r.layerIndex || 0}|${r.direction || ''}|${r.rotation || 0}|${r.left}|${r.top}|${r.width}|${r.height}`;
       })
       .filter(Boolean)
@@ -669,6 +672,19 @@ export default function Dnc3DTable({
     engine.applyTilt(tiltEl, tiltDeg);
     engine.onTiltUpdated();
   }, [tiltDeg]);
+
+  // ── liveGeometry regions: move / resize without a rebuild ──────────────────
+  const liveGeometryKey = useMemo(() => JSON.stringify(Object.values(layoutRegions || {})
+    .filter(r => r?.liveGeometry && r.visible !== false)
+    .map(r => [r.groupId, r.left, r.top, r.width, r.height])), [layoutRegions]);
+  useEffect(() => {
+    const engine = engineRef.current;
+    if (!engine?.setRegionGeometry) return;
+    const live = Object.fromEntries(Object.entries(layoutRegions || {}).filter(([, r]) => r?.liveGeometry));
+    const adapted = adaptRegions(live, observingPlayerN, numPlayers, game?.groupById || {}, gameDef, language);
+    Object.entries(adapted).forEach(([id, r]) => engine.setRegionGeometry(id, r, 250));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveGeometryKey]);
 
   // ── Slide regions sideways (regionSlideX) ──────────────────────────────────
   // After the init effect above, so when a render both adds regions and moves

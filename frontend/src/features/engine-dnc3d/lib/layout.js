@@ -356,7 +356,9 @@ export function createLayout(state, projection, REGIONS) {
     const cw   = cardWidthPx(), ch = cardHeightPx();
     const n    = regionState[regionId].stackIds.length;
     const gapX = cw * 0.12, gapY = ch * 0.1;
-    const pad  = Math.min(cw, ch) * 0.2;
+    // Breathing room round the cards, less when the region is barely a card
+    // (a collapsed drawer pile shows just its first card, filling the cell).
+    const pad  = Math.max(0, Math.min(Math.min(cw, ch) * 0.2, (rp.w - cw) / 2, (rp.h - ch) / 2));
     const cols = Math.max(1, Math.floor((rp.w - 2 * pad + gapX) / (cw + gapX)));
     const rows = Math.max(1, Math.ceil(n / cols));
     const usedW = Math.min(n, cols) * cw + (Math.min(n, cols) - 1) * gapX;

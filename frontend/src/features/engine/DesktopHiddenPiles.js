@@ -124,28 +124,29 @@ export const useDesktopDrawerGeometry = ({ enabled, tableSize, showAll, scroll, 
       visible,
       isOpen,
       yInDrawer: HEADER_H + slot * rowH,
-      region: isOpen ? {
+      // Always a grid fan, so spreading out is just a bigger box — moved in
+      // place (liveGeometry), with no rebuild that would drop a card in hand.
+      // Collapsed, its cell shows the first (top) card.
+      region: {
         groupId: pile.groupId,
         type: "fan",
         grid: true,
         direction: "vertical",
-        left: spread.left / tableSize.w,
-        top: spread.top / tableSize.h,
-        width: spread.width / tableSize.w,
-        height: spread.height / tableSize.h,
+        liveGeometry: true,
         layerIndex: LAYER,
         hideLabel: true,
-      } : {
-        groupId: pile.groupId,
-        type: "pile",
-        direction: "horizontal",
-        left: (left + 6) / tableSize.w,
-        top: (y + 4) / tableSize.h,
-        width: (cellW - 6) / tableSize.w,
-        height: (rowH - 8) / tableSize.h,
-        layerIndex: LAYER,
-        hideLabel: true,
-        style: { background: "rgba(255,255,255,0.04)", borderRadius: 6 },
+        ...(isOpen ? {
+          left: spread.left / tableSize.w,
+          top: spread.top / tableSize.h,
+          width: spread.width / tableSize.w,
+          height: spread.height / tableSize.h,
+        } : {
+          left: (left + 6) / tableSize.w,
+          top: (y + 4) / tableSize.h,
+          width: (cellW - 6) / tableSize.w,
+          height: (rowH - 8) / tableSize.h,
+          style: { background: "rgba(255,255,255,0.04)", borderRadius: 6 },
+        }),
       },
     };
   });
@@ -197,17 +198,13 @@ export const useDesktopDrawerState = ({ tableRef, enabled }) => {
       const t = table.getBoundingClientRect();
       const atEdge = x >= t.right - EDGE_PX && x <= t.right + 2 && y >= t.top && y <= t.bottom;
 
-      // While a card is being dragged, nothing folds or closes: folding a
-      // spread changes its region (the table rebuilds, losing the card in
-      // hand), and closing slides the drawer's regions aside, the dragged
-      // card's own region with it. A drag can still open the drawer. Once
-      // the card is dropped, the next move tidies up as usual.
-      if (table.querySelector(".dnc3d-dragging")) {
+      // While a card is being dragged the drawer doesn't close (it would
+      // slide aside the pile being dropped on); piles still spread out on a
+      // second's rest, so a card can be placed among a pile's cards.
+      const dragging = !!table.querySelector(".dnc3d-dragging");
+      if (dragging) {
         clear(closeTimer); closeTimer = null;
-        clear(foldTimer); foldTimer = null;
-        clear(expandTimer); expandTimer = null; expandFor = null;
-        if (!isOpen && atEdge) setOpen(true);
-        return;
+        if (!isOpen && atEdge) { setOpen(true); return; }
       }
       const within = (el) => {
         if (!el) return false;
@@ -225,7 +222,7 @@ export const useDesktopDrawerState = ({ tableRef, enabled }) => {
       }
       // Open: stay while the pointer is on the drawer, a fanned pile or the
       // edge, or a menu it opened is up.
-      const busy = !!store.getState()?.playerUi?.dropdownMenu;
+      const busy = !!store.getState()?.playerUi?.dropdownMenu || dragging;
       if (inPanel || inFan || atEdge || busy) { clear(closeTimer); closeTimer = null; }
       else if (!closeTimer) {
         closeTimer = setTimeout(() => { closeTimer = null; setExpanded(null); setOpen(false); }, CLOSE_MS);
@@ -342,6 +339,8 @@ export const DesktopPilesDrawer = ({ g, open, panelRef, showAll, setShowAll, set
     if (!el) return;
     let acc = 0;
     const onWheel = (e) => {
+      const r = el.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
       e.preventDefault();
       e.stopPropagation();
       const { g: geo, setScroll: set } = live.current;
@@ -352,8 +351,8 @@ export const DesktopPilesDrawer = ({ g, open, panelRef, showAll, setShowAll, set
       acc -= steps * 60;
       set(Math.min(Math.max(geo.first + steps, 0), geo.maxScroll));
     };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
+    window.addEventListener("wheel", onWheel, { capture: true, passive: false });
+    return () => window.removeEventListener("wheel", onWheel, { capture: true });
   }, [mounted]);
 
   // As in the mobile drawer: the slide is applied from an effect so it starts
