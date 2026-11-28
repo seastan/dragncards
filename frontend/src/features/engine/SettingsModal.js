@@ -149,7 +149,12 @@ const DeviceSettings = () => {
             <div>Gesture Guide</div>
             <div className="text-xs text-gray-300">How to play the mobile table with your fingers.</div>
           </div>
-          <Button className="w-24" onClick={() => { dispatch(setShowModal(null)); openGestureGuide(); }}>Open</Button>
+          <button
+            type="button"
+            onClick={() => { dispatch(setShowModal(null)); openGestureGuide(); }}
+            className="flex-shrink-0 rounded-md bg-gray-600 px-3 py-1 text-sm font-semibold text-gray-100 hover:bg-gray-500">
+            Open
+          </button>
         </div>}
     </div>
   );
