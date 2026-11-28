@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import { updateValues } from "./updateValues";
 import { uiSettings } from "../engine/SettingsModal";
 import { deepMerge } from "../myplugins/uploadPluginFunctions";
-import { readMobileUIPref, readMobileUIChoice, readMobileUIVersion } from "../engine/functions/mobileLayout";
+import { readMobileUIPref, readMobileUIChoice } from "../engine/functions/mobileLayout";
 
 const draggingDefault = {
   stackId: null,
@@ -46,12 +46,11 @@ const initialState = {
   touchMode: false, // Unused? Use userSettings.touchMode instead
   // Phone-first table (see functions/mobileLayout.js). Kept out of userSettings
   // because those sync to the profile, and this is a per-device choice.
-  // mobileUI: the mobile UI v2 (mobileLayout) table is on. Derived by
-  // useMobileUISync from the two device choices below (and, for a device that
-  // hasn't chosen, a profile that had touch mode on).
+  // mobileUI: the mobile UI table is on. Derived by useMobileUISync from the
+  // device choice below (and, for a device that hasn't chosen, a profile that
+  // had touch mode on) and whether the game has a mobile layout.
   mobileUI: readMobileUIPref(),
   mobileUIChoice: readMobileUIChoice(),    // true / false / null (not chosen here)
-  mobileUIVersion: readMobileUIVersion(),  // "v1" / "v2" / null (automatic)
   // Mobile UI's armed token / card hotkey. Kept here rather than in the game
   // (playerData[n].touchAction, which touch mode uses) so arming isn't a game
   // action: it doesn't log, and undo doesn't re-arm it.
@@ -104,7 +103,7 @@ const playerUiSlice = createSlice({
   reducers: {
     // mobileUI survives a reset: it is a device preference, not room state.
     resetPlayerUi: (state) => ({...initialState, mobileUI: state.mobileUI,
-      mobileUIChoice: state.mobileUIChoice, mobileUIVersion: state.mobileUIVersion}),
+      mobileUIChoice: state.mobileUIChoice}),
     mergePlayerUiValues: (state, { payload }) => {
       deepMerge(state, payload);
     },
@@ -164,9 +163,6 @@ const playerUiSlice = createSlice({
     },
     setMobileUIChoice: (state, { payload }) => {
       state.mobileUIChoice = payload;
-    },
-    setMobileUIVersion: (state, { payload }) => {
-      state.mobileUIVersion = payload;
     },
     setMobileUI: (state, { payload }) => {
       state.mobileUI = !!payload;
@@ -345,7 +341,6 @@ export const {
   setObservingPlayerN,
   setMobileUI,
   setMobileUIChoice,
-  setMobileUIVersion,
   setMobileTouchAction,
   setMobilePanelPlayerN,
   setDropdownMenu,

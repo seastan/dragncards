@@ -52,22 +52,6 @@ export const readMobileUIChoice = () => {
   }
 };
 
-// Which mobile UI this device picked by hand: "v1" (touch mode on the regular
-// table) or "v2" (the plugin's mobileLayout); null = automatic (v2 when the
-// plugin has a mobile layout, else v1).
-const MOBILE_UI_VERSION_KEY = "dragncards_mobile_ui_version";
-export const readMobileUIVersion = () => {
-  try {
-    const raw = window.localStorage.getItem(MOBILE_UI_VERSION_KEY);
-    return raw === "v1" || raw === "v2" ? raw : null;
-  } catch (e) {
-    return null;
-  }
-};
-export const writeMobileUIVersion = (value) => {
-  try { window.localStorage.setItem(MOBILE_UI_VERSION_KEY, value); } catch (e) { /* session only */ }
-};
-
 export const writeMobileUIPref = (value) => {
   try {
     window.localStorage.setItem(MOBILE_UI_KEY, value ? "true" : "false");

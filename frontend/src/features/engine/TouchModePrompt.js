@@ -19,9 +19,8 @@ import { useMobileUIActive, useMobileUISettings, useSetMobileUI } from "./hooks/
 const DISMISS_TOUCH_KEY   = "dragncards_touch_mode_prompt_dismissed";
 const DISMISS_MOBILE_KEY  = "dragncards_mobile_ui_prompt_dismissed";
 
-// Touch mode is now mobile UI v1, which step 1's offer covers (it picks v2 when
-// the game has a mobile layout, v1 when not). The old touch mode offer stays
-// below, off; set this to bring it back.
+// Touch mode is retired (the mobile UI and the favourites panel replace it);
+// its old offer stays below, off. Set this to bring it back.
 const OFFER_TOUCH_MODE = false;
 const DISMISS_INSTALL_KEY = "dragncards_install_prompt_dismissed";
 
@@ -124,7 +123,7 @@ export const TouchModePrompt = React.memo(() => {
   if (!isTouchDevice) return null;
 
   // ── Step 1: switch to the mobile UI ─────────────────────────────────────────
-  if (!mobileUI && !mobileClosed) {
+  if (hasLayout && !mobileUI && !mobileClosed) {
     const handleDismiss = () => {
       setMobileClosed(true);
       writeFlag(DISMISS_MOBILE_KEY);
@@ -137,9 +136,7 @@ export const TouchModePrompt = React.memo(() => {
       <PromptBanner
         icon="📱"
         title="Turn on Mobile UI?"
-        body={hasLayout
-          ? "A phone-friendly table built for touch. You can switch back in Preferences."
-          : "Touch controls for this table. You can switch back in Preferences."}
+        body="A phone-friendly table built for touch. You can switch back in Preferences."
         actions={<>
           <div onClick={handleDismiss} style={secondaryBtn}>{siteL10n("touchModePromptDismiss")}</div>
           <div onClick={handleEnable} style={primaryBtn}>Switch</div>

@@ -2,22 +2,19 @@
 
 A **per-device** setting (Settings → *This device* → Mobile UI, stored in
 `localStorage`, or `?mobile=1` / `?mobile=0` in the URL), so turning it on from
-a phone doesn't switch the same account's desktop. It has two versions
-(`hooks/useMobileUI.js`):
+a phone doesn't switch the same account's desktop. It is available only when
+the plugin defines `gameDef.mobileLayout`; otherwise *This device* says so and
+offers no switch.
 
-- **v1 · Touch mode**: the regular table with the touch bar (what used to be the
-  separate touch mode setting; `userSettings.touchMode`).
-- **v2 · Mobile layout**: the phone-first portrait table described below, from
-  the plugin's `gameDef.mobileLayout` (`playerUi.mobileUI`).
+It replaces touch mode, which is now always off (`hooks/useMobileUI.js`); the
+favourite hotkeys panel and the drag-for-favourites ring cover what its touch
+bar did on the regular table. The touch mode code is left in place, unused. A
+device that never set Mobile UI takes "on" from a profile that had touch mode
+on, so touch mode users land in the mobile UI wherever their game has a mobile
+layout.
 
-The version is automatic, v2 when the plugin defines a mobile layout and v1
-when it doesn't, unless the device picked one by hand (v2 is greyed out, with a
-note, while the plugin has no layout). A device that never set Mobile UI takes
-"on" from a profile that had touch mode switched on, so touch mode users land
-on v1 today and move to v2 by themselves once their plugin gets a mobile
-layout, unless they pick v1.
-
-On a touchscreen the room offers Mobile UI once (`TouchModePrompt.js`), then
+On a touchscreen, for a game with a mobile layout, the room offers Mobile UI
+once (`TouchModePrompt.js`), then
 adding DragnCards to the home screen. Creating a room from a phone or tablet in
 the browser first shows a full-screen install step (`lobby/InstallGate.js`)
 with a "Continue in browser" way past it; in a room in the Android browser the

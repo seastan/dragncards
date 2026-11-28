@@ -17,7 +17,7 @@ import store from "../../store";
 import { useIsHost } from "./hooks/useIsHost";
 import { Z_INDEX, hasSupportedImageExtension } from "./functions/common";
 import { ToggleSwitch } from "./AutomationModal";
-import { useMobileUISettings, useSetMobileUI, useSetMobileUIVersion } from "./hooks/useMobileUI";
+import { useMobileUISettings, useSetMobileUI } from "./hooks/useMobileUI";
 import { openGestureGuide } from "./MobileGestureGuide";
 
 // Move to another file, use this to set the default falues in playerUiSlice
@@ -123,60 +123,27 @@ export const SettingsModal = React.memo(({}) => {
 
 // Settings that belong to this device rather than the account, so they apply
 // immediately and are not saved to the profile (see functions/mobileLayout.js).
-// Mobile UI v1 / v2 (see hooks/useMobileUI).
-const VersionButton = ({ active, disabled, onClick, title, children }) => (
-  <button
-    type="button"
-    disabled={disabled}
-    onClick={onClick}
-    title={title}
-    className={"flex-1 px-3 py-1.5 text-sm rounded " + (
-      disabled ? "bg-gray-800 text-gray-500 cursor-not-allowed"
-      : active ? "bg-blue-700 text-white"
-      : "bg-gray-800 text-gray-200 hover:bg-gray-600")}>
-    {children}
-  </button>
-);
-
+// Mobile UI (see hooks/useMobileUI): available when the game has a mobile layout.
 const DeviceSettings = () => {
   const dispatch = useDispatch();
-  const { on: mobileUI, version, hasLayout: hasMobileLayout } = useMobileUISettings();
+  const { on: mobileUI, hasLayout: hasMobileLayout } = useMobileUISettings();
   const setMobileUI = useSetMobileUI();
-  const setVersion = useSetMobileUIVersion();
   return (
     <div className="mb-3">
       <h2 className="mb-1">This device</h2>
       <div className="text-sm text-gray-300 mb-1">Saved on this device only, and applied right away.</div>
       <div className="flex items-center justify-between rounded bg-gray-700 px-3 py-2">
         <div className="pr-3">
-          <div>Mobile UI</div>
-          <div className="text-xs text-gray-300">For playing on a phone or tablet.</div>
+          <div className={hasMobileLayout ? "" : "text-gray-400"}>Mobile UI</div>
+          <div className="text-xs text-gray-300">
+            {hasMobileLayout
+              ? "A portrait, phone-first table that shows one player's board at a time."
+              : "Not available for this game yet: its developer hasn't defined a mobile layout."}
+          </div>
         </div>
-        <ToggleSwitch checked={mobileUI} onChange={(newValue) => setMobileUI(newValue)}/>
+        {hasMobileLayout && <ToggleSwitch checked={mobileUI} onChange={(newValue) => setMobileUI(newValue)}/>}
       </div>
-      {mobileUI &&
-        <div className="rounded bg-gray-700 px-3 py-2 mt-1">
-          <div className="flex gap-1">
-            <VersionButton active={version === "v1"} onClick={() => setVersion("v1")}>
-              v1 · Touch mode
-            </VersionButton>
-            <VersionButton
-              active={version === "v2"}
-              disabled={!hasMobileLayout}
-              onClick={() => setVersion("v2")}
-              title={hasMobileLayout ? undefined : "This game doesn't have a mobile layout yet"}>
-              v2 · Mobile layout
-            </VersionButton>
-          </div>
-          <div className="text-xs text-gray-300 mt-1.5">
-            {!hasMobileLayout
-              ? "v2 becomes available once this game's developer defines a mobile layout. Until then the regular table is used, with touch controls."
-              : version === "v2"
-                ? "A portrait, phone-first table that shows one player's board at a time."
-                : "The regular table, with touch controls."}
-          </div>
-        </div>}
-      {mobileUI && version === "v2" &&
+      {mobileUI && hasMobileLayout &&
         <div className="flex items-center justify-between rounded bg-gray-700 px-3 py-2 mt-1">
           <div className="pr-3">
             <div>Gesture Guide</div>
