@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars, faEye } from "@fortawesome/free-solid-svg-icons";
+import { faBars, faEye, faChevronLeft } from "@fortawesome/free-solid-svg-icons";
 import store from "../../store";
 import { useLayout } from "./hooks/useLayout";
 import { useGameDefinition } from "./hooks/useGameDefinition";
@@ -42,27 +42,37 @@ const BG = "rgb(24,24,30)";
 
 export const desktopDrawerSlideMs = SLIDE_MS;
 
-// [{ groupId, count }], in the game definition's group order: shared groups,
-// then the on-screen player's, then the other players'.
+// [{ groupId, count }]: shared groups, then the on-screen player's, then the
+// other players'; within each, the plugin's gameDef.hiddenPilesOrder (groupIds,
+// playerN for any player) first, then the rest by name. (The game definition's
+// own group order can't be used: it is stored as a JSON object, whose keys the
+// database reorders.)
 const useDrawerPiles = (showAll) => {
   const layout = useLayout();
   const formatGroupId = useFormatGroupId();
   const gameDef = useGameDefinition();
   const groupById = useSelector(state => state?.gameUi?.game?.groupById);
   const observingPlayerN = useSelector(state => state?.playerUi?.observingPlayerN);
+  const gameL10n = useGameL10n();
   if (!groupById || !layout?.regions) return [];
   const onTable = new Set(Object.values(layout.regions)
     .filter(r => r?.visible !== false && r?.groupId)
     .map(r => formatGroupId(r.groupId)));
-  const order = Object.keys(gameDef?.groups || {});
+  const order = Array.isArray(gameDef?.hiddenPilesOrder) ? gameDef.hiddenPilesOrder : [];
+  const pos = (id) => {
+    const i = order.indexOf(id.replace(/^player\d+/, "playerN"));
+    return i < 0 ? order.length : i;
+  };
+  const name = (id) => String(gameL10n(groupById?.[id]?.label) || id);
   const rank = (id) => (id.startsWith("shared") ? 0 : id.startsWith(observingPlayerN || "player1") ? 1 : 2);
   return Object.keys(groupById)
     .filter(id => !onTable.has(id))
     .map(id => ({ groupId: id, count: groupById[id]?.stackIds?.length || 0 }))
     .filter(p => showAll || p.count > 0)
     .sort((a, b) => rank(a.groupId) - rank(b.groupId) ||
-      (order.indexOf(a.groupId.replace(/^player\d+/, "playerN")) - order.indexOf(b.groupId.replace(/^player\d+/, "playerN"))) ||
-      a.groupId.localeCompare(b.groupId));
+      pos(a.groupId) - pos(b.groupId) ||
+      a.groupId.slice(0, 7).localeCompare(b.groupId.slice(0, 7)) ||
+      name(a.groupId).localeCompare(name(b.groupId), undefined, { numeric: true }));
 };
 
 // Geometry of the drawer and its pile regions, in the table's own px
@@ -73,6 +83,7 @@ export const useDesktopDrawerGeometry = ({ enabled, tableSize, showAll, scroll, 
   const zoom = useSelector(state => (state?.playerUi?.userSettings?.zoomPercent ?? 100) / 100);
   const piles = useDrawerPiles(showAll);
   const totalAll = useDrawerPiles(true).length;
+  const withCards = useDrawerPiles(false).length;
   if (!enabled || !tableSize?.w || !tableSize?.h) return null;
 
   // The card size the 3D table uses on the regular table (engine applyCardDims:
@@ -153,7 +164,7 @@ export const useDesktopDrawerGeometry = ({ enabled, tableSize, showAll, scroll, 
 
   return {
     rows, top, left, width, height, cellW, rowH, layerZ, spread,
-    first, visibleCount, maxScroll, totalAll, totalShown: piles.length,
+    first, visibleCount, maxScroll, totalAll, totalShown: piles.length, withCards,
   };
 };
 
@@ -255,7 +266,7 @@ export const useDesktopDrawerState = ({ tableRef, enabled }) => {
   }, [tableRef]);
 
   useEffect(() => { if (!enabled) { setOpen(false); setExpanded(null); } }, [enabled]);
-  return { open, expanded, panelRef, setExpanded };
+  return { open, setOpen, expanded, panelRef, setExpanded };
 };
 
 const IconButton = ({ icon, title, onClick }) => {
@@ -450,4 +461,54 @@ export const pointOverDrawer = (panelEl, x, y) => {
     return r.width > 0 && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
   };
   return inside(panelEl) || inside(panelEl.parentElement?.querySelector("[data-drawer-fan]"));
+};
+
+// A slim tab on the table's right edge while the drawer is closed, so it's
+// discoverable: "PILES" and how many have cards. Faint until the pointer comes
+// near the edge; resting on it opens the drawer like reaching the edge does.
+export const DrawerEdgeTab = ({ count, open, onOpen }) => {
+  const [near, setNear] = useState(false);
+  useEffect(() => {
+    const onMove = (e) => setNear(e.clientX > window.innerWidth - 140);
+    window.addEventListener("pointermove", onMove);
+    return () => window.removeEventListener("pointermove", onMove);
+  }, []);
+  return (
+    <div
+      onPointerEnter={onOpen}
+      onClick={(e) => { e.stopPropagation(); onOpen(); }}
+      title="Hidden piles"
+      style={{
+        position: "absolute",
+        right: 0,
+        top: "50%",
+        transform: `translateY(-50%) translateX(${open ? "110%" : "0"})`,
+        transition: "transform 200ms ease-out, opacity 200ms ease-out",
+        opacity: open ? 0 : near ? 1 : 0.55,
+        zIndex: 20,
+        width: 26,
+        padding: "12px 0",
+        borderRadius: "10px 0 0 10px",
+        background: "rgba(24,24,30,0.92)",
+        boxShadow: "-3px 0 10px rgba(0,0,0,0.5)",
+        color: "rgba(255,255,255,0.85)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 8,
+        cursor: "pointer",
+        pointerEvents: open ? "none" : "auto",
+        userSelect: "none",
+      }}>
+      <FontAwesomeIcon icon={faChevronLeft} style={{ fontSize: 11 }}/>
+      <span style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", fontSize: 10, fontWeight: 700, letterSpacing: "0.12em" }}>
+        PILES
+      </span>
+      {count > 0 &&
+        <span style={{ minWidth: 18, height: 18, borderRadius: 9, background: "#1d4ed8", color: "white",
+          fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px" }}>
+          {count}
+        </span>}
+    </div>
+  );
 };

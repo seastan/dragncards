@@ -1789,6 +1789,13 @@ export const getGameDefSchema = (gameDef) => {
           }
         }
       },
+      "hiddenPilesOrder": {
+        "_description_": "The order of piles in the regular table's hidden piles drawer (groups the layout doesn't put on the table). A list of groupIds, using playerN for any player's group. Within shared groups, then the on-screen player's, then the other players', listed groups come first in this order and the rest follow by name. Example: [\"sharedSetAside\", \"sharedVictory\", \"playerNSideboard\"]",
+        "_type_": "array",
+        "_itemSchema_": {
+          "_type_": "string",
+        },
+      },
       "defaultFavorites": {
         "_description_": "The hotkeys a player starts with as favourites, until they star or unstar one themselves: shown in the favourites panel (View > Favorite hotkeys) and the mobile favourites bar, and in the radial menu opened by dragging on the table (pressing it, in the mobile UI). Each entry is \"<tab>:<key>\", naming a hotkey by its kind and its key: token:<key> (gameDef.hotkeys.token entries with a tokenType), card:<key> (gameDef.hotkeys.card, plus token-list entries without a tokenType), game:<key> (gameDef.hotkeys.game) or dragn:<key> (the engine's own hotkeys). Entries that match no hotkey are skipped. Example: [\"game:D\", \"token:1\", \"card:A\"]",
         "_type_": "array",

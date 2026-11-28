@@ -18,7 +18,7 @@ import { TouchModePrompt } from "./TouchModePrompt";
 import { useRadialMenu, RadialMenuOverlay } from "./MobileRadialMenu";
 import { ArmedHotkeyPill } from "./DesktopFavorites";
 import { useDesktopDrawerGeometry, useDesktopDrawerState, desktopDrawerRegions, desktopDrawerSlide,
-  desktopDrawerSlideMs, DesktopPilesDrawer, pointOverDrawer } from "./DesktopHiddenPiles";
+  desktopDrawerSlideMs, DesktopPilesDrawer, DrawerEdgeTab, pointOverDrawer } from "./DesktopHiddenPiles";
 import { detectTouchDevice } from "../../hooks/useIsTouchDevice";
 import { detectStandalone, isIOS } from "../../hooks/useIsStandalone";
 
@@ -225,6 +225,8 @@ export const Table = React.memo(({onDragEnd}) => {
             {touchAction && !touchMode &&
               <ArmedHotkeyPill touchAction={touchAction} onClear={() => setTouchAction(null)}/>}
             <RadialMenuOverlay menu={radial.menu} items={radial.items} showHint={false}/>
+            {drawerGeometry &&
+              <DrawerEdgeTab count={drawerGeometry.withCards} open={drawer.open} onOpen={() => drawer.setOpen(true)}/>}
             {rendererEngine === 'dnc3d'
               ? <Dnc3DTable
                   tiltDeg={tableAngle}
