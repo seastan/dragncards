@@ -258,20 +258,27 @@ export const useDesktopDrawerState = ({ tableRef, enabled }) => {
   return { open, expanded, panelRef, setExpanded };
 };
 
-const IconButton = ({ icon, title, onClick }) => (
-  <button
-    type="button"
-    title={title}
-    onClick={(e) => { e.stopPropagation(); onClick(e); }}
-    style={{
-      width: 28, height: 26, borderRadius: 6, border: "none",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.85)",
-      fontSize: 12, cursor: "pointer",
-    }}>
-    <FontAwesomeIcon icon={icon}/>
-  </button>
-);
+const IconButton = ({ icon, title, onClick }) => {
+  const [hover, setHover] = useState(false);
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={(e) => { e.stopPropagation(); onClick(e); }}
+      onPointerEnter={() => setHover(true)}
+      onPointerLeave={() => setHover(false)}
+      style={{
+        width: 28, height: 26, borderRadius: 6, border: "none",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        background: hover ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.1)",
+        color: hover ? "white" : "rgba(255,255,255,0.85)",
+        fontSize: 12, cursor: "pointer",
+        transition: "background-color 120ms ease-out, color 120ms ease-out",
+      }}>
+      <FontAwesomeIcon icon={icon}/>
+    </button>
+  );
+};
 
 const PileInfo = ({ row, g }) => {
   const dispatch = useDispatch();
